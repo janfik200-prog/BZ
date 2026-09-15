@@ -1,0 +1,325 @@
+[
+  {
+    "id": "ru01-kaspinskiy-rudnyy-uzel",
+    "title": "Разработка методики и оптимального комплекса геофизических исследований при выделении перспективных областей на наличие рудного золота в пределах Каспинского рудного узла",
+    "authors": [
+      "Трофимов И.В.",
+      "Валькова Е.Д.",
+      "Лазурченко А.В.",
+      "Степанов А.П.",
+      "Давыденко А.Ю."
+    ],
+    "journal": "Науки о Земле и недропользование",
+    "year": 2025,
+    "lang": "ru",
+    "doi": "10.21285/2686-9993-2025-48-2-204-223",
+    "url": "https://cyberleninka.ru/article/n/razrabotka-metodiki-i-optimalnogo-kompleksa-geofizicheskih-issledovaniy-pri-vydelenii-perspektivnyh-oblastey-na-nalichie-rudnogo",
+    "pdf": "https://cyberleninka.ru/article/n/razrabotka-metodiki-i-optimalnogo-kompleksa-geofizicheskih-issledovaniy-pri-vydelenii-perspektivnyh-oblastey-na-nalichie-rudnogo/pdf",
+    "pages": null,
+    "tables": null,
+    "figures": 13,
+    "kb": 832,
+    "probe": "fonts=0, images=58 — страницы в сжатых object stream, тип текстового слоя проверить при парсинге",
+    "sections": [
+      "Введение",
+      "Материалы и методы исследования",
+      "Результаты исследования и их обсуждение",
+      "Заключение"
+    ],
+    "entities": [
+      "Каспинский рудный узел",
+      "Красноярский край",
+      "беспилотная магниторазведка",
+      "вызванная поляризация",
+      "электромагнитное зондирование",
+      "трехмерная каскадная инверсия"
+    ],
+    "tests": "самая свежая статья, прямо про выделение перспективных областей в рудном узле; много графики — проверка того, что текст не тонет среди рисунков"
+  },
+  {
+    "id": "ru02-gur-mednokolchedannye-uzly",
+    "title": "Закономерности размещения и прогноз медноколчеданных рудных узлов в коллизионной зоне Главного Уральского разлома (ГУР)",
+    "authors": [
+      "Страшненко Г.И."
+    ],
+    "journal": "Известия Уральского государственного горного университета",
+    "year": 2013,
+    "lang": "ru",
+    "doi": null,
+    "url": "https://cyberleninka.ru/article/n/zakonomernosti-razmescheniya-i-prognoz-mednokolchedannyh-rudnyh-uzlov-v-kollizionnoy-zone-glavnogo-uralskogo-razloma-gur",
+    "pdf": "https://cyberleninka.ru/article/n/zakonomernosti-razmescheniya-i-prognoz-mednokolchedannyh-rudnyh-uzlov-v-kollizionnoy-zone-glavnogo-uralskogo-razloma-gur/pdf",
+    "pages": 11,
+    "tables": 3,
+    "figures": 4,
+    "kb": 400,
+    "probe": "fonts=1, 36 КБ на страницу — почти наверняка скан; главный кандидат на проверку OCR",
+    "sections": [],
+    "entities": [
+      "медноколчеданные месторождения",
+      "рудоносные узлы",
+      "коллизионная зона",
+      "Главный Уральский разлом",
+      "прогнозные карты",
+      "математическая модель"
+    ],
+    "tests": "скан без нормального текстового слоя: has_text должен упасть, документ уйти на полностраничный OCR с русским языком"
+  },
+  {
+    "id": "ru03-toupugol-hanmeyshorskiy",
+    "title": "Прогнозно-поисковая модель золоторудных объектов Тоупугол-Ханмейшорского рудного узла как основа для выделения перспективных площадей в пределах Малоуральского пояса",
+    "authors": [
+      "Андреев А.В."
+    ],
+    "journal": "Руды и металлы",
+    "year": 2021,
+    "lang": "ru",
+    "doi": null,
+    "url": "https://cyberleninka.ru/article/n/prognozno-poiskovaya-model-zolotorudnyh-obektov-toupugol-hanmeyshorskogo-rudnogo-uzla-kak-osnova-dlya-vydeleniya-perspektivnyh",
+    "pdf": "https://cyberleninka.ru/article/n/prognozno-poiskovaya-model-zolotorudnyh-obektov-toupugol-hanmeyshorskogo-rudnogo-uzla-kak-osnova-dlya-vydeleniya-perspektivnyh/pdf",
+    "pages": null,
+    "tables": null,
+    "figures": 5,
+    "kb": 4955,
+    "probe": "fonts=6, 5 МБ — много растровой графики, страницы в object stream",
+    "sections": [],
+    "entities": [
+      "Тоупугол-Ханмейшорский рудный узел",
+      "Полярный Урал",
+      "Малоуральский вулкано-плутонический пояс",
+      "Таньюско-Лагортинский рудный район",
+      "золото-сульфидно-кварцевая формация",
+      "прогнозно-поисковая модель"
+    ],
+    "tests": "ядро темы: прогнозно-поисковая модель как основа выделения площадей. Составные названия через дефис — проверка того, что чанкер их не рвёт"
+  },
+  {
+    "id": "ru04-zabaykalye-rudno-rossypnye",
+    "title": "Опыт прогнозирования перспективных на золотое оруденение площадей на основе комплексного анализа рудной и россыпной золотоносности (Забайкальский край)",
+    "authors": [
+      "Корчагина Д.А.",
+      "Агибалов О.А."
+    ],
+    "journal": "Отечественная геология",
+    "year": 2020,
+    "lang": "ru",
+    "doi": "10.24411/0869-7175-2020-10003",
+    "url": "https://cyberleninka.ru/article/n/opyt-prognozirovaniya-perspektivnyh-na-zolotoe-orudenenie-ploschadey-na-osnove-provedeniya-kompleksnogo-analiza-rudnoy-i-rossypnoy",
+    "pdf": "https://cyberleninka.ru/article/n/opyt-prognozirovaniya-perspektivnyh-na-zolotoe-orudenenie-ploschadey-na-osnove-provedeniya-kompleksnogo-analiza-rudnoy-i-rossypnoy/pdf",
+    "pages": 23,
+    "tables": 3,
+    "figures": 9,
+    "kb": 10111,
+    "probe": "fonts=157, 440 КБ на страницу — текстовый слой есть, но страницы тяжёлые",
+    "sections": [],
+    "entities": [
+      "рудно-россыпные узлы",
+      "Забайкальский край",
+      "золоторудные месторождения",
+      "россыпи золота",
+      "прогнозно-минерагенические работы",
+      "рудно-магматическая система"
+    ],
+    "tests": "самый крупный файл корпуса (10 МБ, 23 страницы) — проверка таймаутов и памяти"
+  },
+  {
+    "id": "ru05-gis-verkhoyansk",
+    "title": "ГИС как средство оценки рудообразующего потенциала интрузивных образований Верхоянского складчатого пояса (Восточная Якутия)",
+    "authors": [
+      "Костин А.В."
+    ],
+    "journal": "Науки о Земле и недропользование",
+    "year": 2008,
+    "lang": "ru",
+    "doi": null,
+    "url": "https://cyberleninka.ru/article/n/gis-kak-sredstvo-otsenki-rudoobrazuyuschego-potentsiala-intruzivnyh-obrazovaniy-verhoyanskogo-skladchatogo-poyasa-vostochnaya",
+    "pdf": "https://cyberleninka.ru/article/n/gis-kak-sredstvo-otsenki-rudoobrazuyuschego-potentsiala-intruzivnyh-obrazovaniy-verhoyanskogo-skladchatogo-poyasa-vostochnaya/pdf",
+    "pages": 9,
+    "tables": 2,
+    "figures": 3,
+    "kb": 1672,
+    "probe": "fonts=115 — цифровой текст; в самой статье указано «Ил. 3. Табл. 2», так что эталон точный",
+    "sections": [],
+    "entities": [
+      "Верхоянский складчатый пояс",
+      "Восточная Якутия",
+      "ГИС-технологии",
+      "рудная формация",
+      "минерализация",
+      "интрузии"
+    ],
+    "tests": "единственная статья, где число таблиц и рисунков названо самими авторами — эталонная проверка TableFormer"
+  },
+  {
+    "id": "ru06-yaregskiy-rudnyy-uzel",
+    "title": "Новое о титаноносности Ярегского рудного узла (Южный Тиман)",
+    "authors": [
+      "Колокольцев В.Г."
+    ],
+    "journal": "Региональная геология и металлогения",
+    "year": 2016,
+    "lang": "ru",
+    "doi": null,
+    "url": "https://cyberleninka.ru/article/n/novoe-o-titanonosnosti-yaregskogo-rudnogo-uzla-yuzhnyy-timan",
+    "pdf": "https://cyberleninka.ru/article/n/novoe-o-titanonosnosti-yaregskogo-rudnogo-uzla-yuzhnyy-timan/pdf",
+    "pages": 11,
+    "tables": null,
+    "figures": 6,
+    "kb": 5907,
+    "probe": "fonts=60, 537 КБ на страницу — тяжёлая растровая графика поверх текста",
+    "sections": [],
+    "entities": [
+      "Ярегский рудный узел",
+      "Ярегское месторождение",
+      "Южный Тиман",
+      "нефтетитановое месторождение",
+      "лейкоксен",
+      "псефитолиты",
+      "сидерит"
+    ],
+    "tests": "минералогические термины — проверка того, что редкие слова (лейкоксен, псефитолиты) не теряются при OCR и попадают в чанк"
+  },
+  {
+    "id": "ru07-priamurye-rudnoe-zoloto",
+    "title": "Перспективы Приамурья на рудное золото",
+    "authors": [
+      "Степанов В.А."
+    ],
+    "journal": "Региональная геология и металлогения",
+    "year": 2019,
+    "lang": "ru",
+    "doi": null,
+    "url": "https://cyberleninka.ru/article/n/perspektivy-priamurya-na-rudnoe-zoloto",
+    "pdf": "https://cyberleninka.ru/article/n/perspektivy-priamurya-na-rudnoe-zoloto/pdf",
+    "pages": 12,
+    "tables": null,
+    "figures": 8,
+    "kb": 2540,
+    "probe": "fonts=81, 212 КБ на страницу",
+    "sections": [],
+    "entities": [
+      "рудно-россыпные узлы",
+      "Приамурская провинция",
+      "металлогения",
+      "россыпь",
+      "золото",
+      "месторождение"
+    ],
+    "tests": "ранжирование узлов по добыче — в тексте много числовых рядов, проверка того, что цифры не рассыпаются"
+  },
+  {
+    "id": "ru08-priamurye-zolotonosnye-uzly",
+    "title": "Разновидности высокопродуктивных золотоносных узлов Приамурской провинции",
+    "authors": [
+      "Степанов В.А.",
+      "Мельников А.В."
+    ],
+    "journal": "Отечественная геология",
+    "year": 2019,
+    "lang": "ru",
+    "doi": "10.24411/0869-7175-2019-10015",
+    "url": "https://cyberleninka.ru/article/n/raznovidnosti-vysokoproduktivnyh-zolotonosnyh-uzlov-priamurskoy-provintsii",
+    "pdf": "https://cyberleninka.ru/article/n/raznovidnosti-vysokoproduktivnyh-zolotonosnyh-uzlov-priamurskoy-provintsii/pdf",
+    "pages": 7,
+    "tables": 3,
+    "figures": 4,
+    "kb": 1541,
+    "probe": "fonts=113, 220 КБ на страницу",
+    "sections": [],
+    "entities": [
+      "рудно-россыпные узлы",
+      "Приамурская провинция",
+      "россыпь",
+      "золото",
+      "месторождение",
+      "провинция"
+    ],
+    "tests": "самая короткая статья — быстрый прогон для отладки"
+  },
+  {
+    "id": "en01-tungsten-prospectivity-jiangxi",
+    "title": "Prospectivity Mapping of Tungsten Mineralization in Southern Jiangxi Province Using Few-Shot Learning",
+    "authors": [
+      "Zhou K.",
+      "Sun T.",
+      "Liu Y.",
+      "Feng M.",
+      "Tang J.",
+      "Mao L.",
+      "Pu W.",
+      "Huang J."
+    ],
+    "journal": "Minerals",
+    "year": 2023,
+    "lang": "en",
+    "doi": "10.3390/min13050669",
+    "url": "https://www.mdpi.com/2075-163X/13/5/669",
+    "pdf": "https://www.mdpi.com/2075-163X/13/5/669/pdf",
+    "pages": null,
+    "tables": 1,
+    "figures": 13,
+    "kb": null,
+    "probe": "MDPI — чистая цифровая вёрстка в две колонки",
+    "sections": [
+      "Introduction",
+      "Study Area and Data Used",
+      "Geological Setting",
+      "Mineral System",
+      "Methods",
+      "Results",
+      "Discussion"
+    ],
+    "entities": [
+      "mineral prospectivity mapping",
+      "tungsten mineralization",
+      "Yanshanian granitic intrusions",
+      "few-shot learning",
+      "SMOTE",
+      "southern Jiangxi"
+    ],
+    "tests": "английская статья с чёткой структурой разделов — эталон для проверки структурной валидации, которой в русских статьях почти нет"
+  },
+  {
+    "id": "en02-hadamengou-orefield-multifractal",
+    "title": "Multivariate Statistical Analysis and S-A Multifractal Modeling of Lithogeochemical Data for Mineral Exploration: A Case Study from the Buerhantu Area, Hadamengou Gold Orefield",
+    "authors": [
+      "Fan S.",
+      "Wang D.",
+      "Yang B.",
+      "Ma H.",
+      "Su R.",
+      "Chen L.",
+      "Su P.",
+      "Hou X.",
+      "Lv H.",
+      "Xia Z."
+    ],
+    "journal": "Geosciences",
+    "year": 2025,
+    "lang": "en",
+    "doi": "10.3390/geosciences15120473",
+    "url": "https://www.mdpi.com/2076-3263/15/12/473",
+    "pdf": "https://www.mdpi.com/2076-3263/15/12/473/pdf",
+    "pages": null,
+    "tables": 13,
+    "figures": 19,
+    "kb": null,
+    "probe": "13 таблиц — самая насыщенная таблицами статья корпуса",
+    "sections": [
+      "Introduction",
+      "Geological Setting",
+      "Sampling and Methods",
+      "Results",
+      "Discussion",
+      "Conclusions"
+    ],
+    "entities": [
+      "Hadamengou gold orefield",
+      "Buerhantu area",
+      "North China Craton",
+      "S-A multifractal modeling",
+      "principal component analysis",
+      "geochemical anomaly"
+    ],
+    "tests": "главный тест TableFormer: 13 таблиц геохимии с числовыми колонками"
+  }
+]

@@ -1,0 +1,163 @@
+"""Чанкинг через HybridChunker.
+
+Три вещи, которые в туториалах обычно сделаны неправильно и здесь исправлены:
+
+1. Токенайзер берётся от модели эмбеддинга (BGE-M3), а не от all-MiniLM.
+   На русском счёт токенов у этих токенайзеров расходится в разы.
+2. Эмбеддится contextualize(chunk) — текст с заголовками разделов сверху,
+   а цитируется chunk.text. В базу кладём оба.
+3. Со страницами: номер страницы достаётся из провенанса
+   chunk.meta.doc_items[].prov[].page_no — без него нечем выполнить
+   требование «всегда указывай источник и страницу».
+
+Про overlap: у HybridChunker нет нативного перекрытия — он режет по семантическим
+границам. Если перекрытие всё-таки нужно (settings.overlap_tokens > 0), оно
+добавляется постобработкой и только в embed_text; текст для цитирования не трогаем.
+Чтобы итог остался в пределах max_tokens, режем на (max_tokens - overlap_tokens).
+"""
+
+from __future__ import annotations
+
+from typing import Iterable
+
+from .config import Settings
+from .models import Chunk, ParsedDoc
+
+
+def _build_chunker(settings: Settings):
+    from docling.chunking import HybridChunker
+    from transformers import AutoTokenizer
+
+    hf_tokenizer = AutoTokenizer.from_pretrained(settings.embed_model_id)
+    budget = max(settings.max_tokens - settings.overlap_tokens, 64)
+
+    try:  # docling-core >= 2.2x
+        from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
+
+        tokenizer = HuggingFaceTokenizer(tokenizer=hf_tokenizer, max_tokens=budget)
+        chunker = HybridChunker(tokenizer=tokenizer, merge_peers=True)
+    except ImportError:  # pragma: no cover — старый API
+        chunker = HybridChunker(tokenizer=hf_tokenizer, max_tokens=budget, merge_peers=True)
+
+    return chunker, hf_tokenizer
+
+
+def _pages_of(chunk) -> list[int]:
+    pages: set[int] = set()
+    for item in (getattr(chunk.meta, "doc_items", None) or []):
+        for prov in (getattr(item, "prov", None) or []):
+            page_no = getattr(prov, "page_no", None)
+            if page_no is not None:
+                pages.add(int(page_no))
+    return sorted(pages)
+
+
+def _has_table(chunk) -> bool:
+    for item in (getattr(chunk.meta, "doc_items", None) or []):
+        label = getattr(item, "label", "")
+        if "table" in str(getattr(label, "value", label)).lower():
+            return True
+    return False
+
+
+def _apply_overlap(chunks: list[Chunk], hf_tokenizer, overlap_tokens: int) -> list[Chunk]:
+    """Добавляет хвост предыдущего чанка в начало embed_text следующего."""
+    if overlap_tokens <= 0:
+        return chunks
+
+    for i in range(1, len(chunks)):
+        prev_ids = hf_tokenizer.encode(chunks[i - 1].text, add_special_tokens=False)
+        if not prev_ids:
+            continue
+        tail = hf_tokenizer.decode(prev_ids[-overlap_tokens:], skip_special_tokens=True).strip()
+        if tail:
+            chunks[i].embed_text = f"{tail}\n\n{chunks[i].embed_text}"
+            chunks[i].n_tokens = len(
+                hf_tokenizer.encode(chunks[i].embed_text, add_special_tokens=False)
+            )
+    return chunks
+
+
+def chunk_parsed_doc(parsed: ParsedDoc, settings: Settings) -> list[Chunk]:
+    """Чанкинг документа. Для docling — по структуре, для fallback — по тексту."""
+    if parsed.docling_doc:
+        return _chunk_docling(parsed, settings)
+    return _chunk_plain_text(parsed, settings)
+
+
+def _chunk_docling(parsed: ParsedDoc, settings: Settings) -> list[Chunk]:
+    from docling_core.types.doc.document import DoclingDocument
+
+    chunker, hf_tokenizer = _build_chunker(settings)
+    doc = DoclingDocument.model_validate(parsed.docling_doc)
+
+    chunks: list[Chunk] = []
+    for i, raw in enumerate(chunker.chunk(dl_doc=doc)):
+        embed_text = chunker.contextualize(chunk=raw)
+        chunks.append(
+            Chunk(
+                doc_id=parsed.doc_id,
+                index=i,
+                text=raw.text,
+                embed_text=embed_text,
+                headings=list(getattr(raw.meta, "headings", None) or []),
+                pages=_pages_of(raw),
+                n_tokens=len(hf_tokenizer.encode(embed_text, add_special_tokens=False)),
+                has_table=_has_table(raw),
+                source_path=parsed.source_path,
+            )
+        )
+
+    return _apply_overlap(chunks, hf_tokenizer, settings.overlap_tokens)
+
+
+def _chunk_plain_text(parsed: ParsedDoc, settings: Settings) -> list[Chunk]:
+    """Fallback-чанкинг: структуры нет, режем по абзацам в пределах бюджета токенов.
+
+    Страницу сохраняем — она известна из pages_text, и цитирование не ломается.
+    """
+    from transformers import AutoTokenizer
+
+    hf_tokenizer = AutoTokenizer.from_pretrained(settings.embed_model_id)
+    budget = max(settings.max_tokens - settings.overlap_tokens, 64)
+
+    chunks: list[Chunk] = []
+    index = 0
+    for page_no in sorted(parsed.pages_text):
+        buffer: list[str] = []
+        buffer_tokens = 0
+        for para in _paragraphs(parsed.pages_text[page_no]):
+            n = len(hf_tokenizer.encode(para, add_special_tokens=False))
+            if buffer and buffer_tokens + n > budget:
+                chunks.append(_plain_chunk(parsed, index, buffer, buffer_tokens, page_no))
+                index += 1
+                buffer, buffer_tokens = [], 0
+            buffer.append(para)
+            buffer_tokens += n
+        if buffer:
+            chunks.append(_plain_chunk(parsed, index, buffer, buffer_tokens, page_no))
+            index += 1
+
+    return _apply_overlap(chunks, hf_tokenizer, settings.overlap_tokens)
+
+
+def _paragraphs(text: str) -> Iterable[str]:
+    for block in text.split("\n\n"):
+        block = block.strip()
+        if block:
+            yield block
+
+
+def _plain_chunk(parsed: ParsedDoc, index: int, buffer: list[str], n_tokens: int, page_no: int) -> Chunk:
+    body = "\n\n".join(buffer)
+    return Chunk(
+        doc_id=parsed.doc_id,
+        index=index,
+        text=body,
+        embed_text=body,
+        headings=[],
+        pages=[page_no],
+        n_tokens=n_tokens,
+        has_table=False,
+        source_path=parsed.source_path,
+    )

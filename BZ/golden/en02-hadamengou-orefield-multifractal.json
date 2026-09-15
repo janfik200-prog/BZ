@@ -1,0 +1,30 @@
+{
+  "title": "Multivariate Statistical Analysis and S-A Multifractal Modeling of Lithogeochemical Data for Mineral Exploration: A Case Study from the Buerhantu Area, Hadamengou Gold Orefield",
+  "lang": "en",
+  "kind": "статья",
+  "pages": null,
+  "tables": 13,
+  "sections": [
+    "Introduction",
+    "Geological Setting",
+    "Sampling and Methods",
+    "Results",
+    "Discussion",
+    "Conclusions"
+  ],
+  "entities": [
+    "Hadamengou gold orefield",
+    "Buerhantu area",
+    "North China Craton",
+    "S-A multifractal modeling",
+    "principal component analysis",
+    "geochemical anomaly"
+  ],
+  "notes": "13 таблиц — самая насыщенная таблицами статья корпуса. Что проверяет: главный тест TableFormer: 13 таблиц геохимии с числовыми колонками",
+  "source": {
+    "journal": "Geosciences",
+    "year": 2025,
+    "doi": "10.3390/geosciences15120473",
+    "url": "https://www.mdpi.com/2076-3263/15/12/473"
+  }
+}

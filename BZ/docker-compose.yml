@@ -1,0 +1,41 @@
+# Имя проекта задано явно. Иначе Docker берёт его из названия папки, и стоит
+# папку переименовать или перенести — как он создаёт новый пустой том, а база
+# «исчезает», хотя данные никуда не делись.
+name: georag
+
+# Локальная база для ГеоRAG: PostgreSQL с расширением pgvector.
+#
+#   docker compose up -d      поднять (первый раз скачает образ, ~400 МБ)
+#   docker compose ps         проверить, что живёт
+#   docker compose down       остановить (данные останутся в томе georag-data)
+#
+# Данные лежат в docker-томе, а не в папке проекта: так их не затрёт распаковка
+# архива с кодом и не попортит антивирус.
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: georag-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: georag
+      POSTGRES_PASSWORD: georag
+      POSTGRES_DB: georag
+      # Локаль ru_RU в образе не собрана, и initdb с ней падает в цикле перезапуска.
+      # Русскому полнотекстовому поиску она и не нужна: словарь russian — это
+      # стеммер Snowball внутри Postgres, от локали операционной системы он не зависит.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+    ports:
+      # Снаружи 5433, а не 5432: на машине может уже стоять свой PostgreSQL,
+      # и тогда мы молча ходим не в ту базу. Внутри контейнера порт обычный.
+      - "5433:5432"
+    volumes:
+      - georag-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U georag -d georag"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  georag-data:

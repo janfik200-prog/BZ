@@ -1,0 +1,30 @@
+# --- парсинг ---
+# ВАЖНО: easyocr идёт отдельным extra. Без него docling падает на первом же скане
+# с ImportError, потому что автовыбор движка (OcrAutoOptions) не находит ни одного.
+docling[easyocr]>=2.126.0
+docling-core[chunking]>=2.0   # HybridChunker и токенайзеры
+pymupdf4llm>=1.26             # запасной парсер
+
+# --- чанкинг / токенайзер ---
+transformers>=4.44            # токенайзер BGE-M3 (должен совпадать с моделью эмбеддинга)
+
+# --- база знаний ---
+sentence-transformers>=3.0    # эмбеддинги BGE-M3 (1024 измерения, мультиязычная)
+psycopg[binary]>=3.1          # PostgreSQL; binary — чтобы на Windows не собирать из исходников
+
+# --- добыча ---
+requests>=2.31                # поиск в источниках и получение статей в память
+pyyaml>=6.0                   # каталог источников sources.yaml
+
+# Примечания по окружению:
+#
+# 1. GPU: pip ставит сборку torch с CUDA автоматически. Если нужен конкретный
+#    рантайм, поставьте torch до docling:
+#       pip install torch --index-url https://download.pytorch.org/whl/cu124
+#
+# 2. Tesseract (альтернативный движок OCR и OCR внутри pymupdf4llm) требует
+#    системных пакетов, иначе русский не распознаётся:
+#       sudo apt install tesseract-ocr tesseract-ocr-rus tesseract-ocr-eng
+#
+# 3. Первый запуск docling скачивает модели разметки и TableFormer с HuggingFace.
+#    Для офлайн-машины прогрейте кэш заранее:  docling-tools models download

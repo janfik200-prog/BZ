@@ -1,0 +1,31 @@
+{
+  "title": "Prospectivity Mapping of Tungsten Mineralization in Southern Jiangxi Province Using Few-Shot Learning",
+  "lang": "en",
+  "kind": "статья",
+  "pages": null,
+  "tables": 1,
+  "sections": [
+    "Introduction",
+    "Study Area and Data Used",
+    "Geological Setting",
+    "Mineral System",
+    "Methods",
+    "Results",
+    "Discussion"
+  ],
+  "entities": [
+    "mineral prospectivity mapping",
+    "tungsten mineralization",
+    "Yanshanian granitic intrusions",
+    "few-shot learning",
+    "SMOTE",
+    "southern Jiangxi"
+  ],
+  "notes": "MDPI — чистая цифровая вёрстка в две колонки. Что проверяет: английская статья с чёткой структурой разделов — эталон для проверки структурной валидации, которой в русских статьях почти нет",
+  "source": {
+    "journal": "Minerals",
+    "year": 2023,
+    "doi": "10.3390/min13050669",
+    "url": "https://www.mdpi.com/2075-163X/13/5/669"
+  }
+}
