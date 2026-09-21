@@ -1,9 +1,10 @@
-"""Проверка извлечения сущностей и запросов графа. Без базы.
+"""Проверка графа: названия правилами, словарь, разметка понятий, контракт. Без базы.
 
 Запуск:  python tests/graph_smoke_test.py
 
 Тексты взяты из настоящих статей корпуса — на выдуманных предложениях правила
-выглядят лучше, чем есть.
+выглядят лучше, чем есть. База и модели подменяются: проверяется логика,
+а не то, что лежит у вас в PostgreSQL.
 """
 
 from __future__ import annotations
@@ -13,10 +14,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from georag.graph import store  # noqa: E402
-from georag.graph.cli import build  # noqa: E402
+from georag.graph import api, concepts, store  # noqa: E402
+from georag.graph import vocabulary as V  # noqa: E402
 from georag.graph.extract import COMMODITY, METHOD, OBJECT, extract  # noqa: E402
-from georag.graph.llm_extract import extract_with_llm, parse_response  # noqa: E402
 
 PASSED: list[str] = []
 FAILED: list[str] = []
@@ -133,127 +133,378 @@ def test_dedup() -> None:
     check("пустой текст не ломает", extract("") == [])
 
 
-def test_build() -> None:
-    print("\nПостроение графа")
-    conn = _FakeConn(rows=[
-        [  # chunks_for_graph
-            (1, "d1", "В пределах Тырныаузского рудного узла выявлено золото."),
-            (2, "d1", "Применён метод главных компонент по данным ASTER."),
-            (3, "d2", "Анабарский щит изучен слабо; оценена алмазоносность."),
-        ],
-        [("объект", 3), ("ископаемое", 2), ("метод", 2)],   # counts by kind
-        [(9,)],                                              # mentions
-        [(0,)],                                              # relations
-    ])
-    info = build(conn, verbose=False)
-    check("просмотрены все фрагменты", info["chunks"] == 3, str(info))
-    check("статьи посчитаны", info["documents"] == 2, str(info))
-
-    sql = " ".join(s for s, _ in conn.executed)
-    check("граф чистится перед сборкой", "DELETE FROM mentions" in sql and "DELETE FROM entities" in sql)
-    check("сущности пишутся без дублей", "ON CONFLICT (key) DO NOTHING" in sql)
-    inserted = [p for s, p in conn.executed if s.startswith("INSERT INTO entities")]
-    written = {p[1] for p in inserted}
-    check("найден узел", "Тырныаузский рудный узел" in written, str(written))
-    check("найден щит", "Анабарский щит" in written, str(written))
-    check("упоминание привязано к статье и фрагменту",
-          any(s.startswith("INSERT INTO mentions") and p[1] == "d1" and p[2] == 1
-              for s, p in conn.executed))
-
-
-def test_llm_pass() -> None:
-    print("\nРазбор моделью поверх правил")
-    answer = {
-        "entities": [
-            {"name": "трубка Удачная", "kind": "объект"},
-            {"name": "Далдыно-Алакитский район", "kind": "объект"},
-            {"name": "алмазы", "kind": "ископаемое"},
-            {"name": "", "kind": "объект"},
-            {"name": "нечто", "kind": "выдумка"},
-        ],
-        "relations": [
-            {"from": "трубка Удачная", "to": "Далдыно-Алакитский район", "type": "находится в"},
-            {"from": "трубка Удачная", "to": "алмазы", "type": "содержит"},
-            {"from": "трубка Удачная", "to": "Мирный", "type": "рядом с"},
-            {"from": "трубка Удачная", "to": "трубка Удачная", "type": "равно"},
-            "мусор",
-        ],
-    }
-    entities, relations = parse_response(answer)
-    found = {e.name for e in entities}
-    check("имя с обратным порядком слов взято", "трубка Удачная" in found, str(found))
-    check("пустое имя отброшено", "" not in found)
-    check("неизвестный вид отброшен", "нечто" not in found)
-    check("связи названы", {r.type for r in relations} == {"находится в", "содержит"},
-          str([r.type for r in relations]))
-    check("связь на невыписанную сущность отброшена",
-          all("мирн" not in r.to_key for r in relations))
-    check("связь с самой собой отброшена", all(r.from_key != r.to_key for r in relations))
-    check("не-словарь в списке не роняет разбор", len(relations) == 2)
-
-    # Ключи общие с правилами — значит найденное обоими способами схлопнется.
-    from georag.graph.extract import _key
-    check("ключ считается так же, как у правил",
-          [e for e in entities if e.name == "алмазы"][0].key == _key("алмазы", COMMODITY))
-
-    class _Dead:
-        def chat_json(self, system, user):
-            raise ConnectionError("Ollama не отвечает")
-
-    check("молчащая модель не роняет сборку", extract_with_llm(_Dead(), "текст") == ([], []))
-
-
-def test_build_with_llm() -> None:
-    print("\nСборка графа с моделью")
-
-    class _Model:
-        def chat_json(self, system, user):
-            return {
-                "entities": [{"name": "трубка Удачная", "kind": "объект"},
-                             {"name": "алмазы", "kind": "ископаемое"}],
-                "relations": [{"from": "трубка Удачная", "to": "алмазы", "type": "содержит"}],
-            }
-
-    conn = _FakeConn(rows=[
-        [(1, "d1", "Далдыно-Алакитский район изучен бурением.")],
-        [("объект", 2), ("ископаемое", 1)],
-        [(3,)],
-        [(1,)],
-    ])
-    info = build(conn, verbose=False, llm=_Model())
-    sql = " ".join(s for s, _ in conn.executed)
-    check("связь записана", "INSERT INTO relations" in sql)
-    check("модель дополнила правила, а не заменила",
-          {p[1] for s, p in conn.executed if s.startswith("INSERT INTO entities")}
-          >= {"Далдыно-Алакитский район", "трубка Удачная"},
-          str({p[1] for s, p in conn.executed if s.startswith("INSERT INTO entities")}))
-    check("число связей попало в отчёт", info.get("relations") == 1, str(info))
-
-
 def test_queries() -> None:
-    print("\nЗапросы графа")
+    print("\nЗапросы по названиям")
     conn = _FakeConn(rows=[[("k", "Анабарский щит", "объект", 3, 21)]])
     rows = store.top_entities(conn, kind="объект")
-    check("сущности считаются по статьям", rows[0]["docs"] == 3, str(rows))
+    check("названия считаются по статьям", rows[0]["docs"] == 3, str(rows))
     sql = conn.executed[0][0]
     check("сортировка по числу статей", "ORDER BY docs DESC" in sql)
     check("фильтр по виду подставлен", "e.kind = %(kind)s" in sql)
+    check("совместной встречаемости больше нет", not hasattr(store, "related"))
 
-    conn = _FakeConn(rows=[[("k2", "золото", "ископаемое", 4)]])
-    rel = store.related(conn, "k")
-    check("связь — это общая статья", "other.doc_id = mine.doc_id" in conn.executed[0][0])
-    check("сама с собой не связывается", "other.entity_key <> mine.entity_key" in conn.executed[0][0])
-    check("возвращает число общих статей", rel[0]["together"] == 4, str(rel))
+
+# --------------------------------------------------------------------------- #
+#  Словарь
+# --------------------------------------------------------------------------- #
+def _vocab() -> V.Vocabulary:
+    return V.load()
+
+
+def test_vocabulary_file() -> None:
+    print("\nСловарь vocabulary.yaml")
+    vocab = _vocab()
+    check("восемь понятий, как в kb.concept", len(vocab.concepts) == 8, str(list(vocab.concepts)))
+    expected = {
+        "структурный контроль", "гидротермальные изменения", "литологический контроль",
+        "магматизм", "палеодолины и впадины", "плотностная и магнитная неоднородность",
+        "рельеф и геоморфология", "обнажённость и растительный покров",
+    }
+    check("коды совпадают с kb.concept буква в букву", set(vocab.concepts) == expected,
+          str(set(vocab.concepts) ^ expected))
+    kinds = {c.kind for c in vocab.concepts.values()}
+    check("два рода понятий", kinds == set(V.CONCEPT_KINDS), str(kinds))
+    check("у каждого понятия есть определение",
+          all(len(c.definition) > 40 for c in vocab.concepts.values()))
+    check("три типа связей", set(vocab.relations) == {"описывает", "проявлено_на", "измеряет"})
+    check("отпечаток словаря посчитан", len(vocab.sha) == 16)
+    check("предупреждений нет", not vocab.warnings, str(vocab.warnings))
+
+
+def test_vocabulary_errors() -> None:
+    print("\nОшибки в словаре называются по месту")
+    base = {"гидротермальные изменения": {
+        "род": "рудоконтролирующий фактор",
+        "определение": "Околорудная переработка пород горячими растворами.",
+        "синонимы": ["окварцевание"]}}
+
+    def error(data) -> str:
+        try:
+            V.parse(data)
+        except V.VocabularyError as exc:
+            return str(exc)
+        return ""
+
+    check("пустые понятия", "пуст" in error({"понятия": {}}))
+    check("неизвестный род", "род" in error({"понятия": {"х": {**base["гидротермальные изменения"],
+                                                                "род": "фактор"}}}))
+    check("нет определения", "определения" in error(
+        {"понятия": {"х": {"род": "условие наблюдения", "определение": ""}}}))
+    check("связь, которую код не строит",
+          "не умеет" in error({"понятия": base,
+                               "связи": {"х": {"от": "территория", "к": "территория"}}}))
+    check("неизвестный раздел", "неизвестные" in error({"понятия": base, "признаки": {}}))
+    check("синоним строкой, а не списком, принимается",
+          error({"понятия": {"х": {**base["гидротермальные изменения"], "синонимы": "метасоматоз"}}})
+          == "")
+    dup = V.parse({"понятия": {
+        "а": {**base["гидротермальные изменения"], "синонимы": ["разлом"]},
+        "б": {**base["гидротермальные изменения"], "синонимы": ["разлом"]}}})
+    check("общий синоним — предупреждение, не ошибка", dup.warnings, str(dup.warnings))
+
+
+def test_patterns() -> None:
+    print("\nСинонимы находят слово в любом падеже")
+    vocab = _vocab()
+    hydro = vocab.concepts["гидротермальные изменения"].matcher
+    check("окварцевание → «окварцеванием»",
+          "окварцевание" in hydro.found("сопровождается окварцеванием пород"))
+    check("метасоматоз → «метасоматоза»",
+          "метасоматоз" in hydro.found("зоны калиевого метасоматоза"))
+    check("английское во множественном числе",
+          "alteration zone" in hydro.found("hydrothermal alteration zones were mapped"))
+    struct = vocab.concepts["структурный контроль"].matcher
+    check("фраза из двух слов с падежами",
+          "пересечение разломов" in struct.found("к узлам пересечения разломов"))
+    check("сложное слово не цепляется",
+          not struct.found("процессы разломообразования не изучены"))
+    cover = vocab.concepts["обнажённость и растительный покров"].matcher
+    check("«ё» и «е» — одно", "обнажённость" in cover.found("низкая обнаженность территории"))
+    relief = vocab.concepts["рельеф и геоморфология"].matcher
+    check("аббревиатура с учётом регистра", relief.found("по ЦМР SRTM") and
+          not relief.found("dem и srtm строчными"))
+    tags = vocab.tags("В пределах Анабарского щита по данным ASTER и АГСМ")
+    check("территория в родительном падеже", ("территория", "Анабарский щит") in tags, str(tags))
+    check("метод по синониму", ("метод", "аэрогамма-спектрометрия") in tags, str(tags))
+    check("поиск имени по синониму", vocab.territory("Anabar shield").name == "Анабарский щит")
+    check("понятие без учёта «ё»",
+          vocab.concept("обнаженность и растительный покров").code
+          == "обнажённость и растительный покров")
+
+
+# --------------------------------------------------------------------------- #
+#  Предложения и цитаты
+# --------------------------------------------------------------------------- #
+def test_sentences() -> None:
+    print("\nПредложения")
+    text = ("Работы выполнены А. П. Степановым и др. в 2019 г. на площади. "
+            "Выделены зоны окварцевания (см. рис. 3). Оруденение связано с разломами!")
+    sentences = concepts.split_sentences(text)
+    check("инициалы и сокращения не рвут предложение", len(sentences) == 3, str(sentences))
+    check("пустой текст", concepts.split_sentences("") == [])
+
+
+def test_quotes() -> None:
+    print("\nЦитата сверяется с текстом")
+    text = ("Для Хаптасыннахской зоны описаны две стадии:\nранний калиевый метасоматизм "
+            "и позднее «окварцевание» с серицитизацией. Далее — о структуре.")
+    found = concepts.locate_quote("ранний калиевый метасоматизм и позднее \"окварцевание\"", text)
+    check("находит при других кавычках и переносе строки",
+          found == "ранний калиевый метасоматизм и позднее «окварцевание»", str(found))
+    found = concepts.locate_quote("РАННИЙ КАЛИЕВЫЙ МЕТАСОМАТИЗМ", text)
+    check("регистр не мешает, а цитата возвращается как в статье",
+          found == "ранний калиевый метасоматизм", str(found))
+    found = concepts.locate_quote("описаны две стадии … с серицитизацией", text)
+    check("сокращение многоточием: части по порядку",
+          found is not None and found.startswith("описаны") and found.endswith("серицитизацией"),
+          str(found))
+    check("выдуманная цитата не проходит",
+          concepts.locate_quote("описаны три стадии березитизации", text) is None)
+    check("слишком короткая цитата не проходит", concepts.locate_quote("две", text) is None)
+    check("части в обратном порядке не проходят",
+          concepts.locate_quote("с серицитизацией … описаны две стадии", text) is None)
+
+    vocab = _vocab()
+    q = concepts.quote_by_terms(concepts.split_sentences(text),
+                                vocab.concepts["гидротермальные изменения"].matcher)
+    check("цитата — предложение с большинством слов словаря",
+          q is not None and "серицитизацией" in q, str(q))
+
+
+def test_judge() -> None:
+    print("\nРешение по ответу модели")
+    text = "Выделены зоны интенсивного окварцевания и серицитизации вдоль разломов."
+    verdict, quote, _ = concepts.judge(
+        {"описывает": True, "цитата": "зоны интенсивного окварцевания и серицитизации"}, text)
+    check("подтверждение с цитатой", verdict == store.CONFIRMED and quote, str(verdict))
+    verdict, _, _ = concepts.judge({"описывает": "да", "цитата": "зоны березитизации пород"}, text)
+    check("«описывает», но цитаты нет в тексте — не подтверждение",
+          verdict == store.UNCHECKED, verdict)
+    verdict, _, reason = concepts.judge({"описывает": False, "причина": "упомянуто мимоходом"}, text)
+    check("отказ с причиной", verdict == store.REJECTED and "мимоходом" in reason)
+
+
+class _ScriptedLLM:
+    model = "qwen3:14b"
+
+    def __init__(self, answers):
+        self.answers = list(answers)
+        self.prompts = []
+
+    def chat_json(self, system, user):
+        self.prompts.append(user)
+        answer = self.answers.pop(0)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+
+def test_verify() -> None:
+    print("\nПроверка моделью")
+    text = "Выделены зоны интенсивного окварцевания и серицитизации вдоль разломов."
+    rows = [(1, "гидротермальные изменения", text),
+            (2, "гидротермальные изменения", text),
+            (3, "гидротермальные изменения", text)]
+    llm = _ScriptedLLM([
+        {"описывает": True, "цитата": "зоны интенсивного окварцевания и серицитизации"},
+        {"описывает": True, "цитата": "выдуманная цитата про березиты"},   # переспросить
+        {"описывает": True, "цитата": "снова выдумка про березиты и пиритизацию"},
+        {"описывает": False, "причина": "не о том"},
+    ])
+    conn = _FakeConn(rows=[rows])
+    stats = concepts.verify(conn, llm, _vocab(), log=lambda *a: None)
+    check("все три просмотрены", stats["checked"] == 3, str(stats))
+    check("одно подтверждено", stats["confirmed"] == 1, str(stats))
+    check("выдуманная дважды цитата отклонена", stats["no_quote"] == 1, str(stats))
+    check("переспрос содержит замечание", "не найдена" in llm.prompts[2])
+    updates = [p for s, p in conn.executed if s.startswith("UPDATE evidence")]
+    check("решение записано по каждому", len(updates) == 3, str(len(updates)))
+    check("фиксация после каждого решения", conn.commits == 3, str(conn.commits))
+
+    dead = _ScriptedLLM([ConnectionError("нет Ollama")] * 5)
+    conn = _FakeConn(rows=[rows])
+    stats = concepts.verify(conn, dead, _vocab(), log=lambda *a: None)
+    check("молчащая модель — остановка, решения не приняты",
+          stats["stopped"] and stats["checked"] == 0, str(stats))
+    check("ничего не записано", not any(s.startswith("UPDATE") for s, _ in conn.executed))
+
+
+# --------------------------------------------------------------------------- #
+#  Кандидаты шага 1
+# --------------------------------------------------------------------------- #
+class _Embedder:
+    name = "проба"
+
+    def encode(self, texts):
+        # Вектор «про изменения», если в тексте есть «окварц», иначе ортогональный.
+        return [[1.0, 0.0] if "окварц" in t.lower() or "гидротерм" in t.lower() else [0.0, 1.0]
+                for t in texts]
+
+
+def test_candidates() -> None:
+    print("\nКандидаты: вектор, словарь, оба")
+    vocab = V.parse({"понятия": {"гидротермальные изменения": {
+        "род": "рудоконтролирующий фактор",
+        "определение": "Околорудная переработка пород горячими растворами, окварцевание.",
+        "синонимы": ["окварцевание", "разлом"]}}})
+    chunks = [
+        (1, "d1", "Интенсивное окварцевание вдоль контакта. Вторая фраза."),
+        (2, "d1", "Без слов словаря здесь. Гидротермальный процесс описан подробно."),
+        (3, "d2", "Разлом северо-западного простирания. Ничего о растворах."),
+        (4, "d2", "Разлом, и совсем мимо."),
+    ]
+    # Похожесть на определение: 1 — близко, 2 — близко, 3 — умеренно, 4 — мимо.
+    conn = _FakeConn(rows=[[(1, 0.71), (2, 0.60), (3, 0.47)]])
+    found, report = concepts.find_candidates(conn, _Embedder(), vocab, chunks,
+                                             log=lambda *a: None)
+    by = {c.chunk_id: c for c in found}
+    check("близко и со словом — «оба»", by[1].found_by == "оба", str(by.get(1)))
+    check("близко без слов — «вектор»", by[2].found_by == "вектор", str(by.get(2)))
+    check("слово при умеренной близости — «словарь»", by[3].found_by == "словарь",
+          str(by.get(3)))
+    check("слово без близости не проходит", 4 not in by)
+    check("цитата — предложение со словом", by[1].quote.startswith("Интенсивное окварцевание"),
+          by[1].quote)
+    check("без слов словаря цитата — предложение, ближайшее к определению",
+          by[2].quote == "Гидротермальный процесс описан подробно.", by[2].quote)
+    check("сводка по понятию", report["гидротермальные изменения"]["total"] == 3, str(report))
+
+    # Много кандидатов без слов словаря: цитаты подбираются пачками, и ни одна
+    # не должна съехать на чужой фрагмент на границе пачки.
+    many = [(100 + i, f"d{i}", " ".join(f"Фраза номер {k} без смысла." for k in range(9))
+             + f" Гидротермальный признак {i}.") for i in range(70)]
+    conn = _FakeConn(rows=[[(cid, 0.9) for cid, _, _ in many]])
+    found, _ = concepts.find_candidates(conn, _Embedder(), vocab, many, log=lambda *a: None)
+    check("пачки по 512 предложений не перепутали цитаты",
+          len(found) == 70 and all(c.quote == f"Гидротермальный признак {c.chunk_id - 100}."
+                                   for c in found), str([c.quote for c in found[:3]]))
+    check("порог передан в запрос",
+          any("1 - (embedding <=> %(q)s::vector) >= %(floor)s" in s for s, _ in conn.executed))
+
+
+# --------------------------------------------------------------------------- #
+#  Контракт с базой данных проекта
+# --------------------------------------------------------------------------- #
+def test_request() -> None:
+    print("\nЗапрос по шаблону")
+    vocab = _vocab()
+    req = api.parse_request(vocab, {"concept": "гидротермальные изменения",
+                                    "territory": "Billyakh", "method": "cokriging",
+                                    "limit": "7", "checked_only": "true"})
+    check("имена приведены к словарю",
+          req["territory"] == "Билляхская зона" and req["method"] == "кокригинг", str(req))
+    check("число из строки", req["limit"] == 7)
+    check("флаг из строки", req["checked_only"] is True)
+    check("умолчания", api.parse_request(vocab, {"concept": "магматизм"})["limit"] == 5)
+
+    def error(payload) -> api.RequestError | None:
+        try:
+            api.parse_request(vocab, payload)
+        except api.RequestError as exc:
+            return exc
+        return None
+
+    exc = error({"concept": "рудный фактор"})
+    check("неизвестное понятие — с перечнем известных", exc and len(exc.known) == 8)
+    check("без понятия", error({}) is not None)
+    check("неизвестная территория", error({"concept": "магматизм", "territory": "Луна"}))
+    check("лимит за пределами", error({"concept": "магматизм", "limit": 1000}))
+    check("лишнее поле — ошибка, а не молчание", error({"concept": "магматизм", "q": "х"}))
+    check("чужая версия контракта", error({"concept": "магматизм", "api_version": 2}))
+    payload = error({"concept": "х"}).payload()
+    check("ошибка отдаётся с версией", payload["api_version"] == 1 and payload["known"])
+
+
+def test_not_built() -> None:
+    print("\nОтвет, пока разметка не построена")
+    conn = _FakeConn(rows=[[]])   # graph_meta пуста
+    try:
+        api.concepts_response(conn, _vocab())
+        ok = False
+    except api.NotBuilt:
+        ok = True
+    check("«не построено» вместо пустого списка", ok)
+
+
+def test_graph() -> None:
+    print("\nГраф связей для картинки")
+    rows = [
+        [("built_at", "2026-09-21T10:00:00+00:00"), ("vocabulary_sha", _vocab().sha)],  # meta
+        [(12,)], [(40, 38)], [(1990, 2024)],                                           # stats
+        [("гидротермальные изменения", "территория", "Билляхская зона", 5, 3),
+         ("гидротермальные изменения", "метод", "ASTER", 2, 2),
+         ("выброшенное понятие", "метод", "ASTER", 1, 1)],                               # рёбра
+        [("гидротермальные изменения", 9, 4)],                                          # понятия
+        [("территория", "Билляхская зона", 3), ("метод", "ASTER", 2)],                  # узлы
+    ]
+    data = api.graph_response(_FakeConn(rows=rows), _vocab())
+    nodes = {n["id"]: n for n in data["nodes"]}
+    vocab = _vocab()
+    expected = len(vocab.concepts) + len(vocab.territories) + len(vocab.methods)
+    check("все узлы словаря, даже пустые", len(nodes) == expected, f"{len(nodes)} из {expected}")
+    check("вес понятия — статьи", nodes["понятие:гидротермальные изменения"]["documents"] == 4)
+    check("пустое понятие с нулём", nodes["понятие:магматизм"]["documents"] == 0)
+    types = {(e["term"], e["type"]) for e in data["edges"]}
+    check("территория — «проявлено на», метод — «изучается методом»",
+          types == {("территория:Билляхская зона", "проявлено_на"), ("метод:ASTER", "измеряет")},
+          str(types))
+    check("понятие не из словаря в граф не попадает", len(data["edges"]) == 2)
+    check("подписи связей из словаря",
+          {e["label"] for e in data["edges"]} == {"проявлено на", "изучается методом"})
+
+
+def test_network() -> None:
+    print("\nСеть знаний (как в Obsidian)")
+    rows = [
+        [("built_at", "2026-09-21T10:00:00+00:00"), ("vocabulary_sha", _vocab().sha)],
+        [(2,)], [(10, 10)], [(2019, 2021)],
+        [("d1", "Статья один", 2021, "https://x/1", "10.1/1"),
+         ("d2", "Статья два", 2019, "https://x/2", None),
+         ("d3", "Статья без связей", 2018, "https://x/3", None)],               # статьи
+        [("d1", "гидротермальные изменения", 3, True),
+         ("d2", "гидротермальные изменения", 1, False)],                        # описывает
+        [("d1", "территория", "Анабарский щит", 2), ("d2", "метод", "ASTER", 1)],  # метки
+        [("d1", "объект:анабарск:щит", "Анабарский щит", "объект", 5),
+         ("d2", "объект:тырныауз:рудный-узел", "Тырныаузский рудный узел", "объект", 1),
+         ("d2", "ископаемое:золото", "золото", "ископаемое", 2)],                 # названия
+    ]
+    data = api.network_response(_FakeConn(rows=rows), _vocab())
+    nodes = {n["id"]: n for n in data["nodes"]}
+    kinds = {n["kind"] for n in data["nodes"]}
+    check("шесть видов узлов", kinds == {"статья", "понятие", "территория", "метод",
+                                         "объект", "ископаемое"}, str(kinds))
+    check("статья без связей тоже узел", "статья:d3" in nodes)
+    check("«Анабарский щит» правил слит с территорией словаря",
+          "название:объект:анабарск:щит" not in nodes
+          and nodes["территория:Анабарский щит"]["degree"] == 1, str(nodes.get("территория:Анабарский щит")))
+    pair = [e for e in data["edges"] if e["target"] == "территория:Анабарский щит"]
+    check("дубль ребра схлопнут, вес — наибольший", len(pair) == 1 and pair[0]["weight"] == 5,
+          str(pair))
+    described = [e for e in data["edges"] if e["type"] == "описывает"]
+    check("рёбра «описывает» с пометкой проверки",
+          len(described) == 2 and {e["confirmed"] for e in described} == {True, False})
+    check("все рёбра идут от статьи", all(e["source"].startswith("статья:") for e in data["edges"]))
+    check("степень понятия — число статей", nodes["понятие:гидротермальные изменения"]["degree"] == 2)
+    check("ссылка DOI у статьи", nodes["статья:d1"]["doi_url"] == "https://doi.org/10.1/1")
 
 
 def main() -> int:
     test_objects()
     test_commodities_and_methods()
     test_dedup()
-    test_build()
-    test_llm_pass()
-    test_build_with_llm()
     test_queries()
+    test_vocabulary_file()
+    test_vocabulary_errors()
+    test_patterns()
+    test_sentences()
+    test_quotes()
+    test_judge()
+    test_verify()
+    test_candidates()
+    test_request()
+    test_not_built()
+    test_graph()
+    test_network()
 
     print(f"\nИтого: {len(PASSED)} пройдено, {len(FAILED)} провалено")
     if FAILED:

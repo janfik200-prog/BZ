@@ -16,6 +16,9 @@
     --gpu: #B04A2A;
     --llm: #1F5F5D;
     --db: #3B4A7A;
+    --k-doc: #8C8377;
+    --k-obj: #9A7B3F;
+    --k-min: #7B4F8C;
     --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
     --serif: "PT Serif", Georgia, serif;
   }
@@ -125,6 +128,64 @@
   .chip .n { color: var(--muted); }
   .sub { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
   .doclist { display: flex; flex-direction: column; gap: 6px; font-size: 14.5px; }
+
+  .definition { font-size: 14px; color: var(--muted); margin: 0; }
+  .evs { display: flex; flex-direction: column; gap: 14px; }
+  .ev { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--rule); padding-top: 12px; }
+  .quote {
+    margin: 0; font-size: 15px; line-height: 1.5; border-left: 3px solid var(--llm);
+    padding: 2px 0 2px 12px;
+  }
+  .badge.ok { color: var(--llm); }
+  .badge.wait { color: var(--muted); }
+  .names { margin-top: 26px; }
+  .names summary { cursor: pointer; color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+  .warn { color: var(--gpu); font-size: 14px; }
+
+  /* Граф шире колонки текста: подписям с трёх сторон нужно место. На узком
+     экране он прокручивается вбок внутри рамки, а не сжимается до нечитаемого. */
+  .map-box { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule);
+             border-radius: 10px; padding: 8px 0;
+             width: min(1100px, calc(100vw - 32px)); position: relative; left: 50%;
+             transform: translateX(-50%); }
+  .map-box svg { display: block; min-width: 900px; width: 100%; height: auto; }
+  .map-box text { font-family: var(--sans); fill: var(--ink); }
+  .map-box .col-title { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;
+                        fill: var(--muted); }
+  .map-box .edge { fill: none; stroke-opacity: 0.4; cursor: pointer;
+                   transition: stroke-opacity 0.15s; }
+  .map-box .edge.terr { stroke: var(--db); }
+  .map-box .edge.meth { stroke: var(--llm); }
+  .map-box .edge:hover, .map-box .edge.on { stroke-opacity: 0.95; }
+  .map-box.focus .edge:not(.on) { stroke-opacity: 0.08; }
+  .map-box .node { cursor: pointer; }
+  .map-box .node rect { fill: var(--sunken); stroke: var(--rule); }
+  .map-box .node.factor rect { stroke: var(--gpu); }
+  .map-box .node circle { stroke: var(--surface); stroke-width: 2; }
+  .map-box .node.terr circle { fill: var(--db); }
+  .map-box .node.meth circle { fill: var(--llm); }
+  .map-box .node.empty circle { fill: var(--rule); }
+  .map-box .node.empty text { fill: var(--muted); }
+  .map-box .node:hover rect { stroke: var(--ink); }
+  .map-box .cnt { fill: var(--muted); font-size: 11px; }
+  .seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+  .seg button { font: inherit; font-size: 14px; background: var(--surface); color: var(--muted);
+                border: none; padding: 5px 14px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+  .net-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted);
+                margin: 10px 0 0; }
+  .net-legend label { gap: 5px; cursor: pointer; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+  .net-tools { position: absolute; right: 10px; top: 10px; display: flex; gap: 4px; z-index: 2; }
+  .net-tools button { font: inherit; font-size: 15px; width: 32px; height: 32px; border-radius: 7px;
+                      border: 1px solid var(--rule); background: var(--surface); color: var(--ink);
+                      cursor: pointer; padding: 0; }
+  .map-box canvas { display: block; touch-action: none; cursor: grab; }
+  .map-box canvas.on-node { cursor: pointer; }
+  #net-search { max-width: 260px; }
+  .map-tip { font-size: 14px; min-height: 22px; color: var(--muted); margin: 8px 0 4px; }
+  #map-detail { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+  #map-detail h3 { font-family: var(--serif); font-size: 17px; margin: 0; }
 </style>
 </head>
 <body>
@@ -138,7 +199,8 @@
   <div class="tabs" role="tablist">
     <button class="tab" id="tab-search" role="tab" aria-selected="true" aria-controls="panel-search">Поиск</button>
     <button class="tab" id="tab-docs" role="tab" aria-selected="false" aria-controls="panel-docs">Статьи в базе</button>
-    <button class="tab" id="tab-graph" role="tab" aria-selected="false" aria-controls="panel-graph">Связи</button>
+    <button class="tab" id="tab-graph" role="tab" aria-selected="false" aria-controls="panel-graph">Понятия</button>
+    <button class="tab" id="tab-map" role="tab" aria-selected="false" aria-controls="panel-map">Граф связей</button>
   </div>
 
   <div id="panel-search" role="tabpanel">
@@ -204,36 +266,96 @@
   </div>
 
   <div id="panel-graph" role="tabpanel" hidden>
-    <div class="row" style="margin-bottom:14px">
-      <label>Показать
-        <select id="kind">
-          <option value="">всё</option>
-          <option value="объект" selected>объекты</option>
-          <option value="ископаемое">полезные ископаемые</option>
-          <option value="метод">методы</option>
+    <div class="state" id="graph-state">загружаю…</div>
+    <div class="ents" id="concepts"></div>
+    <p class="legend">Понятия — из словаря <code>vocabulary.yaml</code>, это копия справочника
+    kb.concept базы данных проекта. Под каждым понятием — фрагменты статей, которые его
+    описывают, с дословной цитатой. Подпись говорит, как фрагмент найден:
+    <span class="badge both">оба</span> — близок к определению понятия и содержит слово
+    словаря, <span class="badge vector">вектор</span> — только по смыслу,
+    <span class="badge text">словарь</span> — слово словаря при умеренной близости.
+    <span class="badge ok">подтверждено моделью</span> — модель прочитала фрагмент и нашла
+    в нём цитату; отклонённое моделью здесь не показывается.</p>
+
+    <details class="names" id="names-box">
+      <summary>Названия, найденные в статьях правилами</summary>
+      <div class="row" style="margin-bottom:14px">
+        <label>Показать
+          <select id="kind">
+            <option value="">всё</option>
+            <option value="объект" selected>объекты</option>
+            <option value="ископаемое">полезные ископаемые</option>
+            <option value="метод">методы</option>
+          </select>
+        </label>
+      </div>
+      <div class="state" id="names-state">загружаю…</div>
+      <div class="ents" id="ents"></div>
+      <p class="legend">Названия достаются правилами по опорным словам («…ский рудный узел»,
+      «…ское рудопроявление»). Это обзор того, что упоминается в корпусе, — связей между
+      названиями здесь нет.</p>
+    </details>
+  </div>
+
+  <div id="panel-map" role="tabpanel" hidden>
+    <div class="row" style="margin-bottom:12px">
+      <div class="seg" role="group" aria-label="Вид">
+        <button type="button" id="view-net" aria-pressed="true">Сеть</button>
+        <button type="button" id="view-scheme" aria-pressed="false">Схема</button>
+      </div>
+      <input type="search" id="net-search" placeholder="найти узел…">
+      <label><input type="checkbox" id="map-checked"> только подтверждённое моделью</label>
+      <label>Узлы
+        <select id="map-min">
+          <option value="1" selected>все</option>
+          <option value="2">от 2 статей</option>
+          <option value="3">от 3 статей</option>
+          <option value="5">от 5 статей</option>
         </select>
       </label>
     </div>
-    <div class="state" id="graph-state">загружаю…</div>
-    <div class="ents" id="ents"></div>
-    <p class="legend">Связь означает одно: об этих двух написано в одной статье. Ничего
-    не додумано — за каждой связью стоит список статей, который можно открыть и прочитать.
-    Названия достаются правилами по опорным словам («…ский рудный узел», «…ское
-    рудопроявление»), поэтому объекты с обратным порядком слов — «трубка Удачная» —
-    пока не попадают в список.</p>
+    <div class="state" id="map-state">загружаю…</div>
+    <div class="map-box" id="map-box"></div>
+    <div class="net-legend" id="net-legend"></div>
+    <div class="map-tip" id="map-tip"></div>
+    <div id="map-detail"></div>
+    <p class="legend" id="legend-net"><strong>Сеть</strong> — вся база знаний сразу, как граф
+    в Obsidian. Узлы — статьи, понятия словаря, территории, методы, объекты (рудные узлы,
+    месторождения, зоны) и полезные ископаемые. Линии идут от статьи ко всему, о чём она:
+    <span style="color:var(--gpu)">рыжая</span> — статья <em>описывает</em> понятие (есть
+    фрагмент с цитатой), серая — статья <em>упоминает</em> территорию, метод или объект.
+    Понятия и объекты между собой напрямую не связаны: их связывают общие статьи — чем
+    больше общих статей, тем ближе узлы ложатся друг к другу. Размер узла — сколько у него
+    связей.</p>
+    <p class="legend" id="legend-scheme" hidden><strong>Схема</strong> — только словарь: в центре
+    понятия (рудоконтролирующие факторы обведены рыжим), слева территории, справа методы.
+    Линия означает: есть фрагмент статьи, который описывает понятие и в котором названа эта
+    территория или этот метод. Толщина — число таких статей. Серые узлы — в статьях пока не
+    встретились: это тоже ответ.</p>
   </div>
 
 </div>
 
 <script>
 const $ = (id) => document.getElementById(id);
+
+// Число со словом в нужной форме: 1 статья, 2 статьи, 5 статей, 21 статья, 11 статей.
+function plural(n, one, few, many) {
+  const m10 = n % 10, m100 = n % 100;
+  const word = (m10 === 1 && m100 !== 11) ? one
+    : (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) ? few : many;
+  return `${n} ${word}`;
+}
+const articles = (n) => plural(n, "статья", "статьи", "статей");
+const fragmentsN = (n) => plural(n, "фрагмент", "фрагмента", "фрагментов");
+const inArticles = (n) => `в ${n} ` + ((n % 10 === 1 && n % 100 !== 11) ? "статье" : "статьях");
 const BADGE = { "вектор": "vector", "текст": "text", "оба": "both" };
 
 async function loadStats() {
   try {
     const data = await (await fetch("/api/stats")).json();
     const years = data.year_from ? `, ${data.year_from}–${data.year_to}` : "";
-    $("stats").textContent = `${data.documents} статей, ${data.chunks} фрагментов${years}`;
+    $("stats").textContent = `${articles(data.documents)}, ${fragmentsN(data.chunks)}${years}`;
   } catch (e) {
     $("stats").textContent = "база не отвечает";
   }
@@ -379,47 +501,241 @@ $("form").addEventListener("submit", async (event) => {
 });
 
 function showTab(which) {
-  for (const name of ["search", "docs", "graph"]) {
+  for (const name of ["search", "docs", "graph", "map"]) {
     $("panel-" + name).hidden = name !== which;
     $("tab-" + name).setAttribute("aria-selected", String(name === which));
   }
   if (which === "docs") loadDocs();
   if (which === "graph") loadGraph();
+  if (which === "map") setMapView(mapView);
 }
 $("tab-search").addEventListener("click", () => showTab("search"));
 $("tab-docs").addEventListener("click", () => showTab("docs"));
 $("tab-graph").addEventListener("click", () => showTab("graph"));
-$("kind").addEventListener("change", () => loadGraph(true));
+$("tab-map").addEventListener("click", () => showTab("map"));
 
 let graphLoaded = false;
 async function loadGraph(force) {
   if (graphLoaded && !force) return;
-  const box = $("ents");
+  const box = $("concepts");
   box.innerHTML = "";
   $("graph-state").textContent = "загружаю…";
   try {
-    const params = new URLSearchParams();
-    if ($("kind").value) params.set("kind", $("kind").value);
-    const data = await (await fetch("/api/entities?" + params)).json();
-    if (data.error) { $("graph-state").textContent = data.error; return; }
-    if (!data.entities.length) {
-      $("graph-state").textContent = "Граф пуст. Постройте его командой: georag.ps1 graph";
+    const data = await (await fetch("/api/concepts")).json();
+    if (data.error) {
+      $("graph-state").textContent = data.error.includes("не построена")
+        ? "Разметка ещё не построена. Постройте её командой: python georag.py graph"
+        : data.error;
       return;
     }
-    const c = data.counts;
+    const total = data.concepts.reduce((n, c) => n + c.fragments, 0);
+    const checked = data.concepts.reduce((n, c) => n + c.confirmed, 0);
     $("graph-state").textContent =
-      `${c.entities} названий, ${c.mentions} упоминаний · показано ${data.entities.length}`;
-    for (const ent of data.entities) box.append(renderEntity(ent));
+      `${plural(data.concepts.length, "понятие", "понятия", "понятий")} · доказательств: ` +
+      `${fragmentsN(total)}, из них подтверждено моделью ${checked} · ` +
+      `разметка от ${data.as_of.replace("T", " ").slice(0, 16)}`;
+    if (data.warning) {
+      const w = document.createElement("div");
+      w.className = "warn";
+      w.textContent = data.warning;
+      $("graph-state").append(document.createElement("br"), w);
+    }
+    for (const c of data.concepts) box.append(renderConcept(c));
     graphLoaded = true;
   } catch (e) {
     $("graph-state").textContent = "Сервер не ответил: " + e;
   }
 }
 
-function renderEntity(ent) {
+function option(value, text) {
+  const o = document.createElement("option");
+  o.value = value; o.textContent = text;
+  return o;
+}
+
+function renderConcept(c) {
   const wrap = document.createElement("div");
   wrap.className = "ent";
 
+  const head = document.createElement("div");
+  head.className = "head";
+  const name = document.createElement("span");
+  name.className = "ename";
+  name.textContent = c.code;
+  const kind = document.createElement("span");
+  kind.className = "kind";
+  kind.textContent = c.kind;
+  const count = document.createElement("span");
+  count.className = "count";
+  count.textContent = c.fragments
+    ? `${fragmentsN(c.fragments)} ${inArticles(c.documents)}` +
+      (c.confirmed ? ` · подтверждено ${c.confirmed}` : "")
+    : "в статьях не найдено";
+  head.append(name, kind, count);
+
+  const detail = document.createElement("div");
+  detail.className = "detail";
+  detail.hidden = true;
+
+  const definition = document.createElement("p");
+  definition.className = "definition";
+  definition.textContent = c.definition;
+
+  const filters = document.createElement("div");
+  filters.className = "row";
+  const terr = document.createElement("select");
+  const meth = document.createElement("select");
+  terr.append(option("", "любая территория"));
+  meth.append(option("", "любой метод"));
+  for (const r of c.relations || []) {
+    const label = `${r.target} — ${articles(r.documents)}`;
+    (r.target_kind === "территория" ? terr : meth).append(option(r.target, label));
+  }
+  const onlyChecked = document.createElement("input");
+  onlyChecked.type = "checkbox";
+  const checkedLabel = document.createElement("label");
+  checkedLabel.append(onlyChecked, document.createTextNode("только подтверждённое моделью"));
+  const l1 = document.createElement("label"); l1.append("Территория ", terr);
+  const l2 = document.createElement("label"); l2.append("Метод ", meth);
+  filters.append(l1, l2, checkedLabel);
+
+  const state = document.createElement("div");
+  state.className = "state";
+  const list = document.createElement("div");
+  list.className = "evs";
+
+  async function fill() {
+    state.textContent = "загружаю…";
+    list.innerHTML = "";
+    const params = new URLSearchParams({ concept: c.code, limit: "20" });
+    if (terr.value) params.set("territory", terr.value);
+    if (meth.value) params.set("method", meth.value);
+    if (onlyChecked.checked) params.set("checked_only", "1");
+    try {
+      const data = await (await fetch("/api/concept?" + params)).json();
+      if (data.error) { state.textContent = data.error; return; }
+      if (!data.total) {
+        state.textContent = "Ничего. Ослабьте отбор или пополните корпус статьями по теме.";
+      } else {
+        let line = `Найдено ${fragmentsN(data.total)} ${inArticles(data.documents)}`;
+        if (data.fragments.length < data.total) {
+          line += ` · показано ${data.fragments.length}: не больше двух из одной статьи, ` +
+                  `сначала подтверждённое моделью и самое близкое`;
+        }
+        state.textContent = line;
+      }
+      for (const f of data.fragments) list.append(renderEvidence(f));
+    } catch (e) {
+      state.textContent = "Сервер не ответил: " + e;
+    }
+  }
+  for (const el of [terr, meth, onlyChecked]) el.addEventListener("change", fill);
+
+  let filled = false;
+  head.addEventListener("click", () => {
+    detail.hidden = !detail.hidden;
+    if (!detail.hidden && !filled) { fill(); filled = true; }
+  });
+
+  detail.append(definition, filters, state, list);
+  wrap.append(head, detail);
+  return wrap;
+}
+
+function renderEvidence(f) {
+  const ev = document.createElement("div");
+  ev.className = "ev";
+
+  const quote = document.createElement("blockquote");
+  quote.className = "quote";
+  quote.textContent = "«" + f.quote + "»";
+
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  const found = document.createElement("span");
+  found.className = "badge " + ({ "вектор": "vector", "словарь": "text", "оба": "both" }[f.found_by] || "vector");
+  found.textContent = f.found_by;
+  const verdict = document.createElement("span");
+  verdict.className = "badge " + (f.verdict === "подтверждено моделью" ? "ok" : "wait");
+  verdict.textContent = f.verdict;
+  meta.append(found, verdict);
+  const bits = [];
+  if (f.similarity != null) bits.push("похожесть " + Math.round(f.similarity * 100) + "%");
+  if (f.terms && f.terms.length) bits.push("слова: " + f.terms.join(", "));
+  const where = (f.territories || []).concat(f.methods || []);
+  if (where.length) bits.push("во фрагменте: " + where.join(", "));
+  for (const bit of bits) {
+    const span = document.createElement("span");
+    span.textContent = bit;
+    meta.append(span);
+  }
+
+  const source = document.createElement("div");
+  source.className = "meta";
+  const a = document.createElement("a");
+  a.href = f.doi_url || f.url || "#"; a.target = "_blank"; a.rel = "noopener";
+  a.textContent = f.title || f.doc_id;
+  a.style.color = "inherit";
+  const tail = [];
+  if (f.year) tail.push(String(f.year));
+  if (f.page) tail.push("с. " + f.page);
+  if (f.authors && f.authors.length) tail.push(f.authors.join(", "));
+  const tailSpan = document.createElement("span");
+  tailSpan.textContent = tail.join(" · ");
+  source.append(a, tailSpan);
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "open";
+  button.textContent = "Разбор статьи целиком";
+  const parsed = document.createElement("div");
+  parsed.className = "parsed";
+  parsed.hidden = true;
+  let filled = false;
+  button.addEventListener("click", () => {
+    if (!parsed.hidden) { parsed.hidden = true; button.textContent = "Разбор статьи целиком"; return; }
+    parsed.hidden = false;
+    button.textContent = "Свернуть разбор";
+    if (!filled) { fillParsed(parsed, f.doc_id, f.ord); filled = true; }
+  });
+
+  ev.append(quote, meta, source, button, parsed);
+  return ev;
+}
+
+// -- названия, найденные правилами ------------------------------------------ //
+let namesLoaded = false;
+$("names-box").addEventListener("toggle", () => { if ($("names-box").open) loadNames(); });
+$("kind").addEventListener("change", () => loadNames(true));
+
+async function loadNames(force) {
+  if (namesLoaded && !force) return;
+  const box = $("ents");
+  box.innerHTML = "";
+  $("names-state").textContent = "загружаю…";
+  try {
+    const params = new URLSearchParams();
+    if ($("kind").value) params.set("kind", $("kind").value);
+    const data = await (await fetch("/api/entities?" + params)).json();
+    if (data.error) { $("names-state").textContent = data.error; return; }
+    if (!data.entities.length) {
+      $("names-state").textContent = "Названий нет. Постройте разметку командой: python georag.py graph";
+      return;
+    }
+    const c = data.counts;
+    $("names-state").textContent =
+      `${plural(c.entities, "название", "названия", "названий")}, ` +
+      `${plural(c.mentions, "упоминание", "упоминания", "упоминаний")} · показано ${data.entities.length}`;
+    for (const ent of data.entities) box.append(renderEntity(ent));
+    namesLoaded = true;
+  } catch (e) {
+    $("names-state").textContent = "Сервер не ответил: " + e;
+  }
+}
+
+function renderEntity(ent) {
+  const wrap = document.createElement("div");
+  wrap.className = "ent";
   const head = document.createElement("div");
   head.className = "head";
   const name = document.createElement("span");
@@ -430,75 +746,20 @@ function renderEntity(ent) {
   kind.textContent = ent.kind;
   const count = document.createElement("span");
   count.className = "count";
-  count.textContent = `${ent.docs} ст. · ${ent.mentions} упом.`;
+  count.textContent = `${articles(ent.docs)} · ` +
+    plural(ent.mentions, "упоминание", "упоминания", "упоминаний");
   head.append(name, kind, count);
 
   const detail = document.createElement("div");
-  detail.className = "detail";
+  detail.className = "doclist";
   detail.hidden = true;
   let filled = false;
-
   head.addEventListener("click", async () => {
     detail.hidden = !detail.hidden;
     if (filled || detail.hidden) return;
     detail.textContent = "загружаю…";
     const data = await (await fetch("/api/entity?key=" + encodeURIComponent(ent.key))).json();
     detail.innerHTML = "";
-
-    if (data.named && data.named.length) {
-      const label = document.createElement("div");
-      label.className = "sub";
-      label.textContent = "связи из текста";
-      const list = document.createElement("div");
-      list.className = "doclist";
-      for (const rel of data.named) {
-        const line = document.createElement("div");
-        const arrow = rel.direction === "из" ? "→ " : "← ";
-        const type = document.createElement("strong");
-        type.textContent = arrow + rel.type + " ";
-        const who = document.createElement("span");
-        who.textContent = rel.name;
-        const n = document.createElement("span");
-        n.className = "kind";
-        n.textContent = `  в ${rel.docs} ст.`;
-        line.append(type, who, n);
-        list.append(line);
-      }
-      detail.append(label, list);
-    }
-
-    if (data.related && data.related.length) {
-      const label = document.createElement("div");
-      label.className = "sub";
-      label.textContent = "встречается вместе с";
-      const chips = document.createElement("div");
-      chips.className = "chips";
-      for (const rel of data.related) {
-        const chip = document.createElement("span");
-        chip.className = "chip";
-        chip.innerHTML = "";
-        chip.append(document.createTextNode(rel.name + " "));
-        const n = document.createElement("span");
-        n.className = "n";
-        n.textContent = rel.together;
-        chip.append(n);
-        chip.title = `в ${rel.together} статьях вместе · ${rel.kind}`;
-        chip.addEventListener("click", (e) => {
-          e.stopPropagation();
-          $("q").value = rel.name;
-          showTab("search");
-          $("form").dispatchEvent(new Event("submit"));
-        });
-        chips.append(chip);
-      }
-      detail.append(label, chips);
-    }
-
-    const label2 = document.createElement("div");
-    label2.className = "sub";
-    label2.textContent = "статьи";
-    const docs = document.createElement("div");
-    docs.className = "doclist";
     for (const doc of (data.documents || [])) {
       const line = document.createElement("div");
       const a = document.createElement("a");
@@ -507,17 +768,728 @@ function renderEntity(ent) {
       a.style.color = "inherit";
       const tail = document.createElement("span");
       tail.className = "kind";
-      tail.textContent = `  ${doc.year || "—"} · упоминаний ${doc.hits}`;
+      tail.textContent = `  ${doc.year || "—"} · ` +
+        plural(doc.hits, "упоминание", "упоминания", "упоминаний");
       line.append(a, tail);
-      docs.append(line);
+      detail.append(line);
     }
-    detail.append(label2, docs);
     filled = true;
   });
-
   wrap.append(head, detail);
   return wrap;
 }
+
+
+// -- граф связей -------------------------------------------------------------- //
+const SVG = "http://www.w3.org/2000/svg";
+function el(tag, attrs, text) {
+  const node = document.createElementNS(SVG, tag);
+  for (const [k, v] of Object.entries(attrs || {})) node.setAttribute(k, v);
+  if (text != null) node.textContent = text;
+  return node;
+}
+
+let mapData = null;
+let mapView = "net";
+$("map-checked").addEventListener("change", () => { mapData = null; net.data = null; loadMap(true); });
+$("map-min").addEventListener("change", () => {
+  if (mapView === "scheme" && mapData) drawMap(mapData);
+  if (mapView === "net" && net.data) buildNet(true);
+});
+$("view-net").addEventListener("click", () => setMapView("net"));
+$("view-scheme").addEventListener("click", () => setMapView("scheme"));
+
+function setMapView(view) {
+  mapView = view;
+  $("view-net").setAttribute("aria-pressed", String(view === "net"));
+  $("view-scheme").setAttribute("aria-pressed", String(view === "scheme"));
+  $("net-search").hidden = view !== "net";
+  $("net-legend").hidden = view !== "net";
+  $("legend-net").hidden = view !== "net";
+  $("legend-scheme").hidden = view !== "scheme";
+  $("map-detail").innerHTML = "";
+  loadMap(false);
+}
+
+async function loadMap(force) {
+  if (mapView === "net") return loadNetwork(force);
+  $("map-tip").textContent = "Наведите на линию или узел — покажу, на чём держится связь. " +
+    "Щёлкните — откроются статьи с цитатами.";
+  if (mapData && !force) { drawMap(mapData); return; }
+  $("map-state").textContent = "загружаю…";
+  try {
+    const params = new URLSearchParams();
+    if ($("map-checked").checked) params.set("checked_only", "1");
+    const data = await (await fetch("/api/graph?" + params)).json();
+    if (data.error) {
+      $("map-state").textContent = data.error.includes("не построена")
+        ? "Разметка ещё не построена. Постройте её командой: python georag.py graph" : data.error;
+      $("map-box").innerHTML = "";
+      return;
+    }
+    mapData = data;
+    drawMap(data);
+  } catch (e) {
+    $("map-state").textContent = "Сервер не ответил: " + e;
+  }
+}
+
+function drawMap(data) {
+  const minDocs = Number($("map-min").value);
+  const edges = data.edges.filter((e) => e.documents >= minDocs);
+  const concepts = data.nodes.filter((n) => n.kind === "понятие");
+  const terrs = data.nodes.filter((n) => n.kind === "территория");
+  const meths = data.nodes.filter((n) => n.kind === "метод");
+  $("map-state").textContent =
+    `${plural(edges.length, "связь", "связи", "связей")} · ` +
+    `корпус: ${articles(data.corpus.documents)} · разметка от ` +
+    data.as_of.replace("T", " ").slice(0, 16) +
+    (data.checked_only ? " · только подтверждённое моделью" : "");
+
+  // Ширина колонок — под самые длинные подписи: «плотностная и магнитная
+  // неоднородность» в центре, «дистанционное зондирование» справа.
+  const W = 1060, TOP = 58, ROW = 46;
+  const rows = Math.max(concepts.length, terrs.length, meths.length);
+  const H = TOP + rows * ROW + 20;
+  const X = { terr: 210, cLeft: 355, cRight: 705, meth: 840 };
+  const yOf = (list, i) => TOP + (rows - list.length) * ROW / 2 + i * ROW + ROW / 2;
+  const pos = {};
+  terrs.forEach((n, i) => pos[n.id] = { x: X.terr, y: yOf(terrs, i) });
+  meths.forEach((n, i) => pos[n.id] = { x: X.meth, y: yOf(meths, i) });
+  concepts.forEach((n, i) => pos[n.id] = { y: yOf(concepts, i) });
+  const radius = (n) => n.documents ? Math.min(14, 4 + 2 * Math.sqrt(n.documents)) : 4;
+  const byId = Object.fromEntries(data.nodes.map((n) => [n.id, n]));
+
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+                          "aria-label": "Граф связей понятий с территориями и методами" });
+  svg.append(el("text", { x: X.terr, y: 24, "text-anchor": "end", class: "col-title" }, "Территории"));
+  svg.append(el("text", { x: (X.cLeft + X.cRight) / 2, y: 24, "text-anchor": "middle",
+                          class: "col-title" }, "Понятия"));
+  svg.append(el("text", { x: X.meth, y: 24, class: "col-title" }, "Методы"));
+
+  const edgeLayer = el("g");
+  const nodeLayer = el("g");
+  svg.append(edgeLayer, nodeLayer);
+  const edgeEls = [];
+
+  for (const e of edges) {
+    const term = byId[e.term];
+    const c = pos[e.concept], t = pos[e.term];
+    if (!c || !t) continue;
+    const isTerr = term.kind === "территория";
+    const x1 = isTerr ? t.x + radius(term) : X.cRight;
+    const x2 = isTerr ? X.cLeft : t.x - radius(term);
+    const y1 = isTerr ? t.y : c.y, y2 = isTerr ? c.y : t.y;
+    const mid = (x1 + x2) / 2;
+    const path = el("path", {
+      d: `M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}`,
+      class: "edge " + (isTerr ? "terr" : "meth"),
+      "stroke-width": Math.min(12, 1.5 + 2 * Math.sqrt(e.documents)).toFixed(1),
+    });
+    const conceptName = byId[e.concept].name;
+    const text = `${conceptName} — ${e.label} — ${term.name}: ` +
+      `${articles(e.documents)}, ${fragmentsN(e.fragments)}`;
+    path.append(el("title", {}, text));
+    path.addEventListener("mouseenter", () => { $("map-tip").textContent = text; });
+    path.addEventListener("click", () => showMapEvidence(conceptName, term));
+    path.dataset.a = e.concept;
+    path.dataset.b = e.term;
+    edgeLayer.append(path);
+    edgeEls.push(path);
+  }
+
+  function focus(id, on) {
+    $("map-box").classList.toggle("focus", on);
+    for (const p of edgeEls) p.classList.toggle("on", on && (p.dataset.a === id || p.dataset.b === id));
+  }
+
+  for (const n of concepts) {
+    const y = pos[n.id].y;
+    const g = el("g", { class: "node" + (n.group === "рудоконтролирующий фактор" ? " factor" : "") });
+    g.append(el("rect", { x: X.cLeft, y: y - 16, width: X.cRight - X.cLeft, height: 32, rx: 7 }));
+    g.append(el("text", { x: (X.cLeft + X.cRight) / 2, y: y - 1, "text-anchor": "middle",
+                          "font-size": 13, "font-weight": 600 }, n.name));
+    g.append(el("text", { x: (X.cLeft + X.cRight) / 2, y: y + 12, "text-anchor": "middle",
+                          class: "cnt" }, n.documents ? articles(n.documents) : "нет статей"));
+    g.append(el("title", {}, `${n.name}: ${articles(n.documents)}, ${fragmentsN(n.fragments)}`));
+    g.addEventListener("mouseenter", () => focus(n.id, true));
+    g.addEventListener("mouseleave", () => focus(n.id, false));
+    g.addEventListener("click", () => showMapEvidence(n.name, null));
+    nodeLayer.append(g);
+  }
+
+  for (const n of terrs.concat(meths)) {
+    const { x, y } = pos[n.id];
+    const isTerr = n.kind === "территория";
+    const g = el("g", { class: "node " + (isTerr ? "terr" : "meth") + (n.documents ? "" : " empty") });
+    g.append(el("circle", { cx: x, cy: y, r: radius(n) }));
+    const tx = isTerr ? x - radius(n) - 8 : x + radius(n) + 8;
+    g.append(el("text", { x: tx, y: y - 1, "text-anchor": isTerr ? "end" : "start",
+                          "font-size": 13 }, n.name));
+    g.append(el("text", { x: tx, y: y + 13, "text-anchor": isTerr ? "end" : "start",
+                          class: "cnt" }, n.documents ? articles(n.documents) : "нет статей"));
+    g.addEventListener("mouseenter", () => focus(n.id, true));
+    g.addEventListener("mouseleave", () => focus(n.id, false));
+    g.addEventListener("click", () => showTermLinks(n, edges, byId));
+    nodeLayer.append(g);
+  }
+
+  $("map-box").innerHTML = "";
+  $("map-box").append(svg);
+}
+
+function showTermLinks(term, edges, byId) {
+  const box = $("map-detail");
+  box.innerHTML = "";
+  const h = document.createElement("h3");
+  h.textContent = term.name;
+  box.append(h);
+  const mine = edges.filter((e) => e.term === term.id).sort((a, b) => b.documents - a.documents);
+  if (!mine.length) {
+    const p = document.createElement("div");
+    p.className = "state";
+    p.textContent = "Ни одно понятие в статьях вместе с этим не описано.";
+    box.append(p);
+    return;
+  }
+  const list = document.createElement("div");
+  list.className = "chips";
+  for (const e of mine) {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.textContent = `${byId[e.concept].name} · ${articles(e.documents)}`;
+    chip.addEventListener("click", () => showMapEvidence(byId[e.concept].name, term));
+    list.append(chip);
+  }
+  box.append(list);
+}
+
+async function showMapEvidence(concept, term) {
+  const box = $("map-detail");
+  box.innerHTML = "";
+  const h = document.createElement("h3");
+  h.textContent = term ? `${concept} — ${term.name}` : concept;
+  const state = document.createElement("div");
+  state.className = "state";
+  state.textContent = "загружаю…";
+  const list = document.createElement("div");
+  list.className = "evs";
+  box.append(h, state, list);
+  box.scrollIntoView({ block: "start", behavior: "smooth" });
+
+  const params = new URLSearchParams({ concept, limit: "20" });
+  if (term) params.set(term.kind === "территория" ? "territory" : "method", term.name);
+  if ($("map-checked").checked) params.set("checked_only", "1");
+  try {
+    const data = await (await fetch("/api/concept?" + params)).json();
+    if (data.error) { state.textContent = data.error; return; }
+    state.textContent = data.total
+      ? `${fragmentsN(data.total)} ${inArticles(data.documents)}` +
+        (data.fragments.length < data.total ? ` · показано ${data.fragments.length}` : "")
+      : "Ничего не найдено.";
+    for (const f of data.fragments) list.append(renderEvidence(f));
+  } catch (e) {
+    state.textContent = "Сервер не ответил: " + e;
+  }
+}
+
+// -- сеть знаний (как граф в Obsidian) ---------------------------------------- //
+const NET_KINDS = [
+  ["статья", "--k-doc", "статьи"],
+  ["понятие", "--gpu", "понятия"],
+  ["территория", "--db", "территории"],
+  ["метод", "--llm", "методы"],
+  ["объект", "--k-obj", "объекты"],
+  ["ископаемое", "--k-min", "ископаемые"],
+];
+const net = {
+  data: null, nodes: [], edges: [], byId: {}, adj: {}, pos: {}, hidden: new Set(),
+  view: { x: 0, y: 0, k: 1 }, hover: null, selected: null, match: null,
+  alpha: 0, raf: 0, canvas: null, ctx: null, W: 0, H: 0, colors: {}, fitted: false,
+};
+
+function netColors() {
+  const css = getComputedStyle(document.documentElement);
+  for (const [kind, token] of NET_KINDS) net.colors[kind] = css.getPropertyValue(token).trim();
+  net.colors.ink = css.getPropertyValue("--ink").trim();
+  net.colors.rule = css.getPropertyValue("--rule").trim();
+  net.colors.gpu = css.getPropertyValue("--gpu").trim();
+  net.colors.surface = css.getPropertyValue("--surface").trim();
+}
+
+function netLegend() {
+  const box = $("net-legend");
+  box.innerHTML = "";
+  const counts = {};
+  for (const n of net.data.nodes) counts[n.kind] = (counts[n.kind] || 0) + 1;
+  for (const [kind, , label] of NET_KINDS) {
+    const l = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = !net.hidden.has(kind);
+    cb.addEventListener("change", () => {
+      if (cb.checked) net.hidden.delete(kind); else net.hidden.add(kind);
+      buildNet(true);
+    });
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    dot.style.background = net.colors[kind];
+    l.append(cb, dot, document.createTextNode(`${label} · ${counts[kind] || 0}`));
+    box.append(l);
+  }
+}
+
+async function loadNetwork(force) {
+  $("map-tip").textContent = "Колесо — масштаб, тянуть фон — сдвиг, тянуть узел — переставить. " +
+    "Наведите на узел — подсветятся его связи, щёлкните — внизу откроется, с чем он связан.";
+  if (net.data && !force) { mountCanvas(); buildNet(false); return; }
+  $("map-state").textContent = "загружаю…";
+  try {
+    const params = new URLSearchParams();
+    if ($("map-checked").checked) params.set("checked_only", "1");
+    const data = await (await fetch("/api/network?" + params)).json();
+    if (data.error) {
+      $("map-state").textContent = data.error.includes("не построена")
+        ? "Разметка ещё не построена. Постройте её командой: python georag.py graph" : data.error;
+      $("map-box").innerHTML = "";
+      return;
+    }
+    net.data = data;
+    netColors();
+    netLegend();
+    mountCanvas();
+    buildNet(true);
+  } catch (e) {
+    $("map-state").textContent = "Сервер не ответил: " + e;
+  }
+}
+
+// Положение по умолчанию выводится из имени узла: картинка одна и та же от
+// открытия к открытию, а не новая случайная каша каждый раз.
+function seeded(id) {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) { h ^= id.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 10000) / 10000; };
+}
+
+function buildNet(reheat) {
+  const minDocs = Number($("map-min").value);
+  const visibleKind = (n) => !net.hidden.has(n.kind);
+  const all = net.data.nodes.filter(visibleKind);
+  const ids = new Set(all.map((n) => n.id));
+  let edges = net.data.edges.filter((e) => ids.has(e.source) && ids.has(e.target));
+  // «Узлы от N статей»: у всего, кроме статей, степень — это и есть число статей.
+  const deg = {};
+  for (const e of edges) { deg[e.source] = (deg[e.source] || 0) + 1; deg[e.target] = (deg[e.target] || 0) + 1; }
+  const keep = all.filter((n) => n.kind === "статья" || (deg[n.id] || 0) >= minDocs || (minDocs <= 1));
+  const keepIds = new Set(keep.map((n) => n.id));
+  edges = edges.filter((e) => keepIds.has(e.source) && keepIds.has(e.target));
+
+  net.nodes = keep.map((n) => {
+    const old = net.pos[n.id];
+    const rnd = seeded(n.id);
+    const r = n.kind === "понятие" ? 60 : 160 + rnd() * 160;
+    const a = rnd() * Math.PI * 2;
+    return { ...n, x: old ? old.x : Math.cos(a) * r, y: old ? old.y : Math.sin(a) * r,
+             vx: 0, vy: 0, fixed: false, deg: 0 };
+  });
+  net.byId = Object.fromEntries(net.nodes.map((n) => [n.id, n]));
+  net.adj = {};
+  for (const n of net.nodes) net.adj[n.id] = new Set();
+  net.edges = edges.map((e) => {
+    const s = net.byId[e.source], t = net.byId[e.target];
+    s.deg++; t.deg++;
+    net.adj[s.id].add(t.id); net.adj[t.id].add(s.id);
+    const rest = t.kind === "понятие" ? 110 : t.kind === "территория" || t.kind === "метод" ? 90 : 70;
+    return { ...e, s, t, rest };
+  });
+  if (net.selected && !net.byId[net.selected.id]) net.selected = null;
+  if (net.selected) net.selected = net.byId[net.selected.id];
+  net.hover = null;
+
+  const docs = net.nodes.filter((n) => n.kind === "статья").length;
+  $("map-state").textContent =
+    `${plural(net.nodes.length, "узел", "узла", "узлов")}, ` +
+    `${plural(net.edges.length, "связь", "связи", "связей")} · ${articles(docs)} · ` +
+    `разметка от ${net.data.as_of.replace("T", " ").slice(0, 16)}` +
+    (net.data.checked_only ? " · только подтверждённое моделью" : "");
+  if (reheat) { net.alpha = 1; net.fitted = false; }
+  run();
+}
+
+function mountCanvas() {
+  const box = $("map-box");
+  box.innerHTML = "";
+  box.style.position = "relative";
+  const tools = document.createElement("div");
+  tools.className = "net-tools";
+  for (const [label, title, act] of [
+    ["+", "крупнее", () => zoomBy(1.3)], ["−", "мельче", () => zoomBy(1 / 1.3)],
+    ["⤢", "показать всё", () => { fitView(); draw(); }],
+  ]) {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = label; b.title = title;
+    b.addEventListener("click", act);
+    tools.append(b);
+  }
+  const canvas = document.createElement("canvas");
+  box.append(tools, canvas);
+  net.canvas = canvas;
+  net.ctx = canvas.getContext("2d");
+  sizeCanvas();
+  bindCanvas(canvas);
+}
+
+function sizeCanvas() {
+  const box = $("map-box");
+  const dpr = window.devicePixelRatio || 1;
+  net.W = box.clientWidth;
+  net.H = Math.max(420, Math.min(680, Math.round(window.innerHeight * 0.72)));
+  net.canvas.width = net.W * dpr;
+  net.canvas.height = net.H * dpr;
+  net.canvas.style.width = net.W + "px";
+  net.canvas.style.height = net.H + "px";
+  net.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener("resize", () => {
+  if (net.canvas && mapView === "net") { sizeCanvas(); fitView(); draw(); }
+});
+
+const radius = (n) => n.kind === "понятие" ? 7 + Math.min(10, Math.sqrt(n.deg) * 2.2)
+  : 3.5 + Math.min(10, Math.sqrt(n.deg) * 1.6);
+
+function tick() {
+  const N = net.nodes, a = net.alpha;
+  for (let i = 0; i < N.length; i++) {
+    const p = N[i];
+    for (let j = i + 1; j < N.length; j++) {
+      const q = N[j];
+      let dx = q.x - p.x, dy = q.y - p.y;
+      let d2 = dx * dx + dy * dy;
+      if (d2 > 160000) continue;
+      if (d2 < 1) { dx = (Math.random() - 0.5); dy = (Math.random() - 0.5); d2 = 1; }
+      const f = 900 * a / d2;
+      p.vx -= dx * f; p.vy -= dy * f; q.vx += dx * f; q.vy += dy * f;
+    }
+  }
+  for (const e of net.edges) {
+    const dx = e.t.x - e.s.x, dy = e.t.y - e.s.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    const f = (d - e.rest) / d * 0.06 * a;
+    e.s.vx += dx * f; e.s.vy += dy * f; e.t.vx -= dx * f; e.t.vy -= dy * f;
+  }
+  for (const n of N) {
+    n.vx -= n.x * 0.004 * a; n.vy -= n.y * 0.004 * a;
+    if (n.fixed) { n.vx = n.vy = 0; continue; }
+    n.vx *= 0.55; n.vy *= 0.55;
+    n.x += n.vx; n.y += n.vy;
+    net.pos[n.id] = { x: n.x, y: n.y };
+  }
+  net.alpha *= 0.975;
+}
+
+function run() {
+  if (net.raf) return;
+  const frame = () => {
+    net.raf = 0;
+    const steps = net.fitted ? 1 : 3;
+    for (let i = 0; i < steps && net.alpha > 0.02; i++) tick();
+    if (!net.fitted && net.alpha < 0.3) { fitView(); net.fitted = true; }
+    draw();
+    if (net.alpha > 0.02 || net.dragging) net.raf = requestAnimationFrame(frame);
+    else if (!net.fitted) { fitView(); net.fitted = true; draw(); }
+  };
+  net.raf = requestAnimationFrame(frame);
+}
+
+function fitView() {
+  if (!net.nodes.length) return;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const n of net.nodes) { x0 = Math.min(x0, n.x); y0 = Math.min(y0, n.y); x1 = Math.max(x1, n.x); y1 = Math.max(y1, n.y); }
+  const k = Math.min(2, Math.min(net.W / (x1 - x0 + 160), net.H / (y1 - y0 + 120)));
+  net.view = { k, x: -((x0 + x1) / 2) * k, y: -((y0 + y1) / 2) * k };
+}
+
+function zoomBy(f, sx, sy) {
+  const v = net.view;
+  const k = Math.max(0.15, Math.min(6, v.k * f));
+  sx = sx ?? net.W / 2; sy = sy ?? net.H / 2;
+  const wx = (sx - net.W / 2 - v.x) / v.k, wy = (sy - net.H / 2 - v.y) / v.k;
+  net.view = { k, x: sx - net.W / 2 - wx * k, y: sy - net.H / 2 - wy * k };
+  draw();
+}
+
+function toWorld(sx, sy) {
+  const v = net.view;
+  return [(sx - net.W / 2 - v.x) / v.k, (sy - net.H / 2 - v.y) / v.k];
+}
+
+function hit(sx, sy) {
+  const [wx, wy] = toWorld(sx, sy);
+  let best = null, bestD = Infinity;
+  for (const n of net.nodes) {
+    const d = Math.hypot(n.x - wx, n.y - wy);
+    if (d < radius(n) + 5 / net.view.k && d < bestD) { best = n; bestD = d; }
+  }
+  return best;
+}
+
+function short(text, max) { return text.length > max ? text.slice(0, max - 1) + "…" : text; }
+
+function draw() {
+  const { ctx, W, H, view: v } = net;
+  if (!ctx) return;
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(W / 2 + v.x, H / 2 + v.y);
+  ctx.scale(v.k, v.k);
+  const focus = net.hover || net.selected;
+  const near = focus ? net.adj[focus.id] : null;
+
+  for (const e of net.edges) {
+    const on = focus && (e.s === focus || e.t === focus);
+    const described = e.type === "описывает";
+    ctx.globalAlpha = focus ? (on ? 0.9 : 0.05) : (described ? 0.55 : 0.28);
+    ctx.strokeStyle = described ? net.colors.gpu : net.colors.ink;
+    ctx.lineWidth = (described ? 1 + Math.min(3, Math.log2(1 + e.weight)) : 0.8) / Math.sqrt(v.k);
+    ctx.beginPath();
+    ctx.moveTo(e.s.x, e.s.y);
+    ctx.lineTo(e.t.x, e.t.y);
+    ctx.stroke();
+  }
+
+  for (const n of net.nodes) {
+    const dim = focus && n !== focus && !near.has(n.id);
+    ctx.globalAlpha = dim ? 0.12 : 1;
+    ctx.fillStyle = net.colors[n.kind] || net.colors.ink;
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, radius(n), 0, Math.PI * 2);
+    ctx.fill();
+    if (n === net.selected || (net.match && net.match.has(n.id))) {
+      ctx.lineWidth = 2.5 / v.k;
+      ctx.strokeStyle = net.colors.ink;
+      ctx.stroke();
+    }
+  }
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  const fontPx = 12 / v.k;
+  for (const n of net.nodes) {
+    const important = n.kind === "понятие" || n.kind === "территория";
+    const show = n === focus || (near && near.has(n.id)) || (net.match && net.match.has(n.id))
+      || (!focus && (important || v.k > 1.7 || (n.deg >= 4 && v.k > 1.1)));
+    if (!show) continue;
+    const dim = focus && n !== focus && !near.has(n.id);
+    ctx.globalAlpha = dim ? 0.15 : 1;
+    ctx.font = `${n.kind === "понятие" ? 600 : 400} ${fontPx}px "IBM Plex Sans", "Segoe UI", sans-serif`;
+    const label = short(n.name, n.kind === "статья" ? 42 : 40);
+    const y = n.y + radius(n) + 3 / v.k;
+    ctx.lineWidth = 3 / v.k;
+    ctx.strokeStyle = net.colors.surface;
+    ctx.strokeText(label, n.x, y);
+    ctx.fillStyle = net.colors.ink;
+    ctx.fillText(label, n.x, y);
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function bindCanvas(canvas) {
+  let press = null;
+  const local = (ev) => {
+    const r = canvas.getBoundingClientRect();
+    return [ev.clientX - r.left, ev.clientY - r.top];
+  };
+  canvas.addEventListener("pointerdown", (ev) => {
+    const [sx, sy] = local(ev);
+    const n = hit(sx, sy);
+    press = { sx, sy, node: n, vx: net.view.x, vy: net.view.y, moved: false };
+    canvas.setPointerCapture(ev.pointerId);
+    if (n) { n.fixed = true; net.dragging = true; }
+  });
+  canvas.addEventListener("pointermove", (ev) => {
+    const [sx, sy] = local(ev);
+    if (press) {
+      if (Math.hypot(sx - press.sx, sy - press.sy) > 4) press.moved = true;
+      if (press.node && press.moved) {
+        const [wx, wy] = toWorld(sx, sy);
+        press.node.x = wx; press.node.y = wy;
+        net.pos[press.node.id] = { x: wx, y: wy };
+        net.alpha = Math.max(net.alpha, 0.25);
+        run();
+      } else if (!press.node) {
+        net.view.x = press.vx + (sx - press.sx);
+        net.view.y = press.vy + (sy - press.sy);
+        draw();
+      }
+      return;
+    }
+    const n = hit(sx, sy);
+    canvas.classList.toggle("on-node", !!n);
+    if (n !== net.hover) {
+      net.hover = n;
+      if (n) $("map-tip").textContent = nodeTip(n);
+      draw();
+    }
+  });
+  const release = (ev) => {
+    if (!press) return;
+    if (press.node) { press.node.fixed = false; net.dragging = false; }
+    if (!press.moved) selectNode(press.node);
+    press = null;
+  };
+  canvas.addEventListener("pointerup", release);
+  canvas.addEventListener("pointercancel", release);
+  canvas.addEventListener("pointerleave", () => { if (!press && net.hover) { net.hover = null; draw(); } });
+  canvas.addEventListener("wheel", (ev) => {
+    ev.preventDefault();
+    const [sx, sy] = local(ev);
+    zoomBy(Math.exp(-ev.deltaY * 0.0015), sx, sy);
+  }, { passive: false });
+}
+
+function nodeTip(n) {
+  const links = n.deg;
+  if (n.kind === "статья") return `${n.name}${n.year ? ", " + n.year : ""} — ` +
+    plural(links, "связь", "связи", "связей");
+  const verb = n.kind === "понятие" ? "описано" : "упоминается";
+  return `${n.name} (${n.kind}) — ${verb} ${inArticles(links)}`;
+}
+
+function selectNode(n) {
+  net.selected = n;
+  draw();
+  const box = $("map-detail");
+  box.innerHTML = "";
+  if (!n) return;
+  const h = document.createElement("h3");
+  h.textContent = n.name;
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  const kind = document.createElement("span");
+  kind.className = "badge";
+  kind.style.color = net.colors[n.kind];
+  kind.textContent = n.kind;
+  meta.append(kind);
+  if (n.year) meta.append(document.createTextNode(String(n.year)));
+  box.append(h, meta);
+
+  const actions = document.createElement("div");
+  actions.className = "links";
+  if (n.kind === "статья") {
+    if (n.doi_url || n.url) {
+      const a = document.createElement("a");
+      a.href = n.doi_url || n.url; a.target = "_blank"; a.rel = "noopener";
+      a.textContent = "открыть у издателя ↗";
+      actions.append(a);
+    }
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "open"; b.textContent = "Разбор статьи целиком";
+    const parsed = document.createElement("div");
+    parsed.className = "parsed"; parsed.hidden = true;
+    b.addEventListener("click", () => {
+      parsed.hidden = !parsed.hidden;
+      if (!parsed.hidden && !parsed.childElementCount) fillParsed(parsed, n.doc_id, null);
+    });
+    actions.prepend(b);
+    box.append(actions, parsed);
+  } else if (n.kind === "понятие") {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "open"; b.textContent = "Цитаты из статей";
+    b.addEventListener("click", () => showMapEvidence(n.name, null));
+    actions.append(b);
+    box.append(actions);
+  }
+
+  const groups = {};
+  for (const id of net.adj[n.id]) {
+    const m = net.byId[id];
+    (groups[m.kind] = groups[m.kind] || []).push(m);
+  }
+  for (const [kindName, , label] of NET_KINDS) {
+    const list = groups[kindName];
+    if (!list) continue;
+    list.sort((a, b) => b.deg - a.deg || a.name.localeCompare(b.name, "ru"));
+    const sub = document.createElement("div");
+    sub.className = "sub";
+    sub.textContent = `${label} · ${list.length}`;
+    const chips = document.createElement("div");
+    chips.className = "chips";
+    for (const m of list) {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = short(m.name, 60);
+      chip.title = m.name;
+      chip.addEventListener("click", () => { centerOn(m); selectNode(m); });
+      chips.append(chip);
+    }
+    box.append(sub, chips);
+  }
+
+  // Для всего, кроме статьи: с чем этот узел встречается через общие статьи.
+  // Прямой линии между ними нет — связь держится на статьях, и число рядом
+  // говорит, на скольких.
+  if (n.kind === "статья") return;
+  const via = {};
+  for (const docId of net.adj[n.id]) {
+    for (const otherId of net.adj[docId]) {
+      if (otherId === n.id) continue;
+      const m = net.byId[otherId];
+      if (m.kind === "статья") continue;
+      via[otherId] = (via[otherId] || 0) + 1;
+    }
+  }
+  const ranked = Object.entries(via).sort((a, b) => b[1] - a[1]);
+  if (!ranked.length) return;
+  const title = document.createElement("div");
+  title.className = "sub";
+  title.textContent = "через общие статьи";
+  box.append(title);
+  for (const [kindName, , label] of NET_KINDS) {
+    const list = ranked.filter(([id]) => net.byId[id].kind === kindName).slice(0, 15);
+    if (!list.length) continue;
+    const row = document.createElement("div");
+    row.className = "chips";
+    const lead = document.createElement("span");
+    lead.className = "kind";
+    lead.textContent = label + ":";
+    row.append(lead);
+    for (const [id, shared] of list) {
+      const m = net.byId[id];
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.append(document.createTextNode(short(m.name, 50) + " "));
+      const cnt = document.createElement("span");
+      cnt.className = "n";
+      cnt.textContent = shared;
+      chip.append(cnt);
+      chip.title = `${m.name}: общих статей — ${shared}`;
+      chip.addEventListener("click", () => { centerOn(m); selectNode(m); });
+      row.append(chip);
+    }
+    box.append(row);
+  }
+}
+
+function centerOn(n) {
+  net.view.x = -n.x * net.view.k;
+  net.view.y = -n.y * net.view.k;
+  draw();
+}
+
+$("net-search").addEventListener("input", () => {
+  const q = $("net-search").value.trim().toLowerCase().replaceAll("ё", "е");
+  net.match = q.length < 2 ? null : new Set(net.nodes
+    .filter((n) => n.name.toLowerCase().replaceAll("ё", "е").includes(q)).map((n) => n.id));
+  draw();
+});
+$("net-search").addEventListener("keydown", (ev) => {
+  if (ev.key !== "Enter" || !net.match || !net.match.size) return;
+  const first = net.byId[[...net.match][0]];
+  centerOn(first);
+  selectNode(first);
+});
 
 let docsLoaded = false;
 async function loadDocs() {
@@ -561,8 +1533,8 @@ function renderDoc(doc) {
   if (doc.year) bits.push(String(doc.year));
   if (doc.journal) bits.push(doc.journal);
   if (doc.authors && doc.authors.length) bits.push(doc.authors.slice(0, 3).join(", "));
-  bits.push(`${doc.chunks} фрагментов`);
-  if (doc.pages) bits.push(`${doc.pages} страниц`);
+  bits.push(fragmentsN(doc.chunks));
+  if (doc.pages) bits.push(plural(doc.pages, "страница", "страницы", "страниц"));
   if (doc.parser) bits.push("разобрал " + doc.parser);
   if (doc.source) bits.push("найдено в " + doc.source);
   for (const bit of bits) {

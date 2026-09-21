@@ -1,0 +1,12 @@
+# Окружение и служебное Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Добытое и логи — живут только на машине, в репозиторий не идут
+data/
+logs/
+
+# Личный e-mail для OpenAlex и Crossref
+mailto.txt

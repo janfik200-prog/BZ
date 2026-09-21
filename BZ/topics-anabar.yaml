@@ -6,8 +6,7 @@
 # считать, по объекту — о том, что там на самом деле лежит.
 #
 # Запуск:
-#   .\.venv\Scripts\python.exe -m georag.acquire.cli --topics topics-anabar.yaml `
-#       --max-docs 5 --no-ocr --device cuda --mailto ВАШ_EMAIL
+#   python georag.py all --topics topics-anabar.yaml
 #
 # Чего ожидать честно: литература по Анабару почти вся русская и значительная
 # её часть живёт в eLibrary и фондах ВСЕГЕИ, куда автоматика не попадает — там

@@ -1,4 +1,4 @@
-"""Генерация из corpus/corpus.json: эталоны, скрипт скачивания, описание.
+"""Генерация из corpus/corpus.json: эталоны и описание корпуса.
 
 Данные — в corpus.json, его и правьте, когда добавляете статью. Здесь только
 генерация: python corpus/build_corpus.py
@@ -42,29 +42,6 @@ def write_golden(articles: list[dict]) -> None:
         )
 
 
-def write_downloader(articles: list[dict]) -> None:
-    lines = [
-        "# Скачивание тестового корпуса. Запуск из корня проекта:",
-        "#   powershell -ExecutionPolicy Bypass -File corpus\\download_corpus.ps1",
-        "$ErrorActionPreference = 'Stop'",
-        "New-Item -ItemType Directory -Force -Path 'data\\pdf' | Out-Null",
-        "$ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'",
-        "",
-    ]
-    for art in articles:
-        name = f"{art['id']}.pdf"
-        lines += [
-            f"Write-Host '→ {name}'",
-            f"Invoke-WebRequest -Uri '{art['pdf']}' -OutFile 'data\\pdf\\{name}' "
-            f"-UserAgent $ua -MaximumRedirection 5",
-            "Start-Sleep -Seconds 2",
-        ]
-    lines.append("Write-Host 'Готово. Файлы в data\\pdf'")
-    (CORPUS / "download_corpus.ps1").write_text(
-        "\r\n".join(lines) + "\r\n", encoding="utf-8-sig"
-    )
-
-
 def write_readme(articles: list[dict]) -> None:
     lines = [
         "# Тестовый корпус: выделение рудных узлов",
@@ -73,13 +50,13 @@ def write_readme(articles: list[dict]) -> None:
         "под разные типы вёрстки — скан, тяжёлая графика, плотные таблицы, две колонки.",
         "Нужны, чтобы мерить точность парсинга: эталоны к ним лежат в `golden/`.",
         "",
-        "```powershell",
-        "powershell -ExecutionPolicy Bypass -File corpus\\download_corpus.ps1",
-        "python -m georag.cli --input data\\pdf --device cuda",
+        "```",
+        "python corpus/download_corpus.py",
+        "python -m georag.cli --input data/pdf --device cuda",
         "```",
         "",
         "Данные корпуса — в `corpus.json`. Добавили статью туда — запустите",
-        "`python corpus/build_corpus.py`, и эталон со скриптом скачивания обновятся.",
+        "`python corpus/build_corpus.py`, и эталоны с описанием обновятся; скачивание (`download_corpus.py`) берёт список прямо из corpus.json.",
         "",
         "| Файл | Статья | Год | Стр. | Табл. | Что проверяет |",
         "| --- | --- | --- | --- | --- | --- |",
@@ -110,7 +87,6 @@ def write_readme(articles: list[dict]) -> None:
 if __name__ == "__main__":
     articles = load()
     write_golden(articles)
-    write_downloader(articles)
     write_readme(articles)
     print(f"эталонов: {len(articles)} → {GOLDEN}")
-    print(f"скрипт и описание → {CORPUS}")
+    print(f"описание → {CORPUS / 'README.md'}")

@@ -4,13 +4,13 @@
 под разные типы вёрстки — скан, тяжёлая графика, плотные таблицы, две колонки.
 Нужны, чтобы мерить точность парсинга: эталоны к ним лежат в `golden/`.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File corpus\download_corpus.ps1
-python -m georag.cli --input data\pdf --device cuda
+```
+python corpus/download_corpus.py
+python -m georag.cli --input data/pdf --device cuda
 ```
 
 Данные корпуса — в `corpus.json`. Добавили статью туда — запустите
-`python corpus/build_corpus.py`, и эталон со скриптом скачивания обновятся.
+`python corpus/build_corpus.py`, и эталоны с описанием обновятся; скачивание (`download_corpus.py`) берёт список прямо из corpus.json.
 
 | Файл | Статья | Год | Стр. | Табл. | Что проверяет |
 | --- | --- | --- | --- | --- | --- |
