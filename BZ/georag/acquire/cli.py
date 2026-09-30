@@ -1,13 +1,13 @@
 """CLI этапа добычи.
 
     python -m georag.acquire.cli "выделение рудных узлов"
-    python -m georag.acquire.cli --topics topics.yaml            # весь список тем за прогон
+    python -m georag.acquire.cli --topics config/topics.yaml            # весь список тем за прогон
 
 Темы в модель, обратно — запросы, поиск не запускается:
 
     python -m georag.acquire.cli --queries-only                  # темы с клавиатуры
     python -m georag.acquire.cli "тема" --queries-only --save-queries queries.yaml
-    python -m georag.acquire.cli --topics topics.yaml --queries-file queries.yaml
+    python -m georag.acquire.cli --topics config/topics.yaml --queries-file queries.yaml
 
     python -m georag.acquire.cli "прогноз оруденения" --dry-run  # поиск и отбор, без скачивания
     python -m georag.acquire.cli "рудные узлы" --no-llm          # отбор эвристикой, без модели
@@ -20,7 +20,8 @@ import json
 import sys
 from pathlib import Path
 
-from ..config import Settings
+from ..parse.config import Settings
+from ..common import add_llm_args
 from .heuristic import HeuristicFilter
 from .llm import OllamaLLM
 from .models import (
@@ -111,7 +112,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Добыча статей для базы знаний ГеоRAG")
     p.add_argument("topic", nargs="?", help="тема поиска, например «выделение рудных узлов»")
     p.add_argument("--topics", type=Path, default=None, help="файл со списком тем")
-    p.add_argument("--sources", type=Path, default=Path("sources.yaml"), help="каталог источников")
+    p.add_argument("--dois", type=Path, default=None,
+                   help="файл со списком DOI — статьи без поиска и отбора (config/articles.yaml)")
+    p.add_argument("--doi", action="append", default=[], help="одна статья по DOI (можно несколько раз)")
+    p.add_argument("--sources", type=Path, default=Path("config/sources.yaml"), help="каталог источников")
     p.add_argument("--out", type=Path, default=Path("data/acquired"))
     p.add_argument("--queries", type=int, default=5, help="сколько запросов просить у модели")
     p.add_argument("--per-query", type=int, default=25, help="сколько результатов на запрос")
@@ -133,8 +137,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-fallback", action="store_true", help="не подстраховывать модель эвристикой")
     p.add_argument("--force", action="store_true", help="игнорировать индекс уже добытого")
     p.add_argument("--no-chunks", action="store_true", help="не резать на чанки")
-    p.add_argument("--model", default="qwen3:14b")
-    p.add_argument("--ollama-host", default="http://localhost:11434")
+    add_llm_args(p)
     p.add_argument("--mailto", default="", help="e-mail для polite pool OpenAlex и Crossref")
     p.add_argument("--device", choices=["auto", "cuda", "cpu", "mps"], default=None)
     p.add_argument(
@@ -188,8 +191,43 @@ def _print_report(report, show_table: bool = True) -> None:
                 print(f"    {rec.note[:150]}")
 
 
+def _by_doi(args) -> int:
+    """Статьи по DOI: без поиска и отбора моделью — их выбрал человек."""
+    from .pipeline import acquire_dois, load_dois
+
+    dois = list(args.doi)
+    if args.dois:
+        try:
+            dois += load_dois(args.dois)
+        except (OSError, ValueError) as exc:
+            print(f"Не читается список DOI: {exc}", file=sys.stderr)
+            return 1
+    if not dois:
+        print("Список DOI пуст", file=sys.stderr)
+        return 1
+    settings = Settings()
+    if args.device:
+        settings.device = args.device
+    if args.no_ocr:
+        settings.use_ocr = False
+    cfg = AcquireConfig(out_dir=args.out, force=args.force, make_chunks=not args.no_chunks,
+                        mailto=args.mailto, dry_run=args.dry_run)
+    print(f"Статей по DOI: {len(dois)}")
+    report, missing = acquire_dois(dois, settings, cfg)
+    _print_report(report)
+    if missing:
+        print("\nНе найдено в OpenAlex:")
+        for line in missing:
+            print(f"  • {line}")
+    print("\nДальше: python georag.py ingest, потом python georag.py graph")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+
+    if args.dois or args.doi:
+        return _by_doi(args)
 
     try:
         if args.topics:
@@ -265,7 +303,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.save_queries:
             save_queries(args.save_queries, prepared)
             print(f"\nЗаписано в {args.save_queries}.")
-            print(f"Искать по ним: python -m georag.acquire.cli --topics {args.topics or 'topics.yaml'} "
+            print(f"Искать по ним: python -m georag.acquire.cli --topics {args.topics or 'config/topics.yaml'} "
                   f"--queries-file {args.save_queries}")
         return 0
 

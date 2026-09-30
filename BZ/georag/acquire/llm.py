@@ -18,42 +18,70 @@
 
 from __future__ import annotations
 
-import json
-import re
 from dataclasses import dataclass
 
+from ..llm import Ollama, extract_json
 from .models import Candidate
 
-_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+# О чём база. Без этого модель понимает тему буквально: вопрос про «признаки
+# на основе гравиметрии в моделях перспективности» давал запросы вроде
+# «gravimetry features prospectivity models», а они находили медицину и геодезию.
+DOMAIN = ("База знаний — для прогноза рудных месторождений: прогнозирование оруденения, "
+          "карты и модели перспективности (mineral prospectivity mapping), поисковые "
+          "признаки и критерии, рудная геология, геофизика и дистанционное зондирование "
+          "в поисках полезных ископаемых.")
 
 QUERY_SYSTEM = (
-    "Ты помогаешь искать научные статьи в библиографической базе. "
-    "Отвечай только JSON, без пояснений."
+    "Ты помогаешь искать научные статьи в библиографической базе. " + DOMAIN +
+    " Отвечай только JSON, без пояснений."
 )
 
 QUERY_USER = """Тема поиска: «{topic}».
 
-Тема может быть сформулирована свободно — одной фразой или целым описанием
-исследовательского интереса. Разбери её на разные смысловые аспекты.
+Тема может быть сформулирована свободно — фразой, вопросом или описанием
+исследовательского интереса. Разбери её на смысловые аспекты.
 
 Составь {n} поисковых запросов для научной базы. Требования:
 - часть запросов по-русски, часть по-английски: база двуязычная, и англоязычные
   формулировки находят другие работы, чем русские;
-- 2-6 слов, без кавычек, без логических операторов;
-- запросы должны отличаться по смыслу, а не быть перестановкой одних слов;
-- используй принятую терминологию предметной области.
+- 2-6 слов, без кавычек, без логических операторов, без вопросительных слов;
+- в каждом запросе — привязка к рудной тематике (mineral prospectivity, ore
+  deposits, mineral exploration, прогноз оруденения, рудные месторождения):
+  без неё слово «gravimetry» или «features» находит медицину и геодезию;
+- термины — как пишут в статьях: gravity data, gravity anomalies, Bouguer anomaly,
+  magnetic data, remote sensing, evidential layers, predictor maps, а не
+  дословный перевод вопроса;
+- запросы должны отличаться по смыслу, а не быть перестановкой одних слов.
+
+Пример. Тема «Какие признаки на основе гравиметрии использовались в моделях
+перспективности?» → gravity data mineral prospectivity mapping; gravity anomalies
+evidential layer prospectivity; гравиметрические данные прогноз оруденения;
+potential field data mineral exploration targeting; геофизические признаки
+прогнозные модели месторождений.
 
 Верни JSON: {{"queries": ["...", "..."]}}"""
 
 FILTER_SYSTEM = (
-    "Ты отбираешь научные статьи по теме для базы знаний. "
-    "Строго следуй теме: работы из смежных областей, не отвечающие теме, отклоняй. "
-    "Отвечай только JSON, без пояснений."
+    "Ты отбираешь научные статьи для базы знаний. " + DOMAIN +
+    " Отвечай только JSON, без пояснений."
 )
 
 FILTER_USER = """Тема: «{topic}».
 
-Ниже статьи. Для каждой реши, относится ли она к теме.
+Ниже статьи. Для каждой реши, брать ли её в базу по этой теме.
+
+Правила:
+1. Берём, только если статья про рудную геологию, поиски или прогноз полезных
+   ископаемых И отвечает теме хотя бы по одному главному аспекту. Не нужно,
+   чтобы совпали все слова темы.
+   Пример: тема про гравиметрические признаки в моделях перспективности — статья
+   про карту перспективности, где среди слоёв геофизические или гравиметрические
+   данные, подходит; статья про модели перспективности вообще тоже подходит, если
+   в ней разбираются поисковые признаки.
+2. Слово из темы в другом смысле — мимо: гравиметрия в геодезии, гидрологии (GRACE),
+   приборах и спутниках; gravimetric analysis в химии; prospective study в медицине;
+   модели в экономике. Нефть и газ, если тема не о них, — тоже мимо.
+3. Сомневаешься, а статья про прогноз или поиски руд, — бери.
 
 {items}
 
@@ -61,45 +89,13 @@ FILTER_USER = """Тема: «{topic}».
 Причина — не больше 15 слов. Реши по каждому номеру из списка."""
 
 
-def _extract_json(text: str) -> dict:
-    cleaned = _THINK_RE.sub("", text or "")
-    if "</think>" in cleaned:  # незакрытый блок размышлений
-        cleaned = cleaned.rsplit("</think>", 1)[-1]
-    start, end = cleaned.find("{"), cleaned.rfind("}")
-    if start == -1 or end <= start:
-        raise ValueError(f"в ответе нет JSON: {cleaned[:200]!r}")
-    return json.loads(cleaned[start : end + 1])
+# Разбор JSON и сам клиент — общие для всего проекта, в georag/llm.py.
+_extract_json = extract_json
 
 
 @dataclass
-class OllamaLLM:
-    model: str = "qwen3:14b"
-    host: str = "http://localhost:11434"
-    timeout: int = 180
-    temperature: float = 0.2
-    num_ctx: int = 8192
-
-    def chat_json(self, system: str, user: str) -> dict:
-        import requests
-
-        if self.model.lower().startswith("qwen3"):
-            user = f"{user}\n\n/no_think"
-
-        payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "stream": False,
-            "format": "json",
-            "think": False,
-            "options": {"temperature": self.temperature, "num_ctx": self.num_ctx},
-        }
-        response = requests.post(f"{self.host}/api/chat", json=payload, timeout=self.timeout)
-        response.raise_for_status()
-        content = (response.json().get("message") or {}).get("content", "")
-        return _extract_json(content)
+class OllamaLLM(Ollama):
+    """Клиент Ollama с двумя вопросами добычи: запросы и отбор аннотаций."""
 
     # -- шаг 2: формулировка запросов -------------------------------------- #
     def queries(self, topic: str, n: int = 5) -> list[str]:

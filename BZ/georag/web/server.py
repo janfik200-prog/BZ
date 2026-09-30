@@ -1,22 +1,27 @@
-"""Маленький веб-интерфейс к базе знаний.
+"""Веб-интерфейс к базе знаний: поиск, статьи, чат-бот и граф связей.
 
     python -m georag.web.server            открыть http://localhost:8000
     python -m georag.web.server --port 9000
 
-Зачем он, если есть команда search: модель эмбеддингов грузится один раз при
-запуске, а не на каждый запрос. В терминале каждый поиск стоит полминуты на
-загрузку весов; здесь — доли секунды, и можно спокойно пробовать формулировки.
+Модель эмбеддингов грузится один раз при запуске, а не на каждый запрос:
+в терминале каждый поиск стоит полминуты на загрузку весов, здесь — доли
+секунды.
 
 Никаких новых библиотек: сервер из стандартной поставки Python, страница —
 один файл рядом. Наружу ничего не смотрит, слушает только localhost.
 
-Для базы данных проекта здесь же контракт (подробно — graph/api.py):
+Для страницы:
 
-    GET  /api/concepts                 словарь и сколько доказательств у понятий
-    POST /api/concept                  запрос по шаблону, JSON в теле
-    GET  /api/concept?concept=...      то же из адресной строки — для проверки руками
-    GET  /api/graph                    схема: понятия — территории — методы
-    GET  /api/network                  сеть знаний: статьи и всё, о чём они
+    GET  /api/stats                    сколько статей и фрагментов
+    GET  /api/search?q=...             гибридный поиск
+    GET  /api/documents                список статей
+    GET  /api/document?doc_id=...      разбор статьи по фрагментам
+    GET  /api/chat/status              жива ли Ollama и скачана ли модель
+    POST /api/chat                     вопрос чат-боту; ответ потоком, строка JSON на событие
+    GET  /api/network                  граф: сущности, связи с цитатами, статьи
+    GET  /api/datasets                 у каких сущностей больше всего фактов
+    GET  /api/dataset?name=...         датасет сущности: все факты о ней с цитатами
+                                       (POST — то же JSON в теле); &format=csv — для Excel
 
 С другой машины к нему ходят через SSH-туннель: порт снаружи не открывается.
 """
@@ -29,38 +34,40 @@ import sys
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 
+from ..chat import answer as chat
+from ..common import add_db_args, add_embedder_args, add_llm_args
 from ..index import db
 from ..index.embed import build_embedder
 from ..index.search import hybrid_search
 from ..graph import api as graph_api
 from ..graph import store as graph
-from ..graph.vocabulary import VocabularyError, load as load_vocabulary
+from ..graph.synonyms import DEFAULT_PATH as SYNONYMS_PATH, SynonymsError, load as load_synonyms
+from ..graph.synonyms import synonym_variants
 
 PAGE = Path(__file__).with_name("index.html")
 
 
 class State:
-    """Общее на весь сервер: адрес базы, загруженная модель, словарь."""
+    """Общее на весь сервер: адрес базы, загруженная модель, словарь синонимов."""
 
     dsn: str | None = None
     embedder = None
-    vocabulary_path = None
-    _vocab = None
-    _vocab_mtime = None
+    chat_settings = chat.Settings()
+    synonyms_path = None
+    _syn = None
+    _syn_mtime = None
 
     @classmethod
-    def vocab(cls):
+    def synonyms(cls):
         """Словарь перечитывается, если файл поменяли, — сервер можно не перезапускать."""
-        from ..graph.vocabulary import DEFAULT_PATH
-
-        path = cls.vocabulary_path or DEFAULT_PATH
+        path = cls.synonyms_path or SYNONYMS_PATH
         mtime = path.stat().st_mtime if path.exists() else None
-        if cls._vocab is None or mtime != cls._vocab_mtime:
-            cls._vocab = load_vocabulary(path)
-            cls._vocab_mtime = mtime
-        return cls._vocab
+        if cls._syn is None or mtime != cls._syn_mtime:
+            cls._syn = load_synonyms(path)
+            cls._syn_mtime = mtime
+        return cls._syn
 
 
 def _hit_to_dict(hit) -> dict:
@@ -115,31 +122,22 @@ class Handler(BaseHTTPRequestHandler):
             elif route.path == "/api/documents":
                 with db.connect(State.dsn) as conn:
                     self._json({"documents": db.documents(conn)})
-            elif route.path == "/api/concepts":
-                self._concepts()
-            elif route.path == "/api/concept":
-                self._concept({k: v[0] for k, v in query.items() if v})
+            elif route.path == "/api/datasets":
+                self._graph(graph_api.datasets_response)
+            elif route.path == "/api/dataset":
+                self._dataset({k: v[0] for k, v in query.items() if v})
             elif route.path == "/api/network":
-                self._network((query.get("checked_only") or [""])[0] in ("1", "true"))
-            elif route.path == "/api/graph":
-                self._graph((query.get("checked_only") or [""])[0] in ("1", "true"))
-            elif route.path == "/api/entities":
-                kind = (query.get("kind") or [""])[0] or None
-                with db.connect(State.dsn) as conn:
-                    self._json({
-                        "counts": graph.counts(conn),
-                        "entities": graph.top_entities(conn, kind, 300),
-                    })
-            elif route.path == "/api/entity":
-                key = (query.get("key") or [""])[0]
-                with db.connect(State.dsn) as conn:
-                    self._json({"key": key, "documents": graph.entity_documents(conn, key)})
+                self._graph(graph_api.network_response)
+            elif route.path == "/api/chat/status":
+                self._json(chat.ollama_status(State.chat_settings.host, State.chat_settings.model))
             elif route.path == "/api/document":
                 doc_id = (query.get("doc_id") or [""])[0]
                 with db.connect(State.dsn) as conn:
                     self._json({"doc_id": doc_id, "chunks": db.document_chunks(conn, doc_id)})
             else:
                 self._json({"error": "нет такой страницы"}, 404)
+        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+            pass                        # страницу закрыли, пока отвечали
         except Exception as exc:  # noqa: BLE001 — ошибка уходит на страницу, сервер живёт
             traceback.print_exc()
             self._json({"error": f"{type(exc).__name__}: {exc}"}, 500)
@@ -147,68 +145,91 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         route = urlparse(self.path)
         try:
-            if route.path != "/api/concept":
+            if route.path not in ("/api/chat", "/api/dataset"):
                 self._json({"error": "нет такого адреса"}, 404)
                 return
             length = int(self.headers.get("Content-Length") or 0)
-            if length > 64 * 1024:
+            if length > 256 * 1024:
                 self._json({"error": "запрос слишком большой"}, 413)
                 return
             raw = self.rfile.read(length) if length else b"{}"
             try:
                 payload = json.loads(raw.decode("utf-8") or "{}")
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-                self._json({"api_version": graph_api.API_VERSION,
-                            "error": "тело запроса — не JSON", "detail": str(exc)}, 400)
+                self._json({"error": "тело запроса — не JSON", "detail": str(exc)}, 400)
                 return
-            self._concept(payload)
+            if route.path == "/api/chat":
+                self._chat(payload)
+            else:
+                self._dataset(payload)
         except Exception as exc:  # noqa: BLE001
             traceback.print_exc()
             self._json({"error": f"{type(exc).__name__}: {exc}"}, 500)
 
-    # -- контракт с базой данных проекта ------------------------------------ #
-    def _concepts(self) -> None:
+    # -- чат-бот ------------------------------------------------------------ #
+    def _chat(self, payload: dict) -> None:
+        """Ответ потоком: строка JSON на событие, страница рисует по мере прихода."""
+        history = payload.get("history") if isinstance(payload.get("history"), list) else []
+        settings = State.chat_settings
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        events = None
         try:
-            vocab = State.vocab()
             with db.connect(State.dsn) as conn:
-                self._json(graph_api.concepts_response(conn, vocab))
-        except VocabularyError as exc:
-            self._json({"error": f"словарь: {exc}"}, 500)
-        except graph_api.NotBuilt as exc:
-            self._json({"api_version": graph_api.API_VERSION, "error": str(exc)}, 503)
+                db.autocommit(conn)             # ответ пишется минутами — без открытой транзакции
+                events = chat.answer(conn, State.embedder, str(payload.get("question") or ""),
+                                     history, settings)
+                for event in events:
+                    self.wfile.write((json.dumps(event, ensure_ascii=False) + "\n").encode("utf-8"))
+                    self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):
+            pass                        # страницу закрыли или нажали «Стоп» — не страшно
+        except Exception as exc:  # noqa: BLE001
+            traceback.print_exc()
+            try:
+                line = {"type": "error", "error": f"{type(exc).__name__}: {exc}"}
+                self.wfile.write((json.dumps(line, ensure_ascii=False) + "\n").encode("utf-8"))
+            except OSError:
+                pass
+        finally:
+            if events is not None:
+                events.close()          # закрывает и поток от Ollama: она перестаёт писать
 
-    def _network(self, checked_only: bool) -> None:
+    # -- граф знаний: сеть, датасеты ------------------------------------------ #
+    def _graph(self, build) -> None:
+        """build(conn, синонимы) → ответ. Неизвестное имя — 400, словарь не читается — 500."""
         try:
-            vocab = State.vocab()
+            syn = State.synonyms()
             with db.connect(State.dsn) as conn:
-                self._json(graph_api.network_response(conn, vocab, checked_only))
-        except VocabularyError as exc:
-            self._json({"error": f"словарь: {exc}"}, 500)
-        except graph_api.NotBuilt as exc:
-            self._json({"api_version": graph_api.API_VERSION, "error": str(exc)}, 503)
-
-    def _graph(self, checked_only: bool) -> None:
-        try:
-            vocab = State.vocab()
-            with db.connect(State.dsn) as conn:
-                self._json(graph_api.graph_response(conn, vocab, checked_only))
-        except VocabularyError as exc:
-            self._json({"error": f"словарь: {exc}"}, 500)
-        except graph_api.NotBuilt as exc:
-            self._json({"api_version": graph_api.API_VERSION, "error": str(exc)}, 503)
-
-    def _concept(self, payload: dict) -> None:
-        try:
-            vocab = State.vocab()
-            request = graph_api.parse_request(vocab, payload)
-            with db.connect(State.dsn) as conn:
-                self._json(graph_api.concept_response(conn, vocab, request))
+                self._json(build(conn, syn))
         except graph_api.RequestError as exc:
             self._json(exc.payload(), 400)
-        except VocabularyError as exc:
-            self._json({"error": f"словарь: {exc}"}, 500)
-        except graph_api.NotBuilt as exc:
-            self._json({"api_version": graph_api.API_VERSION, "error": str(exc)}, 503)
+        except SynonymsError as exc:
+            self._json({"error": f"словарь синонимов: {exc}"}, 500)
+
+    def _dataset(self, payload: dict) -> None:
+        """Датасет сущности: JSON, а с format=csv — таблица для Excel."""
+        payload = dict(payload)
+        if str(payload.pop("format", "")).lower() != "csv":
+            self._graph(lambda conn, syn: graph_api.dataset_response(conn, syn, payload))
+            return
+        try:
+            with db.connect(State.dsn) as conn:
+                data = graph_api.dataset_response(conn, State.synonyms(), payload)
+        except graph_api.RequestError as exc:
+            self._json(exc.payload(), 400)
+            return
+        body = graph_api.dataset_csv(data).encode("utf-8")
+        name = quote(f"датасет-{data['name']}.csv")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/csv; charset=utf-8")
+        self.send_header("Content-Disposition",
+                         f"attachment; filename=\"dataset.csv\"; filename*=UTF-8''{name}")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     # -- действия ---------------------------------------------------------- #
     def _stats(self) -> dict:
@@ -238,6 +259,11 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError:
                 return default
 
+        # Другие написания из словаря синонимов: «Донбасс» ищется и как «Donetsk basin».
+        try:
+            also = synonym_variants(text, State.synonyms())
+        except SynonymsError:
+            also = []
         with db.connect(State.dsn) as conn:
             hits = hybrid_search(
                 conn,
@@ -248,29 +274,67 @@ class Handler(BaseHTTPRequestHandler):
                 max_per_doc=number("per_doc", 2),
                 min_similarity=fraction("min_similarity"),
                 require_words=(query.get("require_words") or [""])[0] == "1",
+                alternatives=also,
             )
-        return {"query": text, "hits": [_hit_to_dict(h) for h in hits]}
+        return {"query": text, "also": also, "hits": [_hit_to_dict(h) for h in hits]}
+
+
+class Server(ThreadingHTTPServer):
+    """Порт — только наш. Стандартный сервер Python ставит SO_REUSEADDR, и на Windows
+    второй запуск молча садился на тот же порт: страница попадала то в старый процесс
+    со старым кодом, то в новый, а в каждом работал свой Телеграм-бот."""
+
+    allow_reuse_address = False
+
+    def server_bind(self):
+        import socket
+
+        if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+    def handle_error(self, request, client_address):
+        """Страницу закрыли или обновили, пока сервер отвечал, — не ошибка, журнал не засоряем."""
+        import sys as _sys
+
+        if isinstance(_sys.exc_info()[1], (ConnectionAbortedError, ConnectionResetError,
+                                           BrokenPipeError)):
+            return
+        super().handle_error(request, client_address)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Веб-интерфейс к базе знаний ГеоRAG")
     parser.add_argument("--port", type=int, default=8000)
-    parser.add_argument("--dsn", default=None, help="адрес базы, иначе GEORAG_DSN")
-    parser.add_argument("--embedder", choices=["local", "ollama"], default="local")
-    parser.add_argument("--device", choices=["auto", "cuda", "cpu"], default="auto")
+    add_db_args(parser)
+    add_embedder_args(parser)
     parser.add_argument("--no-browser", action="store_true", help="не открывать браузер")
+    parser.add_argument("--tg", action="store_true",
+                        help="заодно запустить Телеграм-бота (модель векторов общая)")
+    add_llm_args(parser)
     args = parser.parse_args(argv)
 
-    State.dsn = args.dsn
+    # Порт — первым делом: если сервер уже запущен в другом окне, второй не стартует
+    # (и не запускает второго Телеграм-бота).
     try:
-        vocab = State.vocab()
-        print(f"Словарь: {len(vocab.concepts)} понятий, {len(vocab.territories)} территорий, "
-              f"{len(vocab.methods)} методов")
-    except VocabularyError as exc:
-        print(f"Словарь не читается: {exc}", file=sys.stderr)
+        server = Server(("127.0.0.1", args.port), Handler)
+    except OSError:
+        print(f"Порт {args.port} занят: сервер уже запущен в другом окне. Закройте его "
+              f"(Ctrl+C) и запустите заново — или другой порт: --port {args.port + 1}",
+              file=sys.stderr)
         return 1
 
-    # Проверяем базу до старта: лучше честно упасть здесь, чем показать пустую страницу.
+    State.dsn = args.dsn
+    State.chat_settings = chat.Settings(model=args.model, host=args.ollama_host)
+    try:
+        syn = State.synonyms()
+        print(f"Словарь синонимов: {len(syn.groups)} имён")
+    except SynonymsError as exc:
+        print(f"Словарь синонимов не читается: {exc}", file=sys.stderr)
+        server.server_close()
+        return 1
+
+    # Проверяем базу до старта: лучше упасть здесь, чем показать пустую страницу.
     try:
         with db.connect(args.dsn) as conn:
             info = db.stats(conn)
@@ -278,6 +342,7 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as exc:  # noqa: BLE001
         print(f"База недоступна: {type(exc).__name__}: {exc}", file=sys.stderr)
         print("Поднимите её: docker compose up -d", file=sys.stderr)
+        server.server_close()
         return 1
 
     print(f"В базе: {info['documents']} статей, {info['chunks']} чанков")
@@ -285,7 +350,23 @@ def main(argv: list[str] | None = None) -> int:
     State.embedder = build_embedder(args.embedder, device=args.device)
     State.embedder.encode_one("прогрев")   # чтобы первый поиск не ждал загрузку весов
 
+    if args.tg:
+        from ..tg.bot import start_in_thread
+
+        try:
+            start_in_thread(State.dsn, State.embedder, State.chat_settings)
+        except Exception as exc:  # noqa: BLE001 — без бота страница всё равно работает
+            print(f"Телеграм-бот не запустился: {exc}", file=sys.stderr)
+    else:
+        from ..tg.bot import read_token
+
+        if read_token():
+            print("Телеграм-бот НЕ запущен: токен есть, но нужен ключ --tg — "
+                  "python georag.py web --tg")
+
     address = f"http://localhost:{args.port}"
+    status = chat.ollama_status(State.chat_settings.host, State.chat_settings.model)
+    print(f"Чат-бот: {State.chat_settings.model} — " + ("готов" if status["ok"] else status["error"]))
     print(f"\nГотово: {address}")
     print("Остановить — Ctrl+C\n")
 
@@ -294,7 +375,6 @@ def main(argv: list[str] | None = None) -> int:
 
         webbrowser.open(address)
 
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -25,7 +25,7 @@ from georag.acquire.providers.openalex import (  # noqa: E402
     OpenAlexProvider,
     abstract_from_inverted_index,
 )
-from georag.config import Settings  # noqa: E402
+from georag.parse.config import Settings  # noqa: E402
 
 PASSED: list[str] = []
 FAILED: list[str] = []
@@ -590,7 +590,7 @@ def test_topics_file() -> None:
     print("\nСписок тем")
     from georag.acquire.cli import load_topics
 
-    topics = load_topics(Path("topics.yaml"))
+    topics = load_topics(Path("config/topics.yaml"))
     check("темы читаются", len(topics) >= 5, f"{len(topics)} тем")
     check("есть русская тема", any("рудных узлов" in t for t in topics))
     check("есть английская тема", any("prospectivity" in t or "cluster" in t for t in topics))
@@ -703,7 +703,7 @@ def test_real_catalog() -> None:
     print("\nКаталог источников проекта")
     from georag.acquire.sources import load_sources
 
-    sources = load_sources(Path("sources.yaml"))
+    sources = load_sources(Path("config/sources.yaml"))
     by_name = {s.name: s for s in sources}
     check("каталог читается", len(sources) >= 2, f"{len(sources)} источников")
     enabled = [s.name for s in sources if s.automatable]
@@ -715,6 +715,113 @@ def test_real_catalog() -> None:
           and not by_name["example_json_api"].enabled)
     check("lens помечен как ручной", by_name["lens"].mode == "manual")
     check("ручные источники в автоматику не идут", not by_name["lens"].automatable)
+
+
+def test_questions_and_key() -> None:
+    print("\nВопрос вместо темы и ключ OpenAlex")
+    import os
+    from georag.acquire.heuristic import HeuristicFilter, has_domain_term
+    from georag.acquire.providers import openalex
+
+    q = HeuristicFilter().queries(
+        "Какие признаки на основе гравиметрии использовались в моделях перспективности?")
+    joined = " | ".join(q)
+    check("вопрос целиком поисковику не уходит", all("?" not in x for x in q), joined)
+    check("вопросительных слов в запросах нет",
+          not any(w in joined.lower() for w in ("какие", "использовались", "основе")), joined)
+    check("есть английский запрос по глоссарию", any("gravity" in x and "prospectivity" in x for x in q),
+          joined)
+    check("ДЗЗ переводится", any("remote sensing" in x for x in
+                                  HeuristicFilter().queries(
+                                      "Какие признаки ДЗЗ использовались в моделях перспективности?")))
+    check("тема (не вопрос) ищется как есть",
+          HeuristicFilter().queries("выделение рудных узлов")[0] == "выделение рудных узлов")
+    check("«труд» — не «руда»",
+          not has_domain_term("Признаки прекарности рабочего места и трудовые отношения"))
+    check("руда по-прежнему руда", has_domain_term("Руды и металлы: состав рудного тела"))
+
+    old = os.environ.pop("GEORAG_OPENALEX_KEY", None)
+    try:
+        os.environ["GEORAG_OPENALEX_KEY"] = "k123"
+        prov = openalex.OpenAlexProvider(params={})
+        check("ключ берётся из окружения и уходит в запрос",
+              prov._params("gold", 5).get("api_key") == "k123")
+        os.environ.pop("GEORAG_OPENALEX_KEY")
+        prov = openalex.OpenAlexProvider(params={"pause_sec": 0})
+        if not openalex.KEY_FILE.exists():
+            module = types.ModuleType("requests")
+            module.get = lambda *a, **kw: _FakeResponse(json_data={}, status=409)
+            sys.modules["requests"] = module
+            try:
+                prov.search("gold", 5)
+                check("без ключа — понятная ошибка", False)
+            except openalex.OpenAlexKeyError as exc:
+                check("без ключа — понятная ошибка, где взять ключ",
+                      "openalex.org/settings/api" in str(exc))
+            finally:
+                sys.modules.pop("requests", None)
+    finally:
+        if old is not None:
+            os.environ["GEORAG_OPENALEX_KEY"] = old
+
+
+def test_filter_rules_and_gate() -> None:
+    print("\nОтбор моделью: правила и доменный фильтр до модели")
+    import tempfile
+    from georag.acquire import pipeline as P
+    from georag.acquire.llm import FILTER_SYSTEM, FILTER_USER, QUERY_SYSTEM, QUERY_USER
+    from georag.acquire.models import Candidate
+    from georag.parse.config import Settings
+
+    check("модель знает, о чём база", "прогноза рудных месторождений" in FILTER_SYSTEM
+          and "прогноза рудных месторождений" in QUERY_SYSTEM)
+    check("запросы — с привязкой к рудной тематике", "привязка к рудной тематике" in QUERY_USER)
+    check("отбор: не нужно совпадение всех слов, чужой смысл — мимо",
+          "Не нужно,\n   чтобы совпали все слова" in FILTER_USER and "GRACE" in FILTER_USER)
+
+    cands = [
+        Candidate(source="x", external_id="1", title="Gravity data in mineral prospectivity mapping",
+                  abstract="Gravity anomalies as evidential layers for gold deposits."),
+        Candidate(source="x", external_id="2", title="Monitoring groundwater with GRACE gravimetry",
+                  abstract="Satellite gravimetry of aquifers."),
+        Candidate(source="x", external_id="3", title="Extravascular lung water measurement",
+                  abstract="Clinical study."),
+    ]
+
+    class Prov:
+        name = "проба"
+
+        def search(self, q, n):
+            return list(cands)
+
+    class Seen:
+        model = "проба"
+
+        def __init__(self):
+            self.titles = []
+
+        def queries(self, topic, n=5):
+            return [topic]
+
+        def filter_batch(self, topic, batch):
+            for c in batch:
+                self.titles.append(c.title)
+                c.relevant = True
+                c.reason = "проба"
+
+    real = (P.load_sources, P.build_providers)
+    tmp = Path(tempfile.mkdtemp())
+    try:
+        P.load_sources = lambda path: []
+        P.build_providers = lambda sources: ([Prov()], [])
+        llm = Seen()
+        cfg = P.AcquireConfig(out_dir=tmp / "acq", dry_run=True, force=True)
+        report = P.acquire("гравиметрия прогноз", llm, Settings(log_dir=tmp / "logs"), cfg)
+        check("до модели дошла только рудная статья", llm.titles == [cands[0].title], str(llm.titles))
+        check("отброшенные фильтром — в отчёте как мимо темы", report.rejected == 2, str(report.rejected))
+    finally:
+        P.load_sources, P.build_providers = real
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def main() -> int:
@@ -732,6 +839,8 @@ def main() -> int:
     test_prepared_queries()
     test_json_api_provider()
     test_real_catalog()
+    test_questions_and_key()
+    test_filter_rules_and_gate()
 
     pdf_arg = sys.argv[1] if len(sys.argv) > 1 else None
     if pdf_arg and Path(pdf_arg).exists():

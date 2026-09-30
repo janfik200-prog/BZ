@@ -1,6 +1,11 @@
 """Поиск через OpenAlex.
 
-Почему он: официальный открытый API без ключа и без проверок на робота, и при этом
+С 13 февраля 2026 года OpenAlex без ключа отвечает на сотню запросов в день, дальше —
+ошибкой. Ключ бесплатный: завести учётную запись на openalex.org и взять его на
+openalex.org/settings/api. Ключ берётся из параметра api_key каталога, переменной
+GEORAG_OPENALEX_KEY или файла openalex_key.txt рядом с georag.py (он не уходит в git).
+
+Почему он: официальный открытый API без проверок на робота, и при этом
 индексирует русскую периодику с DOI — «Отечественная геология», «Руды и металлы»,
 «Региональная геология и металлогения» там есть. Ключ не обязателен, но с ним дневной
 лимит выше; e-mail в mailto переводит запросы в polite pool с более ровным временем ответа.
@@ -16,11 +21,28 @@
 
 from __future__ import annotations
 
+import os
 import time
+from pathlib import Path
 
 from ..models import Candidate
 
 BASE = "https://api.openalex.org/works"
+KEY_FILE = Path(__file__).resolve().parents[3] / "openalex_key.txt"
+KEY_HELP = ("OpenAlex требует ключ API (с 13.02.2026). Он бесплатный: учётная запись на "
+            "openalex.org, ключ — на openalex.org/settings/api. Сохранить в папке проекта: "
+            "python -c \"open('openalex_key.txt','w').write('ВАШ_КЛЮЧ')\"")
+
+
+class OpenAlexKeyError(RuntimeError):
+    """Без ключа или с неверным ключом OpenAlex не отвечает — объяснить, что делать."""
+
+
+def api_key_from_env() -> str:
+    key = os.environ.get("GEORAG_OPENALEX_KEY", "").strip()
+    if not key and KEY_FILE.exists():
+        key = KEY_FILE.read_text(encoding="utf-8-sig").strip()
+    return key
 
 # Просим только нужные поля: ответ меньше, разбор быстрее.
 SELECT = ",".join(
@@ -53,6 +75,15 @@ def abstract_from_inverted_index(index: dict | None) -> str:
     return " ".join(word for _, word in slots)
 
 
+def normalize_doi(doi: str) -> str:
+    """«https://doi.org/10.3390/X», «doi:10.3390/X», « 10.3390/X » → «10.3390/x»."""
+    doi = (doi or "").strip()
+    for prefix in ("https://doi.org/", "http://doi.org/", "https://dx.doi.org/", "doi:"):
+        if doi.lower().startswith(prefix):
+            doi = doi[len(prefix):]
+    return doi.strip().lower()
+
+
 def _strip_prefix(value: str | None, prefix: str) -> str | None:
     if not value:
         return None
@@ -64,7 +95,7 @@ class OpenAlexProvider:
         self.name = name
         params = params or {}
         self.mailto = (params.get("mailto") or "").strip()
-        self.api_key = (params.get("api_key") or "").strip()
+        self.api_key = (params.get("api_key") or "").strip() or api_key_from_env()
         self.per_page = int(params.get("per_page") or 50)
         self.min_year = params.get("min_year")
         self.only_oa = bool(params.get("only_oa", False))
@@ -121,10 +152,36 @@ class OpenAlexProvider:
 
         if self.pause_sec:
             time.sleep(self.pause_sec)  # вежливость: не упираемся в лимит запросов
+        if response.status_code in (401, 403, 409, 429) and not self.api_key:
+            raise OpenAlexKeyError(KEY_HELP)
+        if response.status_code in (401, 403):
+            raise OpenAlexKeyError("OpenAlex не принял ключ из openalex_key.txt — проверьте его "
+                                   "на openalex.org/settings/api")
         response.raise_for_status()
         payload = response.json()
 
         return [self._to_candidate(item, query) for item in (payload.get("results") or [])][:limit]
+
+    def by_doi(self, doi: str, query: str = "список DOI") -> Candidate | None:
+        """Одна статья по DOI. Нет её в OpenAlex — None."""
+        import requests
+
+        doi = normalize_doi(doi)
+        params = {"select": SELECT}
+        if self.mailto:
+            params["mailto"] = self.mailto
+        if self.api_key:
+            params["api_key"] = self.api_key
+        response = requests.get(f"{BASE}/doi:{doi}", params=params, timeout=self.timeout,
+                                headers={"User-Agent": self._user_agent()})
+        if self.pause_sec:
+            time.sleep(self.pause_sec)
+        if response.status_code == 404:
+            return None
+        response.raise_for_status()
+        cand = self._to_candidate(response.json(), query)
+        cand.doi = cand.doi or doi
+        return cand
 
     def _user_agent(self) -> str:
         base = "georag/0.1 (knowledge base builder)"

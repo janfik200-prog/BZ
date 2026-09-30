@@ -154,7 +154,7 @@ def test_hybrid_order() -> None:
 
     sql = " ".join(s for s, _ in conn.executed)
     check("вектор ищется косинусом", "<=>" in sql)
-    check("полнотекст через websearch_to_tsquery", "websearch_to_tsquery('russian'" in sql)
+    check("полнотекст по-русски, запрос собран из слов", "to_tsquery('russian'" in sql)
 
     conn = _FakeConn(rows=[[_row(1)], [_row(2)]])
     hybrid_search(conn, _FakeEmbedder(), "x", year_from=2010, source="openalex")
@@ -228,6 +228,19 @@ def test_ingest() -> None:
         broken = ingest_dir(conn, _FakeEmbedder(), tmp, verbose=False)
         check("битый файл только в ошибках", len(broken.errors) == 1 and broken.indexed == 1,
               "; ".join(broken.errors))
+
+        # Та же статья из другого источника: другой идентификатор, тот же файл.
+        (tmp / "d3.chunks.json").unlink()
+        meta = json.loads((tmp / "d1.json").read_text(encoding="utf-8"))
+        (tmp / "d1.json").write_text(json.dumps(dict(meta, sha256="abc")), encoding="utf-8")
+        (tmp / "x9.json").write_text(json.dumps({"doc_id": "x9", "title": "Первая (копия)",
+                                                 "sha256": "abc"}), encoding="utf-8")
+        (tmp / "x9.chunks.json").write_text((tmp / "d1.chunks.json").read_text(encoding="utf-8"),
+                                            encoding="utf-8")
+        conn = _FakeConn(rows=[[], [("abc", "d1")]])
+        dup = ingest_dir(conn, _FakeEmbedder(), tmp, verbose=False)
+        check("повтор статьи по отпечатку файла пропущен", dup.duplicates == 1
+              and dup.indexed == 1, f"{dup.duplicates} {dup.indexed}")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -374,6 +387,126 @@ def test_citation() -> None:
     check("есть ссылка", "https://example.org/a" in line)
 
 
+def test_search_fixes() -> None:
+    print("\nПоиск: исправленные слабые места")
+    conn = _FakeConn(rows=[[_row(1)], [_row(2)]])
+    hybrid_search(conn, _FakeEmbedder(), "рудные узлы", candidates=50)
+    sqls = [s for s, _ in conn.executed]
+    check("HNSW смотрит не меньше 100 соседей", any("hnsw.ef_search = 100" in s for s in sqls),
+          "; ".join(s[:40] for s in sqls))
+    check("без фильтра добор HNSW не включается",
+          not any("iterative_scan" in s for s in sqls))
+
+    conn = _FakeConn(rows=[[_row(1)], [_row(2)]])
+    hybrid_search(conn, _FakeEmbedder(), "x", year_from=2015)
+    sqls = [s for s, _ in conn.executed]
+    check("с фильтром — добор HNSW под точкой сохранения",
+          any("iterative_scan" in s for s in sqls) and any("SAVEPOINT" in s for s in sqls))
+
+    # Длинный вопрос словами целиком не находится → мягкий заход, но без доказательной силы
+    conn = _FakeConn(rows=[[_row(1)], [], [_row(5)]])
+    hits = hybrid_search(conn, _FakeEmbedder(), "как выделяют рудные узлы на щите",
+                         min_similarity=0.45)
+    params = [p for _, p in conn.executed if p and "q" in p]
+    check("второй заход — слова через «или»",
+          any(" | " in str(p["q"]) for p in params), str([p["q"] for p in params][-1:]))
+    check("мягкое совпадение без близости не проходит",
+          all(h.chunk_id != 5 for h in hits), str([h.chunk_id for h in hits]))
+    conn = _FakeConn(rows=[[_row(1)], [], [_row(5)]])
+    hits = hybrid_search(conn, _FakeEmbedder(), "как выделяют рудные узлы на щите")
+    check("без порога мягкое совпадение показывается", any(h.chunk_id == 5 for h in hits))
+    check("и помечено нестрогим", all(not h.fts_strict for h in hits if h.chunk_id == 5))
+
+    from georag.index.search import build_tsquery, loose_query
+    check("мягкий запрос не ломается на or/and", loose_query("gold and ore") == "gold | ore",
+          loose_query("gold and ore"))
+    check("беглая гласная: узел или узл", build_tsquery("рудный узел") == "рудный & (узел | узл)",
+          build_tsquery("рудный узел"))
+    check("знаки препинания не ломают запрос", build_tsquery("что (там) с 'золотом'?!") ==
+          "что & там & с & золотом", build_tsquery("что (там) с 'золотом'?!"))
+
+
+def test_embed_text() -> None:
+    print("\nЧто уходит в модель эмбеддинга")
+    from georag.index.ingest import embed_text
+    t = embed_text({"title": "Золото  Анабарского щита"}, {"embed_text": "Раздел\nТекст", "text": "Текст"})
+    check("название статьи сверху", t.startswith("Золото Анабарского щита\nРаздел"), repr(t[:40]))
+    check("без названия — как было", embed_text({}, {"text": "Текст"}) == "Текст")
+
+
+def test_long_paragraph() -> None:
+    print("\nДлинный абзац без разметки режется, а не обрезается моделью")
+    from georag.parse.chunking import _pieces
+
+    class Tok:
+        def encode(self, text, add_special_tokens=False):
+            return text.split()
+
+    para = " ".join(f"Предложение номер {i} про рудный узел." for i in range(60))
+    pieces = list(_pieces([para, "Короткий абзац."], Tok(), budget=40))
+    check("длинный абзац стал несколькими кусками", len(pieces) > 3, str(len(pieces)))
+    check("каждый кусок в бюджете", all(len(p.split()) <= 40 for p in pieces))
+    check("текст не потерян", sum(len(p.split()) for p in pieces) == len(para.split()) + 2)
+    check("короткий абзац как был", pieces[-1] == "Короткий абзац.")
+
+
+def test_forget_cleaned() -> None:
+    print("\nУбранное через clean база тоже забывает")
+    tmp = Path(tempfile.mkdtemp())
+    try:
+        (tmp / "_отсев").mkdir()
+        (tmp / "_отсев" / "bad1.json").write_text("{}", encoding="utf-8")
+        (tmp / "_отсев" / "bad1.chunks.json").write_text("[]", encoding="utf-8")
+
+        class Cur(_FakeCursor):
+            rowcount = 1
+        conn = _FakeConn(rows=[[], []])
+        conn.cursor = lambda: Cur(conn)
+        report = ingest_dir(conn, _FakeEmbedder(), tmp, verbose=False)
+        deleted = [p for q, p in conn.executed if q.startswith("DELETE FROM documents")]
+        check("статья из _отсев удалена из базы", deleted == [(["bad1"],)], str(deleted))
+        check("в отчёте видно, сколько забыто", report.forgotten == 1)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def test_reindex_keeps_ids() -> None:
+    print("\nПереиндексация не стирает граф")
+    row = {"doc_id": "d1", "ord": 0, "text": "новый текст", "headings": [], "pages": [1],
+           "n_tokens": 3, "has_table": False, "embedding": "[0.1]"}
+    same = dict(row, ord=1, text="старый текст")
+    # были фрагменты 0, 1, 2; у 0 текст поменялся, 1 — тот же, 2 — пропал.
+    conn = _FakeConn(rows=[[(0, 10, "прежний текст"), (1, 11, "старый текст"),
+                            (2, 12, "лишний")], [(True,)]])
+    db.replace_chunks(conn, "d1", [row, same])
+    sql = [q for q, _ in conn.executed]
+    check("фрагменты обновляются на месте, а не удаляются целиком",
+          not any(q == "DELETE FROM chunks WHERE doc_id = %s" for q in sql)
+          and any("ON CONFLICT (doc_id, ord) DO UPDATE" in q for q in sql), str(sql))
+    check("пропавшие фрагменты удалены",
+          any(q.startswith("DELETE FROM chunks WHERE doc_id = %s AND NOT") for q in sql))
+    dropped = [p for q, p in conn.executed if q.startswith("DELETE FROM facts WHERE")]
+    check("факты стёрты только у фрагмента с новым текстом", dropped == [([10],)], str(dropped))
+    conn = _FakeConn(rows=[[(0, 10, "новый текст")]])
+    db.replace_chunks(conn, "d1", [row])
+    check("текст тот же — факты не трогаются",
+          not any(q.startswith("DELETE FROM facts") for q, _ in conn.executed))
+
+
+def test_synonym_alternatives() -> None:
+    print("\nСинонимы в полнотекстовом поиске")
+    from georag.index import search as S
+
+    conn = _FakeConn(rows=[[]])
+    S.text_search(conn, "золото донбасс", 10, alternatives=["золото donetsk basin"])
+    q = conn.executed[-1][1]["q"]
+    check("находит все слова хотя бы одного варианта",
+          q == "(золото & донбасс) | (золото & donetsk & basin)", q)
+    conn = _FakeConn(rows=[[]])
+    S.text_search(conn, "золото донбасс", 10)
+    check("без вариантов — как раньше", conn.executed[-1][1]["q"] == "золото & донбасс")
+
+
 def main() -> int:
     test_vector_literal()
     test_schema()
@@ -386,6 +519,12 @@ def main() -> int:
     test_ollama_embedder()
     test_embedder_fallback()
     test_citation()
+    test_search_fixes()
+    test_embed_text()
+    test_long_paragraph()
+    test_forget_cleaned()
+    test_reindex_keeps_ids()
+    test_synonym_alternatives()
 
     print(f"\nИтого: {len(PASSED)} пройдено, {len(FAILED)} провалено")
     if FAILED:

@@ -16,11 +16,11 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..config import Settings
-from ..models import OK, PARTIAL, ParseInput
-from ..pipeline import DoclingWorker, StepLogger, process_document
+from ..parse.config import Settings
+from ..parse.models import OK, PARTIAL, ParseInput
+from ..parse.pipeline import DoclingWorker, StepLogger, process_document
 from .fetch import fetch_pdf
-from .heuristic import HeuristicFilter
+from .heuristic import HeuristicFilter, has_domain_term
 from .llm import filter_candidates
 from .models import (
     ACQUIRED,
@@ -42,7 +42,7 @@ INDEX_NAME = "index.jsonl"
 
 @dataclass
 class AcquireConfig:
-    sources_path: Path = Path("sources.yaml")
+    sources_path: Path = Path("config/sources.yaml")
     out_dir: Path = Path("data/acquired")
     queries: int = 5
     per_query: int = 25
@@ -58,6 +58,10 @@ class AcquireConfig:
     prefer_fetchable: bool = True  # сначала статьи, у которых есть полный текст
     max_fetch_attempts: int = 4    # сколько копий полного текста пробовать подряд
     max_candidates: int = 120      # предел на отбор: ночной прогон должен заканчиваться
+    # До модели — дешёвый доменный фильтр: без единого слова рудной тематики в
+    # названии и аннотации статья отбрасывается сразу. Модель не тратит на неё время,
+    # и место в пределе отбора достаётся статьям, которые могут подойти.
+    domain_gate: bool = True
     # Заранее подготовленные запросы по темам. Если для темы они есть, модель
     # на этом шаге не дёргается: думали один раз, ищем каждую ночь одинаково.
     queries_map: dict[str, list[str]] | None = None
@@ -139,7 +143,8 @@ def _search_all(providers, queries, per_query, logger) -> list[Candidate]:
                     f"search:{provider.name}",
                     "failed",
                     time.monotonic() - started,
-                    detail=f"«{query}»",
+                    # Причина — сразу на экран: без неё «failed» ничего не говорит.
+                    detail=f"«{query}» — {str(exc)[:300] or type(exc).__name__}",
                     errors=[f"{type(exc).__name__}: {exc}"],
                 )
     return found
@@ -226,6 +231,21 @@ def acquire(topic: str, llm, settings: Settings, cfg: AcquireConfig) -> AcquireR
         report.duration_sec = time.monotonic() - started
         return report
 
+    gated: list[Candidate] = []
+    if cfg.domain_gate:
+        kept = []
+        for cand in candidates:
+            if has_domain_term(f"{cand.title} {cand.abstract}"):
+                kept.append(cand)
+            else:
+                cand.relevant = False
+                cand.reason = "ни одного термина рудной тематики в названии и аннотации"
+                cand.filtered_by = "доменный фильтр"
+                gated.append(cand)
+        candidates = kept
+        logger.log("-", "domain", OK, 0.0,
+                   detail=f"без рудной тематики отброшено {len(gated)}, на отбор {len(candidates)}")
+
     # Порядок решает, на что уйдёт лимит max_docs. Сначала статьи, у которых
     # есть адрес полного текста, среди них — открытый доступ: у платных издателей
     # файл всё равно не отдастся, и попытка съест место в очереди. Внутри — свежие.
@@ -245,7 +265,7 @@ def acquire(topic: str, llm, settings: Settings, cfg: AcquireConfig) -> AcquireR
     step = time.monotonic()
     errors = filter_candidates(llm, topic, candidates, cfg.batch_size, fallback=fallback)
     relevant = [c for c in candidates if c.relevant is True]
-    rejected = [c for c in candidates if c.relevant is False]
+    rejected = [c for c in candidates if c.relevant is False] + gated
     unreviewed = [c for c in candidates if c.relevant is None]
     report.relevant, report.rejected, report.unreviewed = (
         len(relevant),
@@ -296,6 +316,73 @@ def acquire(topic: str, llm, settings: Settings, cfg: AcquireConfig) -> AcquireR
     _save_report(cfg.out_dir, logger.run_id, report)
     print(f"\nЛог: {logger.path}")
     return report
+
+
+def acquire_dois(dois: list[str], settings: Settings, cfg: AcquireConfig,
+                 provider=None) -> tuple[AcquireReport, list[str]]:
+    """Статьи по списку DOI: без поиска и без отбора — их выбрал человек.
+
+    Метаданные и адреса полного текста — из OpenAlex, дальше всё как обычно:
+    получить в память, разобрать, проверить, порезать. Второй результат —
+    DOI, которых OpenAlex не знает или которые не удалось спросить.
+    """
+    from .providers.openalex import OpenAlexProvider, normalize_doi
+
+    started = time.monotonic()
+    cfg.out_dir.mkdir(parents=True, exist_ok=True)
+    settings.log_dir.mkdir(parents=True, exist_ok=True)
+    logger = StepLogger(settings.log_dir, prefix="acquire")
+    report = AcquireReport(topic="статьи по списку DOI")
+    provider = provider or OpenAlexProvider("openalex", {"mailto": cfg.mailto})
+    missing: list[str] = []
+    candidates: list[Candidate] = []
+    for doi in dict.fromkeys(normalize_doi(d) for d in dois if d and d.strip()):
+        try:
+            cand = provider.by_doi(doi)
+        except Exception as exc:  # noqa: BLE001 — одна статья не рушит список
+            missing.append(f"{doi} — {type(exc).__name__}: {exc}")
+            continue
+        if cand is None:
+            missing.append(f"{doi} — в OpenAlex такой статьи нет")
+            continue
+        cand.relevant, cand.reason, cand.filtered_by = True, "выбрана человеком", "человек"
+        candidates.append(cand)
+    report.found = len(candidates)
+    candidates, report.already_known = _dedup(candidates, load_index(cfg.out_dir), cfg.force)
+    report.after_dedup = report.relevant = len(candidates)
+    logger.log("-", "dois", OK, 0.0,
+               detail=f"найдено {report.found}, новых {report.after_dedup}, не найдено {len(missing)}")
+    if candidates and not cfg.dry_run:
+        worker = DoclingWorker(settings)
+        try:
+            for i, cand in enumerate(candidates, start=1):
+                print(f"\n[{i}/{len(candidates)}] {cand.title[:70]}")
+                record = _acquire_one(cand, settings, cfg, worker, logger)
+                report.records.append(record)
+                append_index(cfg.out_dir, record)
+        finally:
+            worker.close()
+    report.duration_sec = time.monotonic() - started
+    _save_report(cfg.out_dir, logger.run_id, report)
+    return report, missing
+
+
+def load_dois(path: Path) -> list[str]:
+    """DOI из файла: YAML со списком «статьи: [{doi: …}]» или просто по одному в строке."""
+    text = Path(path).read_text(encoding="utf-8-sig")
+    if path.suffix.lower() in (".yaml", ".yml"):
+        import yaml
+
+        data = yaml.safe_load(text) or {}
+        items = data.get("статьи") if isinstance(data, dict) else data
+        out = []
+        for item in items or []:
+            doi = item.get("doi") if isinstance(item, dict) else item
+            if doi:
+                out.append(str(doi))
+        return out
+    return [line.strip() for line in text.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")]
 
 
 def _acquire_one(

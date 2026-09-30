@@ -15,9 +15,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from georag.config import Settings  # noqa: E402
-from georag.models import OK, ParsedDoc  # noqa: E402
-from georag.validate import _entity_pattern, garbage_ratio, validate  # noqa: E402
+from georag.parse.config import Settings  # noqa: E402
+from georag.parse.models import OK, ParsedDoc  # noqa: E402
+from georag.parse.validate import _entity_pattern, garbage_ratio, validate  # noqa: E402
 
 PASSED: list[str] = []
 FAILED: list[str] = []
@@ -154,7 +154,7 @@ def _install_fake_transformers() -> None:
 def test_chunking_budget_and_overlap() -> None:
     print("\nЧанкинг: бюджет токенов и перекрытие")
     _install_fake_transformers()
-    from georag.chunking import _chunk_plain_text
+    from georag.parse.chunking import _chunk_plain_text
 
     paragraphs = ["слово " * 120, "текст " * 120, "абзац " * 120]
     parsed = ParsedDoc(
@@ -191,7 +191,7 @@ def test_chunking_budget_and_overlap() -> None:
 # --------------------------------------------------------------------------- #
 def test_pipeline_end_to_end(pdf: Path) -> None:
     print(f"\nПайплайн целиком на реальном файле: {pdf.name}")
-    from georag.pipeline import DoclingWorker, StepLogger, process_document
+    from georag.parse.pipeline import DoclingWorker, StepLogger, process_document
 
     out = Path("/tmp/georag-smoke")
     s = Settings(

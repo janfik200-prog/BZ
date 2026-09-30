@@ -54,8 +54,9 @@ CREATE TABLE IF NOT EXISTS chunks (
     n_tokens    int NOT NULL DEFAULT 0,
     has_table   boolean NOT NULL DEFAULT false,
     embedding   vector(%(dim)s),
-    -- Русский словарь снимает окончания: «рудного узла» находится по «рудный узел».
-    -- Латиница через него проходит почти без изменений, поэтому конфигурация одна.
+    -- Русская конфигурация снимает окончания у кириллицы, а латиницу отдаёт
+    -- английскому стеммеру («clusters» — по «cluster»), поэтому она одна на
+    -- оба языка. Беглую гласную («узел — узла») добавляет запрос, см. search.py.
     tsv         tsvector GENERATED ALWAYS AS (to_tsvector('russian', text)) STORED,
     UNIQUE (doc_id, ord)
 );
@@ -97,6 +98,15 @@ def connect(dsn: str | None = None):
         conn.close()
 
 
+def autocommit(conn) -> None:
+    """Без открытой транзакции: для соединения, которое живёт, пока модель пишет
+    ответ (минуты). Векторный поиск всё равно идёт в своей транзакции (search.py)."""
+    try:
+        conn.autocommit = True
+    except AttributeError:                  # заглушка в проверках
+        pass
+
+
 def init_db(conn, dim: int = VECTOR_DIM, with_hnsw: bool = True) -> None:
     with conn.cursor() as cur:
         cur.execute(SCHEMA % {"dim": dim})
@@ -128,9 +138,18 @@ def upsert_document(conn, record: dict) -> None:
 
 
 def replace_chunks(conn, doc_id: str, rows: list[dict]) -> int:
-    """Чанки документа пишутся целиком: переиндексация не должна плодить дубли."""
+    """Чанки документа пишутся целиком: переиндексация не должна плодить дубли.
+
+    Строки обновляются на месте по (doc_id, ord), а не удаляются и вставляются
+    заново: так у фрагмента остаётся прежний id, и факты графа, которые на него
+    ссылаются, не пропадают каскадом. Раньше `ingest --force` молча стирал весь
+    граф, и модели приходилось проходить все статьи заново. Факты стираются только
+    у фрагментов, чей текст поменялся, — их модель пройдёт заново сама.
+    """
     with conn.cursor() as cur:
-        cur.execute("DELETE FROM chunks WHERE doc_id = %s", (doc_id,))
+        cur.execute("SELECT ord, id, text FROM chunks WHERE doc_id = %s", (doc_id,))
+        old = {r[0]: (r[1], r[2]) for r in cur.fetchall() or []}
+        changed = []
         for row in rows:
             cur.execute(
                 """
@@ -138,9 +157,24 @@ def replace_chunks(conn, doc_id: str, rows: list[dict]) -> int:
                                     has_table, embedding)
                 VALUES (%(doc_id)s, %(ord)s, %(text)s, %(headings)s, %(pages)s,
                         %(n_tokens)s, %(has_table)s, %(embedding)s::vector)
+                ON CONFLICT (doc_id, ord) DO UPDATE SET
+                    text = EXCLUDED.text, headings = EXCLUDED.headings,
+                    pages = EXCLUDED.pages, n_tokens = EXCLUDED.n_tokens,
+                    has_table = EXCLUDED.has_table, embedding = EXCLUDED.embedding
                 """,
                 row,
             )
+            before = old.get(row["ord"])
+            if before and before[1] != row["text"]:
+                changed.append(before[0])
+        cur.execute("DELETE FROM chunks WHERE doc_id = %s AND NOT (ord = ANY(%s))",
+                    (doc_id, [row["ord"] for row in rows]))
+        if changed:
+            cur.execute("SELECT to_regclass('facts') IS NOT NULL")
+            found = cur.fetchone()
+            if found and found[0]:
+                cur.execute("DELETE FROM facts WHERE chunk_id = ANY(%s)", (changed,))
+                cur.execute("DELETE FROM facts_pass WHERE chunk_id = ANY(%s)", (changed,))
     return len(rows)
 
 
@@ -155,6 +189,22 @@ def indexed_docs(conn) -> dict[str, int]:
             """
         )
         return {row[0]: int(row[1]) for row in cur.fetchall()}
+
+
+def delete_documents(conn, doc_ids: list[str]) -> int:
+    """Забыть статьи: с ними уходят фрагменты, разметка и связи (каскадом)."""
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM documents WHERE doc_id = ANY(%s)", (list(doc_ids),))
+        return max(cur.rowcount or 0, 0)
+
+
+def document_hashes(conn) -> dict[str, str]:
+    """Отпечаток файла → статья. Одна и та же статья приходит из разных
+    источников под разными идентификаторами (у одного есть DOI, у другого нет),
+    а файл у неё один и тот же."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT sha256, doc_id FROM documents WHERE sha256 <> ''")
+        return {row[0]: row[1] for row in cur.fetchall()}
 
 
 def stats(conn) -> dict:

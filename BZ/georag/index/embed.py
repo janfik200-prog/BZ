@@ -28,10 +28,12 @@ Ollama при этом остаётся нужна для языковой ра�
 from __future__ import annotations
 
 import math
+import threading
+
+from ..llm import OLLAMA_HOST
 
 VECTOR_DIM = 1024
 OLLAMA_MODEL = "bge-m3"
-OLLAMA_HOST = "http://localhost:11434"
 
 
 def _normalize(vector: list[float]) -> list[float]:
@@ -56,17 +58,26 @@ class Embedder:
         self.batch_size = batch_size
         self.max_length = max_length
         self._model = None
+        # Модель одна на веб-сервер и Телеграм-бота, а запросы идут из разных
+        # потоков. Токенайзер HuggingFace при одновременных вызовах падает с
+        # «Already borrowed» — поэтому вызовы по очереди.
+        self._lock = threading.Lock()
 
     # Модель весит около 2 ГБ и грузится секунды: берём её только когда реально нужна.
     def _load(self):
         if self._model is not None:
             return self._model
+        with self._lock:
+            if self._model is None:
+                self._model = self._build()
+        return self._model
+
+    def _build(self):
         from sentence_transformers import SentenceTransformer
 
         device = None if self.device == "auto" else self.device
         model = SentenceTransformer(self.model_id, device=device)
         model.max_seq_length = self.max_length
-        self._model = model
         return model
 
     @property
@@ -77,13 +88,14 @@ class Embedder:
         if not texts:
             return []
         model = self._load()
-        vectors = model.encode(
-            texts,
-            batch_size=self.batch_size,
-            normalize_embeddings=True,   # косинус = скалярное произведение
-            show_progress_bar=progress,
-            convert_to_numpy=True,
-        )
+        with self._lock:
+            vectors = model.encode(
+                texts,
+                batch_size=self.batch_size,
+                normalize_embeddings=True,   # косинус = скалярное произведение
+                show_progress_bar=progress,
+                convert_to_numpy=True,
+            )
         return [v.tolist() for v in vectors]
 
     def encode_one(self, text: str) -> list[float]:

@@ -1,281 +1,265 @@
-"""Граф базы знаний: разметка фрагментов по словарю и просмотр результата.
+"""Граф знаний: факты из статей, которые выписывает Qwen3 и проверяет код.
 
-    python -m georag.graph.cli build            разметить всё заново (без модели)
-    python -m georag.graph.cli build --llm      то же + проверка моделью
-    python -m georag.graph.cli verify           только проверка моделью, с места остановки
-    python -m georag.graph.cli verify --limit 50    проверить первые 50 — пилот
-    python -m georag.graph.cli concepts         сводка по понятиям
-    python -m georag.graph.cli evidence "гидротермальные изменения" --territory "Билляхская зона"
-    python -m georag.graph.cli top              какие названия чаще всего встречаются
-    python -m georag.graph.cli entity "Анабарский щит"   в каких статьях
+    python -m georag.graph.cli build             Qwen3 проходит новые фрагменты
+    python -m georag.graph.cli build --redo      всё заново (после правки правил)
+    python -m georag.graph.cli build --limit 30  только 30 фрагментов — проба
+    python -m georag.graph.cli report            что нашла модель и где ошибалась
+    python -m georag.graph.cli dataset           сущности, у которых больше всего фактов
+    python -m georag.graph.cli dataset --name "Анабарский щит"   датасет и файл CSV
+    python -m georag.graph.cli synonyms          предложения в словарь синонимов
+    python -m georag.graph.cli questions         вопросы оценки из фактов (config/eval-graph.yaml)
+    python -m georag.graph.cli gaps              темы для добычи по пробелам (config/topics-graph.yaml)
 
-Что строится, по порядку:
-
-1. названия из статей — правилами по опорным словам («…ский рудный узел»);
-2. метки фрагментов — какие территории и методы словаря в них названы;
-3. доказательства понятий — какие фрагменты описывают понятия словаря,
-   с цитатой (подробно — в concepts.py).
-
-Словарь — vocabulary.yaml в корне проекта. После его правки — снова build.
-Решения модели при перестроении сохраняются.
+Факт — «от — связь — к» с дословной цитатой (подробно — в facts.py). Разные
+написания одного и того же сводит словарь config/synonyms.yaml (synonyms.py):
+его правка действует сразу, модель заново проходить не нужно.
 """
 
 from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime, timezone
+from pathlib import Path
 
+from ..common import add_db_args, add_embedder_args, add_llm_args
 from ..index import db
-from . import concepts as tagging
-from . import store
-from .extract import extract
-from .vocabulary import VocabularyError, load
+from . import api, facts, store
+from .synonyms import PROPOSALS_PATH, SynonymsError, judge_pairs, load, proposals_text, suggest
 
-
-def build(
-    conn,
-    embedder,
-    vocab,
-    verbose: bool = True,
-    min_similarity: float = tagging.MIN_SIMILARITY,
-    min_similarity_terms: float = tagging.MIN_SIMILARITY_TERMS,
-    max_per_concept: int = tagging.MAX_PER_CONCEPT,
-) -> dict:
-    log = print if verbose else (lambda *a, **k: None)
-    store.init(conn)
-
-    rows = store.chunks_for_graph(conn)
-    if not rows:
-        print("В базе нет фрагментов — сначала ingest", file=sys.stderr)
-        return {}
-
-    # 1. Названия из статей — обзор того, что упоминается в корпусе.
-    log("Названия из статей (правила)…")
-    store.clear_entities(conn)
-    for chunk_id, doc_id, text in rows:
-        for entity in extract(text or ""):
-            store.save(conn, entity, doc_id, chunk_id)
-
-    # 2. Метки: территории и методы словаря во фрагментах.
-    log("Территории и методы из словаря…")
-    tags = [(chunk_id, kind, name)
-            for chunk_id, _, text in rows for kind, name in vocab.tags(text or "")]
-    store.replace_tags(conn, tags)
-
-    # 3. Доказательства понятий.
-    log(f"Понятия: ищу фрагменты (похожесть от {min_similarity}, "
-        f"со словом словаря — от {min_similarity_terms})…")
-    candidates, report = tagging.find_candidates(
-        conn, embedder, vocab, rows,
-        min_similarity=min_similarity,
-        min_similarity_terms=min_similarity_terms,
-        max_per_concept=max_per_concept,
-        log=log,
-    )
-    sync = store.sync_evidence(conn, candidates, list(vocab.concepts))
-    store.set_meta(
-        conn,
-        built_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        vocabulary_sha=vocab.sha,
-        min_similarity=min_similarity,
-        min_similarity_terms=min_similarity_terms,
-        embedder=getattr(embedder, "name", "?"),
-    )
-    conn.commit()
-
-    info = store.counts(conn)
-    info.update(chunks=len(rows), documents=len({r[1] for r in rows}),
-                candidates=len(candidates), report=report, **sync)
-    return info
+ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
 def _llm(args):
-    from ..acquire.llm import OllamaLLM
+    from ..llm import Ollama
 
-    return OllamaLLM(model=args.model, host=args.ollama_host)
+    return Ollama(model=args.model, host=args.ollama_host, timeout=args.timeout)
 
 
-def _print_summary(conn, vocab) -> None:
-    summary = store.concept_summary(conn)
-    print(f"\n{'понятие':<42}{'фрагм.':>7}{'статей':>8}{'подтв.':>8}{'не пров.':>10}{'откл.':>7}")
-    print("-" * 82)
-    for code in vocab.concepts:
-        s = summary.get(code, {})
-        print(f"{code[:40]:<42}{s.get('fragments', 0):>7}{s.get('documents', 0):>8}"
-              f"{s.get('confirmed', 0):>8}{s.get('unchecked', 0):>10}{s.get('rejected', 0):>7}")
+def _build(conn, args) -> int:
+    llm = _llm(args)
+    status = llm.status()
+    if not status["ok"]:
+        print(f"Qwen3 недоступна: {status['error']}\nГраф строит модель — запустите Ollama и "
+              "снова python georag.py graph.", file=sys.stderr)
+        return 1
+    try:
+        facts.load_rules(args.rules)
+    except (OSError, ValueError) as exc:
+        print(f"Правила для модели не читаются: {exc}", file=sys.stderr)
+        return 1
+    if args.redo:
+        store.clear(conn)
+        conn.commit()
+        print("Прошлые факты убраны — модель проходит всё заново.")
+    left = len(store.todo(conn))
+    if not left:
+        print("Новых фрагментов нет — модель уже прошла всё "
+              "(заново: python georag.py graph --redo).")
+        return 0
+    todo = min(left, args.limit) if args.limit else left
+    print(f"Факты выписывает {args.model} по правилам config/graph-rules.txt, каждый проверяет "
+          f"код. Фрагментов: {todo}. Можно прервать Ctrl+C — продолжится с этого места.")
+    stats = facts.run(conn, llm, limit=args.limit, rules_path=args.rules)
+    print(f"\nПройдено фрагментов: {stats['done']} из {stats['todo']}. Фактов принято: "
+          f"{stats['facts']}; отброшено проверкой: {stats['rejected']}."
+          + (f" Модель не ответила: {stats['errors']}." if stats["errors"] else ""))
+    print("Что нашла модель и где ошибалась: python georag.py graph --new\n"
+          "Свести разные написания одного и того же: python georag.py synonyms")
+    return 2 if stats["stopped"] else 0
+
+
+def _report(conn, syn) -> int:
+    data = api.report(conn, syn)
+    p = data["pass"]
+    if not p["passed"]:
+        print("Модель ещё не выписывала факты: python georag.py graph (нужна Ollama).")
+        return 0
+    print(f"\nМодель прошла фрагментов: {p['passed']} из {p['chunks']}; фактов: {p['facts']}; "
+          f"отброшено проверкой: {p['rejected']}. Сущностей: {data['entities_total']}.")
+    print(f"\n{'сущность':<46}{'статей':>7}{'фактов':>8}")
+    for name, docs, count, known, spellings in data["entities"]:
+        mark = "  (словарь)" if known else ""
+        extra = f"  ← {', '.join(spellings)}" if spellings else ""
+        print(f"  {name[:44]:<44}{docs:>7}{count:>8}{mark}{extra}"[:160])
+    print("\nСвязи (сколько фактов):")
+    for relation, count in data["relations"]:
+        print(f"  {count:>5}  {relation}")
+    if data["rejected"]:
+        print("\nПочему код отбрасывал факты (чаще всего):")
+        for reason, count in data["rejected"]:
+            print(f"  {count:>5}  {reason[:90]}")
+    print("\nРазные написания одного и того же сводит config\\synonyms.yaml; предложения "
+          "для него: python georag.py synonyms")
+    return 0
+
+
+def _dataset(conn, syn, args) -> int:
+    if not args.name:
+        data = api.datasets_response(conn, syn, limit=40)
+        if not data["datasets"]:
+            print("Фактов пока нет: python georag.py graph (нужна Ollama).")
+            return 0
+        print(f"\nСущностей с фактами: {data['total']}. Больше всего фактов у:\n")
+        print(f"{'сущность':<50}{'статей':>7}{'фактов':>8}")
+        for r in data["datasets"]:
+            print(f"{r['name'][:48]:<50}{r['documents']:>7}{r['facts']:>8}")
+        print('\nФакты о любой из них: python georag.py facts "Анабарский щит"')
+        return 0
+    try:
+        data = api.dataset_response(conn, syn, {"name": args.name})
+    except api.RequestError as exc:
+        near = ", ".join(exc.known[:15])
+        print(f"{exc.message}: «{exc.detail}». Больше всего фактов у: {near}", file=sys.stderr)
+        return 1
+    inside = f" (вместе с: {', '.join(data['includes'])})" if data["includes"] else ""
+    print(f"\nФакты: {data['name']}{inside} — статей {data['documents']}, "
+          f"фактов {len(data['facts'])}\n")
+    for r in data["facts"]:
+        line = (f"  {r['about']} — {r['relation']} — {r['other']}" if r["direction"] == "→"
+                else f"  {r['other']} — {r['relation']} — {r['about']}")
+        print(f"{line[:110]:<112}статей {r['documents']}")
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    safe = "".join(ch if ch.isalnum() or ch in " -_." else "_" for ch in data["name"])[:80]
+    path = out / f"факты-{safe}.csv"
+    path.write_text(api.dataset_csv(data)[1:], encoding="utf-8-sig")
+    print(f"\nТаблица для Excel: {path}")
+    return 0
+
+
+def _synonyms(conn, syn, args) -> int:
+    from ..index.embed import build_embedder
+
+    g = api.graph(conn, syn)
+    if not g.entities:
+        print("Фактов пока нет: python georag.py graph (нужна Ollama).")
+        return 0
+    llm = _llm(args)
+    status = llm.status()
+    if not status["ok"]:
+        print(f"Qwen3 недоступна: {status['error']}", file=sys.stderr)
+        return 1
+    print("Загружаю модель векторов…")
+    embedder = build_embedder(args.embedder, device=args.device)
+    names = {name: (name, e["facts"]) for name, e in g.entities.items()}
+    relations = Counter_relations(g)
+    print(f"Ищу похожие среди {len(names)} имён и {len(relations)} связей; Qwen3 решает, "
+          "одно ли это…")
+    name_groups = suggest(names, syn, embedder.encode, lambda p: judge_pairs(llm, p),
+                          threshold=args.threshold)
+    rel_groups = suggest(relations, _relations_as_names(syn), embedder.encode,
+                         lambda p: judge_pairs(llm, p), threshold=max(args.threshold, 0.85))
+    PROPOSALS_PATH.write_text(proposals_text(name_groups, rel_groups), encoding="utf-8")
+    print(f"\nПредложений: имён {len(name_groups)}, связей {len(rel_groups)}.\n"
+          f"Файл: {PROPOSALS_PATH}\nПросмотрите Блокнотом и перенесите нужное в "
+          f"config\\synonyms.yaml — действует сразу, модель заново не нужна.")
+    return 0
+
+
+def _questions(conn, syn, args) -> int:
+    from . import questions
+
+    g = api.graph(conn, syn)
+    if not g.links:
+        print("Фактов пока нет: python georag.py graph (нужна Ollama).")
+        return 0
+    llm = None
+    if not args.no_llm:
+        llm = _llm(args)
+        status = llm.status()
+        if not status["ok"]:
+            print(f"Qwen3 недоступна ({status['error']}) — вопросы по шаблону.")
+            llm = None
+    print(f"Составляю вопросы из фактов графа ({'Qwen3 переформулирует' if llm else 'по шаблону'})…")
+    items = questions.build(g, llm, limit=args.limit or 30)
+    out = Path(args.out_questions)
+    out.write_text(questions.to_yaml(items), encoding="utf-8")
+    docs = len({d for item in items for d in item["статьи"]})
+    print(f"\nВопросов: {len(items)} по {docs} статьям. Файл: {out}\n"
+          f"Оценка по ним: python georag.py eval --questions {out.relative_to(ROOT_DIR)}")
+    return 0
+
+
+def _gaps(conn, syn, args) -> int:
+    from . import gaps
+
+    rows = gaps.find(api.graph(conn, syn), syn, limit=args.limit or 25)
+    out = Path(args.out_topics)
+    out.write_text(gaps.to_yaml(rows), encoding="utf-8")
+    if not rows:
+        print("Пробелов не нашлось: всё из словаря есть в фактах, и подтверждено не одной статьёй.")
+        return 0
+    print(f"\nПробелов: {len(rows)}\n")
+    for row in rows:
+        print(f"  {row['name'][:50]:<52}{row['why']}")
+    print(f"\nТемы для добычи: {out}\nДобыть: python georag.py all --topics {out.name}")
+    return 0
+
+
+def Counter_relations(g) -> dict[str, tuple[str, int]]:  # noqa: N802 — читается как таблица
+    count: dict[str, int] = {}
+    for link in g.links.values():
+        count[link.relation] = count.get(link.relation, 0) + len(link.facts)
+    return {r: (r, n) for r, n in count.items()}
+
+
+def _relations_as_names(syn):
+    """Для предложений по связям — словарь, где «имена» это связи."""
+    from .synonyms import Synonyms
+
+    groups = {canon: [] for canon in set(syn.relations.values())}
+    return Synonyms(names={}, groups=groups)
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Граф базы знаний ГеоRAG")
-    parser.add_argument("command",
-                        choices=["build", "verify", "concepts", "evidence", "top", "entity"])
-    parser.add_argument("name", nargs="?", help="понятие для evidence или название для entity")
-    parser.add_argument("--dsn", default=None)
-    parser.add_argument("--vocabulary", default=None, help="другой файл словаря")
-    parser.add_argument("--llm", action="store_true", help="после разметки проверить моделью")
-    parser.add_argument("--limit", type=int, default=None,
-                        help="verify: сколько проверить; evidence/top: сколько показать")
-    parser.add_argument("--min-similarity", type=float, default=tagging.MIN_SIMILARITY)
-    parser.add_argument("--min-similarity-terms", type=float,
-                        default=tagging.MIN_SIMILARITY_TERMS)
-    parser.add_argument("--max-per-concept", type=int, default=tagging.MAX_PER_CONCEPT)
-    parser.add_argument("--territory", default=None)
-    parser.add_argument("--method", default=None)
-    parser.add_argument("--checked-only", action="store_true",
-                        help="evidence: только подтверждённое моделью")
-    parser.add_argument("--kind", choices=["объект", "ископаемое", "метод"], default=None)
-    parser.add_argument("--embedder", choices=["local", "ollama"], default="local")
-    parser.add_argument("--device", choices=["auto", "cuda", "cpu"], default="auto")
-    parser.add_argument("--model", default="qwen3:14b")
-    parser.add_argument("--ollama-host", default="http://localhost:11434")
+    parser = argparse.ArgumentParser(description="Граф знаний ГеоRAG: факты из статей")
+    parser.add_argument("command", choices=["build", "report", "dataset", "synonyms",
+                                            "questions", "gaps"])
+    parser.add_argument("--no-llm", action="store_true",
+                        help="вопросы по шаблону, без модели (questions)")
+    parser.add_argument("--out-questions", default=str(ROOT_DIR / "config" / "eval-graph.yaml"))
+    parser.add_argument("--out-topics", default=str(ROOT_DIR / "config" / "topics-graph.yaml"))
+    parser.add_argument("--name", default=None, help="чей датасет (dataset)")
+    parser.add_argument("--territory", default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--out", default="data/datasets", help="куда класть таблицу датасета")
+    parser.add_argument("--redo", action="store_true", help="модель проходит всё заново")
+    parser.add_argument("--limit", type=int, default=None, help="сколько фрагментов пройти")
+    parser.add_argument("--rules", default=None, help="другой файл правил для модели")
+    parser.add_argument("--synonyms", default=None, help="другой словарь синонимов")
+    parser.add_argument("--threshold", type=float, default=0.8,
+                        help="насколько похожи имена, чтобы спросить модель (synonyms)")
+    parser.add_argument("--timeout", type=int, default=300, help="сколько ждать модель, с")
+    add_db_args(parser)
+    add_embedder_args(parser)
+    add_llm_args(parser)
     args = parser.parse_args(argv)
+    args.name = args.name or args.territory
 
     try:
-        vocab = load(args.vocabulary)
-    except VocabularyError as exc:
-        print(f"Словарь: {exc}", file=sys.stderr)
+        syn = load(args.synonyms)
+    except SynonymsError as exc:
+        print(f"Словарь синонимов: {exc}", file=sys.stderr)
         return 1
-    for warning in vocab.warnings:
-        print(f"Словарь, предупреждение: {warning}")
+    for warning in syn.warnings:
+        print(f"Словарь синонимов, предупреждение: {warning}")
 
     try:
         with db.connect(args.dsn) as conn:
             store.init(conn)
-
             if args.command == "build":
-                from ..index.embed import build_embedder
-
-                print("Загружаю модель эмбеддингов…")
-                embedder = build_embedder(args.embedder, device=args.device)
-                info = build(conn, embedder, vocab,
-                             min_similarity=args.min_similarity,
-                             min_similarity_terms=args.min_similarity_terms,
-                             max_per_concept=args.max_per_concept)
-                if not info:
-                    return 1
-                kinds = ", ".join(f"{k}: {v}" for k, v in sorted(info["by_kind"].items()))
-                print(
-                    f"\nПросмотрено {info['chunks']} фрагментов в {info['documents']} статьях.\n"
-                    f"Названий: {info['entities']} ({kinds}); меток территорий и методов: "
-                    f"{info['tags']}.\n"
-                    f"Доказательств понятий: {info['evidence']}"
-                    + (f" (убрано устаревших: {info['dropped_stale']})"
-                       if info.get("dropped_stale") else "")
-                )
-                if args.llm:
-                    print(f"\nПроверка моделью {args.model} — секунды на фрагмент. "
-                          "Можно прервать Ctrl+C и продолжить командой verify.")
-                    tagging.verify(conn, _llm(args), vocab, limit=args.limit)
-                _print_summary(conn, vocab)
-                return 0
-
-            if args.command == "verify":
-                left = len(store.unchecked(conn, None))
-                if not left:
-                    print("Проверять нечего: всё уже просмотрено моделью "
-                          "(или разметка не построена — сначала build).")
-                    return 0
-                todo = min(left, args.limit) if args.limit else left
-                print(f"Не проверено: {left}. Проверяю {todo} моделью {args.model}. "
-                      "Прервать — Ctrl+C, продолжится с этого места.")
-                stats = tagging.verify(conn, _llm(args), vocab, limit=args.limit)
-                print(f"\nПодтверждено: {stats['confirmed']}, отклонено: {stats['rejected']}"
-                      + (f" (из них без цитаты в тексте: {stats['no_quote']})"
-                         if stats["no_quote"] else "")
-                      + (f", ошибок модели: {stats['errors']}" if stats["errors"] else ""))
-                _print_summary(conn, vocab)
-                return 2 if stats["stopped"] else 0
-
-            if args.command == "concepts":
-                meta = store.meta(conn)
-                if not meta.get("built_at"):
-                    print("Разметка не построена: ... graph.cli build")
-                    return 0
-                print(f"Разметка от {meta['built_at']}, словарь {meta.get('vocabulary_sha')}"
-                      + (" — словарь с тех пор изменён, пора build"
-                         if meta.get("vocabulary_sha") != vocab.sha else ""))
-                _print_summary(conn, vocab)
-                return 0
-
-            if args.command == "evidence":
-                concept = vocab.concept(args.name or "")
-                if concept is None:
-                    print(f"Понятия «{args.name}» в словаре нет. Есть: "
-                          + "; ".join(vocab.concepts), file=sys.stderr)
-                    return 1
-                territory = vocab.territory(args.territory) if args.territory else None
-                method = vocab.method(args.method) if args.method else None
-                if args.territory and territory is None:
-                    print(f"Территории «{args.territory}» в словаре нет. Есть: "
-                          + "; ".join(vocab.territories), file=sys.stderr)
-                    return 1
-                if args.method and method is None:
-                    print(f"Метода «{args.method}» в словаре нет. Есть: "
-                          + "; ".join(vocab.methods), file=sys.stderr)
-                    return 1
-                rows, totals = store.evidence_for(
-                    conn, concept.code,
-                    territory=territory.name if territory else None,
-                    method=method.name if method else None,
-                    checked_only=args.checked_only, limit=args.limit or 10)
-                print(f"\n{concept.code} — фрагментов: {totals['fragments']} в "
-                      f"{totals['documents']} статьях, показано {len(rows)}\n" + "=" * 78)
-                for i, r in enumerate(rows, 1):
-                    page = f", с. {r['page']}" if r["page"] else ""
-                    print(f"\n{i}. {r['title'][:70]} ({r['year'] or '—'}{page})")
-                    print(f"   {r['verdict']} · нашёл: {r['found_by']}"
-                          + (f" · похожесть {r['similarity']:.2f}" if r["similarity"] else "")
-                          + (f" · слова: {', '.join(r['terms'])}" if r["terms"] else ""))
-                    print(f"   «{r['quote']}»")
-                    where = r["territories"] + r["methods"]
-                    if where:
-                        print(f"   во фрагменте: {', '.join(where)}")
-                    print(f"   {r['doi'] and 'https://doi.org/' + r['doi'] or r['url']}")
-                return 0
-
-            if args.command == "top":
-                rows = store.top_entities(conn, args.kind, args.limit or 25)
-                if not rows:
-                    print("Названий нет. Постройте разметку: ... graph.cli build")
-                    return 0
-                print(f"{'название':<44}{'вид':<12}{'статей':>7}{'упоминаний':>12}")
-                print("-" * 76)
-                for row in rows:
-                    print(f"{row['name'][:42]:<44}{row['kind']:<12}{row['docs']:>7}"
-                          f"{row['mentions']:>12}")
-                return 0
-
-            # entity
-            if not args.name:
-                print('Нужно название: ... graph.cli entity "Анабарский щит"', file=sys.stderr)
-                return 1
-            match = next(
-                (e for e in store.top_entities(conn, limit=5000)
-                 if e["name"].lower() == args.name.lower()
-                 or args.name.lower() in e["name"].lower()),
-                None,
-            )
-            if not match:
-                print(f"«{args.name}» среди названий нет. Список: ... graph.cli top",
-                      file=sys.stderr)
-                return 1
-            print(f"\n{match['name']} — упоминается в {match['docs']} статьях\n" + "=" * 70)
-            for doc in store.entity_documents(conn, match["key"]):
-                print(f"  · {doc['title'][:66]} ({doc['year'] or '—'}) — упоминаний {doc['hits']}")
-                print(f"    {doc['url']}")
-            return 0
-
+                return _build(conn, args)
+            if args.command == "report":
+                return _report(conn, syn)
+            if args.command == "dataset":
+                return _dataset(conn, syn, args)
+            if args.command == "questions":
+                return _questions(conn, syn, args)
+            if args.command == "gaps":
+                return _gaps(conn, syn, args)
+            return _synonyms(conn, syn, args)
     except KeyboardInterrupt:
-        print("\nПрервано. Сделанное сохранено; verify продолжит с этого места.")
+        print("\nПрервано. Сделанное сохранено; та же команда продолжит с этого места.")
         return 130
-    except ImportError as exc:
-        print(f"Не хватает библиотеки: {exc}", file=sys.stderr)
-        return 1
-    except Exception as exc:  # noqa: BLE001
-        print(f"База недоступна или ответила ошибкой: {type(exc).__name__}: {exc}",
-              file=sys.stderr)
-        return 1
 
 
 if __name__ == "__main__":

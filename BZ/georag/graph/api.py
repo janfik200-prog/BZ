@@ -1,306 +1,340 @@
-"""Контракт с базой данных проекта: запрос по шаблону → фрагменты с цитатами.
+"""Граф из фактов: сеть для страницы, датасеты, отчёт — всё с цитатами.
 
-Шаблон один, потому что спрашивает программа, а не человек, — у неё поля
-должны быть постоянными:
+Факты хранятся как написала модель; здесь имена сводятся к одному:
 
-    {"concept": "гидротермальные изменения",   обязательно; код из kb.concept
-     "territory": "Билляхская зона",           необязательно
-     "method": "ASTER",                        необязательно
-     "limit": 5,                               1–100, по умолчанию 5
-     "per_doc": 2,                             фрагментов из одной статьи, 0 — без ограничения
-     "checked_only": false}                    только подтверждённое моделью
+* сначала словарь синонимов (config/synonyms.yaml) — «Donetsk basin» →
+  «Донецкий бассейн»;
+* чего в словаре нет — по ключу без падежей и числа: «Донецкого бассейна» и
+  «Донецкий бассейн» — один узел, подписанный тем написанием, что чаще.
 
-Ответ — фрагменты статей, каждый с дословной цитатой, DOI, страницей,
-похожестью на определение понятия и пометкой, чем найден. Текста от себя база
-знаний не пишет: формулирует паспорт агент на стороне базы данных, а
-подтверждает человек в её панели.
-
-Всё здесь — без HTTP, чтобы проверялось без сервера. Сервер только
-разбирает запрос и отдаёт то, что вернули эти функции.
+Датасет — у любой сущности: все факты о ней и о том, что в неё входит
+(по фактам «входит в»), с цитатами и статьями. Его показывает карточка узла на
+странице, отдаёт Телеграм-бот, по нему отвечает чат-бот на «что известно о …».
 """
 
 from __future__ import annotations
 
-from ..index import db
-from . import store
-from .vocabulary import Vocabulary
+import csv
+import io
+import threading
+from collections import Counter, defaultdict
+from dataclasses import dataclass, field
 
-API_VERSION = 1
-LIMIT_DEFAULT = 5
-LIMIT_MAX = 100
+from ..text import name_key, normalize
+from . import store
+from .synonyms import PART_OF, Synonyms
+
+ENTITY = "сущность"
+ARTICLE = "статья"
+QUOTES_PER_LINK = 3
 
 
 class RequestError(ValueError):
-    """Запрос не по шаблону. Отдаётся как 400 с перечнем допустимого."""
-
     def __init__(self, message: str, detail: str = "", known: list[str] | None = None):
         super().__init__(message)
-        self.message = message
-        self.detail = detail
-        self.known = known or []
+        self.message, self.detail, self.known = message, detail, known or []
 
     def payload(self) -> dict:
-        out = {"api_version": API_VERSION, "error": self.message}
+        out = {"error": self.message}
         if self.detail:
             out["detail"] = self.detail
         if self.known:
-            out["known"] = self.known
+            out["known"] = self.known[:50]
         return out
 
 
-class NotBuilt(RuntimeError):
-    """Разметка ещё не построена — отвечать нечем. Отдаётся как 503."""
+@dataclass
+class Link:
+    """Связь между двумя сущностями: все факты с этими концами и этой связью."""
+    src: str
+    relation: str
+    dst: str
+    facts: list[dict] = field(default_factory=list)
+
+    @property
+    def documents(self) -> int:
+        return len({f["doc_id"] for f in self.facts})
+
+    def quotes(self, limit: int = QUOTES_PER_LINK) -> list[dict]:
+        out, docs = [], set()
+        for f in self.facts:                 # сначала — из разных статей
+            if f["doc_id"] in docs:
+                continue
+            docs.add(f["doc_id"])
+            out.append(_quote(f))
+            if len(out) >= limit:
+                break
+        return out
 
 
-FIELDS = {"api_version", "concept", "territory", "method", "limit", "per_doc", "checked_only"}
+def _quote(f: dict) -> dict:
+    return {"quote": f["quote"], "doc_id": f["doc_id"], "title": f["title"], "year": f["year"],
+            "url": f["url"] or (f"https://doi.org/{f['doi']}" if f.get("doi") else ""),
+            "chunk_id": f["chunk_id"]}
 
 
-def _int(payload: dict, name: str, default: int, lo: int, hi: int) -> int:
-    raw = payload.get(name, default)
-    if raw in (None, ""):
-        return default
+class Graph:
+    """Факты с именами, сведёнными словарём и ключом без падежей."""
+
+    def __init__(self, rows: list[dict], syn: Synonyms):
+        self.syn = syn
+        spelled: dict[str, Counter] = defaultdict(Counter)
+        for r in rows:
+            for raw in (r["src"], r["dst"]):
+                spelled[name_key(raw)][raw] += 1
+        self.display = {k: c.most_common(1)[0][0] for k, c in spelled.items()}
+        self.links: dict[tuple[str, str, str], Link] = {}
+        self.entities: dict[str, dict] = {}
+        self.touching: dict[str, list[Link]] = defaultdict(list)   # сущность → её связи
+        self.children: dict[str, list[str]] = defaultdict(list)    # целое → что входит
+        for r in rows:
+            src_raw, dst_raw = r["src"], r["dst"]
+            # «щит включает зону» — это «зона входит в щит»: факт разворачивается.
+            relation, flip = syn.relation_dir(r["relation"])
+            if flip:
+                src_raw, dst_raw = dst_raw, src_raw
+            src, dst = self.canonical(src_raw), self.canonical(dst_raw)
+            if src == dst:
+                continue
+            key = (src, relation, dst)
+            if key not in self.links:
+                self.links[key] = Link(src, relation, dst)
+                self.touching[src].append(self.links[key])
+                self.touching[dst].append(self.links[key])
+                if relation == PART_OF:
+                    self.children[dst].append(src)
+            link = self.links[key]
+            link.facts.append(r)
+            for name, raw in ((src, src_raw), (dst, dst_raw)):
+                e = self.entities.setdefault(name, {"name": name, "facts": 0, "docs": set(),
+                                                    "spellings": set(),
+                                                    "in_dictionary": name in syn.groups})
+                e["facts"] += 1
+                e["docs"].add(r["doc_id"])
+                if normalize(raw) != normalize(name):
+                    e["spellings"].add(raw)
+
+        self._keys = {name: name_key(name).split() for name in self.entities}
+
+    def canonical(self, raw: str) -> str:
+        return self.syn.name(raw) or self.display.get(name_key(raw)) or raw
+
+    def resolve(self, raw: str) -> str | None:
+        """Имя, как его написал человек, → сущность графа (или None).
+
+        Такой сущности нет, но имя собственное стоит внутри других («зоне
+        Персияновского разлома», «южнее Персияновского разлома…» для
+        «Персияновский разлом») — возвращается само имя: датасет соберёт их."""
+        if not raw:
+            return None
+        name = self.syn.name(raw)
+        if name in self.entities:
+            return name
+        key = name_key(raw)
+        for entity in self.entities:
+            if name_key(entity) == key:
+                return entity
+        wanted = name or " ".join(raw.split())
+        return wanted if self.related(wanted) else None
+
+    def related(self, name: str) -> list[str]:
+        """Сущности, в названии которых целиком стоит это имя собственное.
+
+        Модель пишет «зоне Персияновского разлома», «дайки вдоль Персияновского
+        разлома» — это всё о разломе, но отдельные узлы. Только для имён
+        собственных: у «золото» таких «родственников» сотни, и они о другом."""
+        if not _proper(name):
+            return []
+        key = name_key(name).split()
+        if not key:
+            return []
+        n = len(key)
+        return [e for e, words in self._keys.items() if e != name and len(words) > n
+                and any(words[i:i + n] == key for i in range(len(words) - n + 1))]
+
+    def parts(self, name: str) -> list[str]:
+        """Само имя и всё, что в него входит по фактам «входит в», на любую глубину."""
+        out, frontier = [name], [name]
+        while frontier:
+            for part in self.children.get(frontier.pop(), []):
+                if part not in out:
+                    out.append(part)
+                    frontier.append(part)
+        return out
+
+
+def _proper(name: str) -> bool:
+    """Есть ли в имени имя собственное: слово с большой буквы, не аббревиатура."""
+    return any(w[:1].isupper() and not w.isupper() for w in name.split())
+
+
+_CACHE: dict = {}
+_CACHE_LOCK = threading.Lock()
+
+
+def _stamp(conn):
+    """Отпечаток фактов: сколько их и последний номер. Только у настоящей базы."""
     try:
-        value = int(raw)
-    except (TypeError, ValueError):
-        raise RequestError(f"{name}: нужно целое число", f"пришло {raw!r}") from None
-    if not lo <= value <= hi:
-        raise RequestError(f"{name}: от {lo} до {hi}", f"пришло {value}")
-    return value
+        import psycopg
+    except ImportError:
+        return None
+    if not isinstance(conn, psycopg.Connection):
+        return None
+    with conn.cursor() as cur:
+        cur.execute("SELECT count(*), coalesce(max(id), 0) FROM facts")
+        return tuple(cur.fetchone())
 
 
-def _bool(value) -> bool:
-    if isinstance(value, bool):
-        return value
-    return str(value).strip().lower() in {"1", "true", "да", "yes"}
+def graph(conn, syn: Synonyms) -> Graph:
+    """Граф из фактов. Собирается заново, только если факты или словарь поменялись:
+    раньше его пересобирали из всех фактов на каждый запрос страницы и каждый
+    вопрос чат-бота."""
+    stamp = _stamp(conn)
+    if stamp is None:
+        return Graph(store.all_facts(conn), syn)
+    key = (stamp, syn.sha or repr((sorted(syn.names.items()), sorted(syn.relations.items()),
+                                   sorted(syn.inverse.items()))))
+    with _CACHE_LOCK:
+        if _CACHE.get("key") == key:
+            return _CACHE["graph"]
+    g = Graph(store.all_facts(conn), syn)
+    with _CACHE_LOCK:
+        _CACHE.update(key=key, graph=g)
+    return g
 
 
-def parse_request(vocab: Vocabulary, payload: dict) -> dict:
-    """Запрос → нормализованный вид. Имена приводятся к каноническим из словаря."""
-    if not isinstance(payload, dict):
-        raise RequestError("запрос должен быть объектом JSON")
-    unknown = sorted(set(payload) - FIELDS)
-    if unknown:
-        raise RequestError("неизвестные поля запроса", ", ".join(unknown), sorted(FIELDS))
-    version = payload.get("api_version", API_VERSION)
-    if str(version) != str(API_VERSION):
-        raise RequestError(f"версия контракта {version!r} не поддерживается",
-                           known=[str(API_VERSION)])
-
-    name = str(payload.get("concept") or "").strip()
-    if not name:
-        raise RequestError("не указано понятие (concept)", known=list(vocab.concepts))
-    concept = vocab.concept(name)
-    if concept is None:
-        raise RequestError("понятия нет в словаре базы знаний",
-                           f"«{name}» — коды должны совпадать с kb.concept",
-                           list(vocab.concepts))
-
-    territory = method = None
-    if payload.get("territory"):
-        term = vocab.territory(str(payload["territory"]))
-        if term is None:
-            raise RequestError("территории нет в словаре", str(payload["territory"]),
-                               list(vocab.territories))
-        territory = term.name
-    if payload.get("method"):
-        term = vocab.method(str(payload["method"]))
-        if term is None:
-            raise RequestError("метода нет в словаре", str(payload["method"]),
-                               list(vocab.methods))
-        method = term.name
-
-    return {
-        "concept": concept.code,
-        "territory": territory,
-        "method": method,
-        "limit": _int(payload, "limit", LIMIT_DEFAULT, 1, LIMIT_MAX),
-        "per_doc": _int(payload, "per_doc", 2, 0, LIMIT_MAX),
-        "checked_only": _bool(payload.get("checked_only", False)),
-    }
+# --------------------------------------------------------------------------- #
+#  Сеть для страницы
+# --------------------------------------------------------------------------- #
+def network_response(conn, syn: Synonyms, with_articles: bool = True) -> dict:
+    """Узлы — сущности (и статьи), рёбра — связи с цитатами (и «из статьи»)."""
+    g = graph(conn, syn)
+    nodes, edges = [], []
+    for e in g.entities.values():
+        nodes.append({"id": f"{ENTITY}:{e['name']}", "kind": ENTITY, "name": e["name"],
+                      "facts": e["facts"], "documents": len(e["docs"]),
+                      "spellings": sorted(e["spellings"])[:12],
+                      "in_dictionary": e["in_dictionary"]})
+    for link in g.links.values():
+        edges.append({"source": f"{ENTITY}:{link.src}", "target": f"{ENTITY}:{link.dst}",
+                      "type": "факт", "label": link.relation, "weight": link.documents,
+                      "fragments": len(link.facts), "quotes": link.quotes()})
+    if with_articles:
+        docs: dict[str, dict] = {}
+        mentioned: dict[tuple[str, str], int] = Counter()
+        for link in g.links.values():
+            for f in link.facts:
+                docs.setdefault(f["doc_id"], f)
+                mentioned[(f["doc_id"], link.src)] += 1
+                mentioned[(f["doc_id"], link.dst)] += 1
+        for doc_id, f in docs.items():
+            nodes.append({"id": f"{ARTICLE}:{doc_id}", "kind": ARTICLE, "name": f["title"],
+                          "doc_id": doc_id, "year": f["year"], "url": f["url"],
+                          "doi_url": f"https://doi.org/{f['doi']}" if f.get("doi") else None})
+        for (doc_id, name), n in mentioned.items():
+            edges.append({"source": f"{ARTICLE}:{doc_id}", "target": f"{ENTITY}:{name}",
+                          "type": "из статьи", "weight": n})
+    return {"nodes": nodes, "edges": edges, "pass": store.summary(conn),
+            "dictionary": {"names": len(syn.groups), "sha": syn.sha}}
 
 
-def _header(conn, vocab: Vocabulary) -> dict:
-    meta = store.meta(conn)
-    if not meta.get("built_at"):
-        raise NotBuilt("разметка не построена: на машине с базой знаний выполнить graph")
-    info = db.stats(conn)
-    head = {
-        "api_version": API_VERSION,
-        "as_of": meta["built_at"],
-        "corpus": {"documents": info["documents"], "chunks": info["chunks"]},
-    }
-    if meta.get("vocabulary_sha") != vocab.sha:
-        head["warning"] = ("словарь изменён после разметки — ответ построен по старому; "
-                           "на машине с базой знаний выполнить graph")
-    return head
-
-
-def concept_response(conn, vocab: Vocabulary, request: dict) -> dict:
-    """Ответ на запрос по шаблону. `request` — уже прошедший parse_request."""
-    out = _header(conn, vocab)
-    concept = vocab.concepts[request["concept"]]
-    fragments, totals = store.evidence_for(
-        conn, concept.code,
-        territory=request["territory"], method=request["method"],
-        checked_only=request["checked_only"],
-        limit=request["limit"], per_doc=request["per_doc"],
-    )
-    for f in fragments:
-        f["doi_url"] = f"https://doi.org/{f['doi']}" if f.get("doi") else None
-    out.update(
-        request=request,
-        concept={"code": concept.code, "kind": concept.kind, "definition": concept.definition},
-        total=totals["fragments"],          # фрагментов под запрос, до ограничений показа
-        documents=totals["documents"],      # в скольких статьях
-        fragments=fragments,
-        relations=_relations(conn, vocab, concept.code),
-    )
-    return out
-
-
-def _relations(conn, vocab: Vocabulary, code: str) -> list[dict]:
-    """Выведенные связи понятия: с какими территориями и методами оно описано вместе.
-
-    Основание у каждой — фрагменты, которые описывают понятие и в которых
-    названа территория или метод. Число фрагментов и статей — рядом.
-    """
-    out = []
-    for link in store.concept_links(conn, code):
-        relation = "проявлено_на" if link["kind"] == "территория" else "измеряет"
-        out.append({
-            "type": relation,
-            "label": vocab.label(relation),
-            "concept": code,
-            "target": link["name"],
-            "target_kind": link["kind"],
-            "fragments": link["fragments"],
-            "documents": link["documents"],
-        })
-    return out
-
-
-def concepts_response(conn, vocab: Vocabulary) -> dict:
-    """Что есть в базе знаний: словарь и сколько доказательств у каждого понятия.
-
-    По этому ответу сторона базы данных может сверить свой kb.concept со
-    словарём базы знаний до первого настоящего запроса.
-    """
-    out = _header(conn, vocab)
-    summary = store.concept_summary(conn)
-    empty = {"fragments": 0, "confirmed": 0, "unchecked": 0, "rejected": 0, "documents": 0}
-    out["concepts"] = [
-        {"code": c.code, "kind": c.kind, "definition": c.definition,
-         "synonyms": list(c.synonyms), **summary.get(c.code, empty),
-         "relations": _relations(conn, vocab, c.code)}
-        for c in vocab.concepts.values()
-    ]
-    out["territories"] = list(vocab.territories)
-    out["methods"] = list(vocab.methods)
-    out["relation_types"] = [
-        {"type": r.name, "from": r.source, "to": r.target, "label": r.label}
-        for r in vocab.relations.values()
-    ]
-    return out
-
-
-def graph_response(conn, vocab: Vocabulary, checked_only: bool = False) -> dict:
-    """Граф связей словаря: узлы — понятия, территории, методы; рёбра — выведенные связи.
-
-    Узлы словаря показываются все, даже без статей: пустое место на картинке —
-    тоже ответ («по этой территории про это понятие в корпусе ничего нет»).
-    """
-    out = _header(conn, vocab)
-    data = store.graph_data(conn, checked_only)
-    nodes = []
-    for c in vocab.concepts.values():
-        weight = data["concepts"].get(c.code, {"fragments": 0, "documents": 0})
-        nodes.append({"id": f"понятие:{c.code}", "kind": "понятие", "name": c.code,
-                      "group": c.kind, **weight})
-    for pool, kind in ((vocab.territories, "территория"), (vocab.methods, "метод")):
-        for name in pool:
-            nodes.append({"id": f"{kind}:{name}", "kind": kind, "name": name,
-                          "documents": data["terms"].get((kind, name), 0)})
-    edges = []
-    for e in data["edges"]:
-        if e["concept"] not in vocab.concepts:
+# --------------------------------------------------------------------------- #
+#  Датасет — у любой сущности
+# --------------------------------------------------------------------------- #
+def dataset(conn, syn: Synonyms, name: str, g: Graph | None = None) -> dict:
+    """Все факты о сущности и о том, что в неё входит: с кем как связана, где сказано."""
+    g = g or graph(conn, syn)
+    names: list[str] = []
+    for root in [name, *g.related(name)]:
+        for part in g.parts(root):
+            if part not in names:
+                names.append(part)
+    inside = set(names)
+    rows, docs, seen = [], set(), set()
+    for link in (lk for n in names for lk in g.touching.get(n, [])):
+        if id(link) in seen:
             continue
-        relation = "проявлено_на" if e["kind"] == "территория" else "измеряет"
-        edges.append({
-            "concept": f"понятие:{e['concept']}",
-            "term": f"{e['kind']}:{e['name']}",
-            "type": relation,
-            "label": vocab.label(relation),
-            "fragments": e["fragments"],
-            "documents": e["documents"],
-        })
-    known = {n["id"] for n in nodes}
-    out["checked_only"] = checked_only
-    out["nodes"] = nodes
-    out["edges"] = [e for e in edges if e["term"] in known]
-    return out
-
-
-def network_response(conn, vocab: Vocabulary, checked_only: bool = False,
-                     max_entities: int = 200) -> dict:
-    """Сеть знаний: узлы шести видов и рёбра «описывает» / «упоминает».
-
-    Узел — {id, kind, name, …}; ребро — {source, target, type, weight}.
-    Вес ребра — сколько фрагментов статьи за ним стоит.
-    """
-    out = _header(conn, vocab)
-    data = store.network_data(conn, checked_only, max_entities)
-    nodes: dict[str, dict] = {}
-    edges: dict[tuple[str, str], dict] = {}
-
-    for d in data["documents"]:
-        nodes[f"статья:{d['doc_id']}"] = {
-            "id": f"статья:{d['doc_id']}", "kind": "статья", "name": d["title"] or d["doc_id"],
-            "doc_id": d["doc_id"], "year": d["year"], "url": d["url"],
-            "doi_url": f"https://doi.org/{d['doi']}" if d.get("doi") else None,
-        }
-    for c in vocab.concepts.values():
-        nodes[f"понятие:{c.code}"] = {"id": f"понятие:{c.code}", "kind": "понятие",
-                                      "name": c.code, "group": c.kind}
-
-    def edge(doc_id: str, target: str, kind: str, weight: int, **extra) -> None:
-        source = f"статья:{doc_id}"
-        if source not in nodes or target not in nodes:
-            return
-        known = edges.get((source, target))
-        if known:                       # одно и то же найдено и словарём, и правилами
-            known["weight"] = max(known["weight"], weight)
-            return
-        edges[(source, target)] = {"source": source, "target": target, "type": kind,
-                                   "weight": weight, **extra}
-
-    for e in data["described"]:
-        edge(e["doc_id"], f"понятие:{e['concept']}", "описывает", e["fragments"],
-             confirmed=e["confirmed"])
-    for t in data["tagged"]:
-        node_id = f"{t['kind']}:{t['name']}"
-        nodes.setdefault(node_id, {"id": node_id, "kind": t["kind"], "name": t["name"]})
-        edge(t["doc_id"], node_id, "упоминает", t["fragments"])
-    for m in data["mentioned"]:
-        # «Анабарский щит», найденный правилами, — тот же узел, что территория
-        # словаря: иначе на картинке два одинаковых узла рядом.
-        same = vocab.territory(m["name"]) or vocab.method(m["name"])
-        if same is not None:
-            node_id = f"{same.kind}:{same.name}"
-            nodes.setdefault(node_id, {"id": node_id, "kind": same.kind, "name": same.name})
+        seen.add(id(link))
+        if link.src in inside:
+            about, direction, other = link.src, "→", link.dst
+        elif link.dst in inside:
+            about, direction, other = link.dst, "←", link.src
         else:
-            node_id = f"название:{m['key']}"
-            nodes.setdefault(node_id, {"id": node_id, "kind": m["kind"], "name": m["name"]})
-        edge(m["doc_id"], node_id, "упоминает", m["fragments"])
+            continue
+        if link.relation == PART_OF and link.src in inside and link.dst in inside:
+            continue                         # «зона входит в щит» — это состав, а не факт о нём
+        docs |= {f["doc_id"] for f in link.facts}
+        rows.append({"about": about, "direction": direction, "relation": link.relation,
+                     "other": other, "documents": link.documents,
+                     "fragments": len(link.facts), "quotes": link.quotes(),
+                     "chunk_ids": [f["chunk_id"] for f in link.facts][:QUOTES_PER_LINK]})
+    rows.sort(key=lambda r: (-r["documents"], -r["fragments"], r["relation"], r["other"]))
+    return {"name": name, "includes": names[1:], "documents": len(docs), "facts": rows,
+            "in_dictionary": name in syn.groups}
 
-    edges = list(edges.values())
-    degree: dict[str, int] = {}
-    for e in edges:
-        degree[e["source"]] = degree.get(e["source"], 0) + 1
-        degree[e["target"]] = degree.get(e["target"], 0) + 1
-    for node_id, node in nodes.items():
-        node["degree"] = degree.get(node_id, 0)
 
-    out["checked_only"] = checked_only
-    out["nodes"] = list(nodes.values())
-    out["edges"] = edges
-    return out
+def datasets_response(conn, syn: Synonyms, limit: int = 300) -> dict:
+    """Датасеты не хранятся: собираются из фактов при каждом запросе — после нового
+    прохода модели появляются новые сущности и новые факты у старых.
+    Числа те же, что в карточке датасета: строк-фактов и статей за ними."""
+    g = graph(conn, syn)
+    rows = []
+    for name in g.entities:
+        d = dataset(conn, syn, name, g)
+        if d["facts"] or d["includes"]:
+            rows.append({"name": name, "facts": len(d["facts"]), "documents": d["documents"]})
+    rows.sort(key=lambda r: (-r["documents"], -r["facts"], r["name"]))
+    return {"datasets": rows[:limit], "total": len(rows), "pass": store.summary(conn)}
+
+
+def dataset_response(conn, syn: Synonyms, payload: dict) -> dict:
+    raw = str(payload.get("name") or payload.get("territory") or "").strip()
+    g = graph(conn, syn)
+    known = [e["name"] for e in sorted(g.entities.values(), key=lambda e: -e["facts"])]
+    if not raw:
+        raise RequestError("не указано, чей датасет (name)", known=known)
+    name = g.resolve(raw)
+    if name is None:
+        raise RequestError("такого в фактах из статей нет", raw, known)
+    return dataset(conn, syn, name, g)
+
+
+CSV_COLUMNS = ["о чём", "направление", "связь", "с чем", "статей", "фрагментов",
+               "цитата", "статья", "ссылка"]
+
+
+def dataset_csv(data: dict) -> str:
+    """Датасет таблицей: открывается в Excel (точка с запятой, UTF-8 с BOM)."""
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";", lineterminator="\r\n")
+    writer.writerow(CSV_COLUMNS)
+    for r in data["facts"]:
+        q = r["quotes"][0] if r["quotes"] else {}
+        title = f"{q.get('title', '')}{', ' + str(q['year']) if q.get('year') else ''}"
+        writer.writerow([r["about"], r["direction"], r["relation"], r["other"], r["documents"],
+                         r["fragments"], q.get("quote", ""), title, q.get("url", "")])
+    return "﻿" + buf.getvalue()
+
+
+# --------------------------------------------------------------------------- #
+#  Отчёт: что нашла модель и где ошибалась
+# --------------------------------------------------------------------------- #
+def report(conn, syn: Synonyms, top: int = 40) -> dict:
+    g = graph(conn, syn)
+    entities = sorted(g.entities.values(), key=lambda e: (-len(e["docs"]), -e["facts"], e["name"]))
+    relations = Counter()
+    for link in g.links.values():
+        relations[link.relation] += len(link.facts)
+    return {
+        "pass": store.summary(conn),
+        "entities": [(e["name"], len(e["docs"]), e["facts"], e["in_dictionary"],
+                      sorted(e["spellings"])[:4]) for e in entities[:top]],
+        "entities_total": len(entities),
+        "relations": relations.most_common(top),
+        "rejected": store.rejected_reasons(conn).most_common(12),
+    }
+
+
+def entity_names(conn, syn: Synonyms) -> list[str]:
+    """Все сущности графа — для того, чтобы узнать их в вопросе чат-бота."""
+    return list(graph(conn, syn).entities)

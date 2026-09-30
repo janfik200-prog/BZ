@@ -8,5 +8,17 @@ __pycache__/
 data/
 logs/
 
-# Личный e-mail для OpenAlex и Crossref
+# Личный e-mail для OpenAlex и Crossref и ключ OpenAlex
 mailto.txt
+openalex_key.txt
+
+# Телеграм-бот: токен и кому можно
+telegram_token.txt
+telegram_users.txt
+
+# Предложения модели в словарь синонимов — пересоздаются командой synonyms
+config/synonyms-предложения.yaml
+
+# Пересоздаются командами questions и gaps
+config/eval-graph.yaml
+config/topics-graph.yaml

@@ -16,6 +16,8 @@ RRF (Reciprocal Rank Fusion) складывает не оценки, а мест
 
 from __future__ import annotations
 
+import re
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 
 RRF_K = 60
@@ -38,6 +40,9 @@ class Hit:
     found_by: str = ""           # вектор | текст | оба
     vec_rank: int | None = None
     fts_rank: int | None = None
+    # Нашёлся ли по словам «строго» — все слова запроса есть в тексте. Мягкий
+    # поиск (хотя бы часть слов) сам по себе ничего не доказывает.
+    fts_strict: bool = False
     # Косинусная близость к запросу, от 0 до 1. У BGE-M3 текст про то же самое
     # даёт примерно 0.6 и выше, случайный сосед — около 0.3-0.45. По ней и
     # отсекается «ближайшее, но не по делу».
@@ -66,12 +71,44 @@ def _filters(year_from: int | None, source: str | None) -> tuple[str, dict]:
     return (" AND " + " AND ".join(where) if where else ""), params
 
 
+# Сколько соседей HNSW смотрит за один поиск. По умолчанию в pgvector 40 — и
+# больше 40 строк он не вернёт, сколько ни проси в LIMIT: веб-поиск просил 50
+# и молча получал 40. Берём с запасом от запрошенного.
+EF_SEARCH_MIN = 100
+
+
+def _tune_hnsw(cur, limit: int, filtered: bool) -> None:
+    """Настройки векторного индекса на время одного поиска (до конца транзакции)."""
+    cur.execute(f"SET LOCAL hnsw.ef_search = {min(max(EF_SEARCH_MIN, 2 * int(limit)), 1000)}")
+    if not filtered:
+        return
+    # С фильтром по году или источнику HNSW сначала берёт ближайших, потом
+    # отсеивает — и может вернуть почти пусто. pgvector с 0.8 умеет добирать
+    # (iterative scan). Старая версия этой настройки не знает — тогда без неё.
+    cur.execute("SAVEPOINT georag_hnsw")
+    try:
+        cur.execute("SET LOCAL hnsw.iterative_scan = relaxed_order")
+    except Exception:  # noqa: BLE001 — pgvector старше 0.8
+        cur.execute("ROLLBACK TO SAVEPOINT georag_hnsw")
+    else:
+        cur.execute("RELEASE SAVEPOINT georag_hnsw")
+
+
+def _transaction(conn):
+    """SET LOCAL действует только внутри транзакции. У соединения чат-бота
+    autocommit (оно живёт, пока модель пишет ответ, и не должно держать
+    транзакцию открытой минутами) — поэтому векторный поиск идёт в своей."""
+    begin = getattr(conn, "transaction", None)
+    return begin() if callable(begin) else nullcontext()
+
+
 def vector_search(conn, vector: list[float], limit: int, year_from=None, source=None) -> list[tuple]:
     from .db import vector_literal
 
     clause, params = _filters(year_from, source)
     params.update({"q": vector_literal(vector), "limit": limit})
-    with conn.cursor() as cur:
+    with _transaction(conn), conn.cursor() as cur:
+        _tune_hnsw(cur, limit, bool(clause))
         cur.execute(
             f"""
             SELECT {SELECT_FIELDS}, 1 - (c.embedding <=> %(q)s::vector) AS score
@@ -85,18 +122,68 @@ def vector_search(conn, vector: list[float], limit: int, year_from=None, source=
         return cur.fetchall()
 
 
-def text_search(conn, query: str, limit: int, year_from=None, source=None) -> list[tuple]:
+# Русская конфигурация Postgres снимает окончания у кириллицы, а латиницу
+# отдаёт английскому стеммеру — одна на оба языка. Но беглую гласную она не
+# знает: «рудный узел» даёт основу «узел», а «рудного узла» — «узл», и одно по
+# другому не находилось. Поэтому запрос собирается здесь: у слова с беглой
+# гласной — оба варианта через «или».
+TSQUERY = "to_tsquery('russian', %(q)s)"
+# Кавычки и минус — синтаксис строки поиска («точная фраза», -исключить):
+# такой запрос отдаётся Postgres как есть.
+TSQUERY_WEB = "websearch_to_tsquery('russian', %(q)s)"
+
+_WORD = re.compile(r"[\w\-]{3,}", re.UNICODE)
+_TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
+# Только окончания, где беглая гласная и бывает: узел, угол, песок, конец. Слова
+# на -ом, -ем, -ов — это падежи, их не трогаем («золотом» — не «золотм»).
+_FLEETING = re.compile(r"^(.*[бвгджзклмнпрстфхцчшщ])[еоё]([лкцнр])$")
+
+
+def _variants(word: str) -> str:
+    low = word.lower()
+    match = _FLEETING.match(low)
+    if match:
+        return f"({low} | {match.group(1)}{match.group(2)})"
+    return low
+
+
+def build_tsquery(query: str, any_word: bool = False) -> str:
+    """Текст запроса → выражение для to_tsquery: все слова (или хотя бы одно)."""
+    words = [w for w in _TOKEN.findall(query) if w.lower() not in {"or", "and", "not"}]
+    return (" | " if any_word else " & ").join(_variants(w) for w in words)
+
+
+def _is_web_syntax(query: str) -> bool:
+    return '"' in query or bool(re.search(r"(^|\s)-\w", query))
+
+
+def loose_query(query: str) -> str:
+    """«Хотя бы одно из слов» — для мягкого захода полнотекста."""
+    return build_tsquery(query, any_word=True)
+
+
+def text_search(conn, query: str, limit: int, year_from=None, source=None,
+                any_word: bool = False, alternatives: list[str] | None = None) -> list[tuple]:
+    """alternatives — тот же запрос с другими написаниями из словаря синонимов:
+    находится фрагмент, где есть все слова хотя бы одного из вариантов."""
     clause, params = _filters(year_from, source)
-    params.update({"q": query, "limit": limit})
+    if _is_web_syntax(query) and not any_word:
+        tsq, q = TSQUERY_WEB, query
+    else:
+        parts = [p for p in (build_tsquery(x, any_word) for x in [query, *(alternatives or [])])
+                 if p.strip()]
+        tsq = TSQUERY
+        q = " | ".join(f"({p})" for p in parts) if len(parts) > 1 else (parts[0] if parts else "")
+    if not q.strip():
+        return []
+    params.update({"q": q, "limit": limit})
     with conn.cursor() as cur:
-        # websearch_to_tsquery понимает кавычки и минус, как строка поиска в браузере,
-        # и не падает на произвольном тексте — в отличие от to_tsquery.
         cur.execute(
             f"""
             SELECT {SELECT_FIELDS},
-                   ts_rank_cd(c.tsv, websearch_to_tsquery('russian', %(q)s)) AS score
+                   ts_rank_cd(c.tsv, {tsq}) AS score
             FROM chunks c JOIN documents d ON d.doc_id = c.doc_id
-            WHERE c.tsv @@ websearch_to_tsquery('russian', %(q)s) {clause}
+            WHERE c.tsv @@ {tsq} {clause}
             ORDER BY score DESC
             LIMIT %(limit)s
             """,
@@ -142,10 +229,21 @@ def hybrid_search(
     max_per_doc: int = 2,
     min_similarity: float = 0.0,
     require_words: bool = False,
+    alternatives: list[str] | None = None,
 ) -> list[Hit]:
+    """alternatives — написания запроса из словаря синонимов (synonyms.synonym_variants):
+    идут только в полнотекст, вектор и так понимает перевод."""
     vector = embedder.encode_one(query)
     vec_rows = vector_search(conn, vector, candidates, year_from, source)
-    fts_rows = text_search(conn, query, candidates, year_from, source)
+    fts_rows = text_search(conn, query, candidates, year_from, source, alternatives=alternatives)
+    strict = True
+    # Полнотекст требует все слова сразу, и длинный вопрос словами целиком
+    # почти никогда не находится. Тогда — мягкий заход: хотя бы часть слов.
+    # Такое совпадение само по себе не доказательство, его проверяет порог близости.
+    if not fts_rows and len(_WORD.findall(query)) >= 3:
+        fts_rows = text_search(conn, query, candidates, year_from, source, any_word=True,
+                               alternatives=alternatives)
+        strict = False
 
     hits: dict[int, Hit] = {}
     for row in vec_rows + fts_rows:
@@ -161,6 +259,7 @@ def hybrid_search(
         hits[chunk_id].vec_rank = position
     for position, chunk_id in enumerate(fts_ids, start=1):
         hits[chunk_id].fts_rank = position
+        hits[chunk_id].fts_strict = strict
 
     for chunk_id, score in scores.items():
         hit = hits[chunk_id]
@@ -183,8 +282,8 @@ def _passes(hit: Hit, min_similarity: float, require_words: bool) -> bool:
     обязан быть действительно близким, иначе это просто наименее непохожее.
     """
     if require_words:
-        return hit.fts_rank is not None
-    if hit.fts_rank is not None:
+        return hit.fts_rank is not None and hit.fts_strict
+    if hit.fts_rank is not None and hit.fts_strict:
         return True
     return (hit.similarity or 0.0) >= min_similarity
 

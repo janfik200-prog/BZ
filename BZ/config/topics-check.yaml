@@ -1,0 +1,59 @@
+# Темы для проверки базы: по одной-две на каждое понятие словаря и на каждый
+# блок вопросов из eval-questions.yaml. Задача — чтобы на каждый вопрос оценки
+# в базе были статьи, и по отчёту было видно, как работает поиск и чат-бот,
+# а не то, что статей по теме просто нет.
+#
+# Запуск:
+#   python georag.py all --topics topics-check.yaml
+#   python georag.py ingest
+#   python georag.py graph
+#   python georag.py eval
+#
+# Английские темы нужны: по рудному прогнозу большая часть открытых статей —
+# англоязычные, и BGE-M3 находит их по русскому вопросу.
+
+topics:
+  # структурный контроль
+  - структурный контроль золотого оруденения разломы
+  - shear zone hosted gold deposits structural control
+  - fault intersection mineral prospectivity
+
+  # гидротермальные изменения
+  - картирование гидротермальных изменений по снимкам ASTER
+  - ASTER hydrothermal alteration mapping gold
+  - Landsat 8 band ratio alteration zones
+  - Sentinel-2 alteration mineral mapping
+  - березитизация лиственитизация золоторудные месторождения
+
+  # литологический контроль и магматизм
+  - литологический контроль оруденения вмещающие породы
+  - intrusion related gold systems
+  - редкометалльные гранитоиды оруденение
+
+  # палеодолины и россыпи
+  - россыпи золота поиски коренных источников
+  - paleoplacer gold bedrock source
+
+  # геофизика
+  - магнитные аномалии прогноз рудных месторождений
+  - gravity and magnetic data mineral exploration targeting
+  - airborne gamma-ray spectrometry hydrothermal alteration potassium
+
+  # рельеф и растительность
+  - морфометрический анализ рельефа прогноз оруденения
+  - DEM morphometric analysis mineral exploration
+  - vegetation cover effect remote sensing lithological mapping
+
+  # методы прогноза
+  - weights of evidence mineral prospectivity mapping
+  - random forest mineral prospectivity mapping
+  - negative samples selection mineral prospectivity machine learning
+  - прогнозно-поисковые модели рудных узлов
+  - mineral systems approach exploration targeting
+
+  # территории
+  - Анабарский щит геологическое строение
+  - Anabar shield Archean granulite
+  - Оленёкское поднятие кимберлиты
+  - металлогения севера Сибирской платформы
+  - Билляхская зона разломов

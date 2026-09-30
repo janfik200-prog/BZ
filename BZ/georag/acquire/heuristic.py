@@ -16,7 +16,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from ..validate import _entity_pattern, _normalize
+from ..text import normalize as _normalize, phrase_pattern as _entity_pattern
 from .models import Candidate
 
 # Слова, которые ничего не добавляют к поиску.
@@ -24,6 +24,18 @@ STOPWORDS = {
     "и", "в", "на", "по", "с", "для", "из", "при", "о", "об", "от", "до", "как",
     "это", "их", "его", "или", "а", "но", "не", "the", "a", "of", "in", "on",
     "for", "and", "to", "with", "by", "from",
+}
+# Слова вопроса. Поисковики ищут по словам, а не по смыслу: вопрос «Какие признаки
+# использовались в моделях…» находил «Признаки лжи на собеседовании» и маркетинг.
+# Из запроса к источникам они выбрасываются, из темы для отбора — тоже.
+QUESTION_WORDS = {
+    "какие", "какой", "какая", "каких", "каким", "какими", "каков", "какова", "каковы",
+    "как", "что", "чем", "где", "когда", "почему", "зачем", "ли", "можно", "нужно",
+    "использовались", "используются", "используется", "использовали", "использовать",
+    "применялись", "применяются", "применяют", "применять", "основе", "основании",
+    "помощью", "является", "являются", "бывают", "есть", "был", "были", "было",
+    "which", "what", "how", "why", "where", "when", "are", "is", "were", "was", "used",
+    "using", "based",
 }
 
 # Русско-английский глоссарий предметной области. Сначала ищутся фразы, потом слова.
@@ -62,6 +74,25 @@ GLOSSARY: dict[str, str | list[str]] = {
     "кокригинг": "cokriging",
     "металлогения": "metallogeny",
     "перспективность": "prospectivity",
+    "модель перспективности": ["mineral prospectivity", "prospectivity model"],
+    "карта перспективности": ["prospectivity map", "mineral prospectivity"],
+    "поисковые признаки": ["exploration criteria", "evidential features"],
+    "гравиметрия": ["gravity", "gravimetric"],
+    "гравиметрический": ["gravity", "gravimetric"],
+    "гравитационный": "gravity",
+    "гравиразведка": ["gravity survey", "gravity"],
+    "магнитометрия": ["magnetic", "aeromagnetic"],
+    "аэромагнитный": "aeromagnetic",
+    "дзз": "remote sensing",
+    "спутниковый": "satellite",
+    "гиперспектральный": "hyperspectral",
+    "машинное обучение": "machine learning",
+    "нейронная сеть": "neural network",
+    "гидротермальный": "hydrothermal",
+    "изменение": "alteration",
+    "разлом": "fault",
+    "структурный контроль": "structural control",
+    "геохимический": "geochemical",
     "закономерности размещения": "spatial distribution",
     # географические названия. Без них тема «Анабарский щит металлогения»
     # переводилась в «shield metallogeny» — щиты всего мира вместо нашего.
@@ -102,9 +133,12 @@ UNKNOWN_WEIGHT = 0.7
 DOMAIN_PATTERNS = [
     re.compile(p)
     for p in (
-        r"руд[аыоуе]?\w*", r"оруденен\w*", r"минерализац\w*", r"месторожден\w*",
-        r"металлоген\w*", r"рудоносн\w*", r"кимберлит\w*", r"золот\w*", r"медно\w*",
-        r"алмаз\w*", r"россып\w*", r"полезных ископаемых", r"минераг\w*",
+        # С начала слова: без этого «руд» находился в «трудовых отношениях», и
+        # статья о прекарности рабочего места проходила как рудная.
+        r"(?<!\w)руд[аыоуе]?\w*", r"оруденен\w*", r"минерализац\w*", r"месторожден\w*",
+        r"металлоген\w*", r"(?<!\w)рудоносн\w*", r"кимберлит\w*", r"(?<!\w)золот\w*",
+        r"(?<!\w)медно\w*", r"(?<!\w)алмаз\w*", r"(?<!\w)россып\w*", r"полезных ископаемых",
+        r"минераг\w*", r"(?<!\w)прогноз\w* оруденен\w*", r"перспективност\w* на (?:руд|золот)\w*",
         r"\bore\b", r"\bores\b", r"mineraliz\w*", r"mineralis\w*", r"\bmineral\w*",
         r"metallogen\w*", r"prospectivity", r"orefield\w*", r"kimberlit\w*",
         r"\bdeposit\w*", r"\bgold\b", r"\bcopper\b", r"\bdiamond\w*", r"placer\w*",
@@ -117,6 +151,12 @@ def has_domain_term(text: str) -> bool:
     """Есть ли в тексте хоть одно слово рудной тематики."""
     lowered = _normalize(text)
     return any(p.search(lowered) for p in DOMAIN_PATTERNS)
+
+
+def query_words(topic: str) -> list[str]:
+    """Тема или вопрос → слова для поиска: без служебных и вопросительных."""
+    words = re.findall(r"[\w\-]+", _normalize(topic))
+    return [w for w in words if w not in STOPWORDS and w not in QUESTION_WORDS]
 
 
 def _english(value) -> list[str]:
@@ -202,7 +242,7 @@ def topic_terms(topic: str) -> list[TopicTerm]:
             text = pattern.sub(" ", text)
 
     for word in text.split():
-        if len(word) < 3 or word in STOPWORDS:
+        if len(word) < 3 or word in STOPWORDS or word in QUESTION_WORDS:
             continue
         patterns = [_entity_pattern(word)]
         english = GLOSSARY.get(word)
@@ -242,12 +282,15 @@ class HeuristicFilter:
     domain_bonus: float = 0.35
 
     def queries(self, topic: str, n: int = 5) -> list[str]:
-        variants = [topic.strip()]
-        english = translate_topic(topic)
+        # Вопрос целиком поисковику не отдаём: он ищет по словам, и «какие» с
+        # «использовались» тянут статьи про что угодно. Только слова по делу.
+        words = query_words(topic)
+        is_question = topic.strip().endswith("?") or len(words) < len(topic.split()) - 2
+        variants = [] if is_question else [topic.strip()]
+        english = translate_topic(" ".join(words))
         if english:
             variants.append(english)
-        # Тема без служебных слов — иногда находит больше, чем целая фраза.
-        trimmed = " ".join(w for w in _normalize(topic).split() if w not in STOPWORDS)
+        trimmed = " ".join(words)
         if trimmed and trimmed not in {_normalize(v) for v in variants}:
             variants.append(trimmed)
         return list(dict.fromkeys(v for v in variants if v))[:n]

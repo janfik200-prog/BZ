@@ -43,6 +43,22 @@ def is_reference_chunk(chunk: dict) -> bool:
     return marks / (len(text) / 1000) >= MIN_MARKS_PER_KB
 
 
+def embed_text(meta: dict, chunk: dict) -> str:
+    """Что уходит в модель эмбеддинга: название статьи, разделы, текст.
+
+    embed_text от нарезки уже несёт заголовки разделов — модель видит, из
+    какой части статьи кусок. Название статьи добавляется сверху: иначе
+    фрагмент статьи про Анабарский щит, где сам щит не назван, ничем не
+    отличался от такого же фрагмента про любую другую территорию. Человеку
+    показывается всё равно text.
+    """
+    body = chunk.get("embed_text") or chunk.get("text") or ""
+    title = " ".join(str(meta.get("title") or "").split())
+    if title and not body.startswith(title):
+        return f"{title}\n{body}"
+    return body
+
+
 @dataclass
 class IngestReport:
     seen: int = 0
@@ -51,6 +67,8 @@ class IngestReport:
     empty: int = 0
     chunks: int = 0
     refs_dropped: int = 0
+    duplicates: int = 0
+    forgotten: int = 0
     errors: list[str] = None
 
     def __post_init__(self):
@@ -104,7 +122,15 @@ def ingest_dir(
     verbose: bool = True,
 ) -> IngestReport:
     report = IngestReport()
+    # Статьи, которые clean --apply убрал в _отсев, база тоже забывает: иначе они
+    # остаются в поиске и в чат-боте, хотя в папке их уже нет.
+    moved = sorted(p.name[: -len(".json")] for p in (acquired_dir / "_отсев").glob("*.json")
+                   if not p.name.endswith((".chunks.json", ".docling.json")))
+    report.forgotten = db.delete_documents(conn, moved) if moved else 0
+    conn.commit()
+
     known = {} if force else db.indexed_docs(conn)
+    hashes = db.document_hashes(conn)
 
     for chunks_path in sorted(acquired_dir.glob("*.chunks.json")):
         doc_id = chunks_path.name[: -len(".chunks.json")]
@@ -123,6 +149,17 @@ def ingest_dir(
             continue
 
 
+        # Тот же файл уже лежит под другим идентификатором — второй раз не кладём:
+        # иначе поиск и чат-бот показывают одну статью дважды.
+        sha = meta.get("sha256") or ""
+        if sha and hashes.get(sha, doc_id) != doc_id:
+            report.duplicates += 1
+            if verbose:
+                print(f"  = {(meta.get('title') or doc_id)[:60]} — уже есть как {hashes[sha]}")
+            continue
+        if sha:
+            hashes[sha] = doc_id
+
         # Библиографию в базу не кладём: места занимает много, читать нечего.
         kept = [c for c in chunks if not is_reference_chunk(c)]
         report.refs_dropped += len(chunks) - len(kept)
@@ -135,9 +172,7 @@ def ingest_dir(
         chunks = kept
 
         meta.setdefault("doc_id", doc_id)
-        # embed_text несёт заголовки разделов сверху — модель видит, из какой
-        # части статьи кусок. Показываем потом человеку всё равно text.
-        texts = [c.get("embed_text") or c.get("text") or "" for c in chunks]
+        texts = [embed_text(meta, c) for c in chunks]
 
         try:
             vectors = embedder.encode(texts, progress=verbose)

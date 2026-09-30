@@ -17,6 +17,8 @@ import sys
 from pathlib import Path
 
 from . import db
+from ..common import add_db_args
+from ..llm import OLLAMA_HOST
 from .embed import build_embedder
 from .ingest import ingest_dir
 from .search import hybrid_search
@@ -26,7 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="База знаний ГеоRAG: индексация и поиск")
     p.add_argument("command", choices=["init", "ingest", "search", "stats"])
     p.add_argument("query", nargs="?", help="поисковый запрос для команды search")
-    p.add_argument("--dsn", default=None, help="адрес базы, иначе GEORAG_DSN")
+    add_db_args(p)
     p.add_argument("--acquired", type=Path, default=Path("data/acquired"))
     p.add_argument(
         "--embedder",
@@ -35,7 +37,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="чем считать векторы: local — прямо на видеокарте (по умолчанию), либо ollama",
     )
     p.add_argument("--model", default=None, help="имя модели: bge-m3 для ollama, BAAI/bge-m3 для local")
-    p.add_argument("--ollama-host", default="http://localhost:11434")
+    p.add_argument("--ollama-host", default=OLLAMA_HOST)
     p.add_argument("--device", choices=["auto", "cuda", "cpu"], default="auto")
     p.add_argument("--batch", type=int, default=8, help="сколько чанков кодировать за раз")
     p.add_argument("--force", action="store_true", help="переиндексировать, даже если уже есть")
@@ -98,6 +100,10 @@ def main(argv: list[str] | None = None) -> int:
                     f"пропущено {report.skipped}, без чанков {report.empty}; "
                     f"чанков записано {report.chunks}"
                     + (f"; библиографии отброшено {report.refs_dropped}" if report.refs_dropped else "")
+                    + (f"; повторов одной статьи пропущено {report.duplicates}"
+                       if report.duplicates else "")
+                    + (f"; убранных через clean забыто {report.forgotten}"
+                       if report.forgotten else "")
                 )
                 for error in report.errors:
                     print(f"  ! {error}")

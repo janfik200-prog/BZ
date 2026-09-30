@@ -13,39 +13,53 @@
 
 Статьи из интернета
     add "тема"                  найти и разобрать статьи по одной теме
-    all                         то же по всем темам из topics.yaml
-    all --topics topics-anabar.yaml     по темам из другого файла
+    all                         то же по всем темам из config/topics.yaml
+    all --topics topics-anabar.yaml     по темам из другого файла в config
+    all --topics topics-check.yaml      темы под вопросы оценки (eval)
     clean                       показать статьи не по теме
+    clean "тема"                то же, и Qwen3 проверяет каждую статью по теме
     clean --apply               убрать их в data/acquired/_отсев
     ingest                      загрузить добытое в базу
 
-Поиск по базе
-    search "запрос"             найти фрагменты статей
-    web                         поиск, статьи, понятия и граф в браузере
-    serve                       то же без браузера — для базы данных проекта
+Поиск и чат-бот
+    web                         в браузере: поиск, статьи, чат-бот и граф связей
+    web --tg                    то же + Телеграм-бот (в одном окне, модель векторов общая)
+    tg                          только Телеграм-бот
+    tg --check                  бот молчит? проверить токен, доступ, кто писал
+    serve                       то же без браузера (только адреса /api)
+    search "запрос"             найти фрагменты статей в терминале
+    ask "вопрос"                спросить чат-бота в терминале (нужна Ollama)
+                                (хотите подробно или кратко — так и напишите в вопросе)
 
-Понятия и граф связей
-    graph                       разметить фрагменты по словарю vocabulary.yaml
-    graph --llm                 то же + проверка моделью
-    verify                      проверка моделью с места остановки
-    verify --limit 50           проверить первые 50 — пробный прогон
-    concepts                    что найдено по каждому понятию
-    concept "магматизм"         фрагменты с цитатами по понятию
-    concept "магматизм" --territory "Анабарский щит" --method ASTER
+Граф связей
+    graph                       Qwen3 выписывает факты из статей (правила — config/graph-rules.txt)
+    graph --limit 30            только 30 фрагментов — проба
+    graph --redo                всё заново (после правки правил)
+    graph --new                 что нашла модель и где ошибалась
+    synonyms                    предложения в словарь синонимов (config/synonyms.yaml)
+    facts                       у чего больше всего фактов из статей
+    facts "Анабарский щит"      все факты о нём с цитатами, файл CSV для Excel
+                                (старое имя команды — dataset — тоже работает)
+    questions                   вопросы оценки из фактов графа → config/eval-graph.yaml
+    gaps                        где базе не хватает статей → темы config/topics-graph.yaml
 
 Ночная автоматика
-    schedule                    каждую ночь в 03:00: добыча → загрузка → разметка
+    schedule                    каждую ночь в 03:00: добыча → загрузка → граф
     schedule --at 01:30         то же в другое время
     unschedule                  убрать ночной прогон
     nightly                     сделать ночной прогон прямо сейчас
 
 Проверка
-    test                        прогнать проверки кода
+    test                        проверить код (на выдуманных примерах, база не трогается)
+    eval                        оценить базу и чат-бота по вопросам config/eval-questions.yaml
+    eval --only-search          то же, только поиск — без модели
+    eval --only s01,t01         только эти вопросы
+    eval --questions config/eval-graph.yaml   по вопросам из графа (сделать: questions)
     help                        эта справка
 
 Ключи
     --max-docs 5      сколько статей разбирать за тему (add, all)
-    --limit 10        сколько результатов показать (search, concept); сколько проверить (verify)
+    --limit 10        сколько результатов показать (search); сколько фрагментов (graph)
     --no-llm          не спрашивать модель, отбирать эвристикой (add, all)
     --force           обработать заново даже то, что уже было (add, all, ingest)
     --ollama          считать векторы через Ollama, а не на видеокарте
@@ -58,6 +72,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 import time
@@ -80,8 +95,17 @@ def _mailto() -> str:
 
 
 MAILTO = _mailto()
-MODEL = "qwen3:14b"                           # модель в Ollama
-OLLAMA = "http://localhost:11434"
+
+# Ключ OpenAlex — с 13.02.2026 без него поиск в OpenAlex не работает. Бесплатный:
+# openalex.org/settings/api. Хранится в openalex_key.txt (в .gitignore), дочерние
+# команды получают его через переменную окружения.
+_key_file = ROOT / "openalex_key.txt"
+if _key_file.exists() and not os.environ.get("GEORAG_OPENALEX_KEY"):
+    os.environ["GEORAG_OPENALEX_KEY"] = _key_file.read_text(encoding="utf-8-sig").strip()
+# Модель и адрес Ollama — одни на весь проект, из georag/llm.py (адрес можно
+# поменять переменной GEORAG_OLLAMA). Этот модуль лёгкий: только стандартная
+# библиотека, поэтому импортируется и до перехода в .venv.
+from georag.llm import DEFAULT_MODEL as MODEL, OLLAMA_HOST as OLLAMA  # noqa: E402
 TASK_NAME = "GeoRAG-acquire"                  # имя ночной задачи в планировщике
 NIGHTLY_MAX_DOCS = 10
 
@@ -90,6 +114,9 @@ TESTS = [
     "tests/acquire_smoke_test.py",
     "tests/index_smoke_test.py",
     "tests/graph_smoke_test.py",
+    "tests/chat_smoke_test.py",
+    "tests/eval_smoke_test.py",
+    "tests/tg_smoke_test.py",
 ]
 
 
@@ -232,15 +259,27 @@ def cmd_add(opts) -> int:
     return _acquire(opts, [opts.text])
 
 
+def _topics_file(name: str) -> str | None:
+    """Файл тем: как написали, или из папки config — «topics-anabar.yaml» хватает."""
+    for candidate in (Path(name), Path("config") / name):
+        if (ROOT / candidate).is_file():
+            return candidate.as_posix()
+    return None
+
+
 def cmd_all(opts) -> int:
-    if not (ROOT / opts.topics).exists():
-        print(f"Нет файла тем: {opts.topics}", file=sys.stderr)
+    topics = _topics_file(opts.topics)
+    if topics is None:
+        print(f"Нет файла тем: {opts.topics} (темы лежат в папке config)", file=sys.stderr)
         return 1
-    return _acquire(opts, ["--topics", opts.topics])
+    return _acquire(opts, ["--topics", topics])
 
 
 def cmd_clean(opts) -> int:
-    return _run([sys.executable, "scripts/clean_acquired.py", *(["--apply"] if opts.apply else [])])
+    args = ["--apply"] if opts.apply else []
+    if opts.text:
+        args += ["--topic", opts.text, "--model", MODEL]
+    return _py("georag.acquire.clean", *args)
 
 
 def cmd_ingest(opts) -> int:
@@ -269,60 +308,139 @@ def cmd_search(opts) -> int:
 def cmd_web(opts) -> int:
     if not _ensure_database():
         return 1
-    return _py("georag.web.server", *(["--embedder", "ollama"] if opts.ollama else []))
+    return _py("georag.web.server", "--model", MODEL,
+               *(["--embedder", "ollama"] if opts.ollama else []),
+               *(["--tg"] if opts.tg else []))
 
 
 def cmd_serve(opts) -> int:
-    """Сервер для базы данных проекта: тот же, что web, но браузер не открывается."""
+    """Тот же сервер, что web, но браузер не открывается (только адреса /api)."""
     if not _ensure_database():
         return 1
-    args = ["--no-browser"] + (["--embedder", "ollama"] if opts.ollama else [])
-    return _py("georag.web.server", *args)
+    args = ["--no-browser", "--model", MODEL] + (["--embedder", "ollama"] if opts.ollama else [])
+    return _py("georag.web.server", *args, *(["--tg"] if opts.tg else []))
 
 
 def cmd_graph(opts) -> int:
     if not _ensure_database():
         return 1
-    args = ["build"]
-    if opts.llm:
-        args += ["--llm", "--model", MODEL]
-    if opts.ollama:
-        args += ["--embedder", "ollama"]
+    if opts.new:
+        return _py("georag.graph.cli", "report")
+    args = ["build", "--model", MODEL] + (["--redo"] if opts.redo else [])
+    if opts.limit:
+        args += ["--limit", str(opts.limit)]
     return _py("georag.graph.cli", *args)
+
+
+def cmd_synonyms(opts) -> int:
+    if not _ensure_database():
+        return 1
+    return _py("georag.graph.cli", "synonyms", "--model", MODEL,
+               *(["--embedder", "ollama"] if opts.ollama else []))
 
 
 def cmd_verify(opts) -> int:
+    print("Проверки понятий больше нет: граф строят факты с цитатами, каждый проверяет код "
+          "сразу. Строить граф: python georag.py graph")
+    return 0
+
+
+def cmd_tg(opts) -> int:
+    if opts.check:                       # проверка токена и доступа: база и модели не нужны
+        return _py("georag.tg.bot", "--check")
     if not _ensure_database():
         return 1
-    # Без --limit проверяется всё, что ещё не проверено.
-    args = ["verify", "--model", MODEL] + (["--limit", str(opts.limit)] if opts.limit else [])
-    return _py("georag.graph.cli", *args)
+    return _py("georag.tg.bot", "--model", MODEL,
+               *(["--embedder", "ollama"] if opts.ollama else []))
 
 
-def cmd_concepts(opts) -> int:
-    return _py("georag.graph.cli", "concepts") if _ensure_database() else 1
+def cmd_dataset(opts) -> int:
+    if not _ensure_database():
+        return 1
+    return _py("georag.graph.cli", "dataset", *(["--name", opts.text] if opts.text else []))
 
 
-def cmd_concept(opts) -> int:
+def cmd_questions(opts) -> int:
+    if not _ensure_database():
+        return 1
+    return _py("georag.graph.cli", "questions", "--model", MODEL,
+               *(["--limit", str(opts.limit)] if opts.limit else []),
+               *(["--no-llm"] if opts.no_llm else []))
+
+
+def cmd_gaps(opts) -> int:
+    if not _ensure_database():
+        return 1
+    return _py("georag.graph.cli", "gaps", *(["--limit", str(opts.limit)] if opts.limit else []))
+
+
+def cmd_ask(opts) -> int:
     if not opts.text:
-        print('Нужно понятие: python georag.py concept "гидротермальные изменения"',
-              file=sys.stderr)
-        _py("georag.graph.cli", "concepts")
+        print('Нужен вопрос: python georag.py ask "как выделяют рудные узлы?"', file=sys.stderr)
         return 1
     if not _ensure_database():
         return 1
-    args = ["evidence", opts.text, "--limit", str(opts.limit or 10)]
-    if opts.territory:
-        args += ["--territory", opts.territory]
-    if opts.method:
-        args += ["--method", opts.method]
-    return _py("georag.graph.cli", *args)
+    return _py("georag.chat.cli", opts.text, "--model", MODEL,
+               *(["--embedder", "ollama"] if opts.ollama else []))
+
+
+def cmd_eval(opts) -> int:
+    if not _ensure_database():
+        return 1
+    args = ["--model", MODEL]
+    if opts.only_search:
+        args.append("--only-search")
+    if opts.only:
+        args += ["--only", opts.only]
+    if opts.questions:
+        args += ["--questions", opts.questions]
+    if opts.ollama:
+        args += ["--embedder", "ollama"]
+    return _py("georag.evaluation", *args)
+
+
+TEST_NAMES = {
+    "tests/smoke_test.py": "разбор PDF",
+    "tests/acquire_smoke_test.py": "добыча статей",
+    "tests/index_smoke_test.py": "база и поиск",
+    "tests/graph_smoke_test.py": "граф и факты",
+    "tests/chat_smoke_test.py": "чат-бот",
+    "tests/eval_smoke_test.py": "оценка",
+    "tests/tg_smoke_test.py": "Телеграм-бот",
+}
 
 
 def cmd_test(opts) -> int:
-    failed = [t for t in TESTS if _run([sys.executable, t]) != 0]
+    """Проверки кода. Идут на выдуманных примерах, база и Ollama не нужны и не трогаются.
+
+    На экран — одна строка на часть; подробности — только у того, что не прошло
+    (или со всеми подробностями: python georag.py test --verbose)."""
+    print("Проверка кода на выдуманных примерах — ваша база, статьи и граф не трогаются.\n")
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
+    failed = []
+    for test in TESTS:
+        name = TEST_NAMES.get(test, test)
+        if opts.verbose:
+            code = _run([sys.executable, test])
+            out = ""
+        else:
+            try:
+                proc = subprocess.run([sys.executable, test], cwd=ROOT, env=env, text=True,
+                                      encoding="utf-8", errors="replace",
+                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            except KeyboardInterrupt:
+                return 130
+            code, out = proc.returncode, proc.stdout
+        total = re.findall(r"Итого: (\d+) пройдено", out)
+        mark = "OK  " if code == 0 else "СБОЙ"
+        print(f"  [{mark}] {name}" + (f" — проверок {total[-1]}" if total and code == 0 else ""))
+        if code != 0:
+            failed.append(name)
+            if out:
+                print("\n".join("        " + line for line in out.rstrip().splitlines()[-40:]))
     if failed:
-        print("\nНе прошли: " + ", ".join(failed), file=sys.stderr)
+        print("\nНе прошли: " + ", ".join(failed) + ". Пришлите этот вывод целиком.",
+              file=sys.stderr)
         return 1
     print("\nВсе проверки прошли.")
     return 0
@@ -340,7 +458,7 @@ def _ollama_up() -> bool:
 
 
 def cmd_nightly(opts) -> int:
-    """То, что запускает планировщик: добыча → загрузка в базу → разметка.
+    """То, что запускает планировщик: добыча → загрузка в базу → граф.
 
     Всё пишется в logs/run-ДАТА.txt; логи старше месяца удаляются, чтобы папка
     не росла бесконечно. Если Ollama не поднята, отбор статей идёт эвристикой —
@@ -373,7 +491,7 @@ def cmd_nightly(opts) -> int:
             return code
 
         say(f"=== ночной прогон {datetime.now():%Y-%m-%d %H:%M:%S} ===")
-        acquire = ["-m", "georag.acquire.cli", "--topics", "topics.yaml", "--device", "cuda",
+        acquire = ["-m", "georag.acquire.cli", "--topics", "config/topics.yaml", "--device", "cuda",
                    "--max-docs", str(NIGHTLY_MAX_DOCS), *(["--mailto", MAILTO] if MAILTO else []), "--model", MODEL]
         if not _ollama_up():
             say("Ollama не отвечает — отбор пойдёт эвристикой")
@@ -383,10 +501,11 @@ def cmd_nightly(opts) -> int:
         if _ensure_database():
             codes.append(step("загрузка в базу", [sys.executable, "-m", "georag.index.cli",
                                                   "ingest"]))
-            codes.append(step("разметка по словарю", [sys.executable, "-m",
-                                                      "georag.graph.cli", "build"]))
+            # Граф: Qwen3 выписывает факты из новых фрагментов (не больше 300 за ночь).
+            codes.append(step("граф связей", [sys.executable, "-m", "georag.graph.cli", "build",
+                                              "--model", MODEL, "--limit", "300"]))
         else:
-            say("База не поднялась — загрузка и разметка пропущены до следующего раза")
+            say("База не поднялась — загрузка и граф пропущены до следующего раза")
             codes.append(1)
         say(f"\n=== конец {datetime.now():%Y-%m-%d %H:%M:%S} ===")
 
@@ -414,7 +533,7 @@ def task_xml(python: Path, at: str) -> str:
     return f"""<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
-    <Description>ГеоRAG: ночное пополнение базы знаний — добыча, загрузка, разметка</Description>
+    <Description>ГеоRAG: ночное пополнение базы знаний — добыча, загрузка, граф</Description>
   </RegistrationInfo>
   <Triggers>
     <CalendarTrigger>
@@ -463,7 +582,7 @@ def cmd_schedule(opts) -> int:
         xml.write_text(task_xml(python, opts.at), encoding="utf-16")
         done = _run(["schtasks", "/Create", "/TN", TASK_NAME, "/XML", str(xml), "/F"])
     if done == 0:
-        print(f"\nГотово: каждую ночь в {opts.at:0>5} — добыча, загрузка в базу и разметка.\n"
+        print(f"\nГотово: каждую ночь в {opts.at:0>5} — добыча, загрузка в базу и граф.\n"
               "Если компьютер в это время спал, прогон случится, когда он проснётся.\n"
               "Логи — в папке logs. Проверить сразу, не дожидаясь ночи:\n"
               "    python georag.py nightly")
@@ -490,7 +609,9 @@ COMMANDS = {
     "stats": cmd_stats, "add": cmd_add, "all": cmd_all, "clean": cmd_clean,
     "ingest": cmd_ingest, "search": cmd_search, "web": cmd_web, "serve": cmd_serve,
     "graph": cmd_graph,
-    "verify": cmd_verify, "concepts": cmd_concepts, "concept": cmd_concept,
+    "verify": cmd_verify, "synonyms": cmd_synonyms, "ask": cmd_ask, "eval": cmd_eval, "dataset": cmd_dataset, "facts": cmd_dataset,
+    "questions": cmd_questions, "gaps": cmd_gaps,
+    "tg": cmd_tg,
     "test": cmd_test, "nightly": cmd_nightly, "schedule": cmd_schedule,
     "unschedule": cmd_unschedule, "help": cmd_help,
 }
@@ -509,10 +630,18 @@ def parse(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--apply", action="store_true")
     p.add_argument("--ollama", action="store_true")
     p.add_argument("--llm", action="store_true")
-    p.add_argument("--territory", default="")
-    p.add_argument("--method", default="")
+    p.add_argument("--only-search", action="store_true")
+    p.add_argument("--only", default="")
+    p.add_argument("--questions", default="")
+    p.add_argument("--redo", action="store_true")
+    p.add_argument("--no-check", action="store_true")
+    p.add_argument("--all", action="store_true")
+    p.add_argument("--new", action="store_true")
+    p.add_argument("--tg", action="store_true")
+    p.add_argument("--verbose", action="store_true")
+    p.add_argument("--check", action="store_true")
     p.add_argument("--at", default="03:00")
-    p.add_argument("--topics", default="topics.yaml")
+    p.add_argument("--topics", default="config/topics.yaml")
     p.add_argument("-h", "--help", action="store_true")
     return p.parse_args(argv)
 
