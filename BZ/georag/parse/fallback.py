@@ -16,7 +16,7 @@ from .models import FAILED, OK, ParsedDoc, ParseInput
 _HEADING_RE = re.compile(r"^#{1,4}\s+(.+?)\s*$", re.MULTILINE)
 
 
-def parse_with_pymupdf(source: "Path | str | ParseInput", settings: Settings) -> ParsedDoc:
+def parse_with_pymupdf(source: Path | str | ParseInput, settings: Settings) -> ParsedDoc:
     inp = ParseInput.of(source)
     started = time.monotonic()
     result = ParsedDoc(
@@ -77,7 +77,7 @@ def parse_with_pymupdf(source: "Path | str | ParseInput", settings: Settings) ->
     return result
 
 
-def manual_text_path(source: "Path | str | ParseInput", settings: Settings) -> Path | None:
+def manual_text_path(source: Path | str | ParseInput, settings: Settings) -> Path | None:
     """manual.txt ищем рядом с PDF и в data/manual/ по имени документа."""
     inp = ParseInput.of(source)
     candidates = [settings.manual_dir / f"{inp.doc_id}.txt"]
@@ -89,7 +89,7 @@ def manual_text_path(source: "Path | str | ParseInput", settings: Settings) -> P
     return None
 
 
-def parse_manual(source: "Path | str | ParseInput", settings: Settings) -> ParsedDoc | None:
+def parse_manual(source: Path | str | ParseInput, settings: Settings) -> ParsedDoc | None:
     """Последний рубеж: текст, положенный человеком рядом с PDF."""
     inp = ParseInput.of(source)
     txt = manual_text_path(inp, settings)

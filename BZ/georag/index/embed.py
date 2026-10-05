@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import math
 import threading
+from typing import Any
 
 from ..llm import OLLAMA_HOST
 
@@ -64,7 +65,7 @@ class Embedder:
         self._lock = threading.Lock()
 
     # Модель весит около 2 ГБ и грузится секунды: берём её только когда реально нужна.
-    def _load(self):
+    def _load(self) -> Any:
         if self._model is not None:
             return self._model
         with self._lock:
@@ -72,7 +73,7 @@ class Embedder:
                 self._model = self._build()
         return self._model
 
-    def _build(self):
+    def _build(self) -> Any:
         from sentence_transformers import SentenceTransformer
 
         device = None if self.device == "auto" else self.device
@@ -92,7 +93,7 @@ class Embedder:
             vectors = model.encode(
                 texts,
                 batch_size=self.batch_size,
-                normalize_embeddings=True,   # косинус = скалярное произведение
+                normalize_embeddings=True,  # косинус = скалярное произведение
                 show_progress_bar=progress,
                 convert_to_numpy=True,
             )
@@ -125,7 +126,7 @@ class OllamaEmbedder:
     def dim(self) -> int:
         return VECTOR_DIM
 
-    def _post(self, path: str, payload: dict) -> dict:
+    def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         import requests
 
         response = requests.post(f"{self.host}{path}", json=payload, timeout=self.timeout)
@@ -142,15 +143,17 @@ class OllamaEmbedder:
         except FileNotFoundError:
             # Старые сборки Ollama знают только /api/embeddings и только по одному тексту.
             vectors = [
-                (self._post("/api/embeddings", {"model": self.model_id, "prompt": text})
-                 .get("embedding") or [])
+                (
+                    self._post("/api/embeddings", {"model": self.model_id, "prompt": text}).get(
+                        "embedding"
+                    )
+                    or []
+                )
                 for text in batch
             ]
 
         if len(vectors) != len(batch):
-            raise RuntimeError(
-                f"Ollama вернула {len(vectors)} векторов на {len(batch)} текстов"
-            )
+            raise RuntimeError(f"Ollama вернула {len(vectors)} векторов на {len(batch)} текстов")
         for vector in vectors:
             if len(vector) != VECTOR_DIM:
                 raise RuntimeError(
@@ -184,7 +187,7 @@ def build_embedder(
     batch_size: int = 8,
     host: str = OLLAMA_HOST,
     quiet: bool = False,
-):
+) -> Any:
     """Собрать считалку векторов.
 
     По умолчанию — местная модель: так поиск работает независимо от того, запущена

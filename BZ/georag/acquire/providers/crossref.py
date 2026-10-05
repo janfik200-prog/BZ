@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import re
 import time
+from typing import Any
 
 from ..models import Candidate
 
@@ -62,7 +63,7 @@ def abstract_from_jats(raw: str | None) -> str:
     return re.sub(r"^abstract[:\s]+", "", text, flags=re.IGNORECASE)
 
 
-def pdf_urls_from_work(work: dict) -> list[str]:
+def pdf_urls_from_work(work: dict[str, Any]) -> list[str]:
     """Все известные адреса полного текста, по порядку предпочтения."""
     links = work.get("link") or []
     urls = [
@@ -82,24 +83,23 @@ def pdf_urls_from_work(work: dict) -> list[str]:
     return list(dict.fromkeys(u for u in urls if u))
 
 
-
-def _year(work: dict) -> int | None:
+def _year(work: dict[str, Any]) -> int | None:
     parts = ((work.get("issued") or {}).get("date-parts") or [[]])[0]
     return int(parts[0]) if parts and parts[0] else None
 
 
-def _first(values, default=None):
+def _first(values: Any, default: Any = None) -> Any:
     if isinstance(values, list):
         return values[0] if values else default
     return values or default
 
 
 class CrossrefProvider:
-    def __init__(self, name: str = "crossref", params: dict | None = None):
+    def __init__(self, name: str = "crossref", params: dict[str, Any] | None = None):
         self.name = name
         params = params or {}
         self.mailto = (params.get("mailto") or "").strip()
-        self.member = params.get("member")           # 1968 — MDPI AG
+        self.member = params.get("member")  # 1968 — MDPI AG
         self.min_year = params.get("min_year")
         self.types = params.get("types") or ["journal-article"]
         self.only_with_fulltext = bool(params.get("only_with_fulltext", False))
@@ -119,7 +119,7 @@ class CrossrefProvider:
             parts.append("has-full-text:true")
         return ",".join(parts)
 
-    def _params(self, query: str, limit: int) -> dict:
+    def _params(self, query: str, limit: int) -> dict[str, Any]:
         params = {
             "query.bibliographic": query,
             "select": SELECT,
@@ -148,7 +148,10 @@ class CrossrefProvider:
         if response.status_code == 400 and "select" in params:
             params.pop("select")
             response = requests.get(
-                BASE, params=params, timeout=self.timeout, headers={"User-Agent": self._user_agent()}
+                BASE,
+                params=params,
+                timeout=self.timeout,
+                headers={"User-Agent": self._user_agent()},
             )
 
         if self.pause_sec:
@@ -161,7 +164,7 @@ class CrossrefProvider:
         base = "georag/0.1 (knowledge base builder)"
         return f"{base} mailto:{self.mailto}" if self.mailto else base
 
-    def _to_candidate(self, work: dict, query: str) -> Candidate:
+    def _to_candidate(self, work: dict[str, Any], query: str) -> Candidate:
         doi = work.get("DOI")
         licenses = work.get("license") or []
         urls = pdf_urls_from_work(work)

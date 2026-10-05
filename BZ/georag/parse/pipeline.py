@@ -16,10 +16,12 @@ import multiprocessing as mp
 import queue
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from .config import Settings
+from .fallback import parse_manual, parse_with_pymupdf
 from .models import (
     FAILED,
     MANUAL_REVIEW,
@@ -31,7 +33,6 @@ from .models import (
     ParseInput,
     ValidationReport,
 )
-from .fallback import parse_manual, parse_with_pymupdf
 from .validate import accuracy, load_golden, validate
 
 
@@ -41,12 +42,12 @@ from .validate import accuracy, load_golden, validate
 class StepLogger:
     def __init__(self, log_dir: Path, run_id: str | None = None, prefix: str = "parse"):
         log_dir.mkdir(parents=True, exist_ok=True)
-        self.run_id = run_id or datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        self.run_id = run_id or datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
         self.path = log_dir / f"{prefix}-{self.run_id}.jsonl"
 
-    def log(self, doc_id: str, step: str, status: str, duration: float, **extra) -> None:
+    def log(self, doc_id: str, step: str, status: str, duration: float, **extra: Any) -> None:
         record = {
-            "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "ts": datetime.now(UTC).isoformat(timespec="seconds"),
             "run_id": self.run_id,
             "doc": doc_id,
             "step": step,
@@ -65,7 +66,9 @@ class StepLogger:
 # --------------------------------------------------------------------------- #
 #  Изоляция парсинга в отдельном процессе
 # --------------------------------------------------------------------------- #
-def _worker_loop(tasks: mp.Queue, results: mp.Queue, settings_dict: dict) -> None:  # pragma: no cover
+def _worker_loop(
+    tasks: mp.Queue[Any], results: mp.Queue[Any], settings_dict: dict[str, Any]
+) -> None:  # pragma: no cover
     """Живёт в дочернем процессе: держит модели docling в памяти между документами."""
     from .config import Settings as _Settings
 
@@ -135,7 +138,7 @@ class DoclingWorker:
             self._proc.join(timeout=10)
         self._start()
 
-    def parse(self, source: "Path | str | ParseInput", full_page_ocr: bool = False) -> ParsedDoc:
+    def parse(self, source: Path | str | ParseInput, full_page_ocr: bool = False) -> ParsedDoc:
         inp = ParseInput.of(source)
         self._ensure_alive()
         timeout = (
@@ -213,7 +216,7 @@ class DocResult:
     failed_checks: list[str] = field(default_factory=list)
     attempts: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "doc_id": self.doc_id,
             "source_path": self.source_path,
@@ -234,7 +237,7 @@ class DocResult:
 #  Основной проход по документу
 # --------------------------------------------------------------------------- #
 def process_document(
-    source: "Path | str | ParseInput",
+    source: Path | str | ParseInput,
     settings: Settings,
     worker: DoclingWorker,
     logger: StepLogger,
@@ -276,11 +279,7 @@ def process_document(
     # --- попытка 2: полностраничный OCR, если текста нет ---------------------
     # Только когда парсер отработал, но текста не набралось (скан). Если docling
     # упал или завис, второй заход тем же парсером — потерянное время.
-    if (
-        parsed.status in (OK, PARTIAL)
-        and not report.ok
-        and report.suggestion == "rerun_ocr"
-    ):
+    if parsed.status in (OK, PARTIAL) and not report.ok and report.suggestion == "rerun_ocr":
         parsed_ocr = worker.parse(inp, full_page_ocr=True)
         attempts.append(f"docling+ocr:{parsed_ocr.status}")
         report_ocr = validate(parsed_ocr, settings, golden)
@@ -426,9 +425,7 @@ def _write_outputs(
         )
 
 
-def process_all(
-    paths: list[Path], settings: Settings, make_chunks: bool = True
-) -> list[DocResult]:
+def process_all(paths: list[Path], settings: Settings, make_chunks: bool = True) -> list[DocResult]:
     settings.ensure_dirs()
     logger = StepLogger(settings.log_dir)
     worker = DoclingWorker(settings)

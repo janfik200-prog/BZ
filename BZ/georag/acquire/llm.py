@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from ..llm import Ollama, extract_json
 from .models import Candidate
@@ -26,14 +27,17 @@ from .models import Candidate
 # О чём база. Без этого модель понимает тему буквально: вопрос про «признаки
 # на основе гравиметрии в моделях перспективности» давал запросы вроде
 # «gravimetry features prospectivity models», а они находили медицину и геодезию.
-DOMAIN = ("База знаний — для прогноза рудных месторождений: прогнозирование оруденения, "
-          "карты и модели перспективности (mineral prospectivity mapping), поисковые "
-          "признаки и критерии, рудная геология, геофизика и дистанционное зондирование "
-          "в поисках полезных ископаемых.")
+DOMAIN = (
+    "База знаний — для прогноза рудных месторождений: прогнозирование оруденения, "
+    "карты и модели перспективности (mineral prospectivity mapping), поисковые "
+    "признаки и критерии, рудная геология, геофизика и дистанционное зондирование "
+    "в поисках полезных ископаемых."
+)
 
 QUERY_SYSTEM = (
-    "Ты помогаешь искать научные статьи в библиографической базе. " + DOMAIN +
-    " Отвечай только JSON, без пояснений."
+    "Ты помогаешь искать научные статьи в библиографической базе. "
+    + DOMAIN
+    + " Отвечай только JSON, без пояснений."
 )
 
 QUERY_USER = """Тема поиска: «{topic}».
@@ -62,8 +66,9 @@ potential field data mineral exploration targeting; геофизические �
 Верни JSON: {{"queries": ["...", "..."]}}"""
 
 FILTER_SYSTEM = (
-    "Ты отбираешь научные статьи для базы знаний. " + DOMAIN +
-    " Отвечай только JSON, без пояснений."
+    "Ты отбираешь научные статьи для базы знаний. "
+    + DOMAIN
+    + " Отвечай только JSON, без пояснений."
 )
 
 FILTER_USER = """Тема: «{topic}».
@@ -110,7 +115,7 @@ class OllamaLLM(Ollama):
         items = "\n\n".join(f"{i}. {c.brief()}" for i, c in enumerate(batch, start=1))
         data = self.chat_json(FILTER_SYSTEM, FILTER_USER.format(topic=topic, items=items))
 
-        decided: dict[int, dict] = {}
+        decided: dict[int, dict[str, Any]] = {}
         for item in data.get("decisions") or []:
             try:
                 decided[int(item.get("i"))] = item
@@ -128,11 +133,11 @@ class OllamaLLM(Ollama):
 
 
 def filter_candidates(
-    llm,
+    llm: Any,
     topic: str,
     candidates: list[Candidate],
     batch_size: int = 8,
-    fallback=None,
+    fallback: Any = None,
 ) -> list[str]:
     """Фильтрация партиями. Возвращает ошибки по партиям, не падая целиком.
 

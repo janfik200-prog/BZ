@@ -19,6 +19,7 @@ from __future__ import annotations
 import re
 from contextlib import nullcontext
 from dataclasses import dataclass, field
+from typing import Any
 
 RRF_K = 60
 
@@ -37,7 +38,7 @@ class Hit:
     url: str = ""
     authors: list[str] = field(default_factory=list)
     score: float = 0.0
-    found_by: str = ""           # вектор | текст | оба
+    found_by: str = ""  # вектор | текст | оба
     vec_rank: int | None = None
     fts_rank: int | None = None
     # Нашёлся ли по словам «строго» — все слова запроса есть в тексте. Мягкий
@@ -49,7 +50,11 @@ class Hit:
     similarity: float | None = None
 
     def citation(self) -> str:
-        pages = f", с. {'–'.join(str(p) for p in (self.pages[:1] + self.pages[-1:]))}" if self.pages else ""
+        pages = (
+            f", с. {'–'.join(str(p) for p in (self.pages[:1] + self.pages[-1:]))}"
+            if self.pages
+            else ""
+        )
         year = f", {self.year}" if self.year else ""
         return f"{self.title[:80]}{year}{pages} — {self.url}"
 
@@ -60,8 +65,9 @@ SELECT_FIELDS = """
 """
 
 
-def _filters(year_from: int | None, source: str | None) -> tuple[str, dict]:
-    where, params = [], {}
+def _filters(year_from: int | None, source: str | None) -> tuple[str, dict[str, Any]]:
+    where: list[str] = []
+    params: dict[str, Any] = {}
     if year_from:
         where.append("d.year >= %(year_from)s")
         params["year_from"] = year_from
@@ -77,7 +83,7 @@ def _filters(year_from: int | None, source: str | None) -> tuple[str, dict]:
 EF_SEARCH_MIN = 100
 
 
-def _tune_hnsw(cur, limit: int, filtered: bool) -> None:
+def _tune_hnsw(cur: Any, limit: int, filtered: bool) -> None:
     """Настройки векторного индекса на время одного поиска (до конца транзакции)."""
     cur.execute(f"SET LOCAL hnsw.ef_search = {min(max(EF_SEARCH_MIN, 2 * int(limit)), 1000)}")
     if not filtered:
@@ -94,7 +100,7 @@ def _tune_hnsw(cur, limit: int, filtered: bool) -> None:
         cur.execute("RELEASE SAVEPOINT georag_hnsw")
 
 
-def _transaction(conn):
+def _transaction(conn: Any) -> Any:
     """SET LOCAL действует только внутри транзакции. У соединения чат-бота
     autocommit (оно живёт, пока модель пишет ответ, и не должно держать
     транзакцию открытой минутами) — поэтому векторный поиск идёт в своей."""
@@ -102,7 +108,9 @@ def _transaction(conn):
     return begin() if callable(begin) else nullcontext()
 
 
-def vector_search(conn, vector: list[float], limit: int, year_from=None, source=None) -> list[tuple]:
+def vector_search(
+    conn: Any, vector: list[float], limit: int, year_from: Any = None, source: Any = None
+) -> list[tuple[Any, ...]]:
     from .db import vector_literal
 
     clause, params = _filters(year_from, source)
@@ -119,7 +127,8 @@ def vector_search(conn, vector: list[float], limit: int, year_from=None, source=
             """,
             params,
         )
-        return cur.fetchall()
+        rows: list[tuple[Any, ...]] = cur.fetchall()
+        return rows
 
 
 # Русская конфигурация Postgres снимает окончания у кириллицы, а латиницу
@@ -139,12 +148,22 @@ _TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
 _FLEETING = re.compile(r"^(.*[бвгджзклмнпрстфхцчшщ])[еоё]([лкцнр])$")
 
 
+# Существительное на -ом, -ов, -ем, -ев: стеммер Postgres срезает это как окончание.
+# «разлом» → 'разл', а «разлома», «разломы» → 'разлом' — и запрос «Персияновский
+# разлом» не находил ни одного фрагмента со словом «Персияновского разлома». Вариант
+# с «-а» стеммится в ту же основу, что и косвенные падежи.
+_NOUN_TAIL = re.compile(r"^[а-яё]{3,}(?:ом|ов|ем|ев)$")
+
+
 def _variants(word: str) -> str:
     low = word.lower()
+    options = [low]
     match = _FLEETING.match(low)
     if match:
-        return f"({low} | {match.group(1)}{match.group(2)})"
-    return low
+        options.append(f"{match.group(1)}{match.group(2)}")
+    if _NOUN_TAIL.match(low):
+        options.append(low + "а")
+    return f"({' | '.join(options)})" if len(options) > 1 else low
 
 
 def build_tsquery(query: str, any_word: bool = False) -> str:
@@ -162,16 +181,26 @@ def loose_query(query: str) -> str:
     return build_tsquery(query, any_word=True)
 
 
-def text_search(conn, query: str, limit: int, year_from=None, source=None,
-                any_word: bool = False, alternatives: list[str] | None = None) -> list[tuple]:
+def text_search(
+    conn: Any,
+    query: str,
+    limit: int,
+    year_from: Any = None,
+    source: Any = None,
+    any_word: bool = False,
+    alternatives: list[str] | None = None,
+) -> list[tuple[Any, ...]]:
     """alternatives — тот же запрос с другими написаниями из словаря синонимов:
     находится фрагмент, где есть все слова хотя бы одного из вариантов."""
     clause, params = _filters(year_from, source)
     if _is_web_syntax(query) and not any_word:
         tsq, q = TSQUERY_WEB, query
     else:
-        parts = [p for p in (build_tsquery(x, any_word) for x in [query, *(alternatives or [])])
-                 if p.strip()]
+        parts = [
+            p
+            for p in (build_tsquery(x, any_word) for x in [query, *(alternatives or [])])
+            if p.strip()
+        ]
         tsq = TSQUERY
         q = " | ".join(f"({p})" for p in parts) if len(parts) > 1 else (parts[0] if parts else "")
     if not q.strip():
@@ -189,10 +218,11 @@ def text_search(conn, query: str, limit: int, year_from=None, source=None,
             """,
             params,
         )
-        return cur.fetchall()
+        found: list[tuple[Any, ...]] = cur.fetchall()
+        return found
 
 
-def _to_hit(row: tuple) -> Hit:
+def _to_hit(row: tuple[Any, ...]) -> Hit:
     return Hit(
         chunk_id=row[0],
         doc_id=row[1],
@@ -218,8 +248,8 @@ def rrf_merge(ranked_lists: list[list[int]], k: int = RRF_K) -> dict[int, float]
 
 
 def hybrid_search(
-    conn,
-    embedder,
+    conn: Any,
+    embedder: Any,
     query: str,
     limit: int = 10,
     candidates: int = 50,
@@ -241,8 +271,9 @@ def hybrid_search(
     # почти никогда не находится. Тогда — мягкий заход: хотя бы часть слов.
     # Такое совпадение само по себе не доказательство, его проверяет порог близости.
     if not fts_rows and len(_WORD.findall(query)) >= 3:
-        fts_rows = text_search(conn, query, candidates, year_from, source, any_word=True,
-                               alternatives=alternatives)
+        fts_rows = text_search(
+            conn, query, candidates, year_from, source, any_word=True, alternatives=alternatives
+        )
         strict = False
 
     hits: dict[int, Hit] = {}

@@ -1282,7 +1282,7 @@ async function loadDocs() {
       $("docs-state").textContent = "В базе пока нет статей. Сначала добыча, потом ingest.";
       return;
     }
-    $("docs-state").textContent = `${data.documents.length} статей разобрано`;
+    $("docs-state").textContent = `${plural(data.documents.length, "статья", "статьи", "статей")} разобрано`;
     const box = $("docs");
     box.innerHTML = "";
     for (const doc of data.documents) box.append(renderDoc(doc));

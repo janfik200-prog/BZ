@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
+from typing import Any
 
 from docling.datamodel.base_models import ConversionStatus, InputFormat
 from docling.datamodel.pipeline_options import (
@@ -26,7 +27,7 @@ from .models import FAILED, OK, PARTIAL, ParsedDoc, ParseInput
 try:
     from docling.datamodel.pipeline_options import OcrMode  # docling >= 2.5x
 except ImportError:  # pragma: no cover
-    OcrMode = None  # type: ignore[assignment]
+    OcrMode = None  # type: ignore[misc,assignment]
 
 try:
     from docling.datamodel.accelerator_options import (
@@ -34,13 +35,13 @@ try:
         AcceleratorOptions,
     )
 except ImportError:  # pragma: no cover - старая раскладка модулей
-    from docling.datamodel.pipeline_options import (  # type: ignore[no-redef]
+    from docling.datamodel.pipeline_options import (  # type: ignore[attr-defined]
         AcceleratorDevice,
         AcceleratorOptions,
     )
 
 
-def _docling_source(inp: ParseInput):
+def _docling_source(inp: ParseInput) -> Any:
     """Путь к файлу либо поток байт — docling принимает и то, и другое."""
     if inp.data is not None:
         from io import BytesIO
@@ -53,14 +54,14 @@ def _docling_source(inp: ParseInput):
     return inp.path
 
 
-def _ocr_options(settings: Settings, full_page: bool):
+def _ocr_options(settings: Settings, full_page: bool) -> Any:
     """Опции OCR c правильными языками и режимом."""
     langs = ocr_langs_for(settings.ocr_engine, settings.ocr_langs)
 
     if settings.ocr_engine == "tesseract":
         from docling.datamodel.pipeline_options import TesseractCliOcrOptions
 
-        opts = TesseractCliOcrOptions(lang=langs)
+        opts: Any = TesseractCliOcrOptions(lang=langs)
     elif settings.ocr_engine == "rapidocr":
         from docling.datamodel.pipeline_options import RapidOcrOptions
 
@@ -92,7 +93,9 @@ def build_converter(settings: Settings, full_page_ocr: bool = False) -> Document
     pipeline_options.do_ocr = bool(full_page_ocr or settings.use_ocr)
     pipeline_options.do_table_structure = True
     pipeline_options.table_structure_options = TableStructureOptions(
-        mode=TableFormerMode.ACCURATE if settings.table_mode == "accurate" else TableFormerMode.FAST,
+        mode=(
+            TableFormerMode.ACCURATE if settings.table_mode == "accurate" else TableFormerMode.FAST
+        ),
         do_cell_matching=settings.do_cell_matching,
     )
     pipeline_options.ocr_options = _ocr_options(settings, full_page=full_page_ocr)
@@ -110,12 +113,12 @@ def build_converter(settings: Settings, full_page_ocr: bool = False) -> Document
     )
 
 
-def _label_of(item) -> str:
+def _label_of(item: Any) -> str:
     label = getattr(item, "label", "")
     return str(getattr(label, "value", label)).lower()
 
 
-def _extract_structure(doc) -> tuple[list[str], dict[int, str], int]:
+def _extract_structure(doc: Any) -> tuple[list[str], dict[int, str], int]:
     """Заголовки разделов, текст по страницам и число страниц."""
     sections: list[str] = []
     pages_text: dict[int, str] = {}
@@ -127,7 +130,7 @@ def _extract_structure(doc) -> tuple[list[str], dict[int, str], int]:
         label = _label_of(item)
         if label in {"section_header", "title"} and len(text) < 300:
             sections.append(text)
-        for prov in (getattr(item, "prov", None) or []):
+        for prov in getattr(item, "prov", None) or []:
             page_no = getattr(prov, "page_no", None)
             if page_no is None:
                 continue
@@ -150,7 +153,7 @@ class DoclingParser:
             self._converters[full_page_ocr] = build_converter(self.settings, full_page_ocr)
         return self._converters[full_page_ocr]
 
-    def parse(self, source: "Path | str | ParseInput", full_page_ocr: bool = False) -> ParsedDoc:
+    def parse(self, source: Path | str | ParseInput, full_page_ocr: bool = False) -> ParsedDoc:
         inp = ParseInput.of(source)
         started = time.monotonic()
         parser_name = "docling+ocr" if full_page_ocr else "docling"
@@ -165,7 +168,7 @@ class DoclingParser:
         try:
             conv = self.converter(full_page_ocr).convert(
                 _docling_source(inp),
-                raises_on_error=False,          # разбираем статус сами, а не ловим исключение
+                raises_on_error=False,  # разбираем статус сами, а не ловим исключение
                 max_num_pages=self.settings.max_pages,
             )
         except Exception as exc:  # noqa: BLE001 — любое падение парсера = повод для fallback
@@ -174,7 +177,7 @@ class DoclingParser:
             return result
 
         status = getattr(conv, "status", None)
-        for err in (getattr(conv, "errors", None) or []):
+        for err in getattr(conv, "errors", None) or []:
             result.errors.append(str(getattr(err, "error_message", err)))
 
         if status == ConversionStatus.FAILURE or getattr(conv, "document", None) is None:

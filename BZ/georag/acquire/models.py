@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
+from typing import Any
 
 # Статусы документа на этапе добычи
-ACQUIRED = "acquired"            # найден, скачан в память, разобран, прошёл валидацию
-NO_FULLTEXT = "no_fulltext"      # найден, но открытого PDF нет — только ссылка
-FETCH_FAILED = "fetch_failed"    # ссылка есть, но файл не отдался или это не PDF
-PARSE_FAILED = "parse_failed"    # скачали, но разобрать не смогли
-REJECTED = "rejected"            # LLM посчитала статью нерелевантной теме
-UNREVIEWED = "unreviewed"        # LLM не смогла решить — нужен человек
-NOT_FETCHED = "not_fetched"      # пробный прогон: отобрана, но мы намеренно не качали
+ACQUIRED = "acquired"  # найден, скачан в память, разобран, прошёл валидацию
+NO_FULLTEXT = "no_fulltext"  # найден, но открытого PDF нет — только ссылка
+FETCH_FAILED = "fetch_failed"  # ссылка есть, но файл не отдался или это не PDF
+PARSE_FAILED = "parse_failed"  # скачали, но разобрать не смогли
+REJECTED = "rejected"  # LLM посчитала статью нерелевантной теме
+UNREVIEWED = "unreviewed"  # LLM не смогла решить — нужен человек
+NOT_FETCHED = "not_fetched"  # пробный прогон: отобрана, но мы намеренно не качали
 
 
 def _slug(value: str) -> str:
@@ -111,15 +112,15 @@ class AcquiredRecord:
     tables: int = 0
     chunks: int = 0
     duration_sec: float = 0.0
-    validation: dict | None = None
+    validation: dict[str, Any] | None = None
     failed_checks: list[str] = field(default_factory=list)
     attempts: list[str] = field(default_factory=list)
-    filtered_by: str = ""                                  # кто решил: модель или эвристика
-    tried_urls: list[str] = field(default_factory=list)     # какие адреса полного текста пробовали
+    filtered_by: str = ""  # кто решил: модель или эвристика
+    tried_urls: list[str] = field(default_factory=list)  # какие адреса полного текста пробовали
     note: str = ""
 
     @classmethod
-    def from_candidate(cls, cand: Candidate, status: str, **kwargs) -> "AcquiredRecord":
+    def from_candidate(cls, cand: Candidate, status: str, **kwargs: Any) -> AcquiredRecord:
         return cls(
             doc_id=cand.doc_id,
             status=status,
@@ -139,10 +140,10 @@ class AcquiredRecord:
             **kwargs,
         )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
-    def index_line(self) -> dict:
+    def index_line(self) -> dict[str, Any]:
         """Компактная строка для index.jsonl — по ней работает дедупликация."""
         return {
             "doc_id": self.doc_id,
@@ -154,7 +155,7 @@ class AcquiredRecord:
             "source": self.source,
             "sha256": self.sha256,
             "chunks": self.chunks,
-            "seen_at": self.fetched_at or datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "seen_at": self.fetched_at or datetime.now(UTC).isoformat(timespec="seconds"),
         }
 
 
@@ -179,7 +180,7 @@ class AcquireReport:
     def total_chunks(self) -> int:
         return sum(r.chunks for r in self.records)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "topic": self.topic,
             "queries": self.queries,

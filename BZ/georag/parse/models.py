@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-
 # Статусы парсинга документа
-OK = "ok"                    # распарсили и прошли валидацию
-PARTIAL = "partial"          # распарсили, но парсер сам сообщил об ошибках
-FAILED = "failed"            # парсер упал
-TIMEOUT = "timeout"          # процесс убит по таймауту
+OK = "ok"  # распарсили и прошли валидацию
+PARTIAL = "partial"  # распарсили, но парсер сам сообщил об ошибках
+FAILED = "failed"  # парсер упал
+TIMEOUT = "timeout"  # процесс убит по таймауту
 MANUAL_REVIEW = "manual_review"  # не смогли — на ручную проверку
 
 
@@ -30,7 +29,7 @@ class ParseInput:
     origin: str = ""  # ссылка на статью — с ней документ живёт дальше вместо PDF
 
     @classmethod
-    def of(cls, source: "Path | str | ParseInput") -> "ParseInput":
+    def of(cls, source: Path | str | ParseInput) -> ParseInput:
         if isinstance(source, ParseInput):
             return source
         path = Path(source)
@@ -47,8 +46,8 @@ class ParsedDoc:
 
     doc_id: str
     source_path: str
-    parser: str                      # docling | docling+ocr | pymupdf4llm | manual
-    status: str                      # OK | PARTIAL | FAILED | TIMEOUT
+    parser: str  # docling | docling+ocr | pymupdf4llm | manual
+    status: str  # OK | PARTIAL | FAILED | TIMEOUT
     markdown: str = ""
     page_count: int = 0
     sections: list[str] = field(default_factory=list)
@@ -61,9 +60,11 @@ class ParsedDoc:
 
     @property
     def text(self) -> str:
-        return self.markdown or "\n\n".join(self.pages_text.get(p, "") for p in sorted(self.pages_text))
+        return self.markdown or "\n\n".join(
+            self.pages_text.get(p, "") for p in sorted(self.pages_text)
+        )
 
-    def to_dict(self, with_doc: bool = True) -> dict:
+    def to_dict(self, with_doc: bool = True) -> dict[str, Any]:
         d = asdict(self)
         d["pages_text"] = {str(k): v for k, v in self.pages_text.items()}
         if not with_doc:
@@ -71,7 +72,7 @@ class ParsedDoc:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict) -> "ParsedDoc":
+    def from_dict(cls, d: dict[str, Any]) -> ParsedDoc:
         d = dict(d)
         d["pages_text"] = {int(k): v for k, v in (d.get("pages_text") or {}).items()}
         known = {f for f in cls.__dataclass_fields__}
@@ -85,7 +86,7 @@ class Check:
     critical: bool
     detail: str = ""
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -105,7 +106,7 @@ class ValidationReport:
     def failed(self) -> list[Check]:
         return [c for c in self.checks if not c.ok]
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "ok": self.ok,
             "suggestion": self.suggestion,
@@ -131,5 +132,5 @@ class Chunk:
     has_table: bool = False
     source_path: str = ""
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)

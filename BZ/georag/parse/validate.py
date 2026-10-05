@@ -19,6 +19,7 @@ import json
 import re
 from collections import Counter
 from pathlib import Path
+from typing import Any
 
 from ..text import normalize, phrase_pattern, ru_stem, stem_variants
 from .config import Settings
@@ -27,7 +28,7 @@ from .models import ParsedDoc, ValidationReport
 # Символы, которые мы считаем нормальными для геологической статьи ru/en.
 _ALLOWED_RE = re.compile(
     r"[0-9a-zA-Zа-яА-ЯёЁ\s\.,;:!\?\-–—‑'\"«»()\[\]{}/\\%°±×·′″†‡&@#\$€₽\+=<>\|~\^_\*"
-    r"Ͱ-Ͽ"      # греческие буквы — формулы, минералогия
+    r"Ͱ-Ͽ"  # греческие буквы — формулы, минералогия
     r"‐-‧‰-⁞"  # типографика
     r"]"
 )
@@ -41,14 +42,15 @@ _word_variants = stem_variants
 _entity_pattern = phrase_pattern
 
 
-def load_golden(doc: "Path | str", settings: Settings) -> dict | None:
+def load_golden(doc: Path | str, settings: Settings) -> dict[str, Any] | None:
     """Эталон для документа: tests/golden/<doc_id>.json."""
     stem = doc.stem if isinstance(doc, Path) else str(doc)
     candidate = settings.golden_dir / f"{stem}.json"
     if not candidate.exists():
         return None
     try:
-        return json.loads(candidate.read_text(encoding="utf-8"))
+        data: dict[str, Any] | None = json.loads(candidate.read_text(encoding="utf-8"))
+        return data
     except json.JSONDecodeError as exc:
         raise ValueError(f"битый эталон {candidate}: {exc}") from exc
 
@@ -69,7 +71,9 @@ def thin_pages(parsed: ParsedDoc, min_chars: int) -> list[int]:
     return [p for p, t in sorted(parsed.pages_text.items()) if len(t.strip()) < min_chars // 2]
 
 
-def validate(parsed: ParsedDoc, settings: Settings, golden: dict | None = None) -> ValidationReport:
+def validate(
+    parsed: ParsedDoc, settings: Settings, golden: dict[str, Any] | None = None
+) -> ValidationReport:
     report = ValidationReport()
     text = parsed.text
     norm = _normalize(text)
@@ -101,7 +105,7 @@ def validate(parsed: ParsedDoc, settings: Settings, golden: dict | None = None) 
         report.suggestion = "fallback"
 
     # --- 3. Патологические повторы ------------------------------------------
-    lines = [l.strip() for l in text.splitlines() if len(l.strip()) > 20]
+    lines = [line.strip() for line in text.splitlines() if len(line.strip()) > 20]
     repeats = Counter(lines).most_common(1)
     worst = repeats[0][1] if repeats else 0
     report.add(
@@ -117,12 +121,15 @@ def validate(parsed: ParsedDoc, settings: Settings, golden: dict | None = None) 
         "pages_covered",
         len(thin) <= pages * 0.2,
         critical=False,
-        detail=f"почти пустых страниц: {len(thin)} из {pages}" + (f" → {thin[:10]}" if thin else ""),
+        detail=f"почти пустых страниц: {len(thin)} из {pages}"
+        + (f" → {thin[:10]}" if thin else ""),
     )
 
     # --- 5. Сверка с эталоном ------------------------------------------------
     if not golden:
-        report.add("golden_standard", True, critical=False, detail="эталон не задан, сверка пропущена")
+        report.add(
+            "golden_standard", True, critical=False, detail="эталон не задан, сверка пропущена"
+        )
         return report
 
     expected_sections = [s for s in (golden.get("sections") or []) if s.strip()]
@@ -172,7 +179,9 @@ def validate(parsed: ParsedDoc, settings: Settings, golden: dict | None = None) 
 
     # Если эталон не сошёлся, а текст при этом тонкий — сначала пробуем OCR.
     if not report.ok and report.suggestion == "none":
-        report.suggestion = "rerun_ocr" if chars_per_page < settings.min_chars_per_page * 2 else "fallback"
+        report.suggestion = (
+            "rerun_ocr" if chars_per_page < settings.min_chars_per_page * 2 else "fallback"
+        )
 
     return report
 

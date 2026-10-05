@@ -51,6 +51,7 @@
 
 Проверка
     test                        проверить код (на выдуманных примерах, база не трогается)
+    lint                        проверки кода: ruff, black --check, mypy --strict
     eval                        оценить базу и чат-бота по вопросам config/eval-questions.yaml
     eval --only-search          то же, только поиск — без модели
     eval --only s01,t01         только эти вопросы
@@ -79,8 +80,10 @@ import time
 import urllib.request
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent
+
 
 # --- настройки проекта ------------------------------------------------------ #
 # E-mail для вежливого режима OpenAlex и Crossref. В коде его нет, чтобы не
@@ -105,8 +108,10 @@ if _key_file.exists() and not os.environ.get("GEORAG_OPENALEX_KEY"):
 # Модель и адрес Ollama — одни на весь проект, из georag/llm.py (адрес можно
 # поменять переменной GEORAG_OLLAMA). Этот модуль лёгкий: только стандартная
 # библиотека, поэтому импортируется и до перехода в .venv.
-from georag.llm import DEFAULT_MODEL as MODEL, OLLAMA_HOST as OLLAMA  # noqa: E402
-TASK_NAME = "GeoRAG-acquire"                  # имя ночной задачи в планировщике
+from georag.llm import DEFAULT_MODEL as MODEL  # noqa: E402
+from georag.llm import OLLAMA_HOST as OLLAMA  # noqa: E402
+
+TASK_NAME = "GeoRAG-acquire"  # имя ночной задачи в планировщике
 NIGHTLY_MAX_DOCS = 10
 
 TESTS = [
@@ -155,14 +160,17 @@ def _relaunch_in_venv() -> None:
 
 def _need_venv() -> None:
     if _venv_python() is None:
-        print("Не найдено окружение .venv в папке проекта. Создать один раз:\n"
-              "    python -m venv .venv\n"
-              "    .venv\\Scripts\\python -m pip install -r requirements.txt\n"
-              "Подробно — в ЗАПУСК.md.", file=sys.stderr)
+        print(
+            "Не найдено окружение .venv в папке проекта. Создать один раз:\n"
+            "    python -m venv .venv\n"
+            "    .venv\\Scripts\\python -m pip install -r requirements.txt\n"
+            "Подробно — в ЗАПУСК.md.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
 
-def _run(args: list[str], **kwargs) -> int:
+def _run(args: list[str], **kwargs: Any) -> int:
     """Запустить команду из папки проекта. Ctrl+C прерывает её, а не запускатель."""
     try:
         return subprocess.call(args, cwd=ROOT, **kwargs)
@@ -180,13 +188,16 @@ def _py(module: str, *args: str) -> int:
 # --------------------------------------------------------------------------- #
 #  База в Docker
 # --------------------------------------------------------------------------- #
-def _docker(*args: str, quiet: bool = False) -> subprocess.CompletedProcess | None:
+def _docker(*args: str, quiet: bool = False) -> subprocess.CompletedProcess[str] | None:
     try:
-        return subprocess.run(["docker", "compose", *args], cwd=ROOT,
-                              capture_output=quiet, text=True)
+        return subprocess.run(
+            ["docker", "compose", *args], cwd=ROOT, capture_output=quiet, text=True
+        )
     except FileNotFoundError:
-        print("Docker не найден. Установите и запустите Docker Desktop — "
-              "см. ЗАПУСК.md.", file=sys.stderr)
+        print(
+            "Docker не найден. Установите и запустите Docker Desktop — " "см. ЗАПУСК.md.",
+            file=sys.stderr,
+        )
         return None
 
 
@@ -196,8 +207,11 @@ def _ensure_database() -> bool:
     if state is None:
         return False
     if state.returncode != 0:
-        print("Docker не отвечает. Запустите Docker Desktop и дождитесь, "
-              "пока значок кита перестанет мигать.", file=sys.stderr)
+        print(
+            "Docker не отвечает. Запустите Docker Desktop и дождитесь, "
+            "пока значок кита перестанет мигать.",
+            file=sys.stderr,
+        )
         return False
     if "running" not in (state.stdout or ""):
         print("База не запущена. Поднимаю...")
@@ -211,9 +225,18 @@ def _ensure_database() -> bool:
 # --------------------------------------------------------------------------- #
 #  Команды
 # --------------------------------------------------------------------------- #
-def _acquire(opts, topic_args: list[str]) -> int:
-    args = [*topic_args, "--max-docs", str(opts.max_docs), "--no-ocr", "--device", "cuda",
-            *(["--mailto", MAILTO] if MAILTO else []), "--model", MODEL]
+def _acquire(opts: argparse.Namespace, topic_args: list[str]) -> int:
+    args = [
+        *topic_args,
+        "--max-docs",
+        str(opts.max_docs),
+        "--no-ocr",
+        "--device",
+        "cuda",
+        *(["--mailto", MAILTO] if MAILTO else []),
+        "--model",
+        MODEL,
+    ]
     if opts.no_llm:
         args.append("--no-llm")
     if opts.force:
@@ -221,7 +244,7 @@ def _acquire(opts, topic_args: list[str]) -> int:
     return _py("georag.acquire.cli", *args)
 
 
-def cmd_start(opts) -> int:
+def cmd_start(opts: argparse.Namespace) -> int:
     up = _docker("up", "-d")
     if up is None or up.returncode != 0:
         return 1
@@ -231,7 +254,7 @@ def cmd_start(opts) -> int:
     return 0
 
 
-def cmd_stop(opts) -> int:
+def cmd_stop(opts: argparse.Namespace) -> int:
     done = _docker("stop")
     if done is not None and done.returncode == 0:
         print("База остановлена. Данные на месте.")
@@ -239,20 +262,20 @@ def cmd_stop(opts) -> int:
     return 1
 
 
-def cmd_status(opts) -> int:
+def cmd_status(opts: argparse.Namespace) -> int:
     done = _docker("ps")
     return 0 if done is not None and done.returncode == 0 else 1
 
 
-def cmd_init(opts) -> int:
+def cmd_init(opts: argparse.Namespace) -> int:
     return _py("georag.index.cli", "init") if _ensure_database() else 1
 
 
-def cmd_stats(opts) -> int:
+def cmd_stats(opts: argparse.Namespace) -> int:
     return _py("georag.index.cli", "stats") if _ensure_database() else 1
 
 
-def cmd_add(opts) -> int:
+def cmd_add(opts: argparse.Namespace) -> int:
     if not opts.text:
         print('Нужна тема: python georag.py add "выделение рудных узлов"', file=sys.stderr)
         return 1
@@ -267,7 +290,7 @@ def _topics_file(name: str) -> str | None:
     return None
 
 
-def cmd_all(opts) -> int:
+def cmd_all(opts: argparse.Namespace) -> int:
     topics = _topics_file(opts.topics)
     if topics is None:
         print(f"Нет файла тем: {opts.topics} (темы лежат в папке config)", file=sys.stderr)
@@ -275,14 +298,14 @@ def cmd_all(opts) -> int:
     return _acquire(opts, ["--topics", topics])
 
 
-def cmd_clean(opts) -> int:
+def cmd_clean(opts: argparse.Namespace) -> int:
     args = ["--apply"] if opts.apply else []
     if opts.text:
         args += ["--topic", opts.text, "--model", MODEL]
     return _py("georag.acquire.clean", *args)
 
 
-def cmd_ingest(opts) -> int:
+def cmd_ingest(opts: argparse.Namespace) -> int:
     if not _ensure_database():
         return 1
     args = ["ingest"]
@@ -293,7 +316,7 @@ def cmd_ingest(opts) -> int:
     return _py("georag.index.cli", *args)
 
 
-def cmd_search(opts) -> int:
+def cmd_search(opts: argparse.Namespace) -> int:
     if not opts.text:
         print('Нужен запрос: python georag.py search "рудные узлы"', file=sys.stderr)
         return 1
@@ -305,15 +328,19 @@ def cmd_search(opts) -> int:
     return _py("georag.index.cli", *args)
 
 
-def cmd_web(opts) -> int:
+def cmd_web(opts: argparse.Namespace) -> int:
     if not _ensure_database():
         return 1
-    return _py("georag.web.server", "--model", MODEL,
-               *(["--embedder", "ollama"] if opts.ollama else []),
-               *(["--tg"] if opts.tg else []))
+    return _py(
+        "georag.web.server",
+        "--model",
+        MODEL,
+        *(["--embedder", "ollama"] if opts.ollama else []),
+        *(["--tg"] if opts.tg else []),
+    )
 
 
-def cmd_serve(opts) -> int:
+def cmd_serve(opts: argparse.Namespace) -> int:
     """Тот же сервер, что web, но браузер не открывается (только адреса /api)."""
     if not _ensure_database():
         return 1
@@ -321,7 +348,7 @@ def cmd_serve(opts) -> int:
     return _py("georag.web.server", *args, *(["--tg"] if opts.tg else []))
 
 
-def cmd_graph(opts) -> int:
+def cmd_graph(opts: argparse.Namespace) -> int:
     if not _ensure_database():
         return 1
     if opts.new:
@@ -332,59 +359,77 @@ def cmd_graph(opts) -> int:
     return _py("georag.graph.cli", *args)
 
 
-def cmd_synonyms(opts) -> int:
+def cmd_synonyms(opts: argparse.Namespace) -> int:
     if not _ensure_database():
         return 1
-    return _py("georag.graph.cli", "synonyms", "--model", MODEL,
-               *(["--embedder", "ollama"] if opts.ollama else []))
+    return _py(
+        "georag.graph.cli",
+        "synonyms",
+        "--model",
+        MODEL,
+        *(["--embedder", "ollama"] if opts.ollama else []),
+    )
 
 
-def cmd_verify(opts) -> int:
-    print("Проверки понятий больше нет: граф строят факты с цитатами, каждый проверяет код "
-          "сразу. Строить граф: python georag.py graph")
+def cmd_verify(opts: argparse.Namespace) -> int:
+    print(
+        "Проверки понятий больше нет: граф строят факты с цитатами, каждый проверяет код "
+        "сразу. Строить граф: python georag.py graph"
+    )
     return 0
 
 
-def cmd_tg(opts) -> int:
-    if opts.check:                       # проверка токена и доступа: база и модели не нужны
+def cmd_tg(opts: argparse.Namespace) -> int:
+    if opts.check:  # проверка токена и доступа: база и модели не нужны
         return _py("georag.tg.bot", "--check")
     if not _ensure_database():
         return 1
-    return _py("georag.tg.bot", "--model", MODEL,
-               *(["--embedder", "ollama"] if opts.ollama else []))
+    return _py(
+        "georag.tg.bot", "--model", MODEL, *(["--embedder", "ollama"] if opts.ollama else [])
+    )
 
 
-def cmd_dataset(opts) -> int:
+def cmd_dataset(opts: argparse.Namespace) -> int:
     if not _ensure_database():
         return 1
     return _py("georag.graph.cli", "dataset", *(["--name", opts.text] if opts.text else []))
 
 
-def cmd_questions(opts) -> int:
+def cmd_questions(opts: argparse.Namespace) -> int:
     if not _ensure_database():
         return 1
-    return _py("georag.graph.cli", "questions", "--model", MODEL,
-               *(["--limit", str(opts.limit)] if opts.limit else []),
-               *(["--no-llm"] if opts.no_llm else []))
+    return _py(
+        "georag.graph.cli",
+        "questions",
+        "--model",
+        MODEL,
+        *(["--limit", str(opts.limit)] if opts.limit else []),
+        *(["--no-llm"] if opts.no_llm else []),
+    )
 
 
-def cmd_gaps(opts) -> int:
+def cmd_gaps(opts: argparse.Namespace) -> int:
     if not _ensure_database():
         return 1
     return _py("georag.graph.cli", "gaps", *(["--limit", str(opts.limit)] if opts.limit else []))
 
 
-def cmd_ask(opts) -> int:
+def cmd_ask(opts: argparse.Namespace) -> int:
     if not opts.text:
         print('Нужен вопрос: python georag.py ask "как выделяют рудные узлы?"', file=sys.stderr)
         return 1
     if not _ensure_database():
         return 1
-    return _py("georag.chat.cli", opts.text, "--model", MODEL,
-               *(["--embedder", "ollama"] if opts.ollama else []))
+    return _py(
+        "georag.chat.cli",
+        opts.text,
+        "--model",
+        MODEL,
+        *(["--embedder", "ollama"] if opts.ollama else []),
+    )
 
 
-def cmd_eval(opts) -> int:
+def cmd_eval(opts: argparse.Namespace) -> int:
     if not _ensure_database():
         return 1
     args = ["--model", MODEL]
@@ -410,7 +455,25 @@ TEST_NAMES = {
 }
 
 
-def cmd_test(opts) -> int:
+def cmd_lint(opts: argparse.Namespace) -> int:
+    """ruff, black --check и mypy --strict — раздел 8.2 docs/СИСТЕМНЫЙ-ПРОМПТ.md.
+    Пакет georag и файл georag.py проверяются mypy отдельно: у них одно имя."""
+    steps = [
+        ("ruff", ["-m", "ruff", "check", "georag", "georag.py", "tests"]),
+        ("black", ["-m", "black", "--check", "georag", "georag.py", "tests"]),
+        ("mypy --strict: пакет", ["-m", "mypy", "-p", "georag"]),
+        ("mypy --strict: georag.py", ["-m", "mypy", "georag.py"]),
+    ]
+    failed = []
+    for title, args in steps:
+        print(f"== {title}", flush=True)
+        if subprocess.run([sys.executable, *args], cwd=ROOT).returncode != 0:
+            failed.append(title)
+    print("\nВсе проверки кода прошли." if not failed else f"\nНе прошло: {', '.join(failed)}")
+    return 1 if failed else 0
+
+
+def cmd_test(opts: argparse.Namespace) -> int:
     """Проверки кода. Идут на выдуманных примерах, база и Ollama не нужны и не трогаются.
 
     На экран — одна строка на часть; подробности — только у того, что не прошло
@@ -425,9 +488,16 @@ def cmd_test(opts) -> int:
             out = ""
         else:
             try:
-                proc = subprocess.run([sys.executable, test], cwd=ROOT, env=env, text=True,
-                                      encoding="utf-8", errors="replace",
-                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                proc = subprocess.run(
+                    [sys.executable, test],
+                    cwd=ROOT,
+                    env=env,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                )
             except KeyboardInterrupt:
                 return 130
             code, out = proc.returncode, proc.stdout
@@ -439,8 +509,9 @@ def cmd_test(opts) -> int:
             if out:
                 print("\n".join("        " + line for line in out.rstrip().splitlines()[-40:]))
     if failed:
-        print("\nНе прошли: " + ", ".join(failed) + ". Пришлите этот вывод целиком.",
-              file=sys.stderr)
+        print(
+            "\nНе прошли: " + ", ".join(failed) + ". Пришлите этот вывод целиком.", file=sys.stderr
+        )
         return 1
     print("\nВсе проверки прошли.")
     return 0
@@ -457,7 +528,7 @@ def _ollama_up() -> bool:
         return False
 
 
-def cmd_nightly(opts) -> int:
+def cmd_nightly(opts: argparse.Namespace) -> int:
     """То, что запускает планировщик: добыча → загрузка в базу → граф.
 
     Всё пишется в logs/run-ДАТА.txt; логи старше месяца удаляются, чтобы папка
@@ -470,6 +541,7 @@ def cmd_nightly(opts) -> int:
     env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
 
     with open(log_path, "w", encoding="utf-8") as log:
+
         def say(line: str) -> None:
             print(line, flush=True)
             log.write(line + "\n")
@@ -478,32 +550,64 @@ def cmd_nightly(opts) -> int:
         def step(title: str, args: list[str]) -> int:
             say(f"\n=== {title} · {datetime.now():%H:%M:%S} ===")
             try:
-                proc = subprocess.Popen(args, cwd=ROOT, env=env, stdout=subprocess.PIPE,
-                                        stderr=subprocess.STDOUT, text=True,
-                                        encoding="utf-8", errors="replace")
+                proc = subprocess.Popen(
+                    args,
+                    cwd=ROOT,
+                    env=env,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                )
             except OSError as exc:
                 say(f"не запустилось: {exc}")
                 return 1
-            for line in proc.stdout:
+            for line in proc.stdout or []:
                 say(line.rstrip("\n"))
             code = proc.wait()
             say(f"--- код возврата {code}")
             return code
 
         say(f"=== ночной прогон {datetime.now():%Y-%m-%d %H:%M:%S} ===")
-        acquire = ["-m", "georag.acquire.cli", "--topics", "config/topics.yaml", "--device", "cuda",
-                   "--max-docs", str(NIGHTLY_MAX_DOCS), *(["--mailto", MAILTO] if MAILTO else []), "--model", MODEL]
+        acquire = [
+            "-m",
+            "georag.acquire.cli",
+            "--topics",
+            "config/topics.yaml",
+            "--device",
+            "cuda",
+            "--max-docs",
+            str(NIGHTLY_MAX_DOCS),
+            *(["--mailto", MAILTO] if MAILTO else []),
+            "--model",
+            MODEL,
+        ]
         if not _ollama_up():
             say("Ollama не отвечает — отбор пойдёт эвристикой")
             acquire.append("--no-llm")
 
         codes = [step("добыча статей", [sys.executable, *acquire])]
         if _ensure_database():
-            codes.append(step("загрузка в базу", [sys.executable, "-m", "georag.index.cli",
-                                                  "ingest"]))
+            codes.append(
+                step("загрузка в базу", [sys.executable, "-m", "georag.index.cli", "ingest"])
+            )
             # Граф: Qwen3 выписывает факты из новых фрагментов (не больше 300 за ночь).
-            codes.append(step("граф связей", [sys.executable, "-m", "georag.graph.cli", "build",
-                                              "--model", MODEL, "--limit", "300"]))
+            codes.append(
+                step(
+                    "граф связей",
+                    [
+                        sys.executable,
+                        "-m",
+                        "georag.graph.cli",
+                        "build",
+                        "--model",
+                        MODEL,
+                        "--limit",
+                        "300",
+                    ],
+                )
+            )
         else:
             say("База не поднялась — загрузка и граф пропущены до следующего раза")
             codes.append(1)
@@ -561,7 +665,7 @@ def task_xml(python: Path, at: str) -> str:
 """
 
 
-def cmd_schedule(opts) -> int:
+def cmd_schedule(opts: argparse.Namespace) -> int:
     try:
         hour, minute = (int(x) for x in opts.at.split(":"))
         if not (0 <= hour < 24 and 0 <= minute < 60):
@@ -571,8 +675,10 @@ def cmd_schedule(opts) -> int:
         return 1
     python = _venv_python() or Path(sys.executable)
     if os.name != "nt":
-        print("На этой системе планировщик Windows недоступен. Строка для crontab -e:\n"
-              f'    {minute} {hour} * * * "{python}" "{Path(__file__).resolve()}" nightly')
+        print(
+            "На этой системе планировщик Windows недоступен. Строка для crontab -e:\n"
+            f'    {minute} {hour} * * * "{python}" "{Path(__file__).resolve()}" nightly'
+        )
         return 0
 
     import tempfile
@@ -582,14 +688,16 @@ def cmd_schedule(opts) -> int:
         xml.write_text(task_xml(python, opts.at), encoding="utf-16")
         done = _run(["schtasks", "/Create", "/TN", TASK_NAME, "/XML", str(xml), "/F"])
     if done == 0:
-        print(f"\nГотово: каждую ночь в {opts.at:0>5} — добыча, загрузка в базу и граф.\n"
-              "Если компьютер в это время спал, прогон случится, когда он проснётся.\n"
-              "Логи — в папке logs. Проверить сразу, не дожидаясь ночи:\n"
-              "    python georag.py nightly")
+        print(
+            f"\nГотово: каждую ночь в {opts.at:0>5} — добыча, загрузка в базу и граф.\n"
+            "Если компьютер в это время спал, прогон случится, когда он проснётся.\n"
+            "Логи — в папке logs. Проверить сразу, не дожидаясь ночи:\n"
+            "    python georag.py nightly"
+        )
     return done
 
 
-def cmd_unschedule(opts) -> int:
+def cmd_unschedule(opts: argparse.Namespace) -> int:
     if os.name != "nt":
         print("Уберите строку с georag.py из crontab -e.")
         return 0
@@ -599,21 +707,40 @@ def cmd_unschedule(opts) -> int:
     return done
 
 
-def cmd_help(opts) -> int:
+def cmd_help(opts: argparse.Namespace) -> int:
     print(__doc__)
     return 0
 
 
 COMMANDS = {
-    "start": cmd_start, "stop": cmd_stop, "status": cmd_status, "init": cmd_init,
-    "stats": cmd_stats, "add": cmd_add, "all": cmd_all, "clean": cmd_clean,
-    "ingest": cmd_ingest, "search": cmd_search, "web": cmd_web, "serve": cmd_serve,
+    "start": cmd_start,
+    "stop": cmd_stop,
+    "status": cmd_status,
+    "init": cmd_init,
+    "stats": cmd_stats,
+    "add": cmd_add,
+    "all": cmd_all,
+    "clean": cmd_clean,
+    "ingest": cmd_ingest,
+    "search": cmd_search,
+    "web": cmd_web,
+    "serve": cmd_serve,
     "graph": cmd_graph,
-    "verify": cmd_verify, "synonyms": cmd_synonyms, "ask": cmd_ask, "eval": cmd_eval, "dataset": cmd_dataset, "facts": cmd_dataset,
-    "questions": cmd_questions, "gaps": cmd_gaps,
+    "verify": cmd_verify,
+    "synonyms": cmd_synonyms,
+    "ask": cmd_ask,
+    "eval": cmd_eval,
+    "dataset": cmd_dataset,
+    "facts": cmd_dataset,
+    "questions": cmd_questions,
+    "gaps": cmd_gaps,
     "tg": cmd_tg,
-    "test": cmd_test, "nightly": cmd_nightly, "schedule": cmd_schedule,
-    "unschedule": cmd_unschedule, "help": cmd_help,
+    "test": cmd_test,
+    "lint": cmd_lint,
+    "nightly": cmd_nightly,
+    "schedule": cmd_schedule,
+    "unschedule": cmd_unschedule,
+    "help": cmd_help,
 }
 # Эти работают без .venv: им нужны только Docker и планировщик.
 NO_VENV = {"start", "stop", "status", "help", "unschedule"}
@@ -652,8 +779,7 @@ def main(argv: list[str] | None = None) -> int:
         opts.command = "help"
     command = COMMANDS.get(opts.command.lower())
     if command is None:
-        print(f"Нет такой команды: {opts.command}. Список — python georag.py help",
-              file=sys.stderr)
+        print(f"Нет такой команды: {opts.command}. Список — python georag.py help", file=sys.stderr)
         return 1
     if opts.command.lower() not in NO_VENV:
         _need_venv()

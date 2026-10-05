@@ -19,14 +19,71 @@ import unicodedata
 
 # Окончания, которые снимаются с русского слова. Длинные первыми: «-иями»
 # раньше «-ями», иначе останется лишняя «и».
-RU_ENDINGS = tuple(sorted({
-    "ического", "ическому", "ическими", "ическая", "ические", "ический",
-    "иями", "ями", "ами", "ией", "иях", "ием", "ого", "его", "ому", "ему",
-    "ыми", "ими", "ов", "ев", "ей", "ой", "ий", "ый", "ая", "яя", "ое", "ее",
-    "ые", "ие", "ых", "их", "ую", "юю", "ом", "ем", "ам", "ям", "ах", "ях",
-    "ия", "ии", "ию", "ья", "ье", "ьи", "ью",
-    "а", "я", "о", "е", "ы", "и", "у", "ю", "ь", "й",
-}, key=len, reverse=True))
+RU_ENDINGS = tuple(
+    sorted(
+        {
+            "ического",
+            "ическому",
+            "ическими",
+            "ическая",
+            "ические",
+            "ический",
+            "иями",
+            "ями",
+            "ами",
+            "ией",
+            "иях",
+            "ием",
+            "ого",
+            "его",
+            "ому",
+            "ему",
+            "ыми",
+            "ими",
+            "ов",
+            "ев",
+            "ей",
+            "ой",
+            "ий",
+            "ый",
+            "ая",
+            "яя",
+            "ое",
+            "ее",
+            "ые",
+            "ие",
+            "ых",
+            "их",
+            "ую",
+            "юю",
+            "ом",
+            "ем",
+            "ам",
+            "ям",
+            "ах",
+            "ях",
+            "ия",
+            "ии",
+            "ию",
+            "ья",
+            "ье",
+            "ьи",
+            "ью",
+            "а",
+            "я",
+            "о",
+            "е",
+            "ы",
+            "и",
+            "у",
+            "ю",
+            "ь",
+            "й",
+        },
+        key=len,
+        reverse=True,
+    )
+)
 
 _CONS = "бвгджзклмнпрстфхцчшщ"
 # Беглая гласная: узел → узла, песок → песка.
@@ -106,8 +163,21 @@ def split_sentences(text: str) -> list[str]:
 # --------------------------------------------------------------------------- #
 #  Цитаты и имена — для фактов графа
 # --------------------------------------------------------------------------- #
-_QUOTES = str.maketrans({"«": '"', "»": '"', "“": '"', "”": '"', "„": '"', "‘": "'",
-                         "’": "'", "–": "-", "—": "-", "ё": "е", "Ё": "е"})
+_QUOTES = str.maketrans(
+    {
+        "«": '"',
+        "»": '"',
+        "“": '"',
+        "”": '"',
+        "„": '"',
+        "‘": "'",
+        "’": "'",
+        "–": "-",
+        "—": "-",
+        "ё": "е",
+        "Ё": "е",
+    }
+)
 
 
 def _canon_with_map(text: str) -> tuple[str, list[int]]:
@@ -121,7 +191,7 @@ def _canon_with_map(text: str) -> tuple[str, list[int]]:
     where: list[int] = []
     last_space = True
     for i, ch in enumerate(text or ""):
-        if ch == "\xad":            # мягкий перенос
+        if ch == "\xad":  # мягкий перенос
             continue
         if ch.isspace():
             if not last_space:
@@ -156,6 +226,7 @@ def locate_quote(quote: str, text: str) -> str | None:
             first = pos
         last = pos + len(canon_part)
         start_at = last
+    assert first is not None and last is not None  # цикл выше прошёл хотя бы раз
     begin = where[first]
     end = where[last - 1] + 1
     return " ".join(text[begin:end].split())
@@ -179,8 +250,8 @@ def _key_word(word: str) -> str:
         return match.group(1) + match.group(2) if match else stem
     if len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
         if word.endswith(("sses", "xes", "ches", "shes")):
-            return word[:-2]               # processes → process
-        return word[:-1]                   # basins → basin
+            return word[:-2]  # processes → process
+        return word[:-1]  # basins → basin
     return word
 
 
@@ -213,7 +284,7 @@ def mentions(name: str, text: str) -> bool:
     original = re.findall(r"[A-Za-zА-Яа-яЁё0-9]+", name)
     words = [(w, normalize(w)) for w in original if len(w) >= 3]
     if len(words) < 3:
-        return False                        # короткое имя — только целиком
+        return False  # короткое имя — только целиком
     have = {_key_word(w) for w in _WORDS.findall(norm.replace("-", " "))}
     missing = [w for w, low in words if not any(h.startswith(_key_word(low)) for h in have)]
     # Можно пропустить одно общее слово, но не имя собственное и не число:

@@ -14,8 +14,9 @@ from __future__ import annotations
 import json
 import os
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator
+from typing import Any
 
 DEFAULT_MODEL = "qwen3:14b"
 OLLAMA_HOST = os.environ.get("GEORAG_OLLAMA", "").strip() or "http://localhost:11434"
@@ -36,13 +37,14 @@ def strip_think(text: str) -> str:
     return cleaned
 
 
-def extract_json(text: str) -> dict:
+def extract_json(text: str) -> dict[str, Any]:
     """Первый объект JSON из ответа модели: вокруг него бывает лишний текст."""
     cleaned = strip_think(text)
     start, end = cleaned.find("{"), cleaned.rfind("}")
     if start == -1 or end <= start:
         raise ValueError(f"в ответе нет JSON: {cleaned[:200]!r}")
-    return json.loads(cleaned[start: end + 1])
+    data: dict[str, Any] = json.loads(cleaned[start : end + 1])
+    return data
 
 
 def no_think(model: str, text: str) -> str:
@@ -61,28 +63,45 @@ class Ollama:
     def _url(self, path: str) -> str:
         return f"{self.host.rstrip('/')}{path}"
 
-    def chat_json(self, system: str, user: str, *, temperature: float | None = None,
-                  num_ctx: int | None = None, timeout=None) -> dict:
+    def chat_json(
+        self,
+        system: str,
+        user: str,
+        *,
+        temperature: float | None = None,
+        num_ctx: int | None = None,
+        timeout: Any = None,
+    ) -> dict[str, Any]:
         """Один вопрос — один объект JSON в ответ."""
         import requests
 
         payload = {
             "model": self.model,
-            "messages": [{"role": "system", "content": system},
-                         {"role": "user", "content": no_think(self.model, user)}],
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": no_think(self.model, user)},
+            ],
             "stream": False,
             "format": "json",
             "think": False,
-            "options": {"temperature": self.temperature if temperature is None else temperature,
-                        "num_ctx": num_ctx or self.num_ctx},
+            "options": {
+                "temperature": self.temperature if temperature is None else temperature,
+                "num_ctx": num_ctx or self.num_ctx,
+            },
         }
-        response = requests.post(self._url("/api/chat"), json=payload,
-                                 timeout=timeout or self.timeout)
+        response = requests.post(
+            self._url("/api/chat"), json=payload, timeout=timeout or self.timeout
+        )
         response.raise_for_status()
         return extract_json((response.json().get("message") or {}).get("content", ""))
 
-    def stream(self, messages: list[dict], *, temperature: float | None = None,
-               num_ctx: int | None = None) -> Iterator[dict]:
+    def stream(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        temperature: float | None = None,
+        num_ctx: int | None = None,
+    ) -> Iterator[dict[str, Any]]:
         """Ответ кусками: {"text": …}, в конце {"done": True, "tokens": …}."""
         import requests
 
@@ -91,21 +110,26 @@ class Ollama:
             "messages": messages,
             "stream": True,
             "think": False,
-            "options": {"temperature": self.temperature if temperature is None else temperature,
-                        "num_ctx": num_ctx or self.num_ctx},
+            "options": {
+                "temperature": self.temperature if temperature is None else temperature,
+                "num_ctx": num_ctx or self.num_ctx,
+            },
         }
         try:
-            response = requests.post(self._url("/api/chat"), json=payload, stream=True,
-                                     timeout=(10, self.timeout))
+            response = requests.post(
+                self._url("/api/chat"), json=payload, stream=True, timeout=(10, self.timeout)
+            )
         except requests.RequestException as exc:
-            raise LLMError(f"Ollama не отвечает на {self.host}: {type(exc).__name__}. "
-                           f"{INSTALL_HINT}") from None
+            raise LLMError(
+                f"Ollama не отвечает на {self.host}: {type(exc).__name__}. " f"{INSTALL_HINT}"
+            ) from None
         with response:
             if response.status_code == 404:
                 raise LLMError(f"Модель {self.model} не скачана: ollama pull {self.model}")
             if response.status_code >= 400:
-                raise LLMError(f"Ollama ответила ошибкой {response.status_code}: "
-                               f"{response.text[:300]}")
+                raise LLMError(
+                    f"Ollama ответила ошибкой {response.status_code}: " f"{response.text[:300]}"
+                )
             for line in response.iter_lines():
                 if not line:
                     continue
@@ -119,7 +143,7 @@ class Ollama:
                     yield {"done": True, "tokens": data.get("eval_count")}
                     return
 
-    def status(self, timeout: int = 5) -> dict:
+    def status(self, timeout: int = 5) -> dict[str, Any]:
         """Жива ли Ollama и скачана ли модель — для подсказки человеку."""
         import requests
 
@@ -128,12 +152,20 @@ class Ollama:
             response.raise_for_status()
             names = [m.get("name", "") for m in response.json().get("models", [])]
         except Exception as exc:  # noqa: BLE001
-            return {"ok": False, "model": self.model,
-                    "error": f"Ollama не отвечает ({type(exc).__name__}). {INSTALL_HINT}"}
+            return {
+                "ok": False,
+                "model": self.model,
+                "error": f"Ollama не отвечает ({type(exc).__name__}). {INSTALL_HINT}",
+            }
         base = self.model.split(":")[0]
         present = self.model in names or (
-            ":" not in self.model and any(n.split(":")[0] == base for n in names))
+            ":" not in self.model and any(n.split(":")[0] == base for n in names)
+        )
         if not present:
-            return {"ok": False, "model": self.model, "models": names,
-                    "error": f"Модель {self.model} не скачана: ollama pull {self.model}"}
+            return {
+                "ok": False,
+                "model": self.model,
+                "models": names,
+                "error": f"Модель {self.model} не скачана: ollama pull {self.model}",
+            }
         return {"ok": True, "model": self.model}

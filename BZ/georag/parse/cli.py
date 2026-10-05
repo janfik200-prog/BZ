@@ -1,8 +1,8 @@
 """CLI этапа парсинга.
 
-    python -m georag.parse.cli --input data/pdf --out data/parsed
-    python -m georag.parse.cli --input data/pdf --device cuda --table-mode accurate
-    python -m georag.parse.cli --input data/pdf/one.pdf --no-chunks   # быстрая проверка парсинга
+python -m georag.parse.cli --input data/pdf --out data/parsed
+python -m georag.parse.cli --input data/pdf --device cuda --table-mode accurate
+python -m georag.parse.cli --input data/pdf/one.pdf --no-chunks   # быстрая проверка парсинга
 """
 
 from __future__ import annotations
@@ -89,7 +89,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Не нашёл PDF в {target}", file=sys.stderr)
         return 1
 
-    print(f"Документов: {len(pdfs)} | устройство: {settings.device} | OCR: {', '.join(settings.ocr_langs)}")
+    print(
+        f"Документов: {len(pdfs)} | устройство: {settings.device} | OCR: {', '.join(settings.ocr_langs)}"
+    )
     results = process_all(pdfs, settings, make_chunks=not args.no_chunks)
 
     ok = [r for r in results if r.status != MANUAL_REVIEW]

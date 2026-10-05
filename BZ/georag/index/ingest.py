@@ -12,8 +12,9 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from . import db
 
@@ -30,7 +31,7 @@ _CITATION_MARK = re.compile(r"https?://|doi:|doi\.org|//\s*[A-ZА-Я]|\bpp\.\s*\
 MIN_MARKS_PER_KB = 4
 
 
-def is_reference_chunk(chunk: dict) -> bool:
+def is_reference_chunk(chunk: dict[str, Any]) -> bool:
     """Похож ли чанк на список литературы, а не на текст статьи."""
     for heading in chunk.get("headings") or []:
         if REFS_HEADING.match(str(heading)):
@@ -43,7 +44,7 @@ def is_reference_chunk(chunk: dict) -> bool:
     return marks / (len(text) / 1000) >= MIN_MARKS_PER_KB
 
 
-def embed_text(meta: dict, chunk: dict) -> str:
+def embed_text(meta: dict[str, Any], chunk: dict[str, Any]) -> str:
     """Что уходит в модель эмбеддинга: название статьи, разделы, текст.
 
     embed_text от нарезки уже несёт заголовки разделов — модель видит, из
@@ -69,18 +70,14 @@ class IngestReport:
     refs_dropped: int = 0
     duplicates: int = 0
     forgotten: int = 0
-    errors: list[str] = None
-
-    def __post_init__(self):
-        if self.errors is None:
-            self.errors = []
+    errors: list[str] = field(default_factory=list)
 
 
-def _document_row(meta: dict) -> dict:
+def _document_row(meta: dict[str, Any]) -> dict[str, Any]:
     return {
         "doc_id": meta.get("doc_id") or "",
-        "title": meta.get("title") or "",
-        "authors": list(meta.get("authors") or []),
+        "title": _clean(meta.get("title")),
+        "authors": [_clean(a) for a in meta.get("authors") or []],
         "year": meta.get("year"),
         "journal": meta.get("journal"),
         "doi": meta.get("doi"),
@@ -96,15 +93,22 @@ def _document_row(meta: dict) -> dict:
     }
 
 
-def _chunk_rows(doc_id: str, chunks: list[dict], vectors: list[list[float]]) -> list[dict]:
+def _clean(text: Any) -> str:
+    """Нулевой символ из PDF: Postgres не принимает его в тексте и роняет всю статью."""
+    return str(text or "").replace("\x00", "")
+
+
+def _chunk_rows(
+    doc_id: str, chunks: list[dict[str, Any]], vectors: list[list[float]]
+) -> list[dict[str, Any]]:
     rows = []
-    for chunk, vector in zip(chunks, vectors):
+    for chunk, vector in zip(chunks, vectors, strict=True):  # вектор — на каждый фрагмент
         rows.append(
             {
                 "doc_id": doc_id,
                 "ord": int(chunk.get("index", 0)),
-                "text": chunk.get("text") or "",
-                "headings": list(chunk.get("headings") or []),
+                "text": _clean(chunk.get("text")),
+                "headings": [_clean(h) for h in chunk.get("headings") or []],
                 "pages": [int(p) for p in (chunk.get("pages") or [])],
                 "n_tokens": int(chunk.get("n_tokens") or 0),
                 "has_table": bool(chunk.get("has_table")),
@@ -115,8 +119,8 @@ def _chunk_rows(doc_id: str, chunks: list[dict], vectors: list[list[float]]) -> 
 
 
 def ingest_dir(
-    conn,
-    embedder,
+    conn: Any,
+    embedder: Any,
     acquired_dir: Path,
     force: bool = False,
     verbose: bool = True,
@@ -124,8 +128,11 @@ def ingest_dir(
     report = IngestReport()
     # Статьи, которые clean --apply убрал в _отсев, база тоже забывает: иначе они
     # остаются в поиске и в чат-боте, хотя в папке их уже нет.
-    moved = sorted(p.name[: -len(".json")] for p in (acquired_dir / "_отсев").glob("*.json")
-                   if not p.name.endswith((".chunks.json", ".docling.json")))
+    moved = sorted(
+        p.name[: -len(".json")]
+        for p in (acquired_dir / "_отсев").glob("*.json")
+        if not p.name.endswith((".chunks.json", ".docling.json"))
+    )
     report.forgotten = db.delete_documents(conn, moved) if moved else 0
     conn.commit()
 
@@ -147,7 +154,6 @@ def ingest_dir(
         if not chunks:
             report.empty += 1
             continue
-
 
         # Тот же файл уже лежит под другим идентификатором — второй раз не кладём:
         # иначе поиск и чат-бот показывают одну статью дважды.

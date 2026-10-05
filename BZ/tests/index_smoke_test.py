@@ -20,13 +20,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from georag.index import db  # noqa: E402
+from georag.index.embed import OllamaEmbedder, build_embedder  # noqa: E402
 from georag.index.ingest import (  # noqa: E402
     _chunk_rows,
     _document_row,
     ingest_dir,
     is_reference_chunk,
 )
-from georag.index.embed import OllamaEmbedder, build_embedder  # noqa: E402
 from georag.index.search import Hit, cap_per_doc, hybrid_search, rrf_merge  # noqa: E402
 
 PASSED: list[str] = []
@@ -100,16 +100,29 @@ class _FakeEmbedder:
 def _row(chunk_id: int, doc_id: str = "d1", title: str = "Статья") -> tuple:
     #  id, doc_id, ord, text, headings, pages, title, year, journal, url, authors, score
     return (
-        chunk_id, doc_id, chunk_id, f"текст {chunk_id}", ["Введение"], [chunk_id],
-        title, 2024, "Руды и металлы", "https://example.org/a", ["Иванов И.И."], 0.5,
+        chunk_id,
+        doc_id,
+        chunk_id,
+        f"текст {chunk_id}",
+        ["Введение"],
+        [chunk_id],
+        title,
+        2024,
+        "Руды и металлы",
+        "https://example.org/a",
+        ["Иванов И.И."],
+        0.5,
     )
 
 
 # --------------------------------------------------------------------------- #
 def test_vector_literal() -> None:
     print("\nФормат вектора для pgvector")
-    check("скобки и запятые", db.vector_literal([0.1, 0.2, 0.3]) == "[0.1,0.2,0.3]",
-          db.vector_literal([0.1, 0.2, 0.3]))
+    check(
+        "скобки и запятые",
+        db.vector_literal([0.1, 0.2, 0.3]) == "[0.1,0.2,0.3]",
+        db.vector_literal([0.1, 0.2, 0.3]),
+    )
     check("целые тоже проходят", db.vector_literal([1, 2]) == "[1,2]")
     check("пустой вектор не ломает", db.vector_literal([]) == "[]")
 
@@ -128,8 +141,9 @@ def test_schema() -> None:
 def test_rrf() -> None:
     print("\nАрифметика RRF")
     scores = rrf_merge([[1, 2, 3], [3, 1]], k=60)
-    check("первое место в двух списках весит больше",
-          scores[1] > scores[3] > scores[2], str(scores))
+    check(
+        "первое место в двух списках весит больше", scores[1] > scores[3] > scores[2], str(scores)
+    )
     expected = 1 / 61 + 1 / 62
     check("формула 1/(k+rank)", abs(scores[1] - expected) < 1e-12, f"{scores[1]} vs {expected}")
     check("документ из одного списка тоже учтён", scores[2] == 1 / 62)
@@ -138,10 +152,12 @@ def test_rrf() -> None:
 
 def test_hybrid_order() -> None:
     print("\nГибридный поиск: слияние двух списков")
-    conn = _FakeConn(rows=[
-        [_row(1), _row(2), _row(3)],   # вектор
-        [_row(3), _row(4)],            # полнотекст
-    ])
+    conn = _FakeConn(
+        rows=[
+            [_row(1), _row(2), _row(3)],  # вектор
+            [_row(3), _row(4)],  # полнотекст
+        ]
+    )
     hits = hybrid_search(conn, _FakeEmbedder(), "рудные узлы", limit=10, candidates=50)
 
     check("вернулись все найденные", len(hits) == 4, str(len(hits)))
@@ -166,18 +182,34 @@ def test_hybrid_order() -> None:
 def test_row_mapping() -> None:
     print("\nРаскладка по колонкам")
     meta = {
-        "doc_id": "10.3390_min13050669", "title": "Prospectivity Mapping",
-        "authors": ["Kai Zhou"], "year": 2023, "journal": "Minerals",
-        "doi": "10.3390/min13050669", "url": "https://doi.org/10.3390/min13050669",
-        "source": "mdpi", "status": "acquired", "pages": 20, "accuracy": 1.0,
+        "doc_id": "10.3390_min13050669",
+        "title": "Prospectivity Mapping",
+        "authors": ["Kai Zhou"],
+        "year": 2023,
+        "journal": "Minerals",
+        "doi": "10.3390/min13050669",
+        "url": "https://doi.org/10.3390/min13050669",
+        "source": "mdpi",
+        "status": "acquired",
+        "pages": 20,
+        "accuracy": 1.0,
     }
     row = _document_row(meta)
     check("год прочитан", row["year"] == 2023)
     check("точность стала числом", isinstance(row["accuracy"], float))
     check("отсутствующие поля не роняют", _document_row({})["title"] == "")
 
-    chunks = [{"index": 0, "text": "видимый текст", "embed_text": "Введение\nвидимый текст",
-               "headings": ["Введение"], "pages": [1, 2], "n_tokens": 42, "has_table": True}]
+    chunks = [
+        {
+            "index": 0,
+            "text": "видимый текст",
+            "embed_text": "Введение\nвидимый текст",
+            "headings": ["Введение"],
+            "pages": [1, 2],
+            "n_tokens": 42,
+            "has_table": True,
+        }
+    ]
     rows = _chunk_rows("d1", chunks, [[0.1, 0.2, 0.3]])
     check("в базу идёт оригинал, не embed_text", rows[0]["text"] == "видимый текст")
     check("страницы стали числами", rows[0]["pages"] == [1, 2])
@@ -189,15 +221,23 @@ def test_ingest() -> None:
     print("\nЗагрузка папки добычи")
     tmp = Path(tempfile.mkdtemp())
     try:
-        (tmp / "d1.json").write_text(json.dumps(
-            {"doc_id": "d1", "title": "Первая", "year": 2020, "status": "acquired"}
-        ), encoding="utf-8")
-        (tmp / "d1.chunks.json").write_text(json.dumps([
-            {"index": 0, "text": "раз", "embed_text": "раз"},
-            {"index": 1, "text": "два", "embed_text": "два"},
-        ]), encoding="utf-8")
+        (tmp / "d1.json").write_text(
+            json.dumps({"doc_id": "d1", "title": "Первая", "year": 2020, "status": "acquired"}),
+            encoding="utf-8",
+        )
+        (tmp / "d1.chunks.json").write_text(
+            json.dumps(
+                [
+                    {"index": 0, "text": "раз", "embed_text": "раз"},
+                    {"index": 1, "text": "два", "embed_text": "два"},
+                ]
+            ),
+            encoding="utf-8",
+        )
         # Документ без чанков: статья нашлась, но полного текста не было.
-        (tmp / "d2.json").write_text(json.dumps({"doc_id": "d2", "title": "Вторая"}), encoding="utf-8")
+        (tmp / "d2.json").write_text(
+            json.dumps({"doc_id": "d2", "title": "Вторая"}), encoding="utf-8"
+        )
         (tmp / "d2.chunks.json").write_text("[]", encoding="utf-8")
 
         conn = _FakeConn(rows=[[]])  # indexed_docs → пусто
@@ -226,34 +266,53 @@ def test_ingest() -> None:
         (tmp / "d3.chunks.json").write_text("{не json", encoding="utf-8")
         conn = _FakeConn(rows=[[]])
         broken = ingest_dir(conn, _FakeEmbedder(), tmp, verbose=False)
-        check("битый файл только в ошибках", len(broken.errors) == 1 and broken.indexed == 1,
-              "; ".join(broken.errors))
+        check(
+            "битый файл только в ошибках",
+            len(broken.errors) == 1 and broken.indexed == 1,
+            "; ".join(broken.errors),
+        )
 
         # Та же статья из другого источника: другой идентификатор, тот же файл.
         (tmp / "d3.chunks.json").unlink()
         meta = json.loads((tmp / "d1.json").read_text(encoding="utf-8"))
         (tmp / "d1.json").write_text(json.dumps(dict(meta, sha256="abc")), encoding="utf-8")
-        (tmp / "x9.json").write_text(json.dumps({"doc_id": "x9", "title": "Первая (копия)",
-                                                 "sha256": "abc"}), encoding="utf-8")
-        (tmp / "x9.chunks.json").write_text((tmp / "d1.chunks.json").read_text(encoding="utf-8"),
-                                            encoding="utf-8")
+        (tmp / "x9.json").write_text(
+            json.dumps({"doc_id": "x9", "title": "Первая (копия)", "sha256": "abc"}),
+            encoding="utf-8",
+        )
+        (tmp / "x9.chunks.json").write_text(
+            (tmp / "d1.chunks.json").read_text(encoding="utf-8"), encoding="utf-8"
+        )
         conn = _FakeConn(rows=[[], [("abc", "d1")]])
         dup = ingest_dir(conn, _FakeEmbedder(), tmp, verbose=False)
-        check("повтор статьи по отпечатку файла пропущен", dup.duplicates == 1
-              and dup.indexed == 1, f"{dup.duplicates} {dup.indexed}")
+        check(
+            "повтор статьи по отпечатку файла пропущен",
+            dup.duplicates == 1 and dup.indexed == 1,
+            f"{dup.duplicates} {dup.indexed}",
+        )
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
 def test_reference_chunks() -> None:
     print("\nОтсев списков литературы")
-    check("заголовок References распознан",
-          is_reference_chunk({"headings": ["References"], "text": "Smith J. 2020."}))
-    check("русский заголовок распознан",
-          is_reference_chunk({"headings": ["Введение", "Список литературы"], "text": "Иванов И."}))
-    check("похожий заголовок не путается",
-          not is_reference_chunk({"headings": ["Обзор литературы по району"],
-                                  "text": "В районе выделены рудные узлы. " * 20}))
+    check(
+        "заголовок References распознан",
+        is_reference_chunk({"headings": ["References"], "text": "Smith J. 2020."}),
+    )
+    check(
+        "русский заголовок распознан",
+        is_reference_chunk({"headings": ["Введение", "Список литературы"], "text": "Иванов И."}),
+    )
+    check(
+        "похожий заголовок не путается",
+        not is_reference_chunk(
+            {
+                "headings": ["Обзор литературы по району"],
+                "text": "В районе выделены рудные узлы. " * 20,
+            }
+        ),
+    )
 
     refs = {
         "headings": ["РЕЗУЛЬТАТЫ"],
@@ -269,8 +328,10 @@ def test_reference_chunks() -> None:
 
     normal = {
         "headings": ["Результаты"],
-        "text": ("В пределах Тырныаузского рудного узла выделены зоны окварцевания, "
-                 "приуроченные к узлам пересечения разломов. " * 6),
+        "text": (
+            "В пределах Тырныаузского рудного узла выделены зоны окварцевания, "
+            "приуроченные к узлам пересечения разломов. " * 6
+        ),
     }
     check("обычный текст не отброшен", not is_reference_chunk(normal))
     check("короткий текст не отброшен", not is_reference_chunk({"text": "doi.org http://x"}))
@@ -278,14 +339,18 @@ def test_reference_chunks() -> None:
 
 def test_cap_per_doc() -> None:
     print("\nНе больше N кусков одной статьи")
-    hits = [Hit(chunk_id=i, doc_id=doc, ord=i, text="t")
-            for i, doc in enumerate(["a", "a", "a", "b", "a", "c"])]
+    hits = [
+        Hit(chunk_id=i, doc_id=doc, ord=i, text="t")
+        for i, doc in enumerate(["a", "a", "a", "b", "a", "c"])
+    ]
     capped = cap_per_doc(hits, 2)
     top = [h.doc_id for h in capped[:4]]
     check("одна статья не занимает всю выдачу", top == ["a", "a", "b", "c"], str(top))
     check("лишние куски не потеряны, а сдвинуты в конец", len(capped) == len(hits))
-    check("ноль означает без ограничения",
-          [h.doc_id for h in cap_per_doc(hits, 0)] == [h.doc_id for h in hits])
+    check(
+        "ноль означает без ограничения",
+        [h.doc_id for h in cap_per_doc(hits, 0)] == [h.doc_id for h in hits],
+    )
 
 
 class _FakeHttpResponse:
@@ -340,8 +405,11 @@ def test_ollama_embedder() -> None:
     calls = _install_fake_ollama(old)
     vectors = OllamaEmbedder(batch_size=4).encode(["раз", "два"])
     check("откат на старый endpoint сработал", len(vectors) == 2, str(len(vectors)))
-    check("пошли по одному тексту",
-          sum(1 for url, _ in calls if url.endswith("/api/embeddings")) == 2, str(calls))
+    check(
+        "пошли по одному тексту",
+        sum(1 for url, _ in calls if url.endswith("/api/embeddings")) == 2,
+        str(calls),
+    )
 
     # Не та модель: размерность не та — это надо заметить сразу, а не после индексации.
     def wrong(url, payload):
@@ -379,8 +447,16 @@ def test_embedder_fallback() -> None:
 
 def test_citation() -> None:
     print("\nСсылка для цитирования")
-    hit = Hit(chunk_id=1, doc_id="d1", ord=0, text="t", pages=[4, 5],
-              title="Рудные узлы Анабарского щита", year=2021, url="https://example.org/a")
+    hit = Hit(
+        chunk_id=1,
+        doc_id="d1",
+        ord=0,
+        text="t",
+        pages=[4, 5],
+        title="Рудные узлы Анабарского щита",
+        year=2021,
+        url="https://example.org/a",
+    )
     line = hit.citation()
     check("есть год", "2021" in line)
     check("есть страницы", "с. 4–5" in line, line)
@@ -392,44 +468,73 @@ def test_search_fixes() -> None:
     conn = _FakeConn(rows=[[_row(1)], [_row(2)]])
     hybrid_search(conn, _FakeEmbedder(), "рудные узлы", candidates=50)
     sqls = [s for s, _ in conn.executed]
-    check("HNSW смотрит не меньше 100 соседей", any("hnsw.ef_search = 100" in s for s in sqls),
-          "; ".join(s[:40] for s in sqls))
-    check("без фильтра добор HNSW не включается",
-          not any("iterative_scan" in s for s in sqls))
+    check(
+        "HNSW смотрит не меньше 100 соседей",
+        any("hnsw.ef_search = 100" in s for s in sqls),
+        "; ".join(s[:40] for s in sqls),
+    )
+    check("без фильтра добор HNSW не включается", not any("iterative_scan" in s for s in sqls))
 
     conn = _FakeConn(rows=[[_row(1)], [_row(2)]])
     hybrid_search(conn, _FakeEmbedder(), "x", year_from=2015)
     sqls = [s for s, _ in conn.executed]
-    check("с фильтром — добор HNSW под точкой сохранения",
-          any("iterative_scan" in s for s in sqls) and any("SAVEPOINT" in s for s in sqls))
+    check(
+        "с фильтром — добор HNSW под точкой сохранения",
+        any("iterative_scan" in s for s in sqls) and any("SAVEPOINT" in s for s in sqls),
+    )
 
     # Длинный вопрос словами целиком не находится → мягкий заход, но без доказательной силы
     conn = _FakeConn(rows=[[_row(1)], [], [_row(5)]])
-    hits = hybrid_search(conn, _FakeEmbedder(), "как выделяют рудные узлы на щите",
-                         min_similarity=0.45)
+    hits = hybrid_search(
+        conn, _FakeEmbedder(), "как выделяют рудные узлы на щите", min_similarity=0.45
+    )
     params = [p for _, p in conn.executed if p and "q" in p]
-    check("второй заход — слова через «или»",
-          any(" | " in str(p["q"]) for p in params), str([p["q"] for p in params][-1:]))
-    check("мягкое совпадение без близости не проходит",
-          all(h.chunk_id != 5 for h in hits), str([h.chunk_id for h in hits]))
+    check(
+        "второй заход — слова через «или»",
+        any(" | " in str(p["q"]) for p in params),
+        str([p["q"] for p in params][-1:]),
+    )
+    check(
+        "мягкое совпадение без близости не проходит",
+        all(h.chunk_id != 5 for h in hits),
+        str([h.chunk_id for h in hits]),
+    )
     conn = _FakeConn(rows=[[_row(1)], [], [_row(5)]])
     hits = hybrid_search(conn, _FakeEmbedder(), "как выделяют рудные узлы на щите")
     check("без порога мягкое совпадение показывается", any(h.chunk_id == 5 for h in hits))
     check("и помечено нестрогим", all(not h.fts_strict for h in hits if h.chunk_id == 5))
 
     from georag.index.search import build_tsquery, loose_query
-    check("мягкий запрос не ломается на or/and", loose_query("gold and ore") == "gold | ore",
-          loose_query("gold and ore"))
-    check("беглая гласная: узел или узл", build_tsquery("рудный узел") == "рудный & (узел | узл)",
-          build_tsquery("рудный узел"))
-    check("знаки препинания не ломают запрос", build_tsquery("что (там) с 'золотом'?!") ==
-          "что & там & с & золотом", build_tsquery("что (там) с 'золотом'?!"))
+
+    check(
+        "мягкий запрос не ломается на or/and",
+        loose_query("gold and ore") == "gold | ore",
+        loose_query("gold and ore"),
+    )
+    check(
+        "беглая гласная: узел или узл",
+        build_tsquery("рудный узел") == "рудный & (узел | узл)",
+        build_tsquery("рудный узел"),
+    )
+    check(
+        "знаки препинания не ломают запрос",
+        build_tsquery("что (там) с 'золото'?!") == "что & там & с & золото",
+        build_tsquery("что (там) с 'золото'?!"),
+    )
+    check(
+        "«разлом» находит и «разлома»: стеммер срезает -ом только у именительного",
+        build_tsquery("Персияновский разлом") == "персияновский & (разлом | разлома)",
+        build_tsquery("Персияновский разлом"),
+    )
 
 
 def test_embed_text() -> None:
     print("\nЧто уходит в модель эмбеддинга")
     from georag.index.ingest import embed_text
-    t = embed_text({"title": "Золото  Анабарского щита"}, {"embed_text": "Раздел\nТекст", "text": "Текст"})
+
+    t = embed_text(
+        {"title": "Золото  Анабарского щита"}, {"embed_text": "Раздел\nТекст", "text": "Текст"}
+    )
     check("название статьи сверху", t.startswith("Золото Анабарского щита\nРаздел"), repr(t[:40]))
     check("без названия — как было", embed_text({}, {"text": "Текст"}) == "Текст")
 
@@ -460,6 +565,7 @@ def test_forget_cleaned() -> None:
 
         class Cur(_FakeCursor):
             rowcount = 1
+
         conn = _FakeConn(rows=[[], []])
         conn.cursor = lambda: Cur(conn)
         report = ingest_dir(conn, _FakeEmbedder(), tmp, verbose=False)
@@ -472,25 +578,41 @@ def test_forget_cleaned() -> None:
 
 def test_reindex_keeps_ids() -> None:
     print("\nПереиндексация не стирает граф")
-    row = {"doc_id": "d1", "ord": 0, "text": "новый текст", "headings": [], "pages": [1],
-           "n_tokens": 3, "has_table": False, "embedding": "[0.1]"}
+    row = {
+        "doc_id": "d1",
+        "ord": 0,
+        "text": "новый текст",
+        "headings": [],
+        "pages": [1],
+        "n_tokens": 3,
+        "has_table": False,
+        "embedding": "[0.1]",
+    }
     same = dict(row, ord=1, text="старый текст")
     # были фрагменты 0, 1, 2; у 0 текст поменялся, 1 — тот же, 2 — пропал.
-    conn = _FakeConn(rows=[[(0, 10, "прежний текст"), (1, 11, "старый текст"),
-                            (2, 12, "лишний")], [(True,)]])
+    conn = _FakeConn(
+        rows=[[(0, 10, "прежний текст"), (1, 11, "старый текст"), (2, 12, "лишний")], [(True,)]]
+    )
     db.replace_chunks(conn, "d1", [row, same])
     sql = [q for q, _ in conn.executed]
-    check("фрагменты обновляются на месте, а не удаляются целиком",
-          not any(q == "DELETE FROM chunks WHERE doc_id = %s" for q in sql)
-          and any("ON CONFLICT (doc_id, ord) DO UPDATE" in q for q in sql), str(sql))
-    check("пропавшие фрагменты удалены",
-          any(q.startswith("DELETE FROM chunks WHERE doc_id = %s AND NOT") for q in sql))
+    check(
+        "фрагменты обновляются на месте, а не удаляются целиком",
+        not any(q == "DELETE FROM chunks WHERE doc_id = %s" for q in sql)
+        and any("ON CONFLICT (doc_id, ord) DO UPDATE" in q for q in sql),
+        str(sql),
+    )
+    check(
+        "пропавшие фрагменты удалены",
+        any(q.startswith("DELETE FROM chunks WHERE doc_id = %s AND NOT") for q in sql),
+    )
     dropped = [p for q, p in conn.executed if q.startswith("DELETE FROM facts WHERE")]
     check("факты стёрты только у фрагмента с новым текстом", dropped == [([10],)], str(dropped))
     conn = _FakeConn(rows=[[(0, 10, "новый текст")]])
     db.replace_chunks(conn, "d1", [row])
-    check("текст тот же — факты не трогаются",
-          not any(q.startswith("DELETE FROM facts") for q, _ in conn.executed))
+    check(
+        "текст тот же — факты не трогаются",
+        not any(q.startswith("DELETE FROM facts") for q, _ in conn.executed),
+    )
 
 
 def test_synonym_alternatives() -> None:
@@ -500,8 +622,11 @@ def test_synonym_alternatives() -> None:
     conn = _FakeConn(rows=[[]])
     S.text_search(conn, "золото донбасс", 10, alternatives=["золото donetsk basin"])
     q = conn.executed[-1][1]["q"]
-    check("находит все слова хотя бы одного варианта",
-          q == "(золото & донбасс) | (золото & donetsk & basin)", q)
+    check(
+        "находит все слова хотя бы одного варианта",
+        q == "(золото & донбасс) | (золото & donetsk & basin)",
+        q,
+    )
     conn = _FakeConn(rows=[[]])
     S.text_search(conn, "золото донбасс", 10)
     check("без вариантов — как раньше", conn.executed[-1][1]["q"] == "золото & донбасс")

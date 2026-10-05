@@ -30,6 +30,7 @@ import hashlib
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from ..text import name_key, normalize
 
@@ -37,7 +38,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PATH = ROOT / "config" / "synonyms.yaml"
 PROPOSALS_PATH = ROOT / "config" / "synonyms-предложения.yaml"
 
-PART_OF = "входит в"            # связь «часть → целое»: по ней собирается датасет
+PART_OF = "входит в"  # связь «часть → целое»: по ней собирается датасет
 
 
 class SynonymsError(ValueError):
@@ -46,9 +47,9 @@ class SynonymsError(ValueError):
 
 @dataclass
 class Synonyms:
-    names: dict[str, str] = field(default_factory=dict)       # ключ → каноническое имя
-    relations: dict[str, str] = field(default_factory=dict)   # ключ → каноническая связь
-    inverse: dict[str, str] = field(default_factory=dict)     # ключ → связь, если развернуть
+    names: dict[str, str] = field(default_factory=dict)  # ключ → каноническое имя
+    relations: dict[str, str] = field(default_factory=dict)  # ключ → каноническая связь
+    inverse: dict[str, str] = field(default_factory=dict)  # ключ → связь, если развернуть
     groups: dict[str, list[str]] = field(default_factory=dict)  # каноническое → написания
     sha: str = ""
     warnings: list[str] = field(default_factory=list)
@@ -69,12 +70,12 @@ class Synonyms:
         return self.relation(raw), False
 
 
-def clean_relation(raw: str) -> str:
+def clean_relation(raw: object) -> str:
     text = " ".join(str(raw or "").replace("_", " ").split()).strip(" .,;:«»\"'").lower()
     return text
 
 
-def _pairs(section, where: str):
+def _pairs(section: Any, where: str) -> Any:
     if section is None:
         return []
     if not isinstance(section, dict):
@@ -94,18 +95,22 @@ def _pairs(section, where: str):
     return out
 
 
-def parse(data: dict | None, sha: str = "") -> Synonyms:
+def parse(data: dict[str, Any] | None, sha: str = "") -> Synonyms:
     data = data or {}
     if not isinstance(data, dict):
         raise SynonymsError("файл должен начинаться с разделов «имена:» и «связи:»")
     unknown = set(data) - {"имена", "связи", "обратные"}
     if unknown:
-        raise SynonymsError(f"неизвестный раздел: {', '.join(sorted(unknown))} "
-                            "(бывают только «имена», «связи» и «обратные»)")
+        raise SynonymsError(
+            f"неизвестный раздел: {', '.join(sorted(unknown))} "
+            "(бывают только «имена», «связи» и «обратные»)"
+        )
     syn = Synonyms(sha=sha)
-    for section, target, clean in (("имена", syn.names, lambda s: s),
-                                   ("связи", syn.relations, clean_relation),
-                                   ("обратные", syn.inverse, clean_relation)):
+    for section, target, clean in (
+        ("имена", syn.names, lambda s: s),
+        ("связи", syn.relations, clean_relation),
+        ("обратные", syn.inverse, clean_relation),
+    ):
         for canon, variants in _pairs(data.get(section), section):
             canon = clean(canon)
             if section == "имена":
@@ -116,8 +121,9 @@ def parse(data: dict | None, sha: str = "") -> Synonyms:
                 if not key:
                     continue
                 if key in target and target[key] != canon:
-                    syn.warnings.append(f"«{variant}» стоит и у «{target[key]}», и у «{canon}» — "
-                                        f"взято первое")
+                    syn.warnings.append(
+                        f"«{variant}» стоит и у «{target[key]}», и у «{canon}» — " f"взято первое"
+                    )
                     continue
                 target[key] = canon
     return syn
@@ -137,7 +143,7 @@ def load(path: str | Path | None = None) -> Synonyms:
     return parse(data, sha=hashlib.sha256(raw).hexdigest()[:16])
 
 
-_CACHED: dict = {}
+_CACHED: dict[str, Any] = {}
 
 
 def cached(path: str | Path | None = None) -> Synonyms:
@@ -147,17 +153,18 @@ def cached(path: str | Path | None = None) -> Synonyms:
     mtime = path.stat().st_mtime if path.exists() else None
     if _CACHED.get("key") != (str(path), mtime):
         try:
-            syn = load(path)
+            fresh = load(path)
         except SynonymsError:
-            syn = Synonyms()
-        _CACHED.update(key=(str(path), mtime), syn=syn)
-    return _CACHED["syn"]
+            fresh = Synonyms()
+        _CACHED.update(key=(str(path), mtime), syn=fresh)
+    syn: Synonyms = _CACHED["syn"]
+    return syn
 
 
 # --------------------------------------------------------------------------- #
 #  Синонимы в поиске
 # --------------------------------------------------------------------------- #
-def _spelling_pattern(spelled: str):
+def _spelling_pattern(spelled: str) -> Any:
     from ..text import normalize, phrase_pattern
 
     # Сокращение (SAM, PCA, ДЗЗ) — только целым словом: иначе «SAM» находится в «sample».
@@ -200,8 +207,7 @@ def synonym_variants(query: str, syn: Synonyms, limit: int = 6) -> list[str]:
 # --------------------------------------------------------------------------- #
 #  Предложения: модель находит одинаковое, человек решает
 # --------------------------------------------------------------------------- #
-JUDGE_SYSTEM = ("Ты сводишь в справочник названия из геологических статей. "
-                "Отвечай только JSON.")
+JUDGE_SYSTEM = "Ты сводишь в справочник названия из геологических статей. " "Отвечай только JSON."
 
 JUDGE_USER = """Для каждой пары скажи, одно ли это и то же: тот же объект, место, метод,
 процесс или понятие, записанное иначе — перевод, сокращение, другое написание.
@@ -216,11 +222,11 @@ district» — разное; «окварцевание» и «серицити�
 BATCH = 15
 
 
-def judge_pairs(llm, pairs: list[tuple[str, str]]) -> list[bool]:
+def judge_pairs(llm: Any, pairs: list[tuple[str, str]]) -> list[bool]:
     """Qwen3 решает по парам, одно ли это. Не ответила — «нет» (ничего не сводим)."""
     out: list[bool] = []
     for start in range(0, len(pairs), BATCH):
-        chunk = pairs[start:start + BATCH]
+        chunk = pairs[start : start + BATCH]
         text = "\n".join(f"{i}. «{a}» — «{b}»" for i, (a, b) in enumerate(chunk, start=1))
         try:
             data = llm.chat_json(JUDGE_SYSTEM, JUDGE_USER.format(pairs=text))
@@ -235,8 +241,14 @@ def _is_cyrillic(text: str) -> bool:
     return bool(re.search(r"[А-Яа-яЁё]", text or ""))
 
 
-def suggest(names: dict[str, tuple[str, int]], syn: Synonyms, embed, judge,
-            threshold: float = 0.8, max_pairs: int = 400) -> list[dict]:
+def suggest(
+    names: dict[str, tuple[str, int]],
+    syn: Synonyms,
+    embed: Any,
+    judge: Any,
+    threshold: float = 0.8,
+    max_pairs: int = 400,
+) -> list[dict[str, Any]]:
     """Похожие имена → группы «одно и то же».
 
     names — {ключ: (как пишется чаще всего, сколько раз)}. embed(список строк)
@@ -253,10 +265,10 @@ def suggest(names: dict[str, tuple[str, int]], syn: Synonyms, embed, judge,
     vectors /= np.linalg.norm(vectors, axis=1, keepdims=True) + 1e-9
     scores = vectors @ vectors.T
     pairs = []
-    for i, j in zip(*np.nonzero(np.triu(scores, k=1) >= threshold)):
+    for i, j in zip(*np.nonzero(np.triu(scores, k=1) >= threshold), strict=True):
         a, b = shown[i], shown[j]
         if normalize(a) == normalize(b):
-            continue                          # уже одно имя (сведены словарём)
+            continue  # уже одно имя (сведены словарём)
         pairs.append((float(scores[i, j]), int(i), int(j)))
     pairs.sort(reverse=True)
     pairs = pairs[:max_pairs]
@@ -264,19 +276,19 @@ def suggest(names: dict[str, tuple[str, int]], syn: Synonyms, embed, judge,
 
     parent = list(range(len(keys)))
 
-    def root(x):
+    def root(x: Any) -> Any:
         while parent[x] != x:
             parent[x] = parent[parent[x]]
             x = parent[x]
         return x
 
-    for (_, i, j), same in zip(pairs, verdicts):
+    for (_, i, j), same in zip(pairs, verdicts, strict=True):  # решение — на каждую пару
         if same:
             parent[root(i)] = root(j)
     groups: dict[int, list[int]] = {}
     for i in range(len(keys)):
         groups.setdefault(root(i), []).append(i)
-    out = []
+    out: list[dict[str, Any]] = []
     for members in groups.values():
         variants = sorted({shown[i] for i in members})
         if len(variants) < 2:
@@ -287,13 +299,19 @@ def suggest(names: dict[str, tuple[str, int]], syn: Synonyms, embed, judge,
         else:
             count = {shown[i]: names[keys[i]][1] for i in members}
             canon = max(variants, key=lambda v: (_is_cyrillic(v), count.get(v, 0), -len(v)))
-        out.append({"canon": canon, "variants": [v for v in variants if v != canon],
-                    "count": sum(names[keys[i]][1] for i in members), "known": bool(known)})
+        out.append(
+            {
+                "canon": canon,
+                "variants": [v for v in variants if v != canon],
+                "count": sum(names[keys[i]][1] for i in members),
+                "known": bool(known),
+            }
+        )
     out.sort(key=lambda g: -g["count"])
     return out
 
 
-def proposals_text(names: list[dict], relations: list[dict]) -> str:
+def proposals_text(names: list[dict[str, Any]], relations: list[dict[str, Any]]) -> str:
     """Предложения в том же виде, что словарь: нужные строки — копировать в synonyms.yaml."""
     lines = [
         "# ПРЕДЛОЖЕНИЯ В СЛОВАРЬ СИНОНИМОВ — их сделала модель, словарь она не трогает.",

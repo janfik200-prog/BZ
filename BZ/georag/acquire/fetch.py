@@ -25,7 +25,8 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 from urllib.parse import urljoin, urlsplit
 
 PDF_MAGIC = b"%PDF-"
@@ -36,9 +37,7 @@ BROWSER_UA = (
 )
 BLOCKED_CODES = (401, 403, 406, 429)
 
-_CITATION_PDF_RE = re.compile(
-    rb"""<meta[^>]+citation_pdf_url[^>]*>""", re.IGNORECASE
-)
+_CITATION_PDF_RE = re.compile(rb"""<meta[^>]+citation_pdf_url[^>]*>""", re.IGNORECASE)
 _CONTENT_RE = re.compile(rb"""content\s*=\s*["']([^"']+)["']""", re.IGNORECASE)
 
 
@@ -71,7 +70,7 @@ def _same_host(a: str, b: str) -> bool:
     return bool(a) and bool(b) and urlsplit(a).netloc.lower() == urlsplit(b).netloc.lower()
 
 
-def _headers(agent: str, url: str, referer: str = "") -> dict:
+def _headers(agent: str, url: str, referer: str = "") -> dict[str, Any]:
     parts = urlsplit(url)
     return {
         "User-Agent": agent,
@@ -92,7 +91,7 @@ def fetch_pdf(
     import requests
 
     result = FetchResult(ok=False, url=url)
-    result.fetched_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    result.fetched_at = datetime.now(UTC).isoformat(timespec="seconds")
     limit = max_mb * 1024 * 1024
     session = requests.Session()
 

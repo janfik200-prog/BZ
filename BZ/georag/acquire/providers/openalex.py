@@ -22,27 +22,46 @@ GEORAG_OPENALEX_KEY или файла openalex_key.txt рядом с georag.py (
 from __future__ import annotations
 
 import os
+import re
+import sys
 import time
 from pathlib import Path
+from typing import Any
 
 from ..models import Candidate
 
 BASE = "https://api.openalex.org/works"
 KEY_FILE = Path(__file__).resolve().parents[3] / "openalex_key.txt"
-KEY_HELP = ("OpenAlex требует ключ API (с 13.02.2026). Он бесплатный: учётная запись на "
-            "openalex.org, ключ — на openalex.org/settings/api. Сохранить в папке проекта: "
-            "python -c \"open('openalex_key.txt','w').write('ВАШ_КЛЮЧ')\"")
+KEY_HELP = (
+    "OpenAlex требует ключ API (с 13.02.2026). Он бесплатный: учётная запись на "
+    "openalex.org, ключ — на openalex.org/settings/api. Сохранить в папке проекта: "
+    "python -c \"open('openalex_key.txt','w').write('ВАШ_КЛЮЧ')\""
+)
 
 
 class OpenAlexKeyError(RuntimeError):
     """Без ключа или с неверным ключом OpenAlex не отвечает — объяснить, что делать."""
 
 
+# Токен Телеграм-бота (цифры:буквы) — не ключ OpenAlex. Такой уже попадал в
+# openalex_key.txt по ошибке: OpenAlex отвергал каждый запрос, добыча шла без
+# главного источника, а сам токен уходил в чужие журналы с каждым запросом.
+_TELEGRAM_TOKEN = re.compile(r"\d{6,}:[\w-]{30,}")
+
+
 def api_key_from_env() -> str:
     key = os.environ.get("GEORAG_OPENALEX_KEY", "").strip()
     if not key and KEY_FILE.exists():
-        key = KEY_FILE.read_text(encoding="utf-8-sig").strip()
+        key = "".join(KEY_FILE.read_text(encoding="utf-8-sig").split())
+    if _TELEGRAM_TOKEN.fullmatch(key):
+        print(
+            "openalex_key.txt: там токен Телеграм-бота, а не ключ OpenAlex — не отправляю его. "
+            "Ищу без ключа (до 100 запросов в день). Ключ — на openalex.org/settings/api",
+            file=sys.stderr,
+        )
+        return ""
     return key
+
 
 # Просим только нужные поля: ответ меньше, разбор быстрее.
 SELECT = ",".join(
@@ -63,7 +82,7 @@ SELECT = ",".join(
 )
 
 
-def abstract_from_inverted_index(index: dict | None) -> str:
+def abstract_from_inverted_index(index: dict[str, Any] | None) -> str:
     """Собрать текст аннотации из инвертированного индекса OpenAlex."""
     if not index:
         return ""
@@ -80,18 +99,18 @@ def normalize_doi(doi: str) -> str:
     doi = (doi or "").strip()
     for prefix in ("https://doi.org/", "http://doi.org/", "https://dx.doi.org/", "doi:"):
         if doi.lower().startswith(prefix):
-            doi = doi[len(prefix):]
+            doi = doi[len(prefix) :]
     return doi.strip().lower()
 
 
 def _strip_prefix(value: str | None, prefix: str) -> str | None:
     if not value:
         return None
-    return value[len(prefix):] if value.startswith(prefix) else value
+    return value[len(prefix) :] if value.startswith(prefix) else value
 
 
 class OpenAlexProvider:
-    def __init__(self, name: str = "openalex", params: dict | None = None):
+    def __init__(self, name: str = "openalex", params: dict[str, Any] | None = None):
         self.name = name
         params = params or {}
         self.mailto = (params.get("mailto") or "").strip()
@@ -114,7 +133,7 @@ class OpenAlexProvider:
             parts.append("type:" + "|".join(self.types))  # | внутри фильтра — это ИЛИ
         return ",".join(parts)  # запятая между фильтрами — это И
 
-    def _params(self, query: str, limit: int) -> dict:
+    def _params(self, query: str, limit: int) -> dict[str, Any]:
         params = {
             "search": query,
             "select": SELECT,
@@ -133,7 +152,7 @@ class OpenAlexProvider:
     def search(self, query: str, limit: int = 25) -> list[Candidate]:
         import requests
 
-        def ask(text: str):
+        def ask(text: str) -> Any:
             return requests.get(
                 BASE,
                 params=self._params(text, limit),
@@ -150,13 +169,26 @@ class OpenAlexProvider:
         if response.status_code >= 400 and '"' in query:
             response = ask(query.replace('"', " "))
 
+        # Ключ не принят — без ключа OpenAlex всё равно отвечает (до сотни запросов в
+        # день): лучше искать так, чем потерять главный источник на весь прогон.
+        if response.status_code in (401, 403) and self.api_key:
+            print(
+                "OpenAlex не принял ключ из openalex_key.txt — дальше ищу без ключа (до 100 "
+                "запросов в день). Проверьте ключ на openalex.org/settings/api",
+                file=sys.stderr,
+            )
+            self.api_key = ""
+            response = ask(query.replace('"', " "))
+
         if self.pause_sec:
             time.sleep(self.pause_sec)  # вежливость: не упираемся в лимит запросов
         if response.status_code in (401, 403, 409, 429) and not self.api_key:
             raise OpenAlexKeyError(KEY_HELP)
         if response.status_code in (401, 403):
-            raise OpenAlexKeyError("OpenAlex не принял ключ из openalex_key.txt — проверьте его "
-                                   "на openalex.org/settings/api")
+            raise OpenAlexKeyError(
+                "OpenAlex не принял ключ из openalex_key.txt — проверьте его "
+                "на openalex.org/settings/api"
+            )
         response.raise_for_status()
         payload = response.json()
 
@@ -172,8 +204,12 @@ class OpenAlexProvider:
             params["mailto"] = self.mailto
         if self.api_key:
             params["api_key"] = self.api_key
-        response = requests.get(f"{BASE}/doi:{doi}", params=params, timeout=self.timeout,
-                                headers={"User-Agent": self._user_agent()})
+        response = requests.get(
+            f"{BASE}/doi:{doi}",
+            params=params,
+            timeout=self.timeout,
+            headers={"User-Agent": self._user_agent()},
+        )
         if self.pause_sec:
             time.sleep(self.pause_sec)
         if response.status_code == 404:
@@ -187,7 +223,7 @@ class OpenAlexProvider:
         base = "georag/0.1 (knowledge base builder)"
         return f"{base} mailto:{self.mailto}" if self.mailto else base
 
-    def _to_candidate(self, item: dict, query: str) -> Candidate:
+    def _to_candidate(self, item: dict[str, Any], query: str) -> Candidate:
         best_oa = item.get("best_oa_location") or {}
         primary = item.get("primary_location") or {}
         oa = item.get("open_access") or {}
@@ -203,9 +239,7 @@ class OpenAlexProvider:
         ]
         urls = list(dict.fromkeys(u for u in candidates_urls if u))
         landing = (
-            best_oa.get("landing_page_url")
-            or primary.get("landing_page_url")
-            or item.get("doi")
+            best_oa.get("landing_page_url") or primary.get("landing_page_url") or item.get("doi")
         )
         source_block = best_oa.get("source") or primary.get("source") or {}
 

@@ -19,20 +19,24 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUT = ROOT / "config" / "topics-graph.yaml"
 
-MIN_FACTS = 3                  # «много фактов» — от стольких
-MAX_WORDS = 5                  # длинные имена — пересказ, а не название: темой не годятся
+MIN_FACTS = 3  # «много фактов» — от стольких
+MAX_WORDS = 5  # длинные имена — пересказ, а не название: темой не годятся
 _DIGITS = re.compile(r"\d")
 _LATIN = re.compile(r"^[A-Za-z][A-Za-z0-9 \-]+$")
 
 
 def _facts(n: int) -> str:
     last2, last = n % 100, n % 10
-    word = ("факт" if last == 1 and last2 != 11 else
-            "факта" if 2 <= last <= 4 and not 12 <= last2 <= 14 else "фактов")
+    word = (
+        "факт"
+        if last == 1 and last2 != 11
+        else "факта" if 2 <= last <= 4 and not 12 <= last2 <= 14 else "фактов"
+    )
     return f"{n} {word}"
 
 
@@ -57,7 +61,7 @@ def _mentioned(spellings: list[str], names: list[str]) -> bool:
     return False
 
 
-def find(g, syn, limit: int = 25) -> list[dict]:
+def find(g: Any, syn: Any, limit: int = 25) -> list[dict[str, Any]]:
     """Пробелы: [{"name", "why", "topics": [...]}]. Поровну: половина — словарь без
     фактов, половина — всё из одной статьи (чего-то одного не хватит — добирает другим)."""
     from ..text import normalize
@@ -68,24 +72,36 @@ def find(g, syn, limit: int = 25) -> list[dict]:
         if canon in g.entities or g.related(canon) or _mentioned([canon, *variants], names):
             continue
         english = [v for v in variants if _LATIN.match(v)][:1]
-        missing.append({"name": canon, "why": "в словаре синонимов есть, в статьях базы фактов нет",
-                        "topics": [canon, *english]})
+        missing.append(
+            {
+                "name": canon,
+                "why": "в словаре синонимов есть, в статьях базы фактов нет",
+                "topics": [canon, *english],
+            }
+        )
     lonely_rows = []
-    lonely = [e for e in g.entities.values()
-              if e["facts"] >= MIN_FACTS and len(e["docs"]) == 1 and _topic_name(e["name"])]
+    lonely = [
+        e
+        for e in g.entities.values()
+        if e["facts"] >= MIN_FACTS and len(e["docs"]) == 1 and _topic_name(e["name"])
+    ]
     lonely.sort(key=lambda e: -e["facts"])
     for e in lonely:
         english = [v for v in syn.groups.get(e["name"], []) if _LATIN.match(v)][:1]
-        lonely_rows.append({"name": e["name"],
-                            "why": f"{_facts(e['facts'])}, и все из одной статьи — подтвердить нечем",
-                            "topics": [e["name"], *english]})
+        lonely_rows.append(
+            {
+                "name": e["name"],
+                "why": f"{_facts(e['facts'])}, и все из одной статьи — подтвердить нечем",
+                "topics": [e["name"], *english],
+            }
+        )
     half = (limit + 1) // 2
     take_missing = max(half, limit - len(lonely_rows))
     out = missing[:take_missing]
-    return out + lonely_rows[:limit - len(out)]
+    return out + lonely_rows[: limit - len(out)]
 
 
-def to_yaml(rows: list[dict]) -> str:
+def to_yaml(rows: list[dict[str, Any]]) -> str:
     lines = [
         "# ТЕМЫ ДЛЯ ДОБЫЧИ ПО ПРОБЕЛАМ ГРАФА — сделаны командой python georag.py gaps,",
         "# пересоздаются ею же. Лишние темы удалите, нужные перенесите в config/topics.yaml.",

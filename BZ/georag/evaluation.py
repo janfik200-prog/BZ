@@ -31,6 +31,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from .chat import answer as chat
 from .text import normalize, phrase_pattern
@@ -43,10 +44,10 @@ NOT_IN_BASE = "без базы"
 
 # Пороги «прошёл / не прошёл». Подобраны так, чтобы хороший ответ проходил
 # с запасом, а отписка — нет. Менять — здесь.
-MIN_KEYWORDS = 0.5             # доля ключевых мыслей, найденных в тексте
-MIN_COVERAGE = 0.6             # доля утверждений ответа со ссылкой
-MIN_CHARS = 150                # ответ по базе — не одна фраза
-MIN_DOCS = 0.5                 # доля нужных статей (поле «статьи»), найденных поиском
+MIN_KEYWORDS = 0.5  # доля ключевых мыслей, найденных в тексте
+MIN_COVERAGE = 0.6  # доля утверждений ответа со ссылкой
+MIN_CHARS = 150  # ответ по базе — не одна фраза
+MIN_DOCS = 0.5  # доля нужных статей (поле «статьи»), найденных поиском
 
 
 class QuestionsError(ValueError):
@@ -89,14 +90,27 @@ def load_questions(path: Path | str = DEFAULT_QUESTIONS) -> list[Question]:
         if expect not in (IN_BASE, NOT_IN_BASE):
             raise QuestionsError(f"{qid}: ожидание «{expect}» — допустимо «база» или «без базы»")
         seen.add(qid)
-        groups = [[w.strip() for w in str(line).split("|") if w.strip()]
-                  for line in (item.get("ключевые") or [])]
+        groups = [
+            [w.strip() for w in str(line).split("|") if w.strip()]
+            for line in (item.get("ключевые") or [])
+        ]
         docs = item.get("статьи") or []
-        out.append(Question(qid, text, expect, [g for g in groups if g],
-                            str(item.get("понятие") or ""), str(item.get("территория") or ""),
-                            str(item.get("метод") or ""),
-                            [str(d).strip() for d in (docs if isinstance(docs, list) else [docs])
-                             if str(d).strip()]))
+        out.append(
+            Question(
+                qid,
+                text,
+                expect,
+                [g for g in groups if g],
+                str(item.get("понятие") or ""),
+                str(item.get("территория") or ""),
+                str(item.get("метод") or ""),
+                [
+                    str(d).strip()
+                    for d in (docs if isinstance(docs, list) else [docs])
+                    if str(d).strip()
+                ],
+            )
+        )
     return out
 
 
@@ -106,7 +120,7 @@ def load_questions(path: Path | str = DEFAULT_QUESTIONS) -> list[Question]:
 _ACRONYM = re.compile(r"[A-ZА-ЯЁ0-9\-]{2,6}")
 
 
-def _pattern(word: str) -> re.Pattern:
+def _pattern(word: str) -> re.Pattern[str]:
     """Слово в любой форме, с начала слова. Аббревиатура — целиком: ROC не rock."""
     if _ACRONYM.fullmatch(word):
         return re.compile(rf"(?<!\w){re.escape(normalize(word))}(?!\w)")
@@ -132,7 +146,7 @@ def share(found: int, total: int) -> float | None:
 # --------------------------------------------------------------------------- #
 #  Прогон одного вопроса
 # --------------------------------------------------------------------------- #
-def check_search(q: Question, sources: list[dict]) -> dict:
+def check_search(q: Question, sources: list[dict[str, Any]]) -> dict[str, Any]:
     text = " ".join(f"{s.get('title', '')} {s.get('text', '')}" for s in sources)
     found, missing = keyword_hits(q.keywords, text)
     recall = share(found, len(q.keywords))
@@ -140,18 +154,34 @@ def check_search(q: Question, sources: list[dict]) -> dict:
     docs_missing = [d for d in q.docs if d not in got]
     docs_recall = share(len(q.docs) - len(docs_missing), len(q.docs))
     if q.expect == IN_BASE:
-        ok = (bool(sources) and (recall is None or recall >= MIN_KEYWORDS)
-              and (docs_recall is None or docs_recall >= MIN_DOCS))
+        ok = (
+            bool(sources)
+            and (recall is None or recall >= MIN_KEYWORDS)
+            and (docs_recall is None or docs_recall >= MIN_DOCS)
+        )
     else:
         ok = not sources
-    return {"found": len(sources), "keywords": recall, "missing": missing, "ok": ok,
-            "docs": docs_recall, "docs_missing": docs_missing,
-            "sources": [{"n": s["n"], "title": s.get("title", "")[:90], "year": s.get("year"),
-                         "similarity": s.get("similarity"), "found_by": s.get("found_by")}
-                        for s in sources]}
+    return {
+        "found": len(sources),
+        "keywords": recall,
+        "missing": missing,
+        "ok": ok,
+        "docs": docs_recall,
+        "docs_missing": docs_missing,
+        "sources": [
+            {
+                "n": s["n"],
+                "title": s.get("title", "")[:90],
+                "year": s.get("year"),
+                "similarity": s.get("similarity"),
+                "found_by": s.get("found_by"),
+            }
+            for s in sources
+        ],
+    }
 
 
-def check_answer(q: Question, events: list[dict]) -> dict:
+def check_answer(q: Question, events: list[dict[str, Any]]) -> dict[str, Any]:
     text = "".join(e["text"] for e in events if e["type"] == "token")
     done = next((e for e in events if e["type"] == "done"), {})
     error = next((e["error"] for e in events if e["type"] == "error"), None)
@@ -177,11 +207,20 @@ def check_answer(q: Question, events: list[dict]) -> dict:
                 problems.append("в ответе нет ключевого: " + ", ".join(missing))
     elif mode != chat_mode(NOT_IN_BASE):
         problems.append("ответил по базе на вопрос не по теме")
-    return {"mode": mode, "chars": len(text), "used": done.get("used", []),
-            "unknown": done.get("unknown", []), "coverage": coverage,
-            "claims": [cited, claims], "keywords": recall, "missing": missing,
-            "seconds": done.get("seconds"), "ok": not problems, "problems": problems,
-            "text": text}
+    return {
+        "mode": mode,
+        "chars": len(text),
+        "used": done.get("used", []),
+        "unknown": done.get("unknown", []),
+        "coverage": coverage,
+        "claims": [cited, claims],
+        "keywords": recall,
+        "missing": missing,
+        "seconds": done.get("seconds"),
+        "ok": not problems,
+        "problems": problems,
+        "text": text,
+    }
 
 
 def chat_mode(expect: str) -> str:
@@ -189,25 +228,51 @@ def chat_mode(expect: str) -> str:
     return "база" if expect == IN_BASE else "без базы"
 
 
-def run_question(conn, embedder, q: Question, settings: chat.Settings, *, with_answer: bool,
-                 planner=None, llm=None, judge=chat.judge_fragments,
-                 datasets=chat.collect_dataset) -> dict:
+def run_question(
+    conn: Any,
+    embedder: Any,
+    q: Question,
+    settings: chat.Settings,
+    *,
+    with_answer: bool,
+    planner: Any = None,
+    llm: Any = None,
+    judge: Any = chat.judge_fragments,
+    datasets: Any = chat.collect_dataset,
+) -> dict[str, Any]:
     """Один вопрос: поиск — тот же, что у чат-бота (разбор, отбор моделью, датасет),
     и по найденному — ответ. Ищется один раз и для оценки поиска, и для ответа."""
     planner = planner or chat.plan_question
     started = time.monotonic()
-    prepared = chat.run(chat.prepare(conn, embedder, q.text, [], settings, planner, judge,
-                                     datasets))
+    prepared = chat.run(
+        chat.prepare(conn, embedder, q.text, [], settings, planner, judge, datasets)
+    )
     found = prepared.retrieval
-    result = {"id": q.id, "question": q.text, "expect": q.expect, "concept": q.concept,
-              "territory": q.territory, "method": q.method,
-              "queries": prepared.plan.queries + prepared.plan.extra,
-              "rounds": found.rounds, "judged": found.judged,
-              "search": check_search(q, prepared.sources),
-              "search_seconds": round(time.monotonic() - started, 1)}
+    result = {
+        "id": q.id,
+        "question": q.text,
+        "expect": q.expect,
+        "concept": q.concept,
+        "territory": q.territory,
+        "method": q.method,
+        "queries": prepared.plan.queries + prepared.plan.extra,
+        "rounds": found.rounds,
+        "judged": found.judged,
+        "search": check_search(q, prepared.sources),
+        "search_seconds": round(time.monotonic() - started, 1),
+    }
     if with_answer:
-        events = list(chat.answer(conn, embedder, q.text, [], settings,
-                                  llm=llm or chat.stream_ollama, prepared=prepared))
+        events = list(
+            chat.answer(
+                conn,
+                embedder,
+                q.text,
+                [],
+                settings,
+                llm=llm or chat.stream_ollama,
+                prepared=prepared,
+            )
+        )
         result["answer"] = check_answer(q, events)
     return result
 
@@ -215,12 +280,12 @@ def run_question(conn, embedder, q: Question, settings: chat.Settings, *, with_a
 # --------------------------------------------------------------------------- #
 #  Сводка и отчёт
 # --------------------------------------------------------------------------- #
-def _avg(values: list) -> float | None:
+def _avg(values: list[Any]) -> float | None:
     values = [v for v in values if v is not None]
     return round(sum(values) / len(values), 2) if values else None
 
 
-def summarize(results: list[dict]) -> dict:
+def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
     base = [r for r in results if r["expect"] == IN_BASE]
     control = [r for r in results if r["expect"] == NOT_IN_BASE]
     out = {
@@ -236,17 +301,20 @@ def summarize(results: list[dict]) -> dict:
         base_a = [r for r in answered if r["expect"] == IN_BASE]
         control_a = [r for r in answered if r["expect"] == NOT_IN_BASE]
         in_base = [r for r in base_a if r["answer"]["mode"] == "база"]
-        out.update({
-            "answer_ok": share(sum(r["answer"]["ok"] for r in answered), len(answered)),
-            "answer_in_base": share(len(in_base), len(base_a)),
-            "answer_chars": _avg([r["answer"]["chars"] for r in in_base]),
-            "answer_coverage": _avg([r["answer"]["coverage"] for r in in_base]),
-            "answer_keywords": _avg([r["answer"]["keywords"] for r in in_base]),
-            "answer_unknown": sum(bool(r["answer"]["unknown"]) for r in answered),
-            "control_general": share(sum(r["answer"]["mode"] == "без базы" for r in control_a),
-                                     len(control_a)),
-            "answer_seconds": _avg([r["answer"]["seconds"] for r in answered]),
-        })
+        out.update(
+            {
+                "answer_ok": share(sum(r["answer"]["ok"] for r in answered), len(answered)),
+                "answer_in_base": share(len(in_base), len(base_a)),
+                "answer_chars": _avg([r["answer"]["chars"] for r in in_base]),
+                "answer_coverage": _avg([r["answer"]["coverage"] for r in in_base]),
+                "answer_keywords": _avg([r["answer"]["keywords"] for r in in_base]),
+                "answer_unknown": sum(bool(r["answer"]["unknown"]) for r in answered),
+                "control_general": share(
+                    sum(r["answer"]["mode"] == "без базы" for r in control_a), len(control_a)
+                ),
+                "answer_seconds": _avg([r["answer"]["seconds"] for r in answered]),
+            }
+        )
     return out
 
 
@@ -267,13 +335,13 @@ LABELS = [
 ]
 
 
-def _fmt(value, kind: str) -> str:
+def _fmt(value: Any, kind: str) -> str:
     if value is None:
         return "—"
     return f"{value:.0%}" if kind == "доля" else f"{value:g}"
 
 
-def _delta(now, before, kind: str) -> str:
+def _delta(now: Any, before: Any, kind: str) -> str:
     if now is None or before is None or now == before:
         return ""
     diff = now - before
@@ -281,49 +349,74 @@ def _delta(now, before, kind: str) -> str:
     return f" ({text} к прошлому)"
 
 
-def by_group(results: list[dict], key: str) -> list[tuple[str, int, float | None]]:
+def by_group(results: list[dict[str, Any]], key: str) -> list[tuple[str, int, float | None]]:
     """Средняя доля ключевого в найденном — по понятию, территории или методу."""
-    groups: dict[str, list] = {}
+    groups: dict[str, list[Any]] = {}
     for r in results:
         if r.get(key):
             groups.setdefault(r[key], []).append(r["search"]["keywords"])
-    return sorted(((name, len(v), _avg(v)) for name, v in groups.items()),
-                  key=lambda x: (x[2] if x[2] is not None else -1))
+    return sorted(
+        ((name, len(v), _avg(v)) for name, v in groups.items()),
+        key=lambda x: (x[2] if x[2] is not None else -1),
+    )
 
 
-def report(results: list[dict], summary: dict, previous: dict | None, meta: dict) -> str:
+def report(
+    results: list[dict[str, Any]],
+    summary: dict[str, Any],
+    previous: dict[str, Any] | None,
+    meta: dict[str, Any],
+) -> str:
     lines = [f"# Оценка базы знаний — {meta['when']}", ""]
-    lines.append(f"Вопросов: {summary['questions']} · в базе: {meta['documents']} статей, "
-                 f"{meta['chunks']} фрагментов · модель: {meta['model']}"
-                 + ("" if meta["with_answer"] else " · только поиск"))
+    lines.append(
+        f"Вопросов: {summary['questions']} · в базе: {meta['documents']} статей, "
+        f"{meta['chunks']} фрагментов · модель: {meta['model']}"
+        + ("" if meta["with_answer"] else " · только поиск")
+    )
     if not meta.get("planner"):
         lines.append("")
-        lines.append("Модель не отвечала — поиск шёл только по самому вопросу и отбирал по "
-                     "порогу близости, без модели. С моделью найдётся больше и точнее.")
+        lines.append(
+            "Модель не отвечала — поиск шёл только по самому вопросу и отбирал по "
+            "порогу близости, без модели. С моделью найдётся больше и точнее."
+        )
     lines += ["", "## Итог", "", "| показатель | значение |", "|---|---|"]
     for key, label, kind in LABELS:
         if key in summary:
             before = (previous or {}).get(key)
-            lines.append(f"| {label} | {_fmt(summary[key], kind)}{_delta(summary[key], before, kind)} |")
+            lines.append(
+                f"| {label} | {_fmt(summary[key], kind)}{_delta(summary[key], before, kind)} |"
+            )
 
     weak = [g for g in by_group(results, "concept") if g[2] is not None and g[2] < MIN_KEYWORDS]
     if weak:
-        lines += ["", "## Где базе не хватает статей", "",
-                  "Понятия, по которым в найденном меньше половины ключевого. Добрать статьи: "
-                  "`python georag.py all --topics topics-check.yaml`.", ""]
+        lines += [
+            "",
+            "## Где базе не хватает статей",
+            "",
+            "Понятия, по которым в найденном меньше половины ключевого. Добрать статьи: "
+            "`python georag.py all --topics topics-check.yaml`.",
+            "",
+        ]
         lines += [f"- {name} — {v:.0%} (вопросов: {n})" for name, n, v in weak]
 
-    lines += ["", "## По вопросам", "",
-              "| id | вопрос | найдено | ключевое в найденном | ответ | длина | ссылки | итог |",
-              "|---|---|---|---|---|---|---|---|"]
+    lines += [
+        "",
+        "## По вопросам",
+        "",
+        "| id | вопрос | найдено | ключевое в найденном | ответ | длина | ссылки | итог |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
     for r in results:
         s = r["search"]
         a = r.get("answer")
         verdict_ok = s["ok"] and (a is None or a["ok"])
         cells = [r["id"], r["question"][:70], str(s["found"]), _fmt(s["keywords"], "доля")]
         if a:
-            cells += [a["mode"] or "ошибка", str(a["chars"]),
-                      f"{a['claims'][0]}/{a['claims'][1]}" if a["claims"][1] else "—"]
+            cells += [
+                a["mode"] or "ошибка",
+                str(a["chars"]),
+                f"{a['claims'][0]}/{a['claims'][1]}" if a["claims"][1] else "—",
+            ]
         else:
             cells += ["—", "—", "—"]
         cells.append("да" if verdict_ok else "нет")
@@ -337,14 +430,19 @@ def report(results: list[dict], summary: dict, previous: dict | None, meta: dict
             s = r["search"]
             if not s["ok"]:
                 if r["expect"] == IN_BASE and not s["found"]:
-                    lines.append("- поиск: близких фрагментов нет — в базе нет статей по теме "
-                                 "или порог слишком строгий")
+                    lines.append(
+                        "- поиск: близких фрагментов нет — в базе нет статей по теме "
+                        "или порог слишком строгий"
+                    )
                 elif r["expect"] == IN_BASE:
                     if s["missing"]:
-                        lines.append("- поиск: в найденном нет ключевого — " + ", ".join(s["missing"]))
+                        lines.append(
+                            "- поиск: в найденном нет ключевого — " + ", ".join(s["missing"])
+                        )
                     if s.get("docs_missing"):
-                        lines.append("- поиск: не найдены нужные статьи — "
-                                     + ", ".join(s["docs_missing"]))
+                        lines.append(
+                            "- поиск: не найдены нужные статьи — " + ", ".join(s["docs_missing"])
+                        )
                 else:
                     lines.append(f"- поиск: на вопрос не по теме нашлось {s['found']} фрагментов")
             for problem in r.get("answer", {}).get("problems", []):
@@ -354,12 +452,15 @@ def report(results: list[dict], summary: dict, previous: dict | None, meta: dict
     return "\n".join(lines).rstrip() + "\n"
 
 
-def previous_run(log_dir: Path, before: str) -> dict | None:
+def previous_run(log_dir: Path, before: str) -> dict[str, Any] | None:
     """Сводка прошлого прогона — из последнего eval-*.json в папке логов."""
     runs = sorted(p for p in log_dir.glob("eval-*.json") if p.stem < f"eval-{before}")
     for path in reversed(runs):
         try:
-            return json.loads(path.read_text(encoding="utf-8")).get("summary")
+            summary: dict[str, Any] | None = json.loads(path.read_text(encoding="utf-8")).get(
+                "summary"
+            )
+            return summary
         except (OSError, json.JSONDecodeError):
             continue
     return None
@@ -411,35 +512,49 @@ def main(argv: list[str] | None = None) -> int:
         info = db.stats(conn)
         for i, q in enumerate(questions, start=1):
             print(f"[{i}/{len(questions)}] {q.id}: {q.text[:70]}", file=sys.stderr)
-            r = run_question(conn, embedder, q, settings, with_answer=with_answer,
-                             planner=planner, judge=judge)
+            r = run_question(
+                conn, embedder, q, settings, with_answer=with_answer, planner=planner, judge=judge
+            )
             results.append(r)
             s, a = r["search"], r.get("answer")
-            line = (f"    поиск: {s['found']} фрагм., кругов {r['rounds']}, "
-                    f"ключевого {_fmt(s['keywords'], 'доля')}")
+            line = (
+                f"    поиск: {s['found']} фрагм., кругов {r['rounds']}, "
+                f"ключевого {_fmt(s['keywords'], 'доля')}"
+            )
             if a:
-                line += f"; ответ: {a['mode']}, {a['chars']} зн." + ("" if a["ok"] else
-                                                                     " — " + "; ".join(a["problems"]))
+                line += f"; ответ: {a['mode']}, {a['chars']} зн." + (
+                    "" if a["ok"] else " — " + "; ".join(a["problems"])
+                )
             print(line, file=sys.stderr)
 
     when = datetime.now().strftime("%Y%m%d-%H%M")
     args.logs.mkdir(parents=True, exist_ok=True)
     previous = previous_run(args.logs, when)
     summary = summarize(results)
-    meta = {"when": datetime.now().strftime("%d.%m.%Y %H:%M"), "documents": info["documents"],
-            "chunks": info["chunks"], "model": settings.model,
-            "with_answer": with_answer, "planner": status["ok"]}
+    meta = {
+        "when": datetime.now().strftime("%d.%m.%Y %H:%M"),
+        "documents": info["documents"],
+        "chunks": info["chunks"],
+        "model": settings.model,
+        "with_answer": with_answer,
+        "planner": status["ok"],
+    }
     md = report(results, summary, previous, meta)
     (args.logs / f"eval-{when}.md").write_text(md, encoding="utf-8")
     (args.logs / f"eval-{when}.json").write_text(
-        json.dumps({"meta": meta, "summary": summary, "results": results},
-                   ensure_ascii=False, indent=1), encoding="utf-8")
+        json.dumps(
+            {"meta": meta, "summary": summary, "results": results}, ensure_ascii=False, indent=1
+        ),
+        encoding="utf-8",
+    )
 
     print()
     for key, label, kind in LABELS:
         if key in summary:
-            print(f"  {label}: {_fmt(summary[key], kind)}"
-                  f"{_delta(summary[key], (previous or {}).get(key), kind)}")
+            print(
+                f"  {label}: {_fmt(summary[key], kind)}"
+                f"{_delta(summary[key], (previous or {}).get(key), kind)}"
+            )
     print(f"\nОтчёт: {args.logs / f'eval-{when}.md'}")
     return 0
 

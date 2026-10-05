@@ -6,7 +6,8 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from collections.abc import Callable
+from typing import Any, Protocol
 
 from ..models import Candidate
 from ..sources import SourceConfig
@@ -29,10 +30,10 @@ def build_providers(sources: list[SourceConfig]) -> tuple[list[SearchProvider], 
     from .json_api import JsonApiProvider
     from .openalex import OpenAlexProvider
 
-    registry = {
+    registry: dict[str, Callable[[str, dict[str, Any]], SearchProvider]] = {
         "openalex": OpenAlexProvider,
         "crossref": CrossrefProvider,
-        "json_api": JsonApiProvider,   # источник, описанный в каталоге, без кода
+        "json_api": JsonApiProvider,  # источник, описанный в каталоге, без кода
     }
 
     providers: list[SearchProvider] = []
@@ -48,8 +49,7 @@ def build_providers(sources: list[SourceConfig]) -> tuple[list[SearchProvider], 
         factory = registry.get(src.provider)
         if factory is None:
             skipped.append(
-                f"{src.name}: провайдер «{src.provider}» неизвестен; "
-                f"есть {sorted(registry)}"
+                f"{src.name}: провайдер «{src.provider}» неизвестен; " f"есть {sorted(registry)}"
             )
             continue
         try:

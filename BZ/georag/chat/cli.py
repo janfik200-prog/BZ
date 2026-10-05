@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from typing import Any
 
 from ..common import add_db_args, add_embedder_args, add_llm_args
 from ..index import db
@@ -34,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print("Загружаю модель эмбеддингов…", file=sys.stderr)
     embedder = build_embedder(args.embedder, device=args.device)
-    sources: list[dict] = []
+    sources: list[dict[str, Any]] = []
     code = 0
     with db.connect(args.dsn) as conn:
         for event in answer(conn, embedder, args.question, settings=settings):
@@ -43,23 +44,36 @@ def main(argv: list[str] | None = None) -> int:
             elif event["type"] == "sources":
                 sources = event["sources"]
                 if event.get("dataset"):
-                    print(f"Собрано из фактов графа о «{event['dataset']}» — по всем статьям базы",
-                          file=sys.stderr)
+                    print(
+                        f"Собрано из фактов графа о «{event['dataset']}» — по всем статьям базы",
+                        file=sys.stderr,
+                    )
                 for i, part in enumerate(event.get("parts") or [], start=1):
-                    print(f"Часть {i}: {part['question']} — фрагментов {part['found']}",
-                          file=sys.stderr)
-                print("Искал: " + " · ".join(f"«{q}»" for q in event["queries"]),
-                      file=sys.stderr)
+                    print(
+                        f"Часть {i}: {part['question']} — фрагментов {part['found']}",
+                        file=sys.stderr,
+                    )
+                print("Искал: " + " · ".join(f"«{q}»" for q in event["queries"]), file=sys.stderr)
                 if event.get("judged") is False:
-                    print("Модель при отборе не ответила — фрагменты взяты по близости",
-                          file=sys.stderr)
+                    print(
+                        "Модель при отборе не ответила — фрагменты взяты по близости",
+                        file=sys.stderr,
+                    )
                 elif event.get("checked"):
-                    print(f"Модель прочла найденное (фрагментов: {event['checked']}), взяла "
-                          f"{len(sources)}; кругов поиска: {event.get('rounds', 1)}", file=sys.stderr)
+                    print(
+                        f"Модель прочла найденное (фрагментов: {event['checked']}), взяла "
+                        f"{len(sources)}; кругов поиска: {event.get('rounds', 1)}",
+                        file=sys.stderr,
+                    )
                 if event.get("extra"):
                     missing = event.get("missing") or []
-                    print("Искал ещё" + (f" (не хватало: {'; '.join(missing)})" if missing else "")
-                          + ": " + " · ".join(f"«{q}»" for q in event["extra"]), file=sys.stderr)
+                    print(
+                        "Искал ещё"
+                        + (f" (не хватало: {'; '.join(missing)})" if missing else "")
+                        + ": "
+                        + " · ".join(f"«{q}»" for q in event["extra"]),
+                        file=sys.stderr,
+                    )
                 print(file=sys.stderr)
             elif event["type"] == "general":
                 print("Искал: " + " · ".join(f"«{q}»" for q in event["queries"]), file=sys.stderr)
@@ -80,8 +94,10 @@ def main(argv: list[str] | None = None) -> int:
                     if s.get("url"):
                         print(f"       {s['url']}")
                 if event["unknown"]:
-                    print(f"\nВнимание: модель сослалась на несуществующие фрагменты "
-                          f"{event['unknown']} — эти утверждения не подтверждены.")
+                    print(
+                        f"\nВнимание: модель сослалась на несуществующие фрагменты "
+                        f"{event['unknown']} — эти утверждения не подтверждены."
+                    )
                 cited, claims = event.get("coverage") or (0, 0)
                 if claims:
                     print(f"\nСсылка на фрагмент — у {cited} из {claims} утверждений.")

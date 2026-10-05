@@ -1,0 +1,34 @@
+# Темы по дистанционному зондированию Земли (ДЗЗ) — в русле проекта: поиски и
+# прогноз оруденения по космическим снимкам. Цель — около 100 статей.
+#
+# Запуск:
+#   python georag.py all --topics topics-dzz.yaml --max-docs 20
+#   python georag.py ingest
+#   python georag.py graph            (факты из новых статей — долго, можно ночью)
+#
+# Уже добытые статьи пропускаются по индексу: прогон можно повторять.
+# Английских тем больше: открытых статей по ДЗЗ на английском в разы больше.
+
+topics:
+  # общее: ДЗЗ в поисках
+  - дистанционное зондирование поиски месторождений полезных ископаемых
+  - дешифрирование космических снимков геологическое картирование
+  - remote sensing mineral exploration
+  - remote sensing gold exploration
+
+  # гидротермальные изменения по спектрам
+  - картирование гидротермальных изменений по космическим снимкам
+  - ASTER hydrothermal alteration mineral mapping
+  - Sentinel-2 hydrothermal alteration mapping
+  - Landsat 8 OLI band ratio alteration zones
+  - hyperspectral remote sensing mineral mapping
+  - WorldView-3 SWIR alteration mineral mapping
+
+  # структуры: линеаменты, кольцевые структуры, радар
+  - линеаментный анализ по космическим снимкам
+  - lineament extraction satellite imagery mineral prospectivity
+  - SAR radar structural mapping mineral exploration
+
+  # машинное обучение по снимкам и северные территории
+  - machine learning remote sensing mineral prospectivity
+  - remote sensing geological mapping Arctic Siberia

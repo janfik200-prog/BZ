@@ -16,9 +16,9 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import db
 from ..common import add_db_args
 from ..llm import OLLAMA_HOST
+from . import db
 from .embed import build_embedder
 from .ingest import ingest_dir
 from .search import hybrid_search
@@ -36,7 +36,9 @@ def build_parser() -> argparse.ArgumentParser:
         default="local",
         help="чем считать векторы: local — прямо на видеокарте (по умолчанию), либо ollama",
     )
-    p.add_argument("--model", default=None, help="имя модели: bge-m3 для ollama, BAAI/bge-m3 для local")
+    p.add_argument(
+        "--model", default=None, help="имя модели: bge-m3 для ollama, BAAI/bge-m3 для local"
+    )
     p.add_argument("--ollama-host", default=OLLAMA_HOST)
     p.add_argument("--device", choices=["auto", "cuda", "cpu"], default="auto")
     p.add_argument("--batch", type=int, default=8, help="сколько чанков кодировать за раз")
@@ -45,14 +47,21 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--candidates", type=int, default=50, help="сколько брать из каждого поиска")
     p.add_argument("--year-from", type=int, default=None)
     p.add_argument("--source", default=None, help="искать только по одному источнику")
-    p.add_argument("--per-doc", type=int, default=2,
-                   help="сколько кусков одной статьи показывать (0 — без ограничения)")
     p.add_argument(
-        "--min-similarity", type=float, default=0.0,
+        "--per-doc",
+        type=int,
+        default=2,
+        help="сколько кусков одной статьи показывать (0 — без ограничения)",
+    )
+    p.add_argument(
+        "--min-similarity",
+        type=float,
+        default=0.0,
         help="отсечь непохожее: 0.45 — обычно, 0.55 — строго, 0 — показывать всё",
     )
     p.add_argument(
-        "--require-words", action="store_true",
+        "--require-words",
+        action="store_true",
         help="только куски, где есть все слова запроса",
     )
     p.add_argument("--no-hnsw", action="store_true", help="не строить векторный индекс")
@@ -99,11 +108,21 @@ def main(argv: list[str] | None = None) -> int:
                     f"\nДокументов просмотрено {report.seen}, проиндексировано {report.indexed}, "
                     f"пропущено {report.skipped}, без чанков {report.empty}; "
                     f"чанков записано {report.chunks}"
-                    + (f"; библиографии отброшено {report.refs_dropped}" if report.refs_dropped else "")
-                    + (f"; повторов одной статьи пропущено {report.duplicates}"
-                       if report.duplicates else "")
-                    + (f"; убранных через clean забыто {report.forgotten}"
-                       if report.forgotten else "")
+                    + (
+                        f"; библиографии отброшено {report.refs_dropped}"
+                        if report.refs_dropped
+                        else ""
+                    )
+                    + (
+                        f"; повторов одной статьи пропущено {report.duplicates}"
+                        if report.duplicates
+                        else ""
+                    )
+                    + (
+                        f"; убранных через clean забыто {report.forgotten}"
+                        if report.forgotten
+                        else ""
+                    )
                 )
                 for error in report.errors:
                     print(f"  ! {error}")

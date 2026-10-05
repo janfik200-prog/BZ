@@ -18,14 +18,15 @@
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from .config import Settings
 from .models import Chunk, ParsedDoc
 
 
-def _build_chunker(settings: Settings):
-    from docling.chunking import HybridChunker
+def _build_chunker(settings: Settings) -> Any:
+    from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
     from transformers import AutoTokenizer
 
     hf_tokenizer = AutoTokenizer.from_pretrained(settings.embed_model_id)
@@ -37,30 +38,32 @@ def _build_chunker(settings: Settings):
         tokenizer = HuggingFaceTokenizer(tokenizer=hf_tokenizer, max_tokens=budget)
         chunker = HybridChunker(tokenizer=tokenizer, merge_peers=True)
     except ImportError:  # pragma: no cover — старый API
-        chunker = HybridChunker(tokenizer=hf_tokenizer, max_tokens=budget, merge_peers=True)
+        chunker = HybridChunker(  # type: ignore[call-arg]
+            tokenizer=hf_tokenizer, max_tokens=budget, merge_peers=True  # type: ignore[arg-type]
+        )
 
     return chunker, hf_tokenizer
 
 
-def _pages_of(chunk) -> list[int]:
+def _pages_of(chunk: Any) -> list[int]:
     pages: set[int] = set()
-    for item in (getattr(chunk.meta, "doc_items", None) or []):
-        for prov in (getattr(item, "prov", None) or []):
+    for item in getattr(chunk.meta, "doc_items", None) or []:
+        for prov in getattr(item, "prov", None) or []:
             page_no = getattr(prov, "page_no", None)
             if page_no is not None:
                 pages.add(int(page_no))
     return sorted(pages)
 
 
-def _has_table(chunk) -> bool:
-    for item in (getattr(chunk.meta, "doc_items", None) or []):
+def _has_table(chunk: Any) -> bool:
+    for item in getattr(chunk.meta, "doc_items", None) or []:
         label = getattr(item, "label", "")
         if "table" in str(getattr(label, "value", label)).lower():
             return True
     return False
 
 
-def _apply_overlap(chunks: list[Chunk], hf_tokenizer, overlap_tokens: int) -> list[Chunk]:
+def _apply_overlap(chunks: list[Chunk], hf_tokenizer: Any, overlap_tokens: int) -> list[Chunk]:
     """Добавляет хвост предыдущего чанка в начало embed_text следующего."""
     if overlap_tokens <= 0:
         return chunks
@@ -148,7 +151,7 @@ def _paragraphs(text: str) -> Iterable[str]:
             yield block
 
 
-def _pieces(paragraphs: Iterable[str], hf_tokenizer, budget: int) -> Iterable[str]:
+def _pieces(paragraphs: Iterable[str], hf_tokenizer: Any, budget: int) -> Iterable[str]:
     """Абзацы, а слишком длинный — по предложениям.
 
     PDF без разметки абзацев отдаёт страницу одним куском. Раньше такой кусок
@@ -161,17 +164,18 @@ def _pieces(paragraphs: Iterable[str], hf_tokenizer, budget: int) -> Iterable[st
         if len(hf_tokenizer.encode(para, add_special_tokens=False)) <= budget:
             yield para
             continue
-        buffer, used = [], 0
+        buffer: list[Any] = []
+        used = 0
         for sentence in split_sentences(para) or [para]:
             n = len(hf_tokenizer.encode(sentence, add_special_tokens=False))
             if buffer and used + n > budget:
                 yield " ".join(buffer)
                 buffer, used = [], 0
-            if n > budget:              # одно «предложение» длиннее бюджета — режем по словам
+            if n > budget:  # одно «предложение» длиннее бюджета — режем по словам
                 words = sentence.split()
                 step = max(1, len(words) * budget // n)
                 for start in range(0, len(words), step):
-                    yield " ".join(words[start:start + step])
+                    yield " ".join(words[start : start + step])
                 continue
             buffer.append(sentence)
             used += n
@@ -179,7 +183,9 @@ def _pieces(paragraphs: Iterable[str], hf_tokenizer, budget: int) -> Iterable[st
             yield " ".join(buffer)
 
 
-def _plain_chunk(parsed: ParsedDoc, index: int, buffer: list[str], n_tokens: int, page_no: int) -> Chunk:
+def _plain_chunk(
+    parsed: ParsedDoc, index: int, buffer: list[str], n_tokens: int, page_no: int
+) -> Chunk:
     body = "\n\n".join(buffer)
     return Chunk(
         doc_id=parsed.doc_id,

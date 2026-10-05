@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any
 
 from ..text import mentions, normalize
 
@@ -48,10 +49,10 @@ def _usable(name: str) -> bool:
     return bool(name) and len(name.split()) <= MAX_NAME_WORDS and not _DIGITS.search(name)
 
 
-def pick(g, limit: int = 30) -> list:
+def pick(g: Any, limit: int = 30) -> list[Any]:
     """Факты для вопросов: по очереди из разных статей, сначала подтверждённые
     несколькими статьями и с именами покороче."""
-    by_doc: dict[str, list] = {}
+    by_doc: dict[str, list[Any]] = {}
     for link in g.links.values():
         if not (_usable(link.src) and _usable(link.dst)):
             continue
@@ -59,7 +60,8 @@ def pick(g, limit: int = 30) -> list:
         by_doc.setdefault(doc, []).append(link)
     for links in by_doc.values():
         links.sort(key=lambda lk: (-lk.documents, len(lk.src) + len(lk.dst)))
-    out, round_ = [], 0
+    out: list[Any] = []
+    round_ = 0
     while len(out) < limit:
         taken = False
         for links in by_doc.values():
@@ -74,18 +76,20 @@ def pick(g, limit: int = 30) -> list:
     return out
 
 
-def template(link) -> str:
+def template(link: Any) -> str:
     """Вопрос без модели: имя и связь, ответ — пропуск."""
     return f"«{link.src}» — {link.relation} — что именно, по статьям базы?"
 
 
-def phrase(llm, link) -> str:
+def phrase(llm: Any, link: Any) -> str:
     """Модель переформулирует факт в вопрос. Не ответила или выдала ответ в вопросе — шаблон."""
     quote = link.facts[0]["quote"]
     try:
-        data = llm.chat_json(SYSTEM, USER.format(src=link.src, relation=link.relation,
-                                                 dst=link.dst, quote=quote[:600]))
-        text = " ".join(str(data.get("вопрос") or "").split()).strip(" «»\"")
+        data = llm.chat_json(
+            SYSTEM,
+            USER.format(src=link.src, relation=link.relation, dst=link.dst, quote=quote[:600]),
+        )
+        text = " ".join(str(data.get("вопрос") or "").split()).strip(' «»"')
     except Exception:  # noqa: BLE001
         return template(link)
     # Ответ в вопросе — в любом падеже («зонам дробления» для «зоны дробления»).
@@ -94,28 +98,38 @@ def phrase(llm, link) -> str:
     return text if text.endswith("?") else text + "?"
 
 
-def keywords(link) -> list[str]:
+def keywords(link: Any) -> list[str]:
     """Ключевое для ответа — второй конец факта; через | — его самое длинное слово,
     чтобы сверка по словам не требовала всего имени дословно."""
     words = sorted(re.findall(r"[A-Za-zА-Яа-яЁё]{5,}", link.dst), key=len, reverse=True)
-    group = [link.dst] + ([words[0]] if words and normalize(words[0]) != normalize(link.dst) else [])
+    group = [link.dst] + (
+        [words[0]] if words and normalize(words[0]) != normalize(link.dst) else []
+    )
     return ["|".join(w.replace("|", "/") for w in group)]
 
 
-def build(g, llm=None, limit: int = 30, log=print) -> list[dict]:
+def build(g: Any, llm: Any = None, limit: int = 30, log: Any = print) -> list[dict[str, Any]]:
     out = []
     for i, link in enumerate(pick(g, limit), start=1):
         question = phrase(llm, link) if llm is not None else template(link)
         docs = sorted({f["doc_id"] for f in link.facts})
-        out.append({"id": f"g{i:02d}", "вопрос": question, "ожидание": "база",
-                    "понятие": link.relation, "ключевые": keywords(link), "статьи": docs,
-                    "факт": f"{link.src} — {link.relation} — {link.dst}"})
+        out.append(
+            {
+                "id": f"g{i:02d}",
+                "вопрос": question,
+                "ожидание": "база",
+                "понятие": link.src,  # о чём вопрос: по нему отчёт ищет, где мало статей
+                "ключевые": keywords(link),
+                "статьи": docs,
+                "факт": f"{link.src} — {link.relation} — {link.dst}",
+            }
+        )
         if log and i % 10 == 0:
             log(f"  вопросов: {i}")
     return out
 
 
-def to_yaml(items: list[dict]) -> str:
+def to_yaml(items: list[dict[str, Any]]) -> str:
     import yaml
 
     head = [

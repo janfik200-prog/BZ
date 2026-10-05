@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import time
+from typing import Any
 from urllib.parse import quote
 
 from ..models import Candidate
@@ -36,7 +37,7 @@ FIELDS = (
 )
 
 
-def _dig(node, parts: list[str]):
+def _dig(node: Any, parts: list[str]) -> Any:
     if node is None or not parts:
         return node
     part, rest = parts[0], parts[1:]
@@ -56,7 +57,7 @@ def _dig(node, parts: list[str]):
     return _dig(node.get(part), rest)
 
 
-def pick(item, spec: str | None):
+def pick(item: Any, spec: str | None) -> Any:
     """Значение по пути. Несколько путей через | — берётся первый непустой."""
     for path in (spec or "").split("|"):
         path = path.strip()
@@ -68,32 +69,32 @@ def pick(item, spec: str | None):
     return None
 
 
-def _text(value) -> str:
+def _text(value: Any) -> str:
     if isinstance(value, list):
         value = value[0] if value else ""
     return str(value).strip() if value is not None else ""
 
 
-def _year(value) -> int | None:
+def _year(value: Any) -> int | None:
     text = _text(value)
     digits = "".join(ch for ch in text[:4] if ch.isdigit())
     return int(digits) if len(digits) == 4 else None
 
 
-def _strip_doi(value) -> str | None:
+def _strip_doi(value: Any) -> str | None:
     text = _text(value)
     if not text:
         return None
     for prefix in ("https://doi.org/", "http://dx.doi.org/", "doi:"):
         if text.startswith(prefix):
-            return text[len(prefix):]
+            return text[len(prefix) :]
     return text
 
 
 class JsonApiProvider:
     """Любой поисковый API, отдающий JSON, описанный параметрами из каталога."""
 
-    def __init__(self, name: str = "json_api", params: dict | None = None):
+    def __init__(self, name: str = "json_api", params: dict[str, Any] | None = None):
         params = params or {}
         if not params.get("url"):
             raise ValueError(f"источнику «{name}» нужен параметр url")
@@ -147,7 +148,7 @@ class JsonApiProvider:
 
         return [self._to_candidate(item, query) for item in items][:limit]
 
-    def _to_candidate(self, item: dict, query: str) -> Candidate:
+    def _to_candidate(self, item: dict[str, Any], query: str) -> Candidate:
         authors = pick(item, self.map.get("authors"))
         if not isinstance(authors, list):
             authors = [authors] if authors else []

@@ -34,7 +34,9 @@ def test_garbage_ratio() -> None:
     print("\nМусор и кодировка")
     clean = "Плотность линеаментов на Анабарском щите оценена методом кокригинга (n = 128)."
     broken = "(cid:34)(cid:9)(cid:120) ��� \x01\x02\x03 ???"
-    check("чистый русский текст проходит", garbage_ratio(clean) < 0.05, f"{garbage_ratio(clean):.1%}")
+    check(
+        "чистый русский текст проходит", garbage_ratio(clean) < 0.05, f"{garbage_ratio(clean):.1%}"
+    )
     check("битые шрифты ловятся", garbage_ratio(broken) > 0.10, f"{garbage_ratio(broken):.1%}")
 
 
@@ -141,7 +143,7 @@ class _FakeTokenizer:
         return " ".join(self.vocab[i] for i in ids)
 
     @classmethod
-    def from_pretrained(cls, *_args, **_kwargs) -> "_FakeTokenizer":
+    def from_pretrained(cls, *_args, **_kwargs) -> _FakeTokenizer:
         return cls()
 
 
@@ -169,8 +171,11 @@ def test_chunking_budget_and_overlap() -> None:
     s = Settings(max_tokens=200, overlap_tokens=0)
     chunks = _chunk_plain_text(parsed, s)
     check("документ порезан на несколько чанков", len(chunks) >= 2, f"{len(chunks)} чанков")
-    check("бюджет токенов соблюдён", all(c.n_tokens <= s.max_tokens for c in chunks),
-          f"максимум {max(c.n_tokens for c in chunks)}")
+    check(
+        "бюджет токенов соблюдён",
+        all(c.n_tokens <= s.max_tokens for c in chunks),
+        f"максимум {max(c.n_tokens for c in chunks)}",
+    )
     check("страница сохранена для цитирования", all(c.pages == [1] for c in chunks))
 
     s_ov = Settings(max_tokens=200, overlap_tokens=30)

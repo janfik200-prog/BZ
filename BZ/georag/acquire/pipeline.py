@@ -15,6 +15,7 @@ import json
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from ..parse.config import Settings
 from ..parse.models import OK, PARTIAL, ParseInput
@@ -25,13 +26,13 @@ from .llm import filter_candidates
 from .models import (
     ACQUIRED,
     FETCH_FAILED,
-    NOT_FETCHED,
     NO_FULLTEXT,
+    NOT_FETCHED,
     PARSE_FAILED,
     REJECTED,
     UNREVIEWED,
-    AcquireReport,
     AcquiredRecord,
+    AcquireReport,
     Candidate,
 )
 from .providers import build_providers
@@ -54,10 +55,10 @@ class AcquireConfig:
     force: bool = False
     make_chunks: bool = True
     mailto: str = ""
-    fallback_filter: bool = True   # если модель молчит, решает эвристика, а не человек
+    fallback_filter: bool = True  # если модель молчит, решает эвристика, а не человек
     prefer_fetchable: bool = True  # сначала статьи, у которых есть полный текст
-    max_fetch_attempts: int = 4    # сколько копий полного текста пробовать подряд
-    max_candidates: int = 120      # предел на отбор: ночной прогон должен заканчиваться
+    max_fetch_attempts: int = 4  # сколько копий полного текста пробовать подряд
+    max_candidates: int = 120  # предел на отбор: ночной прогон должен заканчиваться
     # До модели — дешёвый доменный фильтр: без единого слова рудной тематики в
     # названии и аннотации статья отбрасывается сразу. Модель не тратит на неё время,
     # и место в пределе отбора достаётся статьям, которые могут подойти.
@@ -70,11 +71,11 @@ class AcquireConfig:
 # --------------------------------------------------------------------------- #
 #  Индекс уже добытого — дедупликация между прогонами
 # --------------------------------------------------------------------------- #
-def load_index(out_dir: Path) -> dict[str, dict]:
+def load_index(out_dir: Path) -> dict[str, dict[str, Any]]:
     path = out_dir / INDEX_NAME
     if not path.exists():
         return {}
-    index: dict[str, dict] = {}
+    index: dict[str, dict[str, Any]] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line:
@@ -97,7 +98,7 @@ def append_index(out_dir: Path, record: AcquiredRecord) -> None:
 # --------------------------------------------------------------------------- #
 #  Шаги
 # --------------------------------------------------------------------------- #
-def _queries_for(topic: str, llm, fallback, cfg: "AcquireConfig", logger) -> list[str]:
+def _queries_for(topic: str, llm: Any, fallback: Any, cfg: AcquireConfig, logger: Any) -> list[str]:
     """Запросы для темы: готовые из файла, иначе от модели, иначе от эвристики."""
     prepared = (cfg.queries_map or {}).get(topic)
     if prepared:
@@ -106,7 +107,7 @@ def _queries_for(topic: str, llm, fallback, cfg: "AcquireConfig", logger) -> lis
 
     step = time.monotonic()
     try:
-        queries = llm.queries(topic, cfg.queries)
+        queries: list[str] = llm.queries(topic, cfg.queries)
         logger.log("-", "queries", OK, time.monotonic() - step, detail="; ".join(queries))
         return queries
     except Exception as exc:  # noqa: BLE001 — модель недоступна, прогон продолжается
@@ -122,7 +123,7 @@ def _queries_for(topic: str, llm, fallback, cfg: "AcquireConfig", logger) -> lis
         return queries
 
 
-def _search_all(providers, queries, per_query, logger) -> list[Candidate]:
+def _search_all(providers: Any, queries: Any, per_query: Any, logger: Any) -> list[Candidate]:
     found: list[Candidate] = []
     for query in queries:
         for provider in providers:
@@ -150,7 +151,7 @@ def _search_all(providers, queries, per_query, logger) -> list[Candidate]:
     return found
 
 
-def _dedup(candidates: list[Candidate], known: dict[str, dict], force: bool):
+def _dedup(candidates: list[Candidate], known: dict[str, dict[str, Any]], force: bool) -> Any:
     unique: dict[str, Candidate] = {}
     already = 0
     for cand in candidates:
@@ -164,7 +165,7 @@ def _dedup(candidates: list[Candidate], known: dict[str, dict], force: bool):
     return list(unique.values()), already
 
 
-def _write_doc(out_dir: Path, record: AcquiredRecord, parsed, chunks) -> None:
+def _write_doc(out_dir: Path, record: AcquiredRecord, parsed: Any, chunks: Any) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = record.doc_id
 
@@ -190,7 +191,7 @@ def _write_doc(out_dir: Path, record: AcquiredRecord, parsed, chunks) -> None:
 # --------------------------------------------------------------------------- #
 #  Основной проход
 # --------------------------------------------------------------------------- #
-def acquire(topic: str, llm, settings: Settings, cfg: AcquireConfig) -> AcquireReport:
+def acquire(topic: str, llm: Any, settings: Settings, cfg: AcquireConfig) -> AcquireReport:
     started = time.monotonic()
     cfg.out_dir.mkdir(parents=True, exist_ok=True)
     settings.log_dir.mkdir(parents=True, exist_ok=True)
@@ -243,8 +244,13 @@ def acquire(topic: str, llm, settings: Settings, cfg: AcquireConfig) -> AcquireR
                 cand.filtered_by = "доменный фильтр"
                 gated.append(cand)
         candidates = kept
-        logger.log("-", "domain", OK, 0.0,
-                   detail=f"без рудной тематики отброшено {len(gated)}, на отбор {len(candidates)}")
+        logger.log(
+            "-",
+            "domain",
+            OK,
+            0.0,
+            detail=f"без рудной тематики отброшено {len(gated)}, на отбор {len(candidates)}",
+        )
 
     # Порядок решает, на что уйдёт лимит max_docs. Сначала статьи, у которых
     # есть адрес полного текста, среди них — открытый доступ: у платных издателей
@@ -257,7 +263,10 @@ def acquire(topic: str, llm, settings: Settings, cfg: AcquireConfig) -> AcquireR
         dropped = len(candidates) - cfg.max_candidates
         candidates = candidates[: cfg.max_candidates]
         logger.log(
-            "-", "cap", OK, 0.0,
+            "-",
+            "cap",
+            OK,
+            0.0,
             detail=f"на отбор взято {cfg.max_candidates}, отложено {dropped}",
         )
 
@@ -282,13 +291,9 @@ def acquire(topic: str, llm, settings: Settings, cfg: AcquireConfig) -> AcquireR
     )
 
     for cand in rejected:
-        report.records.append(
-            AcquiredRecord.from_candidate(cand, REJECTED, note=cand.reason)
-        )
+        report.records.append(AcquiredRecord.from_candidate(cand, REJECTED, note=cand.reason))
     for cand in unreviewed:
-        report.records.append(
-            AcquiredRecord.from_candidate(cand, UNREVIEWED, note=cand.reason)
-        )
+        report.records.append(AcquiredRecord.from_candidate(cand, UNREVIEWED, note=cand.reason))
 
     if cfg.dry_run:
         for cand in relevant:
@@ -318,8 +323,9 @@ def acquire(topic: str, llm, settings: Settings, cfg: AcquireConfig) -> AcquireR
     return report
 
 
-def acquire_dois(dois: list[str], settings: Settings, cfg: AcquireConfig,
-                 provider=None) -> tuple[AcquireReport, list[str]]:
+def acquire_dois(
+    dois: list[str], settings: Settings, cfg: AcquireConfig, provider: Any = None
+) -> tuple[AcquireReport, list[str]]:
     """Статьи по списку DOI: без поиска и без отбора — их выбрал человек.
 
     Метаданные и адреса полного текста — из OpenAlex, дальше всё как обычно:
@@ -350,8 +356,13 @@ def acquire_dois(dois: list[str], settings: Settings, cfg: AcquireConfig,
     report.found = len(candidates)
     candidates, report.already_known = _dedup(candidates, load_index(cfg.out_dir), cfg.force)
     report.after_dedup = report.relevant = len(candidates)
-    logger.log("-", "dois", OK, 0.0,
-               detail=f"найдено {report.found}, новых {report.after_dedup}, не найдено {len(missing)}")
+    logger.log(
+        "-",
+        "dois",
+        OK,
+        0.0,
+        detail=f"найдено {report.found}, новых {report.after_dedup}, не найдено {len(missing)}",
+    )
     if candidates and not cfg.dry_run:
         worker = DoclingWorker(settings)
         try:
@@ -381,12 +392,15 @@ def load_dois(path: Path) -> list[str]:
             if doi:
                 out.append(str(doi))
         return out
-    return [line.strip() for line in text.splitlines()
-            if line.strip() and not line.lstrip().startswith("#")]
+    return [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
 
 
 def _acquire_one(
-    cand: Candidate, settings: Settings, cfg: AcquireConfig, worker, logger
+    cand: Candidate, settings: Settings, cfg: AcquireConfig, worker: Any, logger: Any
 ) -> AcquiredRecord:
     urls = list(cand.fetch_urls)
     # Страница статьи — последняя попытка: сама она не PDF, но в её мета-тегах
@@ -436,7 +450,11 @@ def _acquire_one(
             time.monotonic() - step,
             detail=(
                 f"пробовали адресов: {len(tried)}"
-                + (f"; последняя причина — {problems[-1].split(' → ', 1)[-1][:90]}" if problems else "")
+                + (
+                    f"; последняя причина — {problems[-1].split(' → ', 1)[-1][:90]}"
+                    if problems
+                    else ""
+                )
             ),
             errors=problems,
         )
@@ -458,7 +476,7 @@ def _acquire_one(
         doc_id=cand.doc_id,
         data=fetched.data,
         display_name=f"{cand.doc_id}.pdf",
-        origin=cand.url,          # вместо пути к файлу с документом живёт ссылка
+        origin=cand.url,  # вместо пути к файлу с документом живёт ссылка
     )
     doc_result, parsed, chunks = process_document(
         inp,
@@ -466,7 +484,7 @@ def _acquire_one(
         worker,
         logger,
         make_chunks=cfg.make_chunks,
-        write_outputs=False,      # свои файлы пишем сами, PDF не сохраняем
+        write_outputs=False,  # свои файлы пишем сами, PDF не сохраняем
     )
 
     status = ACQUIRED if doc_result.status in (OK, PARTIAL) else PARSE_FAILED

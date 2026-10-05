@@ -28,6 +28,7 @@ import json
 import shutil
 import sys
 from pathlib import Path
+from typing import Any
 
 from ..common import add_llm_args
 from .heuristic import has_domain_term
@@ -57,8 +58,9 @@ def judge(acquired: Path, doc_id: str) -> tuple[bool, str]:
     return has_domain_term(f"{title} {text}"), title
 
 
-def recheck(acquired: Path, keep: list[tuple[str, str]], topic: str, model: str,
-            host: str) -> tuple[list, list]:
+def recheck(
+    acquired: Path, keep: list[tuple[str, str]], topic: str, model: str, host: str
+) -> tuple[list[Any], list[Any]]:
     """Спросить Qwen3 про каждую оставшуюся статью. Не отвечает — ничего не трогаем."""
     from .llm import OllamaLLM
     from .models import Candidate
@@ -78,11 +80,11 @@ def recheck(acquired: Path, keep: list[tuple[str, str]], topic: str, model: str,
         cands.append(Candidate(source="-", external_id=doc_id, title=title, abstract=head[:1500]))
     for start in range(0, len(cands), 6):
         try:
-            llm.filter_batch(topic, cands[start:start + 6])
+            llm.filter_batch(topic, cands[start : start + 6])
         except Exception as exc:  # noqa: BLE001 — партия без решения остаётся
             print(f"  модель не ответила на партию: {type(exc).__name__}")
     kept, dropped = [], []
-    for (doc_id, title), cand in zip(keep, cands):
+    for (doc_id, title), cand in zip(keep, cands, strict=True):  # по кандидату на статью
         if cand.relevant is False:
             dropped.append((doc_id, f"{title} — Qwen3: {cand.reason}"))
         else:
@@ -115,7 +117,8 @@ def main() -> int:
         return 0
 
     out = args.acquired / REJECTED_DIR
-    keep, drop = [], []
+    keep: list[tuple[str, str]] = []
+    drop: list[tuple[str, str]] = []
 
     for doc_id in doc_ids:
         ok, title = judge(args.acquired, doc_id)
@@ -129,7 +132,7 @@ def main() -> int:
     print(f"По теме: {len(keep)}")
     print(f"Не по теме: {len(drop)}\n")
 
-    for doc_id, title in drop:
+    for _doc_id, title in drop:
         print(f"  — {title[:70]}")
 
     if not drop:

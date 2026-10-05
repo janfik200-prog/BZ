@@ -1,0 +1,36 @@
+# Настройки проверок кода (раздел 8.2 docs/СИСТЕМНЫЙ-ПРОМПТ.md).
+# Запуск всех трёх разом: python georag.py lint
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".venv", "data", "logs"]
+
+[tool.ruff.lint]
+# E/W — стиль, F — ошибки (неиспользуемое, неопределённое), B — частые ловушки,
+# UP — устаревшие конструкции, I — порядок импортов.
+select = ["E", "W", "F", "B", "UP", "I"]
+ignore = [
+    "E501",   # длину строк держит black
+    "B008",   # вызов в значении по умолчанию — так написаны dataclass-поля проекта
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["georag"]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+extend-exclude = "/(\\.venv|data|logs)/"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true   # docling, sentence-transformers, psycopg — без заглушек типов
+warn_unused_ignores = true
+exclude = ["^\\.venv/", "^data/", "^logs/"]
+
+# PyMuPDF без аннотаций типов: вызовы из запасного парсера — не наша ошибка типов.
+[[tool.mypy.overrides]]
+module = ["georag.parse.fallback"]
+disallow_untyped_calls = false

@@ -20,8 +20,12 @@ def add_db_args(parser: argparse.ArgumentParser) -> None:
 
 
 def add_embedder_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--embedder", choices=["local", "ollama"], default="local",
-                        help="где считать векторы: на видеокарте (local) или в Ollama")
+    parser.add_argument(
+        "--embedder",
+        choices=["local", "ollama"],
+        default="local",
+        help="где считать векторы: на видеокарте (local) или в Ollama",
+    )
     parser.add_argument("--device", choices=DEVICES, default="auto")
 
 

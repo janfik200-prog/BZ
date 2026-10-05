@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 API = "api"
 HTML = "html"
@@ -24,7 +25,7 @@ class SourceConfig:
     mode: str = API
     provider: str = ""
     enabled: bool = False
-    params: dict = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
     notes: str = ""
 
     @property
@@ -32,7 +33,7 @@ class SourceConfig:
         return self.enabled and self.mode == API and bool(self.provider)
 
 
-def _load_raw(path: Path) -> dict:
+def _load_raw(path: Path) -> dict[str, Any]:
     text = path.read_text(encoding="utf-8")
     if path.suffix in {".yaml", ".yml"}:
         try:
@@ -43,7 +44,8 @@ def _load_raw(path: Path) -> dict:
                 "или положите каталог в sources.json"
             ) from exc
         return yaml.safe_load(text) or {}
-    return json.loads(text)
+    data: dict[str, Any] = json.loads(text)
+    return data
 
 
 def load_sources(path: Path) -> list[SourceConfig]:

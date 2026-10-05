@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from typing import Any
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS facts (
@@ -49,13 +50,13 @@ CREATE TABLE IF NOT EXISTS facts_pass (
 """
 
 
-def init(conn) -> None:
+def init(conn: Any) -> None:
     with conn.cursor() as cur:
         cur.execute(SCHEMA)
     conn.commit()
 
 
-def todo(conn, limit: int | None = None) -> list[tuple]:
+def todo(conn: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
     """Фрагменты, которых модель ещё не видела: (chunk_id, doc_id, текст)."""
     with conn.cursor() as cur:
         cur.execute(
@@ -67,10 +68,13 @@ def todo(conn, limit: int | None = None) -> list[tuple]:
             """,
             (limit,),
         )
-        return cur.fetchall()
+        rows: list[tuple[Any, ...]] = cur.fetchall()
+        return rows
 
 
-def save(conn, chunk_id: int, doc_id: str, facts: list, rejected: list[str], model: str) -> None:
+def save(
+    conn: Any, chunk_id: int, doc_id: str, facts: list[Any], rejected: list[str], model: str
+) -> None:
     """Результат модели по фрагменту — целиком вместо прошлого."""
     with conn.cursor() as cur:
         cur.execute("DELETE FROM facts WHERE chunk_id = %s", (chunk_id,))
@@ -81,8 +85,20 @@ def save(conn, chunk_id: int, doc_id: str, facts: list, rejected: list[str], mod
                                    quote, model)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING
                 """,
-                [(chunk_id, doc_id, f.src, f.relation, f.dst, f.src_key, f.dst_key, f.quote,
-                  model) for f in facts],
+                [
+                    (
+                        chunk_id,
+                        doc_id,
+                        f.src,
+                        f.relation,
+                        f.dst,
+                        f.src_key,
+                        f.dst_key,
+                        f.quote,
+                        model,
+                    )
+                    for f in facts
+                ],
             )
         cur.execute(
             """
@@ -94,53 +110,70 @@ def save(conn, chunk_id: int, doc_id: str, facts: list, rejected: list[str], mod
         )
 
 
-def clear(conn) -> None:
+def clear(conn: Any) -> None:
     """Забыть всё, что сделала модель, — перед проходом заново (правила поменялись)."""
     with conn.cursor() as cur:
         cur.execute("DELETE FROM facts")
         cur.execute("DELETE FROM facts_pass")
 
 
-def all_facts(conn) -> list[dict]:
+def all_facts(conn: Any) -> list[dict[str, Any]]:
     """Все факты со статьёй: из них в памяти собирается граф (фактов — тысячи)."""
     with conn.cursor() as cur:
-        cur.execute(
-            """
+        cur.execute("""
             SELECT f.id, f.chunk_id, f.doc_id, f.src, f.relation, f.dst, f.quote,
                    d.title, d.year, d.url, d.doi
             FROM facts f JOIN documents d ON d.doc_id = f.doc_id
             ORDER BY f.id
-            """
-        )
-        return [{"id": r[0], "chunk_id": r[1], "doc_id": r[2], "src": r[3], "relation": r[4],
-                 "dst": r[5], "quote": r[6], "title": r[7] or r[2], "year": r[8],
-                 "url": r[9] or "", "doi": r[10]} for r in cur.fetchall()]
+            """)
+        return [
+            {
+                "id": r[0],
+                "chunk_id": r[1],
+                "doc_id": r[2],
+                "src": r[3],
+                "relation": r[4],
+                "dst": r[5],
+                "quote": r[6],
+                "title": r[7] or r[2],
+                "year": r[8],
+                "url": r[9] or "",
+                "doi": r[10],
+            }
+            for r in cur.fetchall()
+        ]
 
 
-def summary(conn) -> dict:
+def summary(conn: Any) -> dict[str, Any]:
     """Сколько фрагментов прошла модель, сколько фактов, когда последний раз."""
     with conn.cursor() as cur:
-        cur.execute("SELECT count(*), coalesce(sum(facts), 0), "
-                    "coalesce(sum(cardinality(rejected)), 0), max(done_at) FROM facts_pass")
+        cur.execute(
+            "SELECT count(*), coalesce(sum(facts), 0), "
+            "coalesce(sum(cardinality(rejected)), 0), max(done_at) FROM facts_pass"
+        )
         passed, facts, rejected, last = cur.fetchone() or (0, 0, 0, None)
         cur.execute("SELECT count(*) FROM chunks")
         chunks = (cur.fetchone() or (0,))[0]
-    return {"passed": int(passed or 0), "facts": int(facts or 0),
-            "rejected": int(rejected or 0), "chunks": int(chunks or 0),
-            "as_of": last.isoformat() if hasattr(last, "isoformat") else last}
+    return {
+        "passed": int(passed or 0),
+        "facts": int(facts or 0),
+        "rejected": int(rejected or 0),
+        "chunks": int(chunks or 0),
+        "as_of": last.isoformat() if last is not None and hasattr(last, "isoformat") else last,
+    }
 
 
-def rejected_reasons(conn) -> Counter:
+def rejected_reasons(conn: Any) -> Counter[str]:
     """Почему код отбрасывал ответы модели: причина → сколько раз."""
     with conn.cursor() as cur:
         cur.execute("SELECT unnest(rejected) FROM facts_pass")
-        reasons: Counter = Counter()
+        reasons: Counter[str] = Counter()
         for (text,) in cur.fetchall():
             reasons[str(text).rsplit(": ", 1)[-1]] += 1
     return reasons
 
 
-def fragments(conn, chunk_ids: list[int]) -> dict[int, dict]:
+def fragments(conn: Any, chunk_ids: list[int]) -> dict[int, dict[str, Any]]:
     """Текст фрагментов — для ответа чат-бота по фактам."""
     if not chunk_ids:
         return {}
@@ -153,8 +186,19 @@ def fragments(conn, chunk_ids: list[int]) -> dict[int, dict]:
             """,
             (list(chunk_ids),),
         )
-        return {r[0]: {"chunk_id": r[0], "doc_id": r[1], "ord": r[2],
-                       "text": " ".join((r[3] or "").split()), "headings": list(r[4] or [])[-2:],
-                       "pages": list(r[5] or []), "title": r[6] or r[1], "year": r[7],
-                       "url": r[8] or "", "authors": list(r[9] or [])[:3], "journal": r[10]}
-                for r in cur.fetchall()}
+        return {
+            r[0]: {
+                "chunk_id": r[0],
+                "doc_id": r[1],
+                "ord": r[2],
+                "text": " ".join((r[3] or "").split()),
+                "headings": list(r[4] or [])[-2:],
+                "pages": list(r[5] or []),
+                "title": r[6] or r[1],
+                "year": r[7],
+                "url": r[8] or "",
+                "authors": list(r[9] or [])[:3],
+                "journal": r[10],
+            }
+            for r in cur.fetchall()
+        }

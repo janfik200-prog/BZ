@@ -47,8 +47,10 @@ def main() -> int:
         time.sleep(2)
     print(f"\nГотово. Файлы в {TARGET}")
     if failed:
-        print("Не скачались: " + ", ".join(failed) + ". Их можно скачать руками по ссылкам "
-              "из tests/corpus/README.md и положить в data/pdf.")
+        print(
+            "Не скачались: " + ", ".join(failed) + ". Их можно скачать руками по ссылкам "
+            "из tests/corpus/README.md и положить в data/pdf."
+        )
     return 1 if failed else 0
 
 

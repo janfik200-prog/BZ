@@ -28,3 +28,10 @@ pyyaml>=6.0                   # каталог источников sources.yaml
 #
 # 3. Первый запуск docling скачивает модели разметки и TableFormer с HuggingFace.
 #    Для офлайн-машины прогрейте кэш заранее:  docling-tools models download
+
+# --- проверки кода (python georag.py lint; настройки — pyproject.toml) ---
+ruff>=0.16
+black>=26.0
+mypy>=2.0
+types-PyYAML
+types-requests

@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import Any
 
 from ..common import add_db_args, add_embedder_args, add_llm_args
 from ..index import db
@@ -29,18 +30,21 @@ from .synonyms import PROPOSALS_PATH, SynonymsError, judge_pairs, load, proposal
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
-def _llm(args):
+def _llm(args: Any) -> Any:
     from ..llm import Ollama
 
     return Ollama(model=args.model, host=args.ollama_host, timeout=args.timeout)
 
 
-def _build(conn, args) -> int:
+def _build(conn: Any, args: Any) -> int:
     llm = _llm(args)
     status = llm.status()
     if not status["ok"]:
-        print(f"Qwen3 недоступна: {status['error']}\nГраф строит модель — запустите Ollama и "
-              "снова python georag.py graph.", file=sys.stderr)
+        print(
+            f"Qwen3 недоступна: {status['error']}\nГраф строит модель — запустите Ollama и "
+            "снова python georag.py graph.",
+            file=sys.stderr,
+        )
         return 1
     try:
         facts.load_rules(args.rules)
@@ -53,29 +57,39 @@ def _build(conn, args) -> int:
         print("Прошлые факты убраны — модель проходит всё заново.")
     left = len(store.todo(conn))
     if not left:
-        print("Новых фрагментов нет — модель уже прошла всё "
-              "(заново: python georag.py graph --redo).")
+        print(
+            "Новых фрагментов нет — модель уже прошла всё "
+            "(заново: python georag.py graph --redo)."
+        )
         return 0
     todo = min(left, args.limit) if args.limit else left
-    print(f"Факты выписывает {args.model} по правилам config/graph-rules.txt, каждый проверяет "
-          f"код. Фрагментов: {todo}. Можно прервать Ctrl+C — продолжится с этого места.")
+    print(
+        f"Факты выписывает {args.model} по правилам config/graph-rules.txt, каждый проверяет "
+        f"код. Фрагментов: {todo}. Можно прервать Ctrl+C — продолжится с этого места."
+    )
     stats = facts.run(conn, llm, limit=args.limit, rules_path=args.rules)
-    print(f"\nПройдено фрагментов: {stats['done']} из {stats['todo']}. Фактов принято: "
-          f"{stats['facts']}; отброшено проверкой: {stats['rejected']}."
-          + (f" Модель не ответила: {stats['errors']}." if stats["errors"] else ""))
-    print("Что нашла модель и где ошибалась: python georag.py graph --new\n"
-          "Свести разные написания одного и того же: python georag.py synonyms")
+    print(
+        f"\nПройдено фрагментов: {stats['done']} из {stats['todo']}. Фактов принято: "
+        f"{stats['facts']}; отброшено проверкой: {stats['rejected']}."
+        + (f" Модель не ответила: {stats['errors']}." if stats["errors"] else "")
+    )
+    print(
+        "Что нашла модель и где ошибалась: python georag.py graph --new\n"
+        "Свести разные написания одного и того же: python georag.py synonyms"
+    )
     return 2 if stats["stopped"] else 0
 
 
-def _report(conn, syn) -> int:
+def _report(conn: Any, syn: Any) -> int:
     data = api.report(conn, syn)
     p = data["pass"]
     if not p["passed"]:
         print("Модель ещё не выписывала факты: python georag.py graph (нужна Ollama).")
         return 0
-    print(f"\nМодель прошла фрагментов: {p['passed']} из {p['chunks']}; фактов: {p['facts']}; "
-          f"отброшено проверкой: {p['rejected']}. Сущностей: {data['entities_total']}.")
+    print(
+        f"\nМодель прошла фрагментов: {p['passed']} из {p['chunks']}; фактов: {p['facts']}; "
+        f"отброшено проверкой: {p['rejected']}. Сущностей: {data['entities_total']}."
+    )
     print(f"\n{'сущность':<46}{'статей':>7}{'фактов':>8}")
     for name, docs, count, known, spellings in data["entities"]:
         mark = "  (словарь)" if known else ""
@@ -88,12 +102,14 @@ def _report(conn, syn) -> int:
         print("\nПочему код отбрасывал факты (чаще всего):")
         for reason, count in data["rejected"]:
             print(f"  {count:>5}  {reason[:90]}")
-    print("\nРазные написания одного и того же сводит config\\synonyms.yaml; предложения "
-          "для него: python georag.py synonyms")
+    print(
+        "\nРазные написания одного и того же сводит config\\synonyms.yaml; предложения "
+        "для него: python georag.py synonyms"
+    )
     return 0
 
 
-def _dataset(conn, syn, args) -> int:
+def _dataset(conn: Any, syn: Any, args: Any) -> int:
     if not args.name:
         data = api.datasets_response(conn, syn, limit=40)
         if not data["datasets"]:
@@ -112,11 +128,16 @@ def _dataset(conn, syn, args) -> int:
         print(f"{exc.message}: «{exc.detail}». Больше всего фактов у: {near}", file=sys.stderr)
         return 1
     inside = f" (вместе с: {', '.join(data['includes'])})" if data["includes"] else ""
-    print(f"\nФакты: {data['name']}{inside} — статей {data['documents']}, "
-          f"фактов {len(data['facts'])}\n")
+    print(
+        f"\nФакты: {data['name']}{inside} — статей {data['documents']}, "
+        f"фактов {len(data['facts'])}\n"
+    )
     for r in data["facts"]:
-        line = (f"  {r['about']} — {r['relation']} — {r['other']}" if r["direction"] == "→"
-                else f"  {r['other']} — {r['relation']} — {r['about']}")
+        line = (
+            f"  {r['about']} — {r['relation']} — {r['other']}"
+            if r["direction"] == "→"
+            else f"  {r['other']} — {r['relation']} — {r['about']}"
+        )
         print(f"{line[:110]:<112}статей {r['documents']}")
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -127,7 +148,7 @@ def _dataset(conn, syn, args) -> int:
     return 0
 
 
-def _synonyms(conn, syn, args) -> int:
+def _synonyms(conn: Any, syn: Any, args: Any) -> int:
     from ..index.embed import build_embedder
 
     g = api.graph(conn, syn)
@@ -143,20 +164,30 @@ def _synonyms(conn, syn, args) -> int:
     embedder = build_embedder(args.embedder, device=args.device)
     names = {name: (name, e["facts"]) for name, e in g.entities.items()}
     relations = Counter_relations(g)
-    print(f"Ищу похожие среди {len(names)} имён и {len(relations)} связей; Qwen3 решает, "
-          "одно ли это…")
-    name_groups = suggest(names, syn, embedder.encode, lambda p: judge_pairs(llm, p),
-                          threshold=args.threshold)
-    rel_groups = suggest(relations, _relations_as_names(syn), embedder.encode,
-                         lambda p: judge_pairs(llm, p), threshold=max(args.threshold, 0.85))
+    print(
+        f"Ищу похожие среди {len(names)} имён и {len(relations)} связей; Qwen3 решает, "
+        "одно ли это…"
+    )
+    name_groups = suggest(
+        names, syn, embedder.encode, lambda p: judge_pairs(llm, p), threshold=args.threshold
+    )
+    rel_groups = suggest(
+        relations,
+        _relations_as_names(syn),
+        embedder.encode,
+        lambda p: judge_pairs(llm, p),
+        threshold=max(args.threshold, 0.85),
+    )
     PROPOSALS_PATH.write_text(proposals_text(name_groups, rel_groups), encoding="utf-8")
-    print(f"\nПредложений: имён {len(name_groups)}, связей {len(rel_groups)}.\n"
-          f"Файл: {PROPOSALS_PATH}\nПросмотрите Блокнотом и перенесите нужное в "
-          f"config\\synonyms.yaml — действует сразу, модель заново не нужна.")
+    print(
+        f"\nПредложений: имён {len(name_groups)}, связей {len(rel_groups)}.\n"
+        f"Файл: {PROPOSALS_PATH}\nПросмотрите Блокнотом и перенесите нужное в "
+        f"config\\synonyms.yaml — действует сразу, модель заново не нужна."
+    )
     return 0
 
 
-def _questions(conn, syn, args) -> int:
+def _questions(conn: Any, syn: Any, args: Any) -> int:
     from . import questions
 
     g = api.graph(conn, syn)
@@ -170,17 +201,21 @@ def _questions(conn, syn, args) -> int:
         if not status["ok"]:
             print(f"Qwen3 недоступна ({status['error']}) — вопросы по шаблону.")
             llm = None
-    print(f"Составляю вопросы из фактов графа ({'Qwen3 переформулирует' if llm else 'по шаблону'})…")
+    print(
+        f"Составляю вопросы из фактов графа ({'Qwen3 переформулирует' if llm else 'по шаблону'})…"
+    )
     items = questions.build(g, llm, limit=args.limit or 30)
     out = Path(args.out_questions)
     out.write_text(questions.to_yaml(items), encoding="utf-8")
     docs = len({d for item in items for d in item["статьи"]})
-    print(f"\nВопросов: {len(items)} по {docs} статьям. Файл: {out}\n"
-          f"Оценка по ним: python georag.py eval --questions {out.relative_to(ROOT_DIR)}")
+    print(
+        f"\nВопросов: {len(items)} по {docs} статьям. Файл: {out}\n"
+        f"Оценка по ним: python georag.py eval --questions {out.relative_to(ROOT_DIR)}"
+    )
     return 0
 
 
-def _gaps(conn, syn, args) -> int:
+def _gaps(conn: Any, syn: Any, args: Any) -> int:
     from . import gaps
 
     rows = gaps.find(api.graph(conn, syn), syn, limit=args.limit or 25)
@@ -196,27 +231,29 @@ def _gaps(conn, syn, args) -> int:
     return 0
 
 
-def Counter_relations(g) -> dict[str, tuple[str, int]]:  # noqa: N802 — читается как таблица
+def Counter_relations(g: Any) -> dict[str, tuple[str, int]]:  # noqa: N802 — читается как таблица
     count: dict[str, int] = {}
     for link in g.links.values():
         count[link.relation] = count.get(link.relation, 0) + len(link.facts)
     return {r: (r, n) for r, n in count.items()}
 
 
-def _relations_as_names(syn):
+def _relations_as_names(syn: Any) -> Any:
     """Для предложений по связям — словарь, где «имена» это связи."""
     from .synonyms import Synonyms
 
-    groups = {canon: [] for canon in set(syn.relations.values())}
+    groups: dict[str, list[str]] = {canon: [] for canon in set(syn.relations.values())}
     return Synonyms(names={}, groups=groups)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Граф знаний ГеоRAG: факты из статей")
-    parser.add_argument("command", choices=["build", "report", "dataset", "synonyms",
-                                            "questions", "gaps"])
-    parser.add_argument("--no-llm", action="store_true",
-                        help="вопросы по шаблону, без модели (questions)")
+    parser.add_argument(
+        "command", choices=["build", "report", "dataset", "synonyms", "questions", "gaps"]
+    )
+    parser.add_argument(
+        "--no-llm", action="store_true", help="вопросы по шаблону, без модели (questions)"
+    )
     parser.add_argument("--out-questions", default=str(ROOT_DIR / "config" / "eval-graph.yaml"))
     parser.add_argument("--out-topics", default=str(ROOT_DIR / "config" / "topics-graph.yaml"))
     parser.add_argument("--name", default=None, help="чей датасет (dataset)")
@@ -226,8 +263,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--limit", type=int, default=None, help="сколько фрагментов пройти")
     parser.add_argument("--rules", default=None, help="другой файл правил для модели")
     parser.add_argument("--synonyms", default=None, help="другой словарь синонимов")
-    parser.add_argument("--threshold", type=float, default=0.8,
-                        help="насколько похожи имена, чтобы спросить модель (synonyms)")
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.8,
+        help="насколько похожи имена, чтобы спросить модель (synonyms)",
+    )
     parser.add_argument("--timeout", type=int, default=300, help="сколько ждать модель, с")
     add_db_args(parser)
     add_embedder_args(parser)

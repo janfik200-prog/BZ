@@ -12,8 +12,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict, fields
+from dataclasses import asdict, dataclass, fields
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -28,7 +29,7 @@ class Settings:
     # --- OCR ---
     # ВАЖНО: у EasyOCR в docling язык по умолчанию ["fr","de","es","en"] — русского там нет.
     # Если не задать явно, русские сканы распознаются мусором и молча уедут в базу.
-    ocr_engine: str = "easyocr"          # easyocr | tesseract | rapidocr
+    ocr_engine: str = "easyocr"  # easyocr | tesseract | rapidocr
     ocr_langs: tuple[str, ...] = ("ru", "en")
     # OCR нужен только там, где текстового слоя нет. У статьи, свёрстанной в издательстве,
     # он есть, и распознавание картинок на каждой странице — это минуты впустую.
@@ -36,18 +37,18 @@ class Settings:
     use_ocr: bool = True
 
     # --- таблицы ---
-    table_mode: str = "accurate"         # accurate | fast (accurate медленнее, но держит сложные шапки)
+    table_mode: str = "accurate"  # accurate | fast (accurate медленнее, но держит сложные шапки)
     do_cell_matching: bool = True
 
     # --- железо ---
-    device: str = "auto"                 # auto | cuda | cpu | mps
+    device: str = "auto"  # auto | cuda | cpu | mps
     num_threads: int = 8
 
     # --- защита от зависаний ---
     # document_timeout внутри docling срабатывает не всегда (парсер может залипнуть
     # в нативном слое), поэтому документ считает отдельный процесс, который мы убиваем.
     doc_timeout_sec: int = 900
-    ocr_doc_timeout_sec: int = 2400      # полностраничный OCR легально работает дольше
+    ocr_doc_timeout_sec: int = 2400  # полностраничный OCR легально работает дольше
     max_pages: int = 400
 
     # --- чанкинг ---
@@ -55,17 +56,17 @@ class Settings:
     # XLM-R (BGE-M3) режет русский примерно вдвое экономнее, чем англоязычные BERT-токенайзеры.
     embed_model_id: str = "BAAI/bge-m3"
     max_tokens: int = 512
-    overlap_tokens: int = 0              # см. README: у HybridChunker нет нативного overlap
+    overlap_tokens: int = 0  # см. README: у HybridChunker нет нативного overlap
 
     # --- пороги валидации ---
-    min_chars_per_page: int = 200        # меньше — похоже на скан без текстового слоя
-    max_garbage_ratio: float = 0.10      # доля «мусорных» символов (битые шрифты, cid)
-    min_sections_ratio: float = 0.8      # доля найденных разделов эталона
-    min_entities_ratio: float = 0.8      # доля найденных сущностей эталона
-    table_tolerance: int = 1             # допустимое расхождение в числе таблиц
-    max_line_repeats: int = 30           # одна и та же строка N раз — признак поломки
+    min_chars_per_page: int = 200  # меньше — похоже на скан без текстового слоя
+    max_garbage_ratio: float = 0.10  # доля «мусорных» символов (битые шрифты, cid)
+    min_sections_ratio: float = 0.8  # доля найденных разделов эталона
+    min_entities_ratio: float = 0.8  # доля найденных сущностей эталона
+    table_tolerance: int = 1  # допустимое расхождение в числе таблиц
+    max_line_repeats: int = 30  # одна и та же строка N раз — признак поломки
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         for k, v in d.items():
             if isinstance(v, Path):
@@ -75,7 +76,7 @@ class Settings:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict) -> "Settings":
+    def from_dict(cls, d: dict[str, Any]) -> Settings:
         kwargs = {}
         types = {f.name: f.type for f in fields(cls)}
         for k, v in d.items():
@@ -103,4 +104,4 @@ def ocr_langs_for(engine: str, langs: tuple[str, ...]) -> list[str]:
     mapping = OCR_LANG_MAP.get(engine)
     if not mapping:
         return list(langs)
-    return [mapping.get(l, l) for l in langs]
+    return [mapping.get(lang, lang) for lang in langs]

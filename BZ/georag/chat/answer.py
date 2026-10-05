@@ -45,10 +45,11 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Generator, Iterator
 from dataclasses import dataclass, field, replace
-from typing import Iterator
+from typing import Any
 
-from ..index.search import RRF_K, hybrid_search
+from ..index.search import RRF_K, cap_per_doc, hybrid_search
 from ..llm import DEFAULT_MODEL, OLLAMA_HOST, LLMError, Ollama, no_think
 
 MODEL = DEFAULT_MODEL
@@ -59,23 +60,24 @@ OLLAMA = OLLAMA_HOST
 # токенов — окно модели 12 тысяч, с запасом на ответ и историю разговора.
 TOP_K = 8
 PER_DOC = 3
-QUERIES = 3                    # сколько поисковых запросов на часть вопроса
-CANDIDATES = 12                # сколько брать из каждого запроса до слияния
-PARTS = 3                      # на сколько частей самое большее делится вопрос
-PART_MIN = 2                   # гарантированных мест у каждой части
+QUERIES = 3  # сколько поисковых запросов на часть вопроса
+CANDIDATES = 12  # сколько брать из каждого запроса до слияния
+PARTS = 3  # на сколько частей самое большее делится вопрос
+PART_MIN = 2  # гарантированных мест у каждой части
 # Поиск с моделью: широкий набор кандидатов, модель отбирает и ищет ещё.
-WIDE = 16                      # кандидатов на простой вопрос (и на запросы нового круга)
-WIDE_PART = 8                  # на каждую часть составного вопроса и на вопрос целиком
-LOOSE_SIMILARITY = 0.35        # мягкий порог для кандидатов: отбирает уже модель
+WIDE = 16  # кандидатов на простой вопрос (и на запросы нового круга)
+WIDE_PART = 8  # на каждую часть составного вопроса и на вопрос целиком
+LOOSE_SIMILARITY = 0.35  # мягкий порог для кандидатов: отбирает уже модель
 # Модель читает кандидатов пачками по JUDGE_MAX — все, а не первые сколько-то:
 # раньше при трёх частях третьей доставалось 4 кандидата из 10, а найденное
 # по вопросу целиком модель не видела вовсе. Текста — CANDIDATE_CHARS: фрагмент
 # около 2000 знаков, и по первым 450 нужное отбрасывалось, если суть дальше.
 JUDGE_MAX = 12
-JUDGE_SLACK = 4                # короткий хвост пачки читается вместе с предыдущей
+CANDIDATE_PER_DOC = 3  # кандидатов из одной статьи в наборе (пока есть другие)
+JUDGE_SLACK = 4  # короткий хвост пачки читается вместе с предыдущей
 CANDIDATE_CHARS = 1000
-MAX_ROUNDS = 3                 # кругов поиска самое большее
-EXTRA_QUERIES = 3              # новых запросов за круг
+MAX_ROUNDS = 3  # кругов поиска самое большее
+EXTRA_QUERIES = 3  # новых запросов за круг
 # Новый запрос, почти совпадающий по основам слов с уже сделанным, не ищется:
 # он приносит те же фрагменты, а круг стоит вызова модели.
 REPEAT_OVERLAP = 0.6
@@ -84,7 +86,7 @@ DATASET_EVIDENCE = 5
 # Вопрос о названном предмете (не «собрать всё»): фрагменты, из которых граф
 # выписал факты о нём, идут модели в кандидаты вместе с найденным поиском.
 GRAPH_CANDIDATES = 6
-DATASET_ITEMS = 40             # сколько фактов (×2) попадает в сводку
+DATASET_ITEMS = 40  # сколько фактов (×2) попадает в сводку
 DATASET_CHARS = 6000
 
 # Порог близости — как «отсечь непохожее» во вкладке поиска. Совпадение по
@@ -98,7 +100,7 @@ FRAGMENT_CHARS = 2400
 SHORT_FRAGMENT = 900
 NEIGHBOR_CHARS = 1200
 
-HISTORY_TURNS = 2              # сколько прошлых вопросов-ответов помнит модель
+HISTORY_TURNS = 2  # сколько прошлых вопросов-ответов помнит модель
 HISTORY_CHARS = 1500
 
 # Окно модели считается грубо: знаков на токен у Qwen3 на русском — около трёх.
@@ -106,7 +108,7 @@ HISTORY_CHARS = 1500
 # вместе с правилами. Если не влезает, сначала укорачивается история, потом
 # отбрасываются последние фрагменты.
 CHARS_PER_TOKEN = 3.0
-ANSWER_RESERVE = 3000          # токенов под сам ответ
+ANSWER_RESERVE = 3000  # токенов под сам ответ
 
 SYSTEM = """Ты — помощник геолога. Отвечаешь на вопросы по базе знаний о рудной геологии \
 и прогнозе оруденения. Твой единственный источник — фрагменты статей из базы, которые \
@@ -115,8 +117,10 @@ SYSTEM = """Ты — помощник геолога. Отвечаешь на в
 Правила:
 1. Отвечай ТОЛЬКО по фрагментам. Не добавляй фактов, чисел, названий, методов и ссылок, \
 которых во фрагментах нет, — даже если знаешь их сам.
-2. После каждого утверждения ставь номер фрагмента в квадратных скобках: [1]. \
-Если утверждение опирается на несколько — [1][3].
+2. Каждое предложение, в котором есть факт, — с номером фрагмента в квадратных \
+скобках: [1]; опирается на несколько — [1][3]. Это касается и вводных фраз, и выводов: \
+обобщаешь — ставь номера фрагментов, из которых обобщение следует. Чего нельзя \
+подкрепить номером фрагмента — не пиши.
 3. Если во фрагментах нет ответа на вопрос, напиши только одну фразу: \
 «В базе знаний нет ответа на этот вопрос.» — и больше ничего.
 4. Пиши по-русски, даже если фрагменты на английском. Термин можно дать в скобках \
@@ -134,8 +138,10 @@ SYSTEM = """Ты — помощник геолога. Отвечаешь на в
 Восточном Донбассе [1]»), и не выдавай частный случай из одной статьи за общее правило."""
 
 
-PLAN_SYSTEM = ("Ты разбираешь вопрос геолога и составляешь поисковые запросы к базе научных "
-               "статей по рудной геологии. Отвечай только JSON, без пояснений.")
+PLAN_SYSTEM = (
+    "Ты разбираешь вопрос геолога и составляешь поисковые запросы к базе научных "
+    "статей по рудной геологии. Отвечай только JSON, без пояснений."
+)
 
 PLAN_USER = """Вопрос пользователя: «{question}»
 {context}
@@ -162,8 +168,10 @@ PLAN_USER = """Вопрос пользователя: «{question}»
 Верни JSON: {{"вопрос_целиком": "...", "части": [{{"вопрос": "...", "запросы": ["...", "..."]}}], \
 "предмет": null, "всё": false, "по_теме": true}}"""
 
-JUDGE_SYSTEM = ("Ты отбираешь фрагменты научных статей, из которых можно ответить на вопрос "
-                "геолога, и решаешь, что ещё поискать в базе. Отвечай только JSON.")
+JUDGE_SYSTEM = (
+    "Ты отбираешь фрагменты научных статей, из которых можно ответить на вопрос "
+    "геолога, и решаешь, что ещё поискать в базе. Отвечай только JSON."
+)
 
 JUDGE_USER = """Вопрос: «{question}»
 {parts}{taken}
@@ -188,17 +196,22 @@ _COLLECT = re.compile(
     r"что\s+(?:известно|знаем|есть|описано|написано)|вс[её]\s+(?:о|об|про|что)\b|"
     r"перечисл|полн\w*\s+(?:список|перечень)|обзор|датасет|"
     r"какие\s+(?:признаки|методы|процессы)\s+(?:на|в|для|по)\b",
-    re.IGNORECASE)
+    re.IGNORECASE,
+)
 
-NO_ANSWER = "В базе знаний нет ответа"      # начало фразы-отказа из правила 3
+NO_ANSWER = "В базе знаний нет ответа"  # начало фразы-отказа из правила 3
 
-NOT_IN_BASE = ("По вашему запросу в базе знаний такой информации нет. Ниже — ответ модели "
-               "из её общих знаний: он не подтверждён статьями базы, проверяйте его.")
+NOT_IN_BASE = (
+    "По вашему запросу в базе знаний такой информации нет. Ниже — ответ модели "
+    "из её общих знаний: он не подтверждён статьями базы, проверяйте его."
+)
 
 # Вопрос не о геологии и в базе ничего нет: бот не отвечает из общих знаний
 # (раньше выдавал, например, рецепт хлеба). Вернуть старое — Settings.general_off_topic.
-OFF_TOPIC = ("Вопрос не относится к геологии, а бот отвечает только по рудной геологии и "
-             "смежным наукам о Земле. В базе знаний статей об этом нет.")
+OFF_TOPIC = (
+    "Вопрос не относится к геологии, а бот отвечает только по рудной геологии и "
+    "смежным наукам о Земле. В базе знаний статей об этом нет."
+)
 
 GENERAL_SYSTEM = """Ты — помощник геолога, специалист по рудной геологии и прогнозу \
 оруденения. В базе знаний статей ответа на вопрос не нашлось, поэтому отвечаешь из \
@@ -217,8 +230,9 @@ _CITE = re.compile(r"\[(\d+(?:\s*[,;]\s*\d+)*)\]")
 _CITE_MARK = re.compile(r"[ \t]*\[\d+(?:\s*[,;]\s*\d+)*\]")
 # Фразы о самих фрагментах, а не о геологии: «по данным статей базы», «во
 # фрагментах нет», «в базе знаний об этом ничего».
-_ABOUT_SOURCES = re.compile(r"фрагмент|в базе|статей базы|статьях базы|по данным статей|"
-                            r"в найденных", re.IGNORECASE)
+_ABOUT_SOURCES = re.compile(
+    r"фрагмент|в базе|статей базы|статьях базы|по данным статей|" r"в найденных", re.IGNORECASE
+)
 
 
 @dataclass
@@ -231,7 +245,7 @@ class Settings:
     temperature: float = 0.1
     num_ctx: int = 12288
     timeout: int = 300
-    parts: int = PARTS             # на сколько частей самое большее делить вопрос
+    parts: int = PARTS  # на сколько частей самое большее делить вопрос
     # Вопрос не по теме и в базе пусто: False — короткий отказ, True — ответ из общих знаний.
     general_off_topic: bool = False
 
@@ -239,22 +253,24 @@ class Settings:
 @dataclass
 class Part:
     """Часть вопроса и её поисковые запросы."""
+
     question: str
     queries: list[str]
-    found: int = 0                 # сколько фрагментов за этой частью в ответе
+    found: int = 0  # сколько фрагментов за этой частью в ответе
 
 
 @dataclass
 class Plan:
     """Разбор вопроса: части с запросами, предмет вопроса, «собрать всё»."""
+
     parts: list[Part]
-    subject: str | None = None      # о чём вопрос: «Анабарский щит», «окварцевание»
+    subject: str | None = None  # о чём вопрос: «Анабарский щит», «окварцевание»
     collect: bool = False
-    main: str = ""                 # сам вопрос как запрос (с прошлым, если вдогонку)
-    extra: list[str] = field(default_factory=list)      # запросы следующих кругов
-    missing: list[str] = field(default_factory=list)    # чего не хватало, по словам модели
-    standalone: str = ""           # вопрос, понятный без разговора (вдогонку — с предметом)
-    on_topic: bool = True          # о геологии ли вопрос, по словам модели
+    main: str = ""  # сам вопрос как запрос (с прошлым, если вдогонку)
+    extra: list[str] = field(default_factory=list)  # запросы следующих кругов
+    missing: list[str] = field(default_factory=list)  # чего не хватало, по словам модели
+    standalone: str = ""  # вопрос, понятный без разговора (вдогонку — с предметом)
+    on_topic: bool = True  # о геологии ли вопрос, по словам модели
 
     @property
     def queries(self) -> list[str]:
@@ -265,19 +281,20 @@ class Plan:
                 out.append(q)
         return out
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
         """Разбор можно перебирать как список запросов — так с ним работал старый код."""
         return iter(self.queries)
 
-    def describe(self) -> list[dict]:
-        return [{"question": p.question, "queries": p.queries, "found": p.found}
-                for p in self.parts]
+    def describe(self) -> list[dict[str, Any]]:
+        return [
+            {"question": p.question, "queries": p.queries, "found": p.found} for p in self.parts
+        ]
 
 
 # --------------------------------------------------------------------------- #
 #  Запросы к базе
 # --------------------------------------------------------------------------- #
-def previous_question(history: list[dict]) -> str:
+def previous_question(history: list[dict[str, Any]]) -> str:
     past = [m["content"] for m in history if m.get("role") == "user" and m.get("content")]
     return past[-1].strip() if past else ""
 
@@ -289,11 +306,12 @@ _FOLLOW_UP = re.compile(
     r"^(?:а|и|ещё|еще|также|тоже|тогда|то\s+есть)\b|"
     r"\b(?:его|её|ее|их|него|неё|нее|них|там|тут|здесь|этот|эта|это|эти|этого|этой|этих|"
     r"этим|этому|этом|том|той|тех|такой|такие|такого|он|она|оно|они)\b",
-    re.IGNORECASE)
+    re.IGNORECASE,
+)
 FOLLOW_UP_WORDS = 8
 
 
-def search_query(question: str, history: list[dict]) -> str:
+def search_query(question: str, history: list[dict[str, Any]]) -> str:
     """Вопрос как есть — первый из запросов. Короткий вопрос вдогонку («а по
     ASTER?») без прошлого вопроса ничего осмысленного не найдёт — к нему
     приклеивается предыдущий. Это запасной путь: обычно вопрос целиком
@@ -305,7 +323,7 @@ def search_query(question: str, history: list[dict]) -> str:
     return question
 
 
-def is_follow_up(question: str, plan: Plan | None, history: list[dict]) -> bool:
+def is_follow_up(question: str, plan: Plan | None, history: list[dict[str, Any]]) -> bool:
     """Продолжение ли разговора. Модель при разборе переписывает такой вопрос
     (вопрос целиком отличается от заданного); молчит — судим по словам."""
     if not previous_question(history):
@@ -315,7 +333,7 @@ def is_follow_up(question: str, plan: Plan | None, history: list[dict]) -> bool:
     return len(question.split()) <= FOLLOW_UP_WORDS and bool(_FOLLOW_UP.search(question))
 
 
-def _queries(values, limit: int) -> list[str]:
+def _queries(values: Any, limit: int) -> list[str]:
     out: list[str] = []
     for q in values or []:
         q = " ".join(str(q).replace('"', " ").split())
@@ -324,7 +342,7 @@ def _queries(values, limit: int) -> list[str]:
     return out[:limit]
 
 
-def parse_plan(data, question: str, settings: Settings) -> Plan:
+def parse_plan(data: Any, question: str, settings: Settings) -> Plan:
     """JSON модели → разбор вопроса. Непонятное — один вопрос без запросов."""
     if not isinstance(data, dict):
         return Plan([Part(question, [])])
@@ -336,7 +354,7 @@ def parse_plan(data, question: str, settings: Settings) -> Plan:
         queries = _queries(item.get("запросы") or item.get("queries"), settings.queries)
         if text or queries:
             parts.append(Part(text or question, queries))
-    if not parts and data.get("queries"):              # старый вид ответа: только запросы
+    if not parts and data.get("queries"):  # старый вид ответа: только запросы
         parts = [Part(question, _queries(data["queries"], settings.queries))]
     parts = parts[: max(1, settings.parts)] or [Part(question, [])]
     subject = data.get("предмет") or data.get("территория") or data.get("subject")
@@ -351,15 +369,16 @@ def parse_plan(data, question: str, settings: Settings) -> Plan:
     return Plan(parts, subject or None, collect, standalone=standalone[:300], on_topic=on_topic)
 
 
-def plan_question(question: str, history: list[dict], settings: Settings) -> Plan:
+def plan_question(question: str, history: list[dict[str, Any]], settings: Settings) -> Plan:
     """Разбор вопроса моделью: части, запросы, предмет вопроса, «собрать всё».
 
     Модель не ответила — вопрос одной частью: ищется сам вопрос, а «собрать
     всё» узнаётся по словам («что известно о…», «перечисли…»)."""
     previous = previous_question(history)
     context = f"Предыдущий вопрос в разговоре: «{previous}»\n" if previous else ""
-    user = PLAN_USER.format(question=question.strip(), context=context, n=settings.queries,
-                            parts=max(1, settings.parts))
+    user = PLAN_USER.format(
+        question=question.strip(), context=context, n=settings.queries, parts=max(1, settings.parts)
+    )
     try:
         # Окно — то же, что у ответа (settings.num_ctx): при другом Ollama выгружает
         # модель и грузит заново, а это секунды на каждом шаге каждого вопроса.
@@ -369,13 +388,15 @@ def plan_question(question: str, history: list[dict], settings: Settings) -> Pla
     return parse_plan(data, question, settings)
 
 
-def plan_queries(question: str, history: list[dict], settings: Settings) -> list[str]:
+def plan_queries(question: str, history: list[dict[str, Any]], settings: Settings) -> list[str]:
     """Только запросы из разбора — для тех, кому части не нужны."""
     plan = plan_question(question, history, settings)
     return [q for p in plan.parts for q in p.queries]
 
 
-def make_plan(question: str, history: list[dict], settings: Settings, planner) -> Plan:
+def make_plan(
+    question: str, history: list[dict[str, Any]], settings: Settings, planner: Any
+) -> Plan:
     """Разбор от planner'а, приведённый к одному виду.
 
     planner может вернуть Plan или просто список запросов (так было раньше и
@@ -384,8 +405,7 @@ def make_plan(question: str, history: list[dict], settings: Settings, planner) -
     if isinstance(raw, Plan):
         plan = raw
     else:
-        plan = Plan([Part(question, _queries(raw, 99))],
-                    collect=bool(_COLLECT.search(question)))
+        plan = Plan([Part(question, _queries(raw, 99))], collect=bool(_COLLECT.search(question)))
     if not plan.parts:
         plan.parts = [Part(question, [])]
     if not plan.main:
@@ -403,7 +423,7 @@ def make_plan(question: str, history: list[dict], settings: Settings, planner) -
 # --------------------------------------------------------------------------- #
 #  Поиск
 # --------------------------------------------------------------------------- #
-def source_dict(n: int, hit, part=None) -> dict:
+def source_dict(n: int, hit: Any, part: Any = None) -> dict[str, Any]:
     return {
         "n": n,
         "doc_id": hit.doc_id,
@@ -422,13 +442,16 @@ def source_dict(n: int, hit, part=None) -> dict:
     }
 
 
-def merged_search(conn, embedder, queries: list[str], cache: dict | None = None) -> list:
+def merged_search(
+    conn: Any, embedder: Any, queries: list[str], cache: dict[str, Any] | None = None
+) -> list[Any]:
     """Все запросы → одна выдача. Сливается по местам в выдачах (RRF), как
     вектор и слова внутри одного поиска: фрагмент, найденный несколькими
     запросами, поднимается выше. Порог здесь не ставится — его ставит
     find_sources. cache — чтобы один запрос не искать дважды (общая выдача
     и выдачи частей вопроса строятся из одних и тех же запросов)."""
-    hits, scores = {}, {}
+    hits: dict[int, Any] = {}
+    scores: dict[int, float] = {}
     for query in queries:
         if cache is not None and query in cache:
             found = cache[query]
@@ -454,20 +477,27 @@ def merged_search(conn, embedder, queries: list[str], cache: dict | None = None)
     return ordered
 
 
-def is_close(hit) -> bool:
+def is_close(hit: Any) -> bool:
     """Близок ли фрагмент: все слова запроса в тексте или похожесть от порога."""
     strict = hit.fts_rank is not None and getattr(hit, "fts_strict", True)
     return strict or (hit.similarity or 0.0) >= MIN_SIMILARITY
 
 
-def _key(item) -> tuple:
+def _key(item: Any) -> tuple[Any, ...]:
     if isinstance(item, dict):
         return (item.get("doc_id"), item.get("ord"))
     return (item.doc_id, item.ord)
 
 
-def find_sources(conn, embedder, queries, settings: Settings, start: int = 1,
-                 taken: list[dict] | None = None, limit: int | None = None) -> list[dict]:
+def find_sources(
+    conn: Any,
+    embedder: Any,
+    queries: Any,
+    settings: Settings,
+    start: int = 1,
+    taken: list[dict[str, Any]] | None = None,
+    limit: int | None = None,
+) -> list[dict[str, Any]]:
     """Близкие фрагменты для ответа; дальние отбрасываются совсем.
 
     queries — список запросов или разбор вопроса (Plan). В разборе из
@@ -478,14 +508,14 @@ def find_sources(conn, embedder, queries, settings: Settings, start: int = 1,
     plan = queries if isinstance(queries, Plan) else Plan([Part("", list(queries))])
     top_k = settings.top_k if limit is None else limit
     taken = taken or []
-    cache: dict = {}
+    cache: dict[str, Any] = {}
     seen = {_key(s) for s in taken}
     per_doc: dict[str, int] = {}
     for s in taken:
         per_doc[s["doc_id"]] = per_doc.get(s["doc_id"], 0) + 1
-    chosen: list[tuple] = []
+    chosen: list[tuple[Any, ...]] = []
 
-    def take(hit, part, strict: bool = True) -> bool:
+    def take(hit: Any, part: Any, strict: bool = True) -> bool:
         if _key(hit) in seen:
             return False
         if strict and settings.per_doc and per_doc.get(hit.doc_id, 0) >= settings.per_doc:
@@ -532,55 +562,88 @@ def find_sources(conn, embedder, queries, settings: Settings, start: int = 1,
 @dataclass
 class Retrieval:
     """Что нашёл поиск с моделью."""
-    sources: list[dict]
-    rounds: int = 1                # сколько кругов поиска было
-    checked: int = 0               # сколько кандидатов модель прочла
-    judged: bool = True            # отбирала модель (False — отбор по порогу, модель молчит)
 
-    def info(self) -> dict:
+    sources: list[dict[str, Any]]
+    rounds: int = 1  # сколько кругов поиска было
+    checked: int = 0  # сколько кандидатов модель прочла
+    judged: bool = True  # отбирала модель (False — отбор по порогу, модель молчит)
+
+    def info(self) -> dict[str, Any]:
         return {"rounds": self.rounds, "checked": self.checked, "judged": self.judged}
 
 
-def is_candidate(hit) -> bool:
+def is_candidate(hit: Any) -> bool:
     """Годится ли в кандидаты: все слова запроса в тексте или похожесть от мягкого порога."""
     strict = hit.fts_rank is not None and getattr(hit, "fts_strict", True)
     return strict or (hit.similarity or 0.0) >= LOOSE_SIMILARITY
 
 
-def candidates(conn, embedder, queries: list[str], cache: dict, limit: int = WIDE) -> list:
-    return [h for h in merged_search(conn, embedder, queries, cache) if is_candidate(h)][:limit]
+def candidates(
+    conn: Any, embedder: Any, queries: list[str], cache: dict[str, Any], limit: int = WIDE
+) -> list[Any]:
+    """Кандидаты для модели — не больше CANDIDATE_PER_DOC из одной статьи (лишние — в
+    конец): одна подробная статья занимала 9 мест из 15, и модели не из чего было
+    выбирать — ответ на составной вопрос шёл по одной статье."""
+    close = [h for h in merged_search(conn, embedder, queries, cache) if is_candidate(h)]
+    return cap_per_doc(close, CANDIDATE_PER_DOC)[:limit]
 
 
-def judge_prompt(question: str, plan: Plan, batch: list[dict], accepted: list[dict]) -> str:
+def judge_prompt(
+    question: str, plan: Plan, batch: list[dict[str, Any]], accepted: list[dict[str, Any]]
+) -> str:
     parts = ""
     if len(plan.parts) > 1:
-        parts = "Части вопроса:\n" + "\n".join(
-            f"{i}) {p.question}" for i, p in enumerate(plan.parts, start=1)) + "\n"
+        parts = (
+            "Части вопроса:\n"
+            + "\n".join(f"{i}) {p.question}" for i, p in enumerate(plan.parts, start=1))
+            + "\n"
+        )
     taken = ""
     if accepted:
-        taken = "\nУже отобрано раньше (снова не называй):\n" + "\n".join(
-            f"- «{c['hit'].title[:90]}»: {' '.join(c['hit'].text.split())[:160]}"
-            for c in accepted[:12]) + "\n"
+        taken = (
+            "\nУже отобрано раньше (снова не называй):\n"
+            + "\n".join(
+                f"- «{c['hit'].title[:90]}»: {' '.join(c['hit'].text.split())[:160]}"
+                for c in accepted[:12]
+            )
+            + "\n"
+        )
     lines = []
     for c in batch:
         h = c["hit"]
         year = f", {h.year}" if h.year else ""
-        lines.append(f"[{c['id']}] «{(h.title or h.doc_id)[:100]}»{year}: "
-                     f"{' '.join(h.text.split())[:CANDIDATE_CHARS]}")
+        lines.append(
+            f"[{c['id']}] «{(h.title or h.doc_id)[:100]}»{year}: "
+            f"{' '.join(h.text.split())[:CANDIDATE_CHARS]}"
+        )
     shown = "\n\n".join(lines) or "— кандидатов нет: по запросам ничего близкого не нашлось."
     done = ", ".join(f"«{q}»" for q in plan.queries + plan.extra) or "—"
-    return JUDGE_USER.format(question=question.strip(), parts=parts, taken=taken,
-                             candidates=shown, n=EXTRA_QUERIES, done=done)
+    return JUDGE_USER.format(
+        question=question.strip(),
+        parts=parts,
+        taken=taken,
+        candidates=shown,
+        n=EXTRA_QUERIES,
+        done=done,
+    )
 
 
-def judge_fragments(question: str, plan: Plan, batch: list[dict], accepted: list[dict],
-                    settings: Settings) -> dict | None:
+def judge_fragments(
+    question: str,
+    plan: Plan,
+    batch: list[dict[str, Any]],
+    accepted: list[dict[str, Any]],
+    settings: Settings,
+) -> dict[str, Any] | None:
     """Модель читает кандидатов: {"подходят": [id…], "не_хватает": […], "запросы": […]}.
     Не ответила — None: тогда отбор по порогу, как у обычного поиска."""
     try:
         data = _client(settings).chat_json(
-            JUDGE_SYSTEM, judge_prompt(question, plan, batch, accepted),
-            temperature=0.1, timeout=(10, 180))
+            JUDGE_SYSTEM,
+            judge_prompt(question, plan, batch, accepted),
+            temperature=0.1,
+            timeout=(10, 180),
+        )
     except Exception:  # noqa: BLE001
         return None
     return data if isinstance(data, dict) else None
@@ -588,6 +651,7 @@ def judge_fragments(question: str, plan: Plan, batch: list[dict], accepted: list
 
 def _query_words(query: str) -> set[str]:
     from ..text import name_key
+
     return set(name_key(query).split())
 
 
@@ -602,7 +666,7 @@ def is_repeat(query: str, done: list[str]) -> bool:
     return False
 
 
-def _ids(values) -> list[int]:
+def _ids(values: Any) -> list[int]:
     out = []
     for v in values if isinstance(values, list) else []:
         m = re.search(r"\d+", str(v))
@@ -611,16 +675,21 @@ def _ids(values) -> list[int]:
     return out
 
 
-def _select(accepted: list[dict], plan: Plan, settings: Settings, top_k: int,
-            taken: list[dict]) -> list[dict]:
+def _select(
+    accepted: list[dict[str, Any]],
+    plan: Plan,
+    settings: Settings,
+    top_k: int,
+    taken: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Отобранное моделью → фрагменты ответа: у каждой части свои места,
     не больше per_doc из статьи (пока есть другие), порядок — как решила модель."""
     per_doc: dict[str, int] = {}
     for s in taken:
         per_doc[s["doc_id"]] = per_doc.get(s["doc_id"], 0) + 1
-    chosen: list[dict] = []
+    chosen: list[dict[str, Any]] = []
 
-    def take(c, strict=True) -> bool:
+    def take(c: Any, strict: Any = True) -> bool:
         if c in chosen or len(chosen) >= top_k:
             return False
         doc = c["hit"].doc_id
@@ -641,7 +710,7 @@ def _select(accepted: list[dict], plan: Plan, settings: Settings, top_k: int,
                     got += 1
     for c in accepted:
         take(c)
-    for c in accepted:              # статей мало — лишние куски тех же статей, в конце
+    for c in accepted:  # статей мало — лишние куски тех же статей, в конце
         take(c, strict=False)
     if len(plan.parts) > 1:
         for i, part in enumerate(plan.parts, start=1):
@@ -651,9 +720,18 @@ def _select(accepted: list[dict], plan: Plan, settings: Settings, top_k: int,
     return chosen
 
 
-def retrieve(conn, embedder, question: str, plan: Plan, settings: Settings,
-             judge=judge_fragments, taken: list[dict] | None = None, limit: int | None = None,
-             max_rounds: int = MAX_ROUNDS, extra: list | None = None):
+def retrieve(
+    conn: Any,
+    embedder: Any,
+    question: str,
+    plan: Plan,
+    settings: Settings,
+    judge: Any = judge_fragments,
+    taken: list[dict[str, Any]] | None = None,
+    limit: int | None = None,
+    max_rounds: int = MAX_ROUNDS,
+    extra: list[Any] | None = None,
+) -> Generator[Any, Any, Any]:
     """Поиск с моделью. Генератор: отдаёт события status, в конце возвращает Retrieval
     (`result = yield from retrieve(…)`).
 
@@ -663,19 +741,25 @@ def retrieve(conn, embedder, question: str, plan: Plan, settings: Settings,
 
     judge=None или молчащая модель — отбор по порогу близости (find_sources)."""
     taken = list(taken or [])
-    if judge is None:                               # без модели — сразу отбор по порогу
-        sources = find_sources(conn, embedder, plan, settings, start=len(taken) + 1,
-                               taken=taken, limit=limit)
+    if judge is None:  # без модели — сразу отбор по порогу
+        sources = find_sources(
+            conn, embedder, plan, settings, start=len(taken) + 1, taken=taken, limit=limit
+        )
         return Retrieval(sources, rounds=1, checked=0, judged=False)
     top_k = limit or settings.top_k
-    cache: dict = {}
-    pool: list[dict] = []
+    cache: dict[str, Any] = {}
+    pool: list[dict[str, Any]] = []
     seen = {_key(s) for s in taken}
 
-    def add(hits, part, rnd) -> list[dict]:
+    spare: list[tuple[Any, ...]] = []  # сверх CANDIDATE_PER_DOC из статьи — если других мало
+
+    def add(hits: Any, part: Any, rnd: Any, capped: bool = True) -> list[dict[str, Any]]:
         new = []
         for h in hits:
             if _key(h) in seen:
+                continue
+            if capped and sum(c["hit"].doc_id == h.doc_id for c in pool) >= CANDIDATE_PER_DOC:
+                spare.append((h, part, rnd))
                 continue
             seen.add(_key(h))
             c = {"id": len(pool) + 1, "hit": h, "part": part, "round": rnd}
@@ -686,30 +770,39 @@ def retrieve(conn, embedder, question: str, plan: Plan, settings: Settings,
     multi = len(plan.parts) > 1
     # Фрагменты о предмете вопроса из графа — первыми: порога близости у них нет,
     # они найдены не по похожести, а по фактам.
-    add(extra or [], None if multi else 1, 1)
+    add(extra or [], None if multi else 1, 1, capped=False)
     if multi:
         for i, part in enumerate(plan.parts, start=1):
             add(candidates(conn, embedder, part.queries or [part.question], cache, WIDE_PART), i, 1)
         add(candidates(conn, embedder, plan.queries, cache, WIDE_PART), None, 1)
     else:
         add(candidates(conn, embedder, plan.queries, cache, WIDE), 1, 1)
+    # Ограничение — на весь набор: поиски по частям вопроса складываются, и одна статья
+    # набирала 7 мест из 16. Других статей мало — лишние куски той же добирают места.
+    for h, part, rnd in spare[: max(0, WIDE - len(pool))]:
+        add([h], part, rnd, capped=False)
 
-    fresh, accepted = list(pool), []
+    fresh: list[dict[str, Any]] = list(pool)
+    accepted: list[dict[str, Any]] = []
     rounds, checked, judged = 1, 0, False
     while True:
         before = len(accepted)
-        batches = [fresh[i:i + JUDGE_MAX] for i in range(0, len(fresh), JUDGE_MAX)] or [[]]
+        batches = [fresh[i : i + JUDGE_MAX] for i in range(0, len(fresh), JUDGE_MAX)] or [[]]
         if len(batches) > 1 and len(batches[-1]) <= JUDGE_SLACK:
-            batches[-2:] = [batches[-2] + batches[-1]]   # 12 + 1 — лишний вызов модели
+            batches[-2:] = [batches[-2] + batches[-1]]  # 12 + 1 — лишний вызов модели
         missing, proposed, silent, answered = [], [], [], False
         for k, batch in enumerate(batches, start=1):
-            part = f" (пачка {k} из {len(batches)})" if len(batches) > 1 else ""
-            yield {"type": "status", "text": (f"модель читает найденное: {len(batch)} "
-                                              f"фрагментов{part}…" if batch else
-                                              "в базе ничего близкого — модель подбирает "
-                                              "другие запросы…")}
+            pack = f" (пачка {k} из {len(batches)})" if len(batches) > 1 else ""
+            yield {
+                "type": "status",
+                "text": (
+                    f"модель читает найденное: {len(batch)} " f"фрагментов{pack}…"
+                    if batch
+                    else "в базе ничего близкого — модель подбирает " "другие запросы…"
+                ),
+            }
             data = judge(question, plan, batch, accepted, settings)
-            if data is None:                        # модель не ответила на эту пачку
+            if data is None:  # модель не ответила на эту пачку
                 silent += batch
                 continue
             answered = True
@@ -718,11 +811,12 @@ def retrieve(conn, embedder, question: str, plan: Plan, settings: Settings,
             for i in _ids(data.get("подходят") or data.get("relevant")):
                 if i in by_id and by_id[i] not in accepted:
                     accepted.append(by_id[i])
-            missing += [" ".join(str(m).split()) for m in data.get("не_хватает") or []
-                        if str(m).strip()]
+            missing += [
+                " ".join(str(m).split()) for m in data.get("не_хватает") or [] if str(m).strip()
+            ]
             proposed += _queries(data.get("запросы") or data.get("queries"), EXTRA_QUERIES)
         if not answered:
-            break                                   # модель молчит — отбор уже сделанный
+            break  # модель молчит — отбор уже сделанный
         judged = True
         if rounds == 1:
             # Модель ответила не на все пачки первого круга — из молчаливых
@@ -733,11 +827,11 @@ def retrieve(conn, embedder, question: str, plan: Plan, settings: Settings,
         if rounds >= max_rounds:
             break
         if rounds > 1 and len(accepted) == before:
-            break                                   # новый круг ничего не добавил
+            break  # новый круг ничего не добавил
         if accepted and not missing:
-            break                                   # всего хватает
+            break  # всего хватает
         done = plan.queries + plan.extra
-        queries = []
+        queries: list[str] = []
         for q in proposed:
             if q.lower() not in {d.lower() for d in done + queries} and not is_repeat(q, done):
                 queries.append(q)
@@ -751,9 +845,10 @@ def retrieve(conn, embedder, question: str, plan: Plan, settings: Settings,
         if not fresh and not missing:
             break
 
-    if not judged:                                  # модель не ответила — по порогу
-        sources = find_sources(conn, embedder, plan, settings, start=len(taken) + 1,
-                               taken=taken, limit=limit)
+    if not judged:  # модель не ответила — по порогу
+        sources = find_sources(
+            conn, embedder, plan, settings, start=len(taken) + 1, taken=taken, limit=limit
+        )
         return Retrieval(sources, rounds=1, checked=0, judged=False)
     chosen = _select(accepted, plan, settings, top_k, taken)
     sources = []
@@ -767,7 +862,7 @@ def retrieve(conn, embedder, question: str, plan: Plan, settings: Settings,
     return Retrieval(sources, rounds=rounds, checked=checked, judged=True)
 
 
-def run(gen):
+def run(gen: Any) -> Any:
     """Прогнать генератор-поиск без событий и взять результат (для оценки и проверок)."""
     try:
         while True:
@@ -779,26 +874,36 @@ def run(gen):
 # --------------------------------------------------------------------------- #
 #  «Собрать всё» — из датасета: все факты о сущности из графа
 # --------------------------------------------------------------------------- #
-def _synonyms():
+def _synonyms() -> Any:
     from ..graph import synonyms
+
     return synonyms.load()
 
 
-def resolve_entity(g, hint: str | None, question: str) -> str | None:
+def _stems(text: str) -> set[str]:
+    """Основы значимых слов: первые 5 букв слов от 4 букв — падеж не мешает."""
+    return {w[:5] for w in re.findall(r"\w+", text.lower()) if len(w) >= 4}
+
+
+def resolve_entity(g: Any, hint: str | None, question: str) -> str | None:
     """О чём вопрос: по подсказке модели или по самому вопросу — среди сущностей графа."""
     from ..text import normalize, phrase_pattern
 
     if hint:
         name = g.resolve(hint)
         if name:
-            return name
+            return str(name)
     # По тексту вопроса: самое длинное имя (или синоним), что в нём встречается.
+    # Если модель назвала предмет, а граф его не знает («Анабарский щит», о котором
+    # статей нет), годится только имя с общим словом из её подсказки, иначе вместо
+    # предмета подхватится общее слово вопроса («геологическое строение»).
     text = normalize(question)
+    want = _stems(hint) if hint else set()
     hits = []
     for name in g.entities:
         spellings = [name, *g.syn.groups.get(name, [])]
         for spelled in spellings:
-            if len(spelled) < 4:
+            if len(spelled) < 4 or (want and not want & _stems(spelled)):
                 continue
             try:
                 if phrase_pattern(spelled).search(text):
@@ -809,7 +914,7 @@ def resolve_entity(g, hint: str | None, question: str) -> str | None:
     return max(hits, key=len) if hits else None
 
 
-def collect_dataset(conn, hint: str | None, question: str) -> dict | None:
+def collect_dataset(conn: Any, hint: str | None, question: str) -> dict[str, Any] | None:
     """Датасет для вопроса «собрать всё»: факты о сущности и фрагменты к главным.
     None — сущность не узнана, фактов нет (граф не строили) или про неё ничего нет."""
     if conn is None:
@@ -844,7 +949,7 @@ def collect_dataset(conn, hint: str | None, question: str) -> dict | None:
         return None
 
 
-def graph_candidates(conn, hint: str | None, question: str) -> list:
+def graph_candidates(conn: Any, hint: str | None, question: str) -> list[Any]:
     """Фрагменты, где сказано о предмете вопроса, — по графу, а не по похожести.
 
     Редкое название («Персияновский разлом») векторный поиск находит плохо:
@@ -877,36 +982,61 @@ def graph_candidates(conn, hint: str | None, question: str) -> list:
         except Exception:  # noqa: BLE001
             pass
         return []
-    return [Hit(chunk_id=cid, doc_id=f["doc_id"], ord=f["ord"], text=f["text"],
-                headings=f["headings"], pages=f["pages"], title=f["title"], year=f["year"],
-                journal=f["journal"], url=f["url"], authors=f["authors"], found_by="граф")
-            for cid in ids if (f := frags.get(cid))]
+    return [
+        Hit(
+            chunk_id=cid,
+            doc_id=f["doc_id"],
+            ord=f["ord"],
+            text=f["text"],
+            headings=f["headings"],
+            pages=f["pages"],
+            title=f["title"],
+            year=f["year"],
+            journal=f["journal"],
+            url=f["url"],
+            authors=f["authors"],
+            found_by="граф",
+        )
+        for cid in ids
+        if (f := frags.get(cid))
+    ]
 
 
 def _count(n: int) -> str:
     last2, last = n % 100, n % 10
-    word = ("статья" if last == 1 and last2 != 11 else
-            "статьи" if 2 <= last <= 4 and not 12 <= last2 <= 14 else "статей")
+    word = (
+        "статья"
+        if last == 1 and last2 != 11
+        else "статьи" if 2 <= last <= 4 and not 12 <= last2 <= 14 else "статей"
+    )
     return f"{n} {word}"
 
 
-def dataset_summary(data: dict) -> str:
+def dataset_summary(data: dict[str, Any]) -> str:
     """Факты о сущности одним текстом — «фрагмент» для модели."""
     includes = data.get("includes") or []
     # «Полный список» — только если модель прошла все фрагменты базы. Граф
     # строится ночью порциями, и новые статьи попадают в него не сразу.
     passed = data.get("pass") or {}
     done, total = passed.get("passed") or 0, passed.get("chunks") or 0
-    scope = ("это полный список по графу" if not total or done >= total else
-             f"это всё, что есть в графе, но модель прошла пока {done} из {total} фрагментов "
-             "базы — в остальных может быть ещё")
-    lines = [f"Факты о «{data['name']}»"
-             + (f" (вместе с тем, что в неё входит: {', '.join(includes)})" if includes else "")
-             + " — выписаны моделью из статей базы и проверены по цитатам, а не найдены "
-             f"поиском; {scope}. Статей: {data['documents']}."]
-    for row in data["facts"][:DATASET_ITEMS * 2]:
-        fact = (f"{row['about']} — {row['relation']} — {row['other']}" if row["direction"] == "→"
-                else f"{row['other']} — {row['relation']} — {row['about']}")
+    scope = (
+        "это полный список по графу"
+        if not total or done >= total
+        else f"это всё, что есть в графе, но модель прошла пока {done} из {total} фрагментов "
+        "базы — в остальных может быть ещё"
+    )
+    lines = [
+        f"Факты о «{data['name']}»"
+        + (f" (вместе с тем, что в неё входит: {', '.join(includes)})" if includes else "")
+        + " — выписаны моделью из статей базы и проверены по цитатам, а не найдены "
+        f"поиском; {scope}. Статей: {data['documents']}."
+    ]
+    for row in data["facts"][: DATASET_ITEMS * 2]:
+        fact = (
+            f"{row['about']} — {row['relation']} — {row['other']}"
+            if row["direction"] == "→"
+            else f"{row['other']} — {row['relation']} — {row['about']}"
+        )
         lines.append(f"- {fact} ({_count(row['documents'])})")
     more = len(data["facts"]) - DATASET_ITEMS * 2
     if more > 0:
@@ -914,28 +1044,50 @@ def dataset_summary(data: dict) -> str:
     return "\n".join(lines)
 
 
-def dataset_sources(data: dict, start: int = 1) -> list[dict]:
+def dataset_sources(data: dict[str, Any], start: int = 1) -> list[dict[str, Any]]:
     """Сводка фактов — первым фрагментом, за ней фрагменты статей к главным фактам."""
-    out = [{
-        "n": start, "doc_id": f"датасет:{data['name']}", "ord": -1,
-        "title": f"Факты из графа: {data['name']}", "year": None, "journal": None,
-        "authors": [], "pages": [], "headings": [], "url": "",
-        "text": dataset_summary(data), "similarity": None, "found_by": "датасет",
-        "part": None, "kind": "датасет",
-    }]
+    out = [
+        {
+            "n": start,
+            "doc_id": f"датасет:{data['name']}",
+            "ord": -1,
+            "title": f"Факты из графа: {data['name']}",
+            "year": None,
+            "journal": None,
+            "authors": [],
+            "pages": [],
+            "headings": [],
+            "url": "",
+            "text": dataset_summary(data),
+            "similarity": None,
+            "found_by": "датасет",
+            "part": None,
+            "kind": "датасет",
+        }
+    ]
     for e in data.get("evidence") or []:
-        out.append({
-            "n": start + len(out), "doc_id": e["doc_id"], "ord": e["ord"],
-            "title": e.get("title") or e["doc_id"], "year": e.get("year"),
-            "journal": e.get("journal"), "authors": e.get("authors") or [],
-            "pages": e.get("pages") or [], "headings": e.get("headings") or [],
-            "url": e.get("url") or "", "text": e["text"], "similarity": None,
-            "found_by": "датасет", "part": None,
-        })
+        out.append(
+            {
+                "n": start + len(out),
+                "doc_id": e["doc_id"],
+                "ord": e["ord"],
+                "title": e.get("title") or e["doc_id"],
+                "year": e.get("year"),
+                "journal": e.get("journal"),
+                "authors": e.get("authors") or [],
+                "pages": e.get("pages") or [],
+                "headings": e.get("headings") or [],
+                "url": e.get("url") or "",
+                "text": e["text"],
+                "similarity": None,
+                "found_by": "датасет",
+                "part": None,
+            }
+        )
     return out
 
 
-def add_neighbors(conn, sources: list[dict]) -> None:
+def add_neighbors(conn: Any, sources: list[dict[str, Any]]) -> None:
     """Короткому фрагменту — продолжение из той же статьи и того же раздела.
 
     Поиск находит самый похожий кусок, а он бывает обрывком: заголовок и две
@@ -980,13 +1132,18 @@ def add_neighbors(conn, sources: list[dict]) -> None:
 # --------------------------------------------------------------------------- #
 #  Сообщения для модели
 # --------------------------------------------------------------------------- #
-def fragment_block(source: dict) -> str:
+_LITERATURE_REF = re.compile(r"\[(\d+(?:\s*[,;–—-]\s*\d+)*)\]")
+
+
+def fragment_block(source: dict[str, Any]) -> str:
     where = []
     if source.get("year"):
         where.append(str(source["year"]))
     if source.get("pages"):
         where.append("с. " + ", ".join(str(p) for p in source["pages"][:3]))
-    text = source["text"]
+    # Ссылки на литературу внутри статьи («показано в [12]») модель переносила в ответ
+    # как номера фрагментов — и ответ ссылался на [12], [16], [20], которых не было.
+    text = _LITERATURE_REF.sub(r"(лит. \1)", source["text"])
     limit = DATASET_CHARS if source.get("kind") == "датасет" else FRAGMENT_CHARS
     if len(text) > limit:
         text = text[:limit].rsplit(" ", 1)[0] + " …"
@@ -994,11 +1151,13 @@ def fragment_block(source: dict) -> str:
     return f"{head}\n{text}"
 
 
-GENERAL_MARK = ("(Этот ответ был не из базы знаний, а из общих знаний модели — "
-                "как источник его не используй.)\n")
+GENERAL_MARK = (
+    "(Этот ответ был не из базы знаний, а из общих знаний модели — "
+    "как источник его не используй.)\n"
+)
 
 
-def past_turns(history: list[dict]) -> list[dict]:
+def past_turns(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Прошлые реплики — чтобы понимать вопросы вдогонку. Последние два обмена,
     каждая укорочена.
 
@@ -1007,7 +1166,7 @@ def past_turns(history: list[dict]) -> list[dict]:
     базы» (mode) помечается: иначе сказанное из общих знаний попадало в ответ по базе."""
     past = [m for m in history if m.get("role") in ("user", "assistant") and m.get("content")]
     out = []
-    for m in past[-HISTORY_TURNS * 2:]:
+    for m in past[-HISTORY_TURNS * 2 :]:
         content = str(m["content"])
         if m["role"] == "assistant":
             content = _CITE_MARK.sub("", content)
@@ -1017,8 +1176,13 @@ def past_turns(history: list[dict]) -> list[dict]:
     return out
 
 
-def build_messages(question: str, sources: list[dict], history: list[dict],
-                   model: str = MODEL, plan: Plan | None = None) -> list[dict]:
+def build_messages(
+    question: str,
+    sources: list[dict[str, Any]],
+    history: list[dict[str, Any]],
+    model: str = MODEL,
+    plan: Plan | None = None,
+) -> list[dict[str, Any]]:
     messages = [{"role": "system", "content": SYSTEM}, *past_turns(history)]
     fragments = "\n\n".join(fragment_block(s) for s in sources)
     notes = []
@@ -1028,43 +1192,56 @@ def build_messages(question: str, sources: list[dict], history: list[dict],
             f"Фрагмент [{summary['n']}] — все факты о предмете вопроса из графа знаний "
             "(выписаны из статей базы). Перечисли из него всё, сгруппировав по смыслу, со "
             f"ссылкой [{summary['n']}]; подробности, примеры и числа бери из остальных "
-            "фрагментов, с их номерами.")
+            "фрагментов, с их номерами."
+        )
     if plan is not None and len(plan.parts) > 1:
         lines = "\n".join(f"{i}) {p.question}" for i, p in enumerate(plan.parts, start=1))
-        notes.append("Вопрос состоит из частей:\n" + lines + "\nОтветь на каждую часть "
-                     "отдельным разделом. Если по какой-то части во фрагментах ничего нет — "
-                     "так и напиши в её разделе.")
+        notes.append(
+            "Вопрос состоит из частей:\n" + lines + "\nОтветь на каждую часть "
+            "отдельным разделом. Если по какой-то части во фрагментах ничего нет — "
+            "так и напиши в её разделе."
+        )
     articles = {s["doc_id"]: s["title"] for s in sources if s.get("kind") != "датасет"}
     if len(articles) == 1 and len(sources) > 1:
-        notes.append(f"Все фрагменты — из одной статьи «{next(iter(articles.values()))}». "
-                     "Скажи об этом в ответе и не выдавай сказанное в ней об одном районе или "
-                     "объекте за общее правило.")
+        notes.append(
+            f"Все фрагменты — из одной статьи «{next(iter(articles.values()))}». "
+            "Скажи об этом в ответе и не выдавай сказанное в ней об одном районе или "
+            "объекте за общее правило."
+        )
     asked = question.strip()
     if plan is not None and plan.standalone and plan.standalone.lower() != asked.lower():
         asked += f"\n(Это продолжение разговора; вопрос целиком: {plan.standalone})"
     note = ("\n\n" + "\n\n".join(notes)) if notes else ""
-    user = (f"Фрагменты из базы знаний:\n\n{fragments}\n\n"
-            f"Вопрос: {asked}{note}\n\nОтвечай только по этим фрагментам, со ссылками.")
+    user = (
+        f"Фрагменты из базы знаний:\n\n{fragments}\n\n"
+        f"Вопрос: {asked}{note}\n\nОтвечай только по этим фрагментам, со ссылками."
+    )
     messages.append({"role": "user", "content": no_think(model, user)})
     return messages
 
 
-def _tokens(messages: list[dict]) -> int:
+def _tokens(messages: list[dict[str, Any]]) -> int:
     return int(sum(len(m["content"]) for m in messages) / CHARS_PER_TOKEN) + 1
 
 
-def fit_budget(question: str, sources: list[dict], history: list[dict], settings: Settings,
-               plan: Plan | None = None) -> tuple[list[dict], list[dict]]:
+def fit_budget(
+    question: str,
+    sources: list[dict[str, Any]],
+    history: list[dict[str, Any]],
+    settings: Settings,
+    plan: Plan | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Фрагменты и история, которые влезают в окно модели вместе с ответом.
 
     Сначала уходят старые обмены разговора, потом — последние фрагменты (самые
     слабые: порядок — как отобрала модель), но не меньше трёх. Нумерация не
     сбивается: отбрасываются только с конца."""
     budget = settings.num_ctx - ANSWER_RESERVE
-    history = [m for m in history if m.get("role") in ("user", "assistant")
-               and m.get("content")][-HISTORY_TURNS * 2:]
+    history = [m for m in history if m.get("role") in ("user", "assistant") and m.get("content")][
+        -HISTORY_TURNS * 2 :
+    ]
 
-    def size():
+    def size() -> Any:
         return _tokens(build_messages(question, sources, history, settings.model, plan))
 
     while history and size() > budget:
@@ -1075,7 +1252,9 @@ def fit_budget(question: str, sources: list[dict], history: list[dict], settings
     return sources, history
 
 
-def general_messages(question: str, history: list[dict], model: str = MODEL) -> list[dict]:
+def general_messages(
+    question: str, history: list[dict[str, Any]], model: str = MODEL
+) -> list[dict[str, Any]]:
     """Сообщения для ответа без базы: без фрагментов, с запретом на ссылки."""
     messages = [{"role": "system", "content": GENERAL_SYSTEM}, *past_turns(history)]
     user = question.strip()
@@ -1104,6 +1283,12 @@ def citations(answer: str, count: int) -> tuple[list[int], list[int]]:
     return used, unknown
 
 
+# Строка-заголовок: «### Методы», «**1) Признаки рудных узлов**». Считалась
+# утверждением без ссылки — у ответов из трёх разделов треть «утверждений» были
+# заголовками.
+_HEADING = re.compile(r"(?m)^\s*(?:#{1,6}\s+[^\n]*|\*\*[^*\n]+\*\*:?|__[^_\n]+__:?)\s*$")
+
+
 def coverage(answer: str) -> tuple[int, int]:
     """Сколько утверждений ответа подкреплены ссылкой: (со ссылкой, всего).
 
@@ -1112,11 +1297,16 @@ def coverage(answer: str) -> tuple[int, int]:
     это не факт из статьи, ссылка к ним не нужна. Ссылка может стоять и сразу
     после точки — она относится к предыдущему предложению.
     """
-    text = re.sub(r"(?m)^\s*(?:[-*•]|\d+[.)])\s+", "", answer)
+    text = _HEADING.sub("", answer)  # заголовок раздела — не утверждение
+    text = re.sub(r"(?m)^\s*(?:[-*•]|\d+[.)])\s+", "", text)
     text = re.sub(r"([.!?…])\s*((?:\[\d+(?:\s*[,;]\s*\d+)*\]\s*)+)", r" \2\1", text)
     parts = re.split(r"(?<=[.!?…])\s+|\n+", text)
-    claims = [p for p in parts if len(_CITE.sub("", p).strip()) > 40
-              and not (_ABOUT_SOURCES.search(p) and not _CITE.search(p))]
+    claims = [
+        p
+        for p in parts
+        if len(_CITE.sub("", p).strip()) > 40
+        and not (_ABOUT_SOURCES.search(p) and not _CITE.search(p))
+    ]
     cited = [p for p in claims if _CITE.search(p)]
     return len(cited), len(claims)
 
@@ -1131,7 +1321,7 @@ class ThinkFilter:
 
     def __init__(self) -> None:
         self.buffer = ""
-        self.state = "start"          # start → (think →) text
+        self.state = "start"  # start → (think →) text
 
     def feed(self, chunk: str) -> str:
         if self.state == "text":
@@ -1142,7 +1332,7 @@ class ThinkFilter:
             if not head:
                 return ""
             if "<think>".startswith(head[:7]) and len(head) < 7:
-                return ""             # ещё не ясно, начало ли это блока
+                return ""  # ещё не ясно, начало ли это блока
             if head.startswith("<think>"):
                 self.state = "think"
             else:
@@ -1165,16 +1355,21 @@ class ThinkFilter:
 #  Модель
 # --------------------------------------------------------------------------- #
 def _client(settings: Settings) -> Ollama:
-    return Ollama(model=settings.model, host=settings.host, timeout=settings.timeout,
-                  temperature=settings.temperature, num_ctx=settings.num_ctx)
+    return Ollama(
+        model=settings.model,
+        host=settings.host,
+        timeout=settings.timeout,
+        temperature=settings.temperature,
+        num_ctx=settings.num_ctx,
+    )
 
 
-def ollama_status(host: str = OLLAMA, model: str = MODEL, timeout: int = 5) -> dict:
+def ollama_status(host: str = OLLAMA, model: str = MODEL, timeout: int = 5) -> dict[str, Any]:
     """Жива ли Ollama и скачана ли модель — для подсказки на странице."""
     return Ollama(model=model, host=host).status(timeout=timeout)
 
 
-def stream_ollama(messages: list[dict], settings: Settings) -> Iterator[dict]:
+def stream_ollama(messages: list[dict[str, Any]], settings: Settings) -> Iterator[dict[str, Any]]:
     """Ответ Ollama кусками: {"text": …} и в конце {"done": True, "tokens": …}."""
     return _client(settings).stream(messages)
 
@@ -1185,25 +1380,38 @@ def stream_ollama(messages: list[dict], settings: Settings) -> Iterator[dict]:
 @dataclass
 class Prepared:
     """Всё, что нужно для ответа: разбор вопроса, датасет, найденное."""
+
     plan: Plan
-    sources: list[dict]
+    sources: list[dict[str, Any]]
     retrieval: Retrieval
-    dataset: dict | None = None
-    graph: int = 0                 # сколько кандидатов дал граф (вопрос о названном предмете)
+    dataset: dict[str, Any] | None = None
+    graph: int = 0  # сколько кандидатов дал граф (вопрос о названном предмете)
 
-    def info(self) -> dict:
+    def info(self) -> dict[str, Any]:
         plan = self.plan
-        return {"queries": plan.queries + plan.extra, "standalone": plan.standalone,
-                "graph": self.graph,
-                "parts": plan.describe() if len(plan.parts) > 1 else [],
-                "extra": plan.extra, "missing": plan.missing,
-                "dataset": self.dataset["name"] if self.dataset else None,
-                **self.retrieval.info()}
+        return {
+            "queries": plan.queries + plan.extra,
+            "standalone": plan.standalone,
+            "graph": self.graph,
+            "parts": plan.describe() if len(plan.parts) > 1 else [],
+            "extra": plan.extra,
+            "missing": plan.missing,
+            "dataset": self.dataset["name"] if self.dataset else None,
+            **self.retrieval.info(),
+        }
 
 
-def prepare(conn, embedder, question: str, history: list[dict], settings: Settings,
-            planner=plan_question, judge=judge_fragments, datasets=collect_dataset,
-            graph_hits=graph_candidates):
+def prepare(
+    conn: Any,
+    embedder: Any,
+    question: str,
+    history: list[dict[str, Any]],
+    settings: Settings,
+    planner: Any = plan_question,
+    judge: Any = judge_fragments,
+    datasets: Any = collect_dataset,
+    graph_hits: Any = graph_candidates,
+) -> Generator[Any, Any, Any]:
     """Разбор вопроса и поиск с моделью. Генератор событий status; в конце — Prepared."""
     yield {"type": "status", "text": "разбираю вопрос…"}
     plan = make_plan(question, history, settings, planner)
@@ -1216,26 +1424,41 @@ def prepare(conn, embedder, question: str, history: list[dict], settings: Settin
     base = dataset_sources(data) if data else []
 
     # Вопрос о названном предмете — фрагменты о нём из графа в кандидаты.
-    extra = []
+    extra: list[Any] = []
     if not data and plan.subject and graph_hits is not None and judge is not None:
         extra = graph_hits(conn, plan.subject, question) or []
         if extra:
             yield {"type": "status", "text": f"беру из графа фрагменты о «{plan.subject}»…"}
 
-    yield {"type": "status", "text": (f"ищу в базе по {len(plan.parts)} частям вопроса…"
-                                      if len(plan.parts) > 1 else "ищу в базе…")}
+    yield {
+        "type": "status",
+        "text": (
+            f"ищу в базе по {len(plan.parts)} частям вопроса…"
+            if len(plan.parts) > 1
+            else "ищу в базе…"
+        ),
+    }
     limit = max(settings.top_k - (len(base) - 1), 3) if base else None
     # Вопрос не о геологии — один круг: проверить, что в базе правда пусто, и всё.
     rounds = MAX_ROUNDS if plan.on_topic else 1
-    found = yield from retrieve(conn, embedder, question, plan, settings, judge, base, limit,
-                                rounds, extra)
+    found = yield from retrieve(
+        conn, embedder, question, plan, settings, judge, base, limit, rounds, extra
+    )
     return Prepared(plan, base + found.sources, found, data, len(extra))
 
 
-def answer(conn, embedder, question: str, history: list[dict] | None = None,
-           settings: Settings | None = None, llm=stream_ollama,
-           planner=plan_question, judge=judge_fragments, datasets=collect_dataset,
-           prepared: Prepared | None = None) -> Iterator[dict]:
+def answer(
+    conn: Any,
+    embedder: Any,
+    question: str,
+    history: list[dict[str, Any]] | None = None,
+    settings: Settings | None = None,
+    llm: Any = stream_ollama,
+    planner: Any = plan_question,
+    judge: Any = judge_fragments,
+    datasets: Any = collect_dataset,
+    prepared: Prepared | None = None,
+) -> Generator[dict[str, Any], None, None]:
     """Ответ на вопрос событиями (см. начало файла).
 
     llm, planner, judge и datasets подменяются в проверках: planner может
@@ -1251,8 +1474,9 @@ def answer(conn, embedder, question: str, history: list[dict] | None = None,
 
     started = time.monotonic()
     if prepared is None:
-        prepared = yield from prepare(conn, embedder, question, history, settings,
-                                      planner, judge, datasets)
+        prepared = yield from prepare(
+            conn, embedder, question, history, settings, planner, judge, datasets
+        )
     sources, plan, info = prepared.sources, prepared.plan, prepared.info()
 
     # Разговор модели нужен только для вопроса вдогонку. В самостоятельном
@@ -1265,8 +1489,9 @@ def answer(conn, embedder, question: str, history: list[dict] | None = None,
     if sources:
         sources, turns = fit_budget(question, sources, history, settings, plan)
         yield {"type": "status", "text": "пишу ответ по найденному…"}
-        stream = _clean(llm(build_messages(question, sources, turns, settings.model, plan),
-                            settings))
+        stream = _clean(
+            llm(build_messages(question, sources, turns, settings.model, plan), settings)
+        )
         try:
             # Первые слова держатся, пока не ясно, не отказ ли это: если модель
             # прочла фрагменты и ответа в них нет, статьи не показываются вовсе.
@@ -1292,10 +1517,17 @@ def answer(conn, embedder, question: str, history: list[dict] | None = None,
                         yield {"type": "token", "text": part["text"]}
                 used, unknown = citations(text, len(sources))
                 cited, claims = coverage(text)
-                yield {"type": "done", "mode": "база", "used": used, "unknown": unknown,
-                       "coverage": [cited, claims], "model": settings.model,
-                       "seconds": round(time.monotonic() - started, 1), "tokens": tokens,
-                       **info}
+                yield {
+                    "type": "done",
+                    "mode": "база",
+                    "used": used,
+                    "unknown": unknown,
+                    "coverage": [cited, claims],
+                    "model": settings.model,
+                    "seconds": round(time.monotonic() - started, 1),
+                    "tokens": tokens,
+                    **info,
+                }
                 return
         except LLMError as exc:
             yield {"type": "error", "error": str(exc)}
@@ -1306,9 +1538,18 @@ def answer(conn, embedder, question: str, history: list[dict] | None = None,
     if not plan.on_topic and not settings.general_off_topic:
         # Не о геологии и в базе пусто — короткий отказ, без ответа из общих знаний.
         yield {"type": "general", "text": OFF_TOPIC, "off_topic": True, **info}
-        yield {"type": "done", "mode": "без базы", "used": [], "unknown": [], "coverage": [0, 0],
-               "model": settings.model, "seconds": round(time.monotonic() - started, 1),
-               "tokens": None, "off_topic": True, **info}
+        yield {
+            "type": "done",
+            "mode": "без базы",
+            "used": [],
+            "unknown": [],
+            "coverage": [0, 0],
+            "model": settings.model,
+            "seconds": round(time.monotonic() - started, 1),
+            "tokens": None,
+            "off_topic": True,
+            **info,
+        }
         return
 
     # В базе нет: ни статей, ни номеров — ответ модели с пометкой.
@@ -1324,12 +1565,20 @@ def answer(conn, embedder, question: str, history: list[dict] | None = None,
     except LLMError as exc:
         yield {"type": "error", "error": str(exc)}
         return
-    yield {"type": "done", "mode": "без базы", "used": [], "unknown": [], "coverage": [0, 0],
-           "model": settings.model, "seconds": round(time.monotonic() - started, 1),
-           "tokens": tokens, **info}
+    yield {
+        "type": "done",
+        "mode": "без базы",
+        "used": [],
+        "unknown": [],
+        "coverage": [0, 0],
+        "model": settings.model,
+        "seconds": round(time.monotonic() - started, 1),
+        "tokens": tokens,
+        **info,
+    }
 
 
-def _clean(parts) -> Iterator[dict]:
+def _clean(parts: Any) -> Generator[dict[str, Any], None, None]:
     """Поток модели без блока размышлений: {"text": …} и в конце {"done": токены}."""
     think = ThinkFilter()
     try:

@@ -34,17 +34,19 @@ import sys
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import Any
 from urllib.parse import parse_qs, quote, urlparse
 
 from ..chat import answer as chat
 from ..common import add_db_args, add_embedder_args, add_llm_args
+from ..graph import api as graph_api
+from ..graph import store as graph
+from ..graph.synonyms import DEFAULT_PATH as SYNONYMS_PATH
+from ..graph.synonyms import SynonymsError, synonym_variants
+from ..graph.synonyms import load as load_synonyms
 from ..index import db
 from ..index.embed import build_embedder
 from ..index.search import hybrid_search
-from ..graph import api as graph_api
-from ..graph import store as graph
-from ..graph.synonyms import DEFAULT_PATH as SYNONYMS_PATH, SynonymsError, load as load_synonyms
-from ..graph.synonyms import synonym_variants
 
 PAGE = Path(__file__).with_name("index.html")
 
@@ -53,14 +55,14 @@ class State:
     """Общее на весь сервер: адрес базы, загруженная модель, словарь синонимов."""
 
     dsn: str | None = None
-    embedder = None
+    embedder: Any = None
     chat_settings = chat.Settings()
     synonyms_path = None
     _syn = None
     _syn_mtime = None
 
     @classmethod
-    def synonyms(cls):
+    def synonyms(cls) -> Any:
         """Словарь перечитывается, если файл поменяли, — сервер можно не перезапускать."""
         path = cls.synonyms_path or SYNONYMS_PATH
         mtime = path.stat().st_mtime if path.exists() else None
@@ -70,7 +72,7 @@ class State:
         return cls._syn
 
 
-def _hit_to_dict(hit) -> dict:
+def _hit_to_dict(hit: Any) -> dict[str, Any]:
     return {
         # doc_id и ord нужны, чтобы из выдачи открыть разбор статьи
         # и показать, из какого места взят найденный кусок.
@@ -94,7 +96,7 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "georag"
 
     # Стандартный лог пишет каждую картинку — в консоли от него только шум.
-    def log_message(self, fmt, *args):
+    def log_message(self, fmt: Any, *args: Any) -> None:
         pass
 
     def _send(self, code: int, body: bytes, content_type: str) -> None:
@@ -104,9 +106,12 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _json(self, payload: dict, code: int = 200) -> None:
-        self._send(code, json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-                   "application/json; charset=utf-8")
+    def _json(self, payload: dict[str, Any], code: int = 200) -> None:
+        self._send(
+            code,
+            json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            "application/json; charset=utf-8",
+        )
 
     def do_GET(self) -> None:  # noqa: N802 — имя задано базовым классом
         route = urlparse(self.path)
@@ -137,7 +142,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._json({"error": "нет такой страницы"}, 404)
         except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
-            pass                        # страницу закрыли, пока отвечали
+            pass  # страницу закрыли, пока отвечали
         except Exception as exc:  # noqa: BLE001 — ошибка уходит на страницу, сервер живёт
             traceback.print_exc()
             self._json({"error": f"{type(exc).__name__}: {exc}"}, 500)
@@ -167,7 +172,7 @@ class Handler(BaseHTTPRequestHandler):
             self._json({"error": f"{type(exc).__name__}: {exc}"}, 500)
 
     # -- чат-бот ------------------------------------------------------------ #
-    def _chat(self, payload: dict) -> None:
+    def _chat(self, payload: dict[str, Any]) -> None:
         """Ответ потоком: строка JSON на событие, страница рисует по мере прихода."""
         history = payload.get("history") if isinstance(payload.get("history"), list) else []
         settings = State.chat_settings
@@ -178,14 +183,15 @@ class Handler(BaseHTTPRequestHandler):
         events = None
         try:
             with db.connect(State.dsn) as conn:
-                db.autocommit(conn)             # ответ пишется минутами — без открытой транзакции
-                events = chat.answer(conn, State.embedder, str(payload.get("question") or ""),
-                                     history, settings)
+                db.autocommit(conn)  # ответ пишется минутами — без открытой транзакции
+                events = chat.answer(
+                    conn, State.embedder, str(payload.get("question") or ""), history, settings
+                )
                 for event in events:
                     self.wfile.write((json.dumps(event, ensure_ascii=False) + "\n").encode("utf-8"))
                     self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError):
-            pass                        # страницу закрыли или нажали «Стоп» — не страшно
+            pass  # страницу закрыли или нажали «Стоп» — не страшно
         except Exception as exc:  # noqa: BLE001
             traceback.print_exc()
             try:
@@ -195,10 +201,10 @@ class Handler(BaseHTTPRequestHandler):
                 pass
         finally:
             if events is not None:
-                events.close()          # закрывает и поток от Ollama: она перестаёт писать
+                events.close()  # закрывает и поток от Ollama: она перестаёт писать
 
     # -- граф знаний: сеть, датасеты ------------------------------------------ #
-    def _graph(self, build) -> None:
+    def _graph(self, build: Any) -> None:
         """build(conn, синонимы) → ответ. Неизвестное имя — 400, словарь не читается — 500."""
         try:
             syn = State.synonyms()
@@ -209,7 +215,7 @@ class Handler(BaseHTTPRequestHandler):
         except SynonymsError as exc:
             self._json({"error": f"словарь синонимов: {exc}"}, 500)
 
-    def _dataset(self, payload: dict) -> None:
+    def _dataset(self, payload: dict[str, Any]) -> None:
         """Датасет сущности: JSON, а с format=csv — таблица для Excel."""
         payload = dict(payload)
         if str(payload.pop("format", "")).lower() != "csv":
@@ -225,14 +231,15 @@ class Handler(BaseHTTPRequestHandler):
         name = quote(f"датасет-{data['name']}.csv")
         self.send_response(200)
         self.send_header("Content-Type", "text/csv; charset=utf-8")
-        self.send_header("Content-Disposition",
-                         f"attachment; filename=\"dataset.csv\"; filename*=UTF-8''{name}")
+        self.send_header(
+            "Content-Disposition", f"attachment; filename=\"dataset.csv\"; filename*=UTF-8''{name}"
+        )
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
 
     # -- действия ---------------------------------------------------------- #
-    def _stats(self) -> dict:
+    def _stats(self) -> dict[str, Any]:
         with db.connect(State.dsn) as conn:
             info = db.stats(conn)
         lo, hi = info["years"]
@@ -243,16 +250,16 @@ class Handler(BaseHTTPRequestHandler):
             "year_to": hi,
         }
 
-    def _search(self, query: dict) -> dict:
+    def _search(self, query: dict[str, Any]) -> dict[str, Any]:
         text = (query.get("q") or [""])[0].strip()
         if not text:
             return {"hits": [], "query": ""}
 
-        def number(name, default=None):
+        def number(name: Any, default: Any = None) -> Any:
             raw = (query.get(name) or [""])[0]
             return int(raw) if raw.isdigit() else default
 
-        def fraction(name, default=0.0):
+        def fraction(name: Any, default: Any = 0.0) -> Any:
             raw = (query.get(name) or [""])[0]
             try:
                 return float(raw)
@@ -286,19 +293,20 @@ class Server(ThreadingHTTPServer):
 
     allow_reuse_address = False
 
-    def server_bind(self):
+    def server_bind(self) -> None:
         import socket
 
         if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
         super().server_bind()
 
-    def handle_error(self, request, client_address):
+    def handle_error(self, request: Any, client_address: Any) -> None:
         """Страницу закрыли или обновили, пока сервер отвечал, — не ошибка, журнал не засоряем."""
         import sys as _sys
 
-        if isinstance(_sys.exc_info()[1], (ConnectionAbortedError, ConnectionResetError,
-                                           BrokenPipeError)):
+        if isinstance(
+            _sys.exc_info()[1], (ConnectionAbortedError, ConnectionResetError, BrokenPipeError)
+        ):
             return
         super().handle_error(request, client_address)
 
@@ -309,8 +317,9 @@ def main(argv: list[str] | None = None) -> int:
     add_db_args(parser)
     add_embedder_args(parser)
     parser.add_argument("--no-browser", action="store_true", help="не открывать браузер")
-    parser.add_argument("--tg", action="store_true",
-                        help="заодно запустить Телеграм-бота (модель векторов общая)")
+    parser.add_argument(
+        "--tg", action="store_true", help="заодно запустить Телеграм-бота (модель векторов общая)"
+    )
     add_llm_args(parser)
     args = parser.parse_args(argv)
 
@@ -319,9 +328,11 @@ def main(argv: list[str] | None = None) -> int:
     try:
         server = Server(("127.0.0.1", args.port), Handler)
     except OSError:
-        print(f"Порт {args.port} занят: сервер уже запущен в другом окне. Закройте его "
-              f"(Ctrl+C) и запустите заново — или другой порт: --port {args.port + 1}",
-              file=sys.stderr)
+        print(
+            f"Порт {args.port} занят: сервер уже запущен в другом окне. Закройте его "
+            f"(Ctrl+C) и запустите заново — или другой порт: --port {args.port + 1}",
+            file=sys.stderr,
+        )
         return 1
 
     State.dsn = args.dsn
@@ -338,7 +349,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         with db.connect(args.dsn) as conn:
             info = db.stats(conn)
-            graph.init(conn)       # таблицы графа — один раз при старте, не на каждый запрос
+            graph.init(conn)  # таблицы графа — один раз при старте, не на каждый запрос
     except Exception as exc:  # noqa: BLE001
         print(f"База недоступна: {type(exc).__name__}: {exc}", file=sys.stderr)
         print("Поднимите её: docker compose up -d", file=sys.stderr)
@@ -348,7 +359,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"В базе: {info['documents']} статей, {info['chunks']} чанков")
     print("Загружаю модель эмбеддингов (один раз на весь запуск)...")
     State.embedder = build_embedder(args.embedder, device=args.device)
-    State.embedder.encode_one("прогрев")   # чтобы первый поиск не ждал загрузку весов
+    State.embedder.encode_one("прогрев")  # чтобы первый поиск не ждал загрузку весов
 
     if args.tg:
         from ..tg.bot import start_in_thread
@@ -361,12 +372,16 @@ def main(argv: list[str] | None = None) -> int:
         from ..tg.bot import read_token
 
         if read_token():
-            print("Телеграм-бот НЕ запущен: токен есть, но нужен ключ --tg — "
-                  "python georag.py web --tg")
+            print(
+                "Телеграм-бот НЕ запущен: токен есть, но нужен ключ --tg — "
+                "python georag.py web --tg"
+            )
 
     address = f"http://localhost:{args.port}"
     status = chat.ollama_status(State.chat_settings.host, State.chat_settings.model)
-    print(f"Чат-бот: {State.chat_settings.model} — " + ("готов" if status["ok"] else status["error"]))
+    print(
+        f"Чат-бот: {State.chat_settings.model} — " + ("готов" if status["ok"] else status["error"])
+    )
     print(f"\nГотово: {address}")
     print("Остановить — Ctrl+C\n")
 

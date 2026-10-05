@@ -14,7 +14,9 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 from contextlib import contextmanager
+from typing import Any
 
 VECTOR_DIM = 1024  # BGE-M3
 
@@ -78,13 +80,13 @@ def dsn_from_env(default: str = DEFAULT_DSN) -> str:
     return os.environ.get("GEORAG_DSN") or default
 
 
-def vector_literal(values) -> str:
+def vector_literal(values: Any) -> str:
     """Вектор в том виде, в каком его понимает pgvector: [0.1,0.2,...]."""
     return "[" + ",".join(f"{float(v):.7g}" for v in values) + "]"
 
 
 @contextmanager
-def connect(dsn: str | None = None):
+def connect(dsn: str | None = None) -> Iterator[Any]:
     import psycopg
 
     conn = psycopg.connect(dsn or dsn_from_env())
@@ -98,16 +100,16 @@ def connect(dsn: str | None = None):
         conn.close()
 
 
-def autocommit(conn) -> None:
+def autocommit(conn: Any) -> None:
     """Без открытой транзакции: для соединения, которое живёт, пока модель пишет
     ответ (минуты). Векторный поиск всё равно идёт в своей транзакции (search.py)."""
     try:
         conn.autocommit = True
-    except AttributeError:                  # заглушка в проверках
+    except AttributeError:  # заглушка в проверках
         pass
 
 
-def init_db(conn, dim: int = VECTOR_DIM, with_hnsw: bool = True) -> None:
+def init_db(conn: Any, dim: int = VECTOR_DIM, with_hnsw: bool = True) -> None:
     with conn.cursor() as cur:
         cur.execute(SCHEMA % {"dim": dim})
         if with_hnsw:
@@ -115,7 +117,7 @@ def init_db(conn, dim: int = VECTOR_DIM, with_hnsw: bool = True) -> None:
     conn.commit()
 
 
-def upsert_document(conn, record: dict) -> None:
+def upsert_document(conn: Any, record: dict[str, Any]) -> None:
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -137,7 +139,7 @@ def upsert_document(conn, record: dict) -> None:
         )
 
 
-def replace_chunks(conn, doc_id: str, rows: list[dict]) -> int:
+def replace_chunks(conn: Any, doc_id: str, rows: list[dict[str, Any]]) -> int:
     """Чанки документа пишутся целиком: переиндексация не должна плодить дубли.
 
     Строки обновляются на месте по (doc_id, ord), а не удаляются и вставляются
@@ -167,8 +169,10 @@ def replace_chunks(conn, doc_id: str, rows: list[dict]) -> int:
             before = old.get(row["ord"])
             if before and before[1] != row["text"]:
                 changed.append(before[0])
-        cur.execute("DELETE FROM chunks WHERE doc_id = %s AND NOT (ord = ANY(%s))",
-                    (doc_id, [row["ord"] for row in rows]))
+        cur.execute(
+            "DELETE FROM chunks WHERE doc_id = %s AND NOT (ord = ANY(%s))",
+            (doc_id, [row["ord"] for row in rows]),
+        )
         if changed:
             cur.execute("SELECT to_regclass('facts') IS NOT NULL")
             found = cur.fetchone()
@@ -178,27 +182,25 @@ def replace_chunks(conn, doc_id: str, rows: list[dict]) -> int:
     return len(rows)
 
 
-def indexed_docs(conn) -> dict[str, int]:
+def indexed_docs(conn: Any) -> dict[str, int]:
     """Что уже в базе: doc_id → сколько чанков. По этому решаем, что пропустить."""
     with conn.cursor() as cur:
-        cur.execute(
-            """
+        cur.execute("""
             SELECT d.doc_id, count(c.id)
             FROM documents d LEFT JOIN chunks c ON c.doc_id = d.doc_id
             GROUP BY d.doc_id
-            """
-        )
+            """)
         return {row[0]: int(row[1]) for row in cur.fetchall()}
 
 
-def delete_documents(conn, doc_ids: list[str]) -> int:
+def delete_documents(conn: Any, doc_ids: list[str]) -> int:
     """Забыть статьи: с ними уходят фрагменты, разметка и связи (каскадом)."""
     with conn.cursor() as cur:
         cur.execute("DELETE FROM documents WHERE doc_id = ANY(%s)", (list(doc_ids),))
         return max(cur.rowcount or 0, 0)
 
 
-def document_hashes(conn) -> dict[str, str]:
+def document_hashes(conn: Any) -> dict[str, str]:
     """Отпечаток файла → статья. Одна и та же статья приходит из разных
     источников под разными идентификаторами (у одного есть DOI, у другого нет),
     а файл у неё один и тот же."""
@@ -207,7 +209,7 @@ def document_hashes(conn) -> dict[str, str]:
         return {row[0]: row[1] for row in cur.fetchall()}
 
 
-def stats(conn) -> dict:
+def stats(conn: Any) -> dict[str, Any]:
     with conn.cursor() as cur:
         cur.execute("SELECT count(*) FROM documents")
         docs = cur.fetchone()[0]
@@ -223,7 +225,7 @@ def stats(conn) -> dict:
     }
 
 
-def documents(conn, limit: int = 500) -> list[dict]:
+def documents(conn: Any, limit: int = 500) -> list[dict[str, Any]]:
     """Список статей в базе с числом фрагментов — для обзора того, что разобрано."""
     with conn.cursor() as cur:
         cur.execute(
@@ -239,15 +241,22 @@ def documents(conn, limit: int = 500) -> list[dict]:
         )
         return [
             {
-                "doc_id": row[0], "title": row[1], "year": row[2], "journal": row[3],
-                "url": row[4], "authors": list(row[5] or []), "source": row[6],
-                "parser": row[7], "pages": row[8], "chunks": int(row[9]),
+                "doc_id": row[0],
+                "title": row[1],
+                "year": row[2],
+                "journal": row[3],
+                "url": row[4],
+                "authors": list(row[5] or []),
+                "source": row[6],
+                "parser": row[7],
+                "pages": row[8],
+                "chunks": int(row[9]),
             }
             for row in cur.fetchall()
         ]
 
 
-def document_chunks(conn, doc_id: str) -> list[dict]:
+def document_chunks(conn: Any, doc_id: str) -> list[dict[str, Any]]:
     """Разобранная статья по порядку — то, что получилось из PDF."""
     with conn.cursor() as cur:
         cur.execute(
@@ -259,8 +268,12 @@ def document_chunks(conn, doc_id: str) -> list[dict]:
         )
         return [
             {
-                "ord": row[0], "text": row[1], "headings": list(row[2] or []),
-                "pages": list(row[3] or []), "n_tokens": row[4], "has_table": row[5],
+                "ord": row[0],
+                "text": row[1],
+                "headings": list(row[2] or []),
+                "pages": list(row[3] or []),
+                "n_tokens": row[4],
+                "has_table": row[5],
             }
             for row in cur.fetchall()
         ]
