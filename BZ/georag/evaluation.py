@@ -183,6 +183,8 @@ def check_search(q: Question, sources: list[dict[str, Any]]) -> dict[str, Any]:
 
 def check_answer(q: Question, events: list[dict[str, Any]]) -> dict[str, Any]:
     text = "".join(e["text"] for e in events if e["type"] == "token")
+    # Ответ, из которого убраны фразы без ссылки, приходит целиком событием revised.
+    text = next((e["text"] for e in events if e["type"] == "revised"), text)
     done = next((e for e in events if e["type"] == "done"), {})
     error = next((e["error"] for e in events if e["type"] == "error"), None)
     mode = done.get("mode")

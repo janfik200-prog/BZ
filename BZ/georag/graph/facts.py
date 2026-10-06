@@ -108,6 +108,60 @@ _POSITION = re.compile(
     r"между|выше|ниже|внутри|вне)\s",
     re.IGNORECASE,
 )
+# Ручная проверка 100 фактов (logs/quality-20261005): каждый восьмой «предмет» —
+# не предмет. Вторая проверка моделью их не ловила (5 из 24 ошибок при 10 верных
+# фактах, отброшенных зря), правила кода — ловят.
+# Местоимение вместо названия: «this event», «these structures», «это время».
+_PRONOUN = re.compile(
+    r"^(?:this|these|those|that|it|they|such|its|their|этот|эта|это|эти|данн\w+|"
+    r"такие|такой|он|она|они)\b",
+    re.IGNORECASE,
+)
+# Человек: «В. Н. Бобров», «Smith J.».
+_PERSON = re.compile(
+    r"^(?:[A-ZА-ЯЁ]\.\s?){1,2}\s?[A-ZА-ЯЁ][a-zа-яё]+$|^[A-ZА-ЯЁ][a-zа-яё]+,?\s(?:[A-ZА-ЯЁ]\.\s?){1,2}$"
+)
+# Год или десятилетие: «1950s», «1990-е годы».
+_YEAR = re.compile(
+    r"^(?:early\s+|late\s+|mid-?\s*)?\d{3,4}(?:-?[хxе]|'?s)?"
+    r"(?:\s*(?:гг?\.?|годы|годах|year|years))?$",
+    re.IGNORECASE,
+)
+# Счёт без названия: «three areas», «несколько участков».
+_COUNTED = re.compile(
+    r"^(?:one|two|three|four|five|six|several|many|some|various|other|другие|один|одна|"
+    r"два|две|три|четыре|пять|несколько|многие|некоторые|различные)\s",
+    re.IGNORECASE,
+)
+# Общее слово без названия: «месторождение» — какое?
+_GENERIC = {
+    "месторождение", "месторождения", "структура", "структуры", "район", "участок",
+    "участки", "территория", "область", "зона", "зоны", "порода", "породы", "объект",
+    "объекты", "изучаемая территория", "исследуемая территория", "area", "areas",
+    "region", "deposit", "deposits", "structure", "structures", "zone", "zones", "rocks",
+    "study area",
+}  # fmt: skip
+# Оценка из таблицы вместо предмета: «Barite = High», «Gold = Very high».
+_DEGREE = {
+    "high", "low", "very", "moderate", "medium", "strong", "weak", "major", "minor",
+    "высокий", "высокая", "высокое", "низкий", "низкая", "низкое", "средний", "средняя",
+    "среднее", "очень", "умеренный", "умеренная",
+}  # fmt: skip
+# Предположение в цитате, которого нет в связи: «The ores probably formed…» →
+# «ores — образовано при — …». Связь получает пометку «предположительно».
+_HEDGE_QUOTE = re.compile(
+    r"вероятн|по-видимому|предположительн|возможн|не\s+исключен|считает|считают|"
+    r"по\s+мнению|косвенн\w*\s+признак|probabl|likely|possibl|presumabl|"
+    r"\b(?:is|are|was|were)\s+(?:thought|believed|inferred|presumed)|suggest|"
+    r"may\s+have|might",
+    re.IGNORECASE,
+)
+_HEDGE_RELATION = re.compile(
+    r"вероятн|возможн|предполож|может|могут|можно|интерпрет|считает|may|might|likely|"
+    r"possib|probab|interpret|suggest|infer",
+    re.IGNORECASE,
+)
+HEDGE = "предположительно"
 # Предлог в начале имени модель тащит из текста («в аномалиях Bi») — он снимается.
 _PREPOSITION = re.compile(
     r"^(?:в|во|на|к|ко|по|с|со|у|о|об|из|при|для|in|at|on|of)\s+(?=\w)", re.IGNORECASE
@@ -135,7 +189,26 @@ def _bad_name(name: str) -> str | None:
         return "ссылка на автора, а не предмет"
     if _POSITION.match(name):
         return "положение, а не предмет"
+    if _PRONOUN.match(name):
+        return "местоимение, а не предмет"
+    if _PERSON.match(name):
+        return "человек, а не предмет"
+    if _YEAR.match(name):
+        return "число или год, а не предмет"
+    if _COUNTED.match(name):
+        return "счёт без названия, а не предмет"
+    if name.lower() in _GENERIC:
+        return "общее слово без названия"
+    if set(name.lower().replace("-", " ").split()) <= _DEGREE:
+        return "оценка из таблицы, а не предмет"
     return None
+
+
+def hedged(relation: str, quote: str) -> str:
+    """Связь с пометкой «предположительно», если в цитате это предположение."""
+    if _HEDGE_QUOTE.search(quote) and not _HEDGE_RELATION.search(relation):
+        return f"{HEDGE} {relation}"
+    return relation
 
 
 def check(answer: Any, text: str) -> Checked:
@@ -174,7 +247,7 @@ def check(answer: Any, text: str) -> Checked:
             missing = src if not mentions(src, quote) else dst
             out.rejected.append(f"{label}: в цитате нет «{missing}»")
             continue
-        fact = Fact(src, relation, dst, quote)
+        fact = Fact(src, hedged(relation, quote), dst, quote)
         key = (fact.src_key, relation, fact.dst_key)
         if key in seen:
             continue
@@ -229,4 +302,31 @@ def run(
                 f"  [{i}/{len(rows)}] фактов {stats['facts']}, отброшено проверкой "
                 f"{stats['rejected']} · {pace:.1f} с на фрагмент"
             )
+    return stats
+
+
+def recheck(conn: Any, log: Any = print) -> dict[str, int]:
+    """Перепроверить готовый граф правилами кода — без модели.
+
+    Правила проверки меняются (новые виды «не предметов», пометка предположений),
+    а прогонять модель заново по всем фрагментам — часы. Здесь каждый факт
+    проверяется тем же кодом, что и новый: не прошёл — убирается с причиной,
+    предположение — получает пометку в связи."""
+    stats = {"facts": 0, "dropped": 0, "hedged": 0}
+    for fact_id, chunk_id, src, relation, dst, quote in store.stored_facts(conn):
+        stats["facts"] += 1
+        reason = _bad_name(src) or _bad_name(dst)
+        if reason:
+            store.drop_fact(conn, fact_id, chunk_id, f"«{src}» — {relation} — «{dst}»: {reason}")
+            stats["dropped"] += 1
+            continue
+        marked = hedged(relation, quote)
+        if marked != relation and store.set_relation(conn, fact_id, marked):
+            stats["hedged"] += 1
+    conn.commit()
+    if log:
+        log(
+            f"Фактов проверено {stats['facts']}: убрано {stats['dropped']}, "
+            f"помечено предположением {stats['hedged']}"
+        )
     return stats

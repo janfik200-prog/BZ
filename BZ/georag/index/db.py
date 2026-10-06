@@ -182,6 +182,53 @@ def replace_chunks(conn: Any, doc_id: str, rows: list[dict[str, Any]]) -> int:
     return len(rows)
 
 
+def documents_with_titles(conn: Any) -> list[tuple[str, str]]:
+    with conn.cursor() as cur:
+        cur.execute("SELECT doc_id, coalesce(title, '') FROM documents ORDER BY doc_id")
+        return [(str(r[0]), str(r[1])) for r in cur.fetchall()]
+
+
+def chunk_rows(conn: Any, doc_id: str) -> list[dict[str, Any]]:
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, ord, text, headings FROM chunks WHERE doc_id = %s ORDER BY ord",
+            (doc_id,),
+        )
+        return [
+            {"id": r[0], "ord": r[1], "text": r[2], "headings": list(r[3] or [])}
+            for r in cur.fetchall()
+        ]
+
+
+def facts_of_chunk(conn: Any, chunk_id: int) -> list[tuple[int, str]]:
+    with conn.cursor() as cur:
+        cur.execute("SELECT to_regclass('facts') IS NOT NULL")
+        found = cur.fetchone()
+        if not (found and found[0]):
+            return []
+        cur.execute("SELECT id, quote FROM facts WHERE chunk_id = %s", (chunk_id,))
+        return [(int(r[0]), str(r[1])) for r in cur.fetchall()]
+
+
+def tidy_chunks(
+    conn: Any,
+    drop_ids: list[int],
+    updates: list[tuple[int, str, str]],
+    stale_facts: list[int],
+) -> None:
+    """Убрать фрагменты (их факты уходят каскадом), переписать подчищенные."""
+    with conn.cursor() as cur:
+        if drop_ids:
+            cur.execute("DELETE FROM chunks WHERE id = ANY(%s)", (drop_ids,))
+        for chunk_id, text, vector in updates:
+            cur.execute(
+                "UPDATE chunks SET text = %s, embedding = %s::vector WHERE id = %s",
+                (text, vector, chunk_id),
+            )
+        if stale_facts:
+            cur.execute("DELETE FROM facts WHERE id = ANY(%s)", (stale_facts,))
+
+
 def indexed_docs(conn: Any) -> dict[str, int]:
     """Что уже в базе: doc_id → сколько чанков. По этому решаем, что пропустить."""
     with conn.cursor() as cur:

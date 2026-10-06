@@ -19,7 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from georag.index import db  # noqa: E402
+from georag.index import db, noise  # noqa: E402
 from georag.index.embed import OllamaEmbedder, build_embedder  # noqa: E402
 from georag.index.ingest import (  # noqa: E402
     _chunk_rows,
@@ -217,6 +217,12 @@ def test_row_mapping() -> None:
     check("таблица отмечена", rows[0]["has_table"] is True)
 
 
+# Фрагменты — обычные предложения: слишком короткие чистка служебного текста
+# (noise.py) выбрасывает как пустышки.
+ONE = "Рудный узел контролируется пересечением разломов северо-восточного простирания."
+TWO = "Золотое оруденение приурочено к зонам березитизации в гранитоидах массива."
+
+
 def test_ingest() -> None:
     print("\nЗагрузка папки добычи")
     tmp = Path(tempfile.mkdtemp())
@@ -228,8 +234,8 @@ def test_ingest() -> None:
         (tmp / "d1.chunks.json").write_text(
             json.dumps(
                 [
-                    {"index": 0, "text": "раз", "embed_text": "раз"},
-                    {"index": 1, "text": "два", "embed_text": "два"},
+                    {"index": 0, "text": ONE, "embed_text": ONE},
+                    {"index": 1, "text": TWO, "embed_text": TWO},
                 ]
             ),
             encoding="utf-8",
@@ -632,6 +638,106 @@ def test_synonym_alternatives() -> None:
     check("без вариантов — как раньше", conn.executed[-1][1]["q"] == "золото & донбасс")
 
 
+def test_noise() -> None:
+    """Служебный текст журнала уходит, содержание статьи — нет."""
+    body = (
+        "Rare-metal pegmatites of the Kwa Mutonga - Vonza area are controlled by NE-SW shear "
+        "zones and intruded into migmatite gneisses of the basement complex."
+    )
+    header = "Peer Reviewed Journal ISSN: 3068-272X www.ijdim.com Original Research Paper"
+    findings = [
+        "Lineament density peaks along the eastern corridor of the Kwa Mutonga - Vonza area.",
+        "Potassium highs coincide with sericitized granite near the Kwa Mutonga - Vonza area.",
+        "Copper showings cluster where faults cross amphibolite in the Kwa Mutonga - Vonza area.",
+        "Magnetic lows trace hydrothermal demagnetization in the Kwa Mutonga - Vonza area.",
+        "Clay index anomalies follow the drainage that crosses the Kwa Mutonga - Vonza area.",
+        "Iron oxide ratios outline gossans on ridges of the Kwa Mutonga - Vonza area.",
+    ]
+    chunks = [
+        {"index": i, "headings": ["Results"], "text": f"{header}\n{text} Detail number {i}."}
+        for i, text in enumerate(findings)
+    ]
+    chunks += [
+        {"index": 10, "headings": ["Acknowledgements"], "text": "We thank the survey for data."},
+        {"index": 11, "headings": ["5.3 Machine Learning contributions"], "text": body},
+        {"index": 12, "headings": [], "text": "Online ISSN: 1696-5728 DOI: 10.1344/GA2025.23.4"},
+        {"index": 13, "headings": [], "text": "Mining commenced at Polaris."},
+        {"index": 14, "headings": [], "text": "<!-- formula-not-decoded --> x@y.org"},
+        {
+            "index": 15,
+            "headings": ["Discussion"],
+            "text": body + " All claims expressed in this article are solely those of the authors.",
+        },
+    ]
+    out = noise.clean_document(chunks, "Copper in the Kwa Mutonga - Vonza area, Kenya")
+    kept = {c["index"]: c for c in out.chunks}
+    check("служебный раздел по заголовку убран", 10 not in kept)
+    check("раздел статьи со словом contributions остался", 11 in kept)
+    check("шапка журнала без текста убрана", 12 not in kept)
+    check("короткое законченное предложение осталось", 13 in kept)
+    check("одна заглушка формулы и e-mail — фрагмент убран", 14 not in kept)
+    check(
+        "колонтитул вырезан, текст и название района остались",
+        all(
+            "ISSN" not in kept[i]["text"] and "Kwa Mutonga - Vonza area" in kept[i]["text"]
+            for i in range(6)
+        ),
+    )
+    check(
+        "фраза издательства вырезана, текст остался",
+        "All claims" not in kept[15]["text"] and kept[15]["text"].startswith("Rare-metal"),
+    )
+    check(
+        "вектор считается по подчищенному тексту с заголовками",
+        kept[0]["embed_text"] == "Results\n" + kept[0]["text"],
+    )
+    check("нетронутый фрагмент — тот же объект", kept[11] is chunks[7])
+    check(
+        "счёт сходится",
+        out.dropped_sections == 1 and out.dropped_empty == 2 and out.trimmed == 7,
+        f"{out}",
+    )
+    authors = (
+        "P. Zingerle 1, M. Romeshkani 2 1 Institute of Astronomical and Physical Geodesy, "
+        "Technical University of Munich, Germany 2 Institut fur Erdmessung, Leibniz "
+        "University Hannover, Germany 3 Helmholtz Centre Potsdam, Germany"
+    )
+    check("фрагмент из авторов и институтов — служебный", noise.is_affiliations(authors))
+    check(
+        "абзац статьи с одним институтом — нет",
+        not noise.is_affiliations(
+            body + " Data were provided by the Geological Survey of Kenya and the University "
+            "of Nairobi for the eastern corridor of the basement complex mapping project."
+        ),
+    )
+    note = noise.clean_document(
+        [
+            {
+                "index": 0,
+                "headings": ["8 Conclusions"],
+                "text": body
+                + " Disclaimer. Publisher's note: Copernicus Publications remains neutral "
+                "with regard to jurisdictional claims made in the text.",
+            }
+        ],
+        "",
+    )
+    check("примечание издательства вырезано", note.chunks[0]["text"] == body)
+    check(
+        "раздел Additional information — служебный",
+        noise.is_service_heading("Additional information"),
+    )
+    # Абзац, повторённый во многих фрагментах рядом с шапкой, — не колонтитул:
+    # вырезать его вместе с шапкой нельзя, лучше оставить и то и другое.
+    long_body = " ".join([body] * 3)
+    same = [{"index": i, "headings": [], "text": f"{header} {long_body}"} for i in range(5)]
+    left = noise.clean_document(same, "")
+    check(
+        "длинный повтор рядом с шапкой не вырезан",
+        len(left.chunks) == 5 and all(long_body in c["text"] for c in left.chunks),
+    )
+
+
 def main() -> int:
     test_vector_literal()
     test_schema()
@@ -650,6 +756,7 @@ def main() -> int:
     test_forget_cleaned()
     test_reindex_keeps_ids()
     test_synonym_alternatives()
+    test_noise()
 
     print(f"\nИтого: {len(PASSED)} пройдено, {len(FAILED)} провалено")
     if FAILED:

@@ -36,8 +36,10 @@
                                                             (off_topic: true — вопрос не о
                                                             геологии: только отказ, без ответа)
     {"type": "token", "text": "…"}                          кусок ответа, много раз
+    {"type": "revised", "text": "…", "removed": […]}       ответ целиком без фраз без
+                                                            ссылки на фрагмент (drop_uncited)
     {"type": "done", "mode": "база"|"без базы", "used": [1, 3], "unknown": [],
-     "coverage": [5, 6], "rounds": …, …}
+     "coverage": [5, 6], "removed": 2, "rounds": …, …}
     {"type": "error", "error": "…"}
 """
 
@@ -1311,6 +1313,59 @@ def coverage(answer: str) -> tuple[int, int]:
     return len(cited), len(claims)
 
 
+# Конец предложения вместе со ссылками после точки: «…разломов. [2][3] Далее…».
+_SENTENCE_END = re.compile(r"([.!?…])((?:\s*\[\d+(?:\s*[,;]\s*\d+)*\])*)\s+")
+_BULLET = re.compile(r"^(\s*(?:[-*•]|\d+[.)])\s+)")
+
+
+def drop_uncited(answer: str) -> tuple[str, list[str]]:
+    """Ответ без утверждений, у которых нет ссылки на фрагмент.
+
+    Правило 2 просит модель писать только то, что подкреплено фрагментом, но
+    ручная проверка 190 утверждений (logs/quality-20261005) нашла 9 % фраз без
+    ссылки — общие слова модели, а не статьи. Здесь они убираются: утверждение
+    (как в coverage) длиннее 40 знаков, без номера фрагмента и не о самих
+    фрагментах. Заголовок, под которым ничего не осталось, уходит тоже.
+    Возвращает (новый текст, убранные фразы)."""
+    removed: list[str] = []
+    lines: list[str] = []
+    for line in answer.split("\n"):
+        if not line.strip() or _HEADING.fullmatch(line):
+            lines.append(line)
+            continue
+        bullet = _BULLET.match(line)
+        prefix = bullet.group(1) if bullet else ""
+        body = line[len(prefix) :]
+        parts = _SENTENCE_END.sub(lambda m: m.group(1) + m.group(2) + "\0", body).split("\0")
+        kept = []
+        for part in parts:
+            bare = _CITE.sub("", part).strip()
+            lead_in = bare.endswith(":")  # «используют следующие методы:» — подводка к списку
+            if (
+                len(bare) > 40
+                and not lead_in
+                and not _CITE.search(part)
+                and not _ABOUT_SOURCES.search(part)
+            ):
+                removed.append(part.strip())
+            else:
+                kept.append(part.strip())
+        rest = " ".join(p for p in kept if p)
+        if rest:
+            lines.append(prefix + rest)
+    # Заголовок без текста под ним и лишние пустые строки.
+    out: list[str] = []
+    for i, line in enumerate(lines):
+        if line.strip() and _HEADING.fullmatch(line):
+            after = next((x for x in lines[i + 1 :] if x.strip()), "")
+            if not after or _HEADING.fullmatch(after):
+                continue
+        if not line.strip() and (not out or not out[-1].strip()):
+            continue
+        out.append(line)
+    return "\n".join(out).strip(), removed
+
+
 class ThinkFilter:
     """Срезает блок <think>…</think>, если модель его всё-таки прислала.
 
@@ -1515,6 +1570,14 @@ def answer(
                             break
                         text += part["text"]
                         yield {"type": "token", "text": part["text"]}
+                # Фразы без ссылки на фрагмент — не из статей: ответ заменяется
+                # очищенным, убранное показывается отдельно.
+                cleaned, removed = drop_uncited(text)
+                if removed and cleaned:
+                    text = cleaned
+                    yield {"type": "revised", "text": text, "removed": removed}
+                else:
+                    removed = []
                 used, unknown = citations(text, len(sources))
                 cited, claims = coverage(text)
                 yield {
@@ -1523,6 +1586,7 @@ def answer(
                     "used": used,
                     "unknown": unknown,
                     "coverage": [cited, claims],
+                    "removed": len(removed),
                     "model": settings.model,
                     "seconds": round(time.monotonic() - started, 1),
                     "tokens": tokens,

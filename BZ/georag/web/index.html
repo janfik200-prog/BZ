@@ -163,6 +163,9 @@
   .answer.general { border-left: 3px dashed var(--rule); padding-left: 14px; color: var(--ink); }
   .queries { font-size: 13px; color: var(--muted); }
   .warn { color: var(--gpu); font-size: 14px; }
+  .removed { font-size: 13px; color: var(--muted); }
+  .removed summary { cursor: pointer; }
+  .removed li { margin: 4px 0; }
   form.ask { flex-direction: row; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
   .ask textarea { flex: 1 1 200px; width: auto; min-width: 0; resize: vertical; min-height: 52px; max-height: 240px;
                   line-height: 1.45; }
@@ -1597,6 +1600,7 @@ async function ask(question) {
   const ctrl = new AbortController();
   chat.abort = ctrl;
   let text = "", sources = [], queries = [], general = null, done = null, error = null, info = {};
+  let removed = [];
   try {
     const resp = await fetch("/api/chat", {
       method: "POST",
@@ -1633,6 +1637,11 @@ async function ask(question) {
         } else if (ev.type === "token") {
           text += ev.text;
           answer.innerHTML = renderAnswer(text, sources.length);
+        } else if (ev.type === "revised") {
+          // Фразы без ссылки на фрагмент убраны: ответ показывается заново.
+          text = ev.text;
+          removed = ev.removed || [];
+          answer.innerHTML = renderAnswer(text, sources.length);
         } else if (ev.type === "done") {
           done = ev;
         } else if (ev.type === "error") {
@@ -1655,6 +1664,22 @@ async function ask(question) {
   }
   const used = done ? done.used : [];
   if (sources.length && !general) bot.append(renderSources(sources, used, queries, info));
+  if (removed.length) {
+    // Что убрано из ответа: фразы модели без ссылки на фрагмент статьи.
+    const d = document.createElement("details");
+    d.className = "removed";
+    const sum = document.createElement("summary");
+    sum.textContent = `Фраз без ссылки на фрагмент убрано: ${removed.length} — это слова модели, а не статей`;
+    d.append(sum);
+    const ul = document.createElement("ul");
+    for (const r of removed) {
+      const li = document.createElement("li");
+      li.textContent = r;
+      ul.append(li);
+    }
+    d.append(ul);
+    bot.append(d);
+  }
   if (done && done.unknown && done.unknown.length) {
     const w = document.createElement("div");
     w.className = "warn";

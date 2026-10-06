@@ -238,6 +238,8 @@ def answer_text(
         foot.append(f"со ссылкой {cited} из {claims} утверждений")
     if done.get("unknown"):
         foot.append(f"ссылки на несуществующие фрагменты: {done['unknown']}")
+    if done.get("removed"):
+        foot.append(f"убрано фраз без ссылки на фрагмент: {done['removed']}")
     if done.get("mode") == "без базы" and not done.get("off_topic"):
         foot.append("ответ модели, не из базы знаний")
     if done.get("model"):

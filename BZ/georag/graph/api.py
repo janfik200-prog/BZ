@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 import threading
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -129,6 +130,15 @@ class Graph:
                     e["spellings"].add(raw)
 
         self._keys = {name: name_key(name).split() for name in self.entities}
+        # Слова, которые где-то в графе пишутся со строчной: «high reflectance»,
+        # «главная зона». Значит, «High» или «Главная» с заглавной — просто начало
+        # имени, а не имя собственное.
+        self._common = {
+            w.lower()
+            for name in self.entities
+            for w in re.findall(r"[^\W\d_]+", name)
+            if w[:1].islower()
+        }
 
     def canonical(self, raw: str) -> str:
         return self.syn.name(raw) or self.display.get(name_key(raw)) or raw
@@ -157,7 +167,7 @@ class Graph:
         Модель пишет «зоне Персияновского разлома», «дайки вдоль Персияновского
         разлома» — это всё о разломе, но отдельные узлы. Только для имён
         собственных: у «золото» таких «родственников» сотни, и они о другом."""
-        if not _proper(name):
+        if not self.proper(name):
             return []
         key = name_key(name).split()
         if not key:
@@ -171,6 +181,9 @@ class Graph:
             and any(words[i : i + n] == key for i in range(len(words) - n + 1))
         ]
 
+    def proper(self, name: str) -> bool:
+        return _proper(name, self._common)
+
     def parts(self, name: str) -> list[str]:
         """Само имя и всё, что в него входит по фактам «входит в», на любую глубину."""
         out, frontier = [name], [name]
@@ -182,9 +195,13 @@ class Graph:
         return out
 
 
-def _proper(name: str) -> bool:
-    """Есть ли в имени имя собственное: слово с большой буквы, не аббревиатура."""
-    return any(w[:1].isupper() and not w.isupper() for w in name.split())
+def _proper(name: str, common: set[str] | frozenset[str] = frozenset()) -> bool:
+    """Есть ли в имени имя собственное: слово с большой буквы, не аббревиатура и не
+    слово, которое в других именах пишется со строчной («High», «Hydrothermal»)."""
+    return any(
+        w[:1].isupper() and not w.isupper() and w.lower() not in common
+        for w in re.findall(r"[^\W\d_]+", name)
+    )
 
 
 _CACHE: dict[str, Any] = {}
@@ -192,7 +209,7 @@ _CACHE_LOCK = threading.Lock()
 
 
 def _stamp(conn: Any) -> Any:
-    """Отпечаток фактов: сколько их и последний номер. Только у настоящей базы."""
+    """Отпечаток фактов: сколько их, последний номер и подтверждения. Только у настоящей базы."""
     try:
         import psycopg
     except ImportError:
@@ -200,7 +217,9 @@ def _stamp(conn: Any) -> Any:
     if not isinstance(conn, psycopg.Connection):
         return None
     with conn.cursor() as cur:
-        cur.execute("SELECT count(*), coalesce(max(id), 0) FROM facts")
+        cur.execute(
+            "SELECT count(*), coalesce(max(id), 0), count(votes), coalesce(sum(votes), 0) FROM facts"
+        )
         row = cur.fetchone()
         return tuple(row) if row else None
 

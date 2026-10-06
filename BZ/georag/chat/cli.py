@@ -80,6 +80,11 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"\n!!! {event['text']}\n")
             elif event["type"] == "token":
                 print(event["text"], end="", flush=True)
+            elif event["type"] == "revised":
+                # В терминале напечатанное не стереть — показываем, что убрано.
+                print("\n\nУбрано как фразы без ссылки на фрагмент (слова модели, не статей):")
+                for phrase in event["removed"]:
+                    print(f"  − {phrase}")
             elif event["type"] == "error":
                 print(f"\nОшибка: {event['error']}", file=sys.stderr)
                 code = 1

@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from . import db
+from . import db, noise
 
 # Список литературы — это чужие названия и ссылки, а не содержание статьи.
 # В поиске такие чанки выглядят убедительно (там все нужные слова!), но читать
@@ -68,6 +68,8 @@ class IngestReport:
     empty: int = 0
     chunks: int = 0
     refs_dropped: int = 0
+    noise_dropped: int = 0  # служебные разделы и пустышки (noise.py)
+    noise_trimmed: int = 0  # фрагменты, из которых вырезан служебный текст
     duplicates: int = 0
     forgotten: int = 0
     errors: list[str] = field(default_factory=list)
@@ -169,6 +171,13 @@ def ingest_dir(
         # Библиографию в базу не кладём: места занимает много, читать нечего.
         kept = [c for c in chunks if not is_reference_chunk(c)]
         report.refs_dropped += len(chunks) - len(kept)
+        # Служебный текст журнала (благодарности, колонтитулы, e-mail) — тоже.
+        cleaned = noise.clean_document(kept, str(meta.get("title") or ""))
+        report.noise_dropped += (
+            cleaned.dropped_sections + cleaned.dropped_empty + cleaned.dropped_authors
+        )
+        report.noise_trimmed += cleaned.trimmed
+        kept = cleaned.chunks
         if not kept:
             report.empty += 1
             continue
@@ -196,4 +205,61 @@ def ingest_dir(
             title = (meta.get("title") or doc_id)[:60]
             print(f"  + {title} — {written} чанков")
 
+    return report
+
+
+@dataclass
+class TidyReport:
+    documents: int = 0
+    dropped: int = 0  # фрагментов убрано целиком
+    trimmed: int = 0  # фрагментов подчищено
+    facts_dropped: int = 0  # фактов, чья цитата ушла вместе со служебным текстом
+
+
+def tidy_indexed(conn: Any, embedder: Any, verbose: bool = True) -> TidyReport:
+    """Убрать служебный текст из уже загруженной базы — без папки добычи.
+
+    Нужна для статей, загруженных до noise.py: чистка та же, что при загрузке.
+    Подчищенному фрагменту пересчитывается вектор. Факты графа у него остаются,
+    если их цитата по-прежнему есть в тексте; убранный фрагмент уносит свои
+    факты каскадом."""
+    from ..text import locate_quote
+
+    report = TidyReport()
+    for doc_id, title in db.documents_with_titles(conn):
+        rows = db.chunk_rows(conn, doc_id)
+        chunks = [
+            {"index": r["ord"], "text": r["text"], "headings": r["headings"], "id": r["id"]}
+            for r in rows
+        ]
+        cleaned = noise.clean_document(chunks, title)
+        before = {r["id"]: r["text"] for r in rows}
+        kept = {c["id"] for c in cleaned.chunks}
+        drop = [c["id"] for c in chunks if c["id"] not in kept]
+        changed = [c for c in cleaned.chunks if c["text"] != before[c["id"]]]
+        if not drop and not changed:
+            continue
+        vectors = (
+            embedder.encode([embed_text({"title": title}, c) for c in changed], progress=False)
+            if changed
+            else []
+        )
+        updates = [
+            (c["id"], c["text"], db.vector_literal(v))
+            for c, v in zip(changed, vectors, strict=True)
+        ]
+        stale = [
+            fact_id
+            for c in changed
+            for fact_id, quote in db.facts_of_chunk(conn, c["id"])
+            if locate_quote(quote, c["text"]) is None
+        ]
+        db.tidy_chunks(conn, drop, updates, stale)
+        conn.commit()
+        report.documents += 1
+        report.dropped += len(drop)
+        report.trimmed += len(changed)
+        report.facts_dropped += len(stale)
+        if verbose:
+            print(f"  ~ {title[:60] or doc_id} — убрано {len(drop)}, подчищено {len(changed)}")
     return report

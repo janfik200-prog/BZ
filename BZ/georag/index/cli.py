@@ -20,13 +20,13 @@ from ..common import add_db_args
 from ..llm import OLLAMA_HOST
 from . import db
 from .embed import build_embedder
-from .ingest import ingest_dir
+from .ingest import ingest_dir, tidy_indexed
 from .search import hybrid_search
 
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="База знаний ГеоRAG: индексация и поиск")
-    p.add_argument("command", choices=["init", "ingest", "search", "stats"])
+    p.add_argument("command", choices=["init", "ingest", "tidy", "search", "stats"])
     p.add_argument("query", nargs="?", help="поисковый запрос для команды search")
     add_db_args(p)
     p.add_argument("--acquired", type=Path, default=Path("data/acquired"))
@@ -114,6 +114,12 @@ def main(argv: list[str] | None = None) -> int:
                         else ""
                     )
                     + (
+                        f"; служебного текста: фрагментов убрано {report.noise_dropped}, "
+                        f"подчищено {report.noise_trimmed}"
+                        if report.noise_dropped or report.noise_trimmed
+                        else ""
+                    )
+                    + (
                         f"; повторов одной статьи пропущено {report.duplicates}"
                         if report.duplicates
                         else ""
@@ -126,6 +132,16 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 for error in report.errors:
                     print(f"  ! {error}")
+                return 0
+
+            if args.command == "tidy":
+                print(f"Векторы считает: {embedder.name}")
+                tidy = tidy_indexed(conn, embedder)
+                print(
+                    f"\nСлужебный текст убран в {tidy.documents} статьях: фрагментов убрано "
+                    f"{tidy.dropped}, подчищено {tidy.trimmed}; фактов графа ушло вместе "
+                    f"с ним {tidy.facts_dropped}"
+                )
                 return 0
 
             hits = hybrid_search(

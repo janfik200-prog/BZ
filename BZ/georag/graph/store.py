@@ -40,6 +40,9 @@ CREATE INDEX IF NOT EXISTS facts_src_key ON facts (src_key);
 CREATE INDEX IF NOT EXISTS facts_dst_key ON facts (dst_key);
 CREATE INDEX IF NOT EXISTS facts_doc ON facts (doc_id);
 
+-- Сколько из 4 проверок вопросами факт прошёл (confirm.py); NULL — ещё не проверяли.
+ALTER TABLE facts ADD COLUMN IF NOT EXISTS votes smallint;
+
 CREATE TABLE IF NOT EXISTS facts_pass (
     chunk_id  bigint PRIMARY KEY REFERENCES chunks(id) ON DELETE CASCADE,
     model     text,
@@ -110,6 +113,62 @@ def save(
         )
 
 
+def stored_facts(conn: Any) -> list[tuple[Any, ...]]:
+    """Все факты для перепроверки кодом: (id, chunk_id, от, связь, к, цитата)."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT id, chunk_id, src, relation, dst, quote FROM facts ORDER BY id")
+        rows: list[tuple[Any, ...]] = cur.fetchall()
+        return rows
+
+
+def drop_fact(conn: Any, fact_id: int, chunk_id: int, reason: str) -> None:
+    """Убрать факт; причина — в список отброшенного по его фрагменту (graph --new)."""
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM facts WHERE id = %s", (fact_id,))
+        cur.execute(
+            "UPDATE facts_pass SET facts = greatest(facts - 1, 0), "
+            "rejected = array_append(rejected, %s) WHERE chunk_id = %s",
+            (reason, chunk_id),
+        )
+
+
+def set_relation(conn: Any, fact_id: int, relation: str) -> bool:
+    """Новая связь факта, если такого же факта с ней во фрагменте ещё нет."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE facts f SET relation = %s WHERE f.id = %s AND NOT EXISTS (
+                SELECT 1 FROM facts g WHERE g.chunk_id = f.chunk_id AND g.src_key = f.src_key
+                AND g.dst_key = f.dst_key AND g.relation = %s)
+            """,
+            (relation, fact_id, relation),
+        )
+        return bool(cur.rowcount)
+
+
+def unconfirmed(conn: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
+    """Факты, которых ещё не проверяли вопросами: (id, от, связь, к, цитата)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, src, relation, dst, quote FROM facts WHERE votes IS NULL ORDER BY id LIMIT %s",
+            (limit,),
+        )
+        rows: list[tuple[Any, ...]] = cur.fetchall()
+        return rows
+
+
+def set_votes(conn: Any, fact_id: int, votes: int) -> None:
+    with conn.cursor() as cur:
+        cur.execute("UPDATE facts SET votes = %s WHERE id = %s", (votes, fact_id))
+
+
+def votes_summary(conn: Any) -> dict[int | None, int]:
+    """Сколько фактов с каким числом подтверждений (None — не проверены)."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT votes, count(*) FROM facts GROUP BY votes")
+        return {r[0]: int(r[1]) for r in cur.fetchall()}
+
+
 def clear(conn: Any) -> None:
     """Забыть всё, что сделала модель, — перед проходом заново (правила поменялись)."""
     with conn.cursor() as cur:
@@ -117,15 +176,26 @@ def clear(conn: Any) -> None:
         cur.execute("DELETE FROM facts_pass")
 
 
-def all_facts(conn: Any) -> list[dict[str, Any]]:
-    """Все факты со статьёй: из них в памяти собирается граф (фактов — тысячи)."""
+# Сколько из 4 проверок вопросами (confirm.py) должен пройти факт, чтобы попасть в граф.
+MIN_VOTES = 3
+
+
+def all_facts(conn: Any, min_votes: int = MIN_VOTES) -> list[dict[str, Any]]:
+    """Факты со статьёй: из них в памяти собирается граф (фактов — тысячи).
+
+    Факт, проверенный вопросами (confirm.py) и подтверждённый меньше чем min_votes
+    проверками из 4, в граф не идёт, но в базе остаётся. Непроверенный — идёт."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT f.id, f.chunk_id, f.doc_id, f.src, f.relation, f.dst, f.quote,
-                   d.title, d.year, d.url, d.doi
+                   d.title, d.year, d.url, d.doi, f.votes
             FROM facts f JOIN documents d ON d.doc_id = f.doc_id
+            WHERE f.votes IS NULL OR f.votes >= %s
             ORDER BY f.id
-            """)
+            """,
+            (min_votes,),
+        )
         return [
             {
                 "id": r[0],
@@ -139,6 +209,7 @@ def all_facts(conn: Any) -> list[dict[str, Any]]:
                 "year": r[8],
                 "url": r[9] or "",
                 "doi": r[10],
+                "votes": r[11] if len(r) > 11 else None,
             }
             for r in cur.fetchall()
         ]

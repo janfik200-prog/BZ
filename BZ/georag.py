@@ -20,6 +20,7 @@
     clean "тема"                то же, и Qwen3 проверяет каждую статью по теме
     clean --apply               убрать их в data/acquired/_отсев
     ingest                      загрузить добытое в базу
+    tidy                        убрать служебный текст (колонтитулы, благодарности) из базы
 
 Поиск и чат-бот
     web                         в браузере: поиск, статьи, чат-бот и граф связей
@@ -36,6 +37,8 @@
     graph --limit 30            только 30 фрагментов — проба
     graph --redo                всё заново (после правки правил)
     graph --new                 что нашла модель и где ошибалась
+    graph --recheck             перепроверить готовые факты новыми правилами кода (без модели)
+    graph --confirm             подтвердить факты вопросами по цитате (идёт и после graph)
     synonyms                    предложения в словарь синонимов (config/synonyms.yaml)
     facts                       у чего больше всего фактов из статей
     facts "Анабарский щит"      все факты о нём с цитатами, файл CSV для Excel
@@ -316,6 +319,15 @@ def cmd_ingest(opts: argparse.Namespace) -> int:
     return _py("georag.index.cli", *args)
 
 
+def cmd_tidy(opts: argparse.Namespace) -> int:
+    if not _ensure_database():
+        return 1
+    args = ["tidy"]
+    if opts.ollama:
+        args += ["--embedder", "ollama"]
+    return _py("georag.index.cli", *args)
+
+
 def cmd_search(opts: argparse.Namespace) -> int:
     if not opts.text:
         print('Нужен запрос: python georag.py search "рудные узлы"', file=sys.stderr)
@@ -353,6 +365,11 @@ def cmd_graph(opts: argparse.Namespace) -> int:
         return 1
     if opts.new:
         return _py("georag.graph.cli", "report")
+    if opts.recheck:
+        return _py("georag.graph.cli", "recheck")
+    if opts.confirm:
+        extra = ["--limit", str(opts.limit)] if opts.limit else []
+        return _py("georag.graph.cli", "confirm", "--model", MODEL, *extra)
     args = ["build", "--model", MODEL] + (["--redo"] if opts.redo else [])
     if opts.limit:
         args += ["--limit", str(opts.limit)]
@@ -722,6 +739,7 @@ COMMANDS = {
     "all": cmd_all,
     "clean": cmd_clean,
     "ingest": cmd_ingest,
+    "tidy": cmd_tidy,
     "search": cmd_search,
     "web": cmd_web,
     "serve": cmd_serve,
@@ -764,6 +782,8 @@ def parse(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--no-check", action="store_true")
     p.add_argument("--all", action="store_true")
     p.add_argument("--new", action="store_true")
+    p.add_argument("--recheck", action="store_true")
+    p.add_argument("--confirm", action="store_true")
     p.add_argument("--tg", action="store_true")
     p.add_argument("--verbose", action="store_true")
     p.add_argument("--check", action="store_true")

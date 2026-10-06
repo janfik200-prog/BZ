@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from georag.graph import api, facts  # noqa: E402
+from georag.graph import api, confirm, facts  # noqa: E402
 from georag.graph import synonyms as S  # noqa: E402
 from georag.text import locate_quote, mentions, name_key  # noqa: E402
 
@@ -718,6 +718,141 @@ def test_graph_uses() -> None:
     )
 
 
+def test_quality_rules() -> None:
+    """Правила по ручной проверке 100 фактов: «не предметы» и предположения."""
+    print("\nПравила качества фактов")
+    for name in [
+        "this event",
+        "these structures",
+        "это время",
+        "В. Н. Бобров",
+        "1950s",
+        "three areas",
+        "несколько участков",
+        "месторождение",
+        "Structures",
+    ]:
+        check(f"«{name}» — не предмет", facts._bad_name(name) is not None)
+    for name in [
+        "Персияновский разлом",
+        "золото",
+        "Gabbro",
+        "PCA",
+        "Морозкинское месторождение",
+        "зона Персияновского разлома",
+        "Thematic Mapper",
+    ]:
+        check(f"«{name}» — предмет", facts._bad_name(name) is None)
+    for name in ["High", "Very high", "Moderate", "высокий"]:
+        check(f"«{name}» — оценка, не предмет", facts._bad_name(name) is not None)
+    g = api.Graph(
+        [
+            {"src": "High", "relation": "связано с", "dst": "high reflectance", "doc_id": "d"},
+            {
+                "src": "Персияновский разлом",
+                "relation": "пересекает",
+                "dst": "Хромитовая зона",
+                "doc_id": "d",
+            },
+            {
+                "src": "дайки",
+                "relation": "приурочено к",
+                "dst": "зона Персияновского разлома",
+                "doc_id": "d",
+            },
+        ],
+        S.Synonyms(),
+    )
+    check("«High» не собирает всё со словом high", g.related("High") == [], str(g.related("High")))
+    check(
+        "имя собственное собирает родственные узлы",
+        "зона Персияновского разлома" in g.related("Персияновский разлом"),
+    )
+    quote = "The ores probably formed during the latest Devonian mountain-building event"
+    check(
+        "предположение в цитате помечено в связи",
+        facts.hedged("образовано при", quote) == "предположительно образовано при",
+    )
+    check(
+        "связь с оговоркой не помечается второй раз",
+        facts.hedged("может быть связано с", "Gold may have formed late") == "может быть связано с",
+    )
+    check(
+        "без оговорки в цитате связь как была",
+        facts.hedged("приурочено к", "Gold is hosted by quartz veins") == "приурочено к",
+    )
+    text = (
+        "Установлены косвенные признаки связи третьего этапа рудогенеза с герцинским магматизмом."
+    )
+    got = facts.check(
+        {
+            "факты": [
+                {
+                    "от": "третий этап рудогенеза",
+                    "связь": "связано с",
+                    "к": "герцинский магматизм",
+                    "цитата": text,
+                }
+            ]
+        },
+        text,
+    )
+    check(
+        "новый факт из предположения сразу с пометкой",
+        len(got.facts) == 1 and got.facts[0].relation == "предположительно связано с",
+        str(got),
+    )
+
+
+def test_confirm() -> None:
+    """Подтверждение вопросами: ответ модели сверяет код."""
+    print(chr(10) + "Подтверждение фактов вопросами")
+    check(
+        "ответ — то же имя в другом падеже",
+        confirm.matches("зона Ишимбинского разлома", "зоне Ишимбинского регионального разлома"),
+    )
+    check("ответ уже, но из имени", confirm.matches("золото", "аномальными содержаниями золота"))
+    check("«не сказано» — не подтверждение", not confirm.matches("не сказано", "золото"))
+    check(
+        "другое имя — не подтверждение",
+        not confirm.matches("аномалиями Au", "Хромитовой зоной разломов"),
+    )
+
+    class Llm:
+        def __init__(self, answers):
+            self.answers, self.calls = list(answers), 0
+
+        def chat_json(self, system, user, temperature=None):
+            self.calls += 1
+            return self.answers.pop(0)
+
+    good = Llm(
+        [
+            {"1": "зоне Персияновского разлома", "2": "интрузии"},
+            {"1": "к зоне Персияновского разлома", "2": "интрузии несветаевского комплекса"},
+        ]
+    )
+    got = confirm.votes(
+        good,
+        "интрузии несветаевского комплекса",
+        "приурочены к",
+        "зона Персияновского разлома",
+        "Интрузии приурочены к зоне разлома.",
+    )
+    check("верный факт — 4 из 4, два обращения к модели", got == 4 and good.calls == 2, str(got))
+    flipped = Llm(
+        [{"1": "не сказано", "2": "площадь интрузий"}, {"1": "не сказано", "2": "не сказано"}]
+    )
+    got = confirm.votes(
+        flipped,
+        "площадь интрузий",
+        "контролирует",
+        "зоны разломов",
+        "Площадь интрузий контролируют зоны разломов.",
+    )
+    check("перепутанное направление — меньше порога", got < confirm.MIN_VOTES, str(got))
+
+
 def main() -> int:
     test_text()
     test_synonyms()
@@ -726,6 +861,8 @@ def main() -> int:
     test_graph()
     test_review_fixes()
     test_graph_uses()
+    test_quality_rules()
+    test_confirm()
 
     print(f"\nИтого: {len(PASSED)} пройдено, {len(FAILED)} провалено")
     if FAILED:

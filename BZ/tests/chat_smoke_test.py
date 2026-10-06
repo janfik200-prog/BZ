@@ -1586,6 +1586,86 @@ def test_graph_candidates() -> None:
         A.hybrid_search = real
 
 
+def test_drop_uncited() -> None:
+    """Фразы без ссылки на фрагмент — слова модели, а не статей: из ответа уходят."""
+    print("\nФразы без ссылки")
+    answer = "\n".join(
+        [
+            "**Признаки рудных узлов**",
+            "Рудные узлы играют важнейшую роль в размещении всех месторождений региона.",
+            "Узлы приурочены к пересечениям разломов северо-восточного простирания [1].",
+            "Методы выделения применяются следующие:",
+            "- Плотность линеаментов считают методом kernel density по снимкам [2].",
+            "- Метод в целом широко применяется во многих регионах мира и даёт хорошие результаты.",
+            "",
+            "**Общий вывод**",
+            "Таким образом, все перечисленные признаки очень важны для прогноза оруденения.",
+            "Во фрагментах не сказано, как выделяют узлы по радарным снимкам.",
+        ]
+    )
+    new, removed = A.drop_uncited(answer)
+    check("фразы без ссылки убраны", len(removed) == 3, str(removed))
+    check("со ссылкой остались", "[1]" in new and "[2]" in new)
+    check("подводка к списку осталась", "применяются следующие:" in new)
+    check("фраза о самих фрагментах осталась", "Во фрагментах не сказано" in new)
+    check("пустой пункт списка ушёл", "широко применяется" not in new)
+    check("заголовок с текстом остался", "**Признаки рудных узлов**" in new)
+    check(
+        "ссылка после точки — у своего предложения",
+        A.drop_uncited(
+            "Узлы связаны с разломами. [1] Это доказано многократно во всех регионах мира."
+        )[0]
+        == "Узлы связаны с разломами. [1]",
+    )
+    check(
+        "ответ без таких фраз не меняется",
+        A.drop_uncited("Узлы связаны с разломами [1].") == ("Узлы связаны с разломами [1].", []),
+    )
+
+    real = A.find_sources
+    try:
+        A.find_sources = lambda *a, **kw: [source(1, "Линеаменты")]
+        llm, _ = _script(
+            [
+                "Плотность линеаментов выше вблизи рудных узлов [1]. ",
+                "Это очень важный и общепризнанный признак для всех геологов мира.",
+            ]
+        )
+        events = list(
+            A.answer(
+                None,
+                None,
+                "Что с линеаментами?",
+                [],
+                A.Settings(),
+                judge=None,
+                llm=llm,
+                planner=lambda *a: ["линеаменты"],
+            )
+        )
+        kinds = [e["type"] for e in events]
+        revised = next((e for e in events if e["type"] == "revised"), None)
+        check(
+            "после ответа пришёл очищенный текст",
+            revised is not None and kinds.index("revised") < kinds.index("done"),
+            str(kinds),
+        )
+        check(
+            "в очищенном нет фразы без ссылки",
+            revised is not None
+            and "общепризнанный" not in revised["text"]
+            and "[1]" in revised["text"],
+        )
+        done = events[-1]
+        check(
+            "в итоге — сколько убрано, покрытие по очищенному",
+            done["removed"] == 1 and done["coverage"] == [1, 1],
+            str(done),
+        )
+    finally:
+        A.find_sources = real
+
+
 def main() -> int:
     test_query()
     test_messages()
@@ -1603,6 +1683,7 @@ def main() -> int:
     test_dataset()
     test_review_fixes()
     test_graph_candidates()
+    test_drop_uncited()
 
     print(f"\nИтого: {len(PASSED)} пройдено, {len(FAILED)} провалено")
     if FAILED:

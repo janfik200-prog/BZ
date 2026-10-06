@@ -661,6 +661,8 @@ class Bot:
                             except TelegramError:
                                 pass
                             last_edit = time.monotonic()
+                    elif kind == "revised":
+                        answer = ev["text"]  # без фраз без ссылки на фрагмент
                     elif kind == "done":
                         done = ev
                     elif kind == "error":

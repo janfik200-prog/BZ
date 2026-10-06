@@ -24,7 +24,7 @@ from typing import Any
 
 from ..common import add_db_args, add_embedder_args, add_llm_args
 from ..index import db
-from . import api, facts, store
+from . import api, confirm, facts, store
 from .synonyms import PROPOSALS_PATH, SynonymsError, judge_pairs, load, proposals_text, suggest
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -34,6 +34,25 @@ def _llm(args: Any) -> Any:
     from ..llm import Ollama
 
     return Ollama(model=args.model, host=args.ollama_host, timeout=args.timeout)
+
+
+def _confirm(conn: Any, args: Any) -> int:
+    """Подтвердить вопросами факты, которых ещё не проверяли (confirm.py)."""
+    left = len(store.unconfirmed(conn))
+    if not left:
+        print("Все факты уже проверены вопросами.")
+        return 0
+    todo = min(left, args.limit) if args.limit else left
+    print(
+        f"Проверяю факты вопросами по цитате: {todo}. В граф идут подтверждённые не меньше "
+        f"чем {confirm.MIN_VOTES} проверками из 4. Можно прервать Ctrl+C — продолжится."
+    )
+    stats = confirm.run(conn, _llm(args), limit=args.limit)
+    print(
+        f"Проверено фактов: {stats['done']}; в граф идут {stats['kept']}, остальные "
+        "остаются в базе." + (f" Модель не ответила: {stats['errors']}." if stats["errors"] else "")
+    )
+    return 0
 
 
 def _build(conn: Any, args: Any) -> int:
@@ -61,7 +80,7 @@ def _build(conn: Any, args: Any) -> int:
             "Новых фрагментов нет — модель уже прошла всё "
             "(заново: python georag.py graph --redo)."
         )
-        return 0
+        return _confirm(conn, args)
     todo = min(left, args.limit) if args.limit else left
     print(
         f"Факты выписывает {args.model} по правилам config/graph-rules.txt, каждый проверяет "
@@ -73,6 +92,8 @@ def _build(conn: Any, args: Any) -> int:
         f"{stats['facts']}; отброшено проверкой: {stats['rejected']}."
         + (f" Модель не ответила: {stats['errors']}." if stats["errors"] else "")
     )
+    if not stats["stopped"]:
+        _confirm(conn, args)
     print(
         "Что нашла модель и где ошибалась: python georag.py graph --new\n"
         "Свести разные написания одного и того же: python georag.py synonyms"
@@ -249,7 +270,17 @@ def _relations_as_names(syn: Any) -> Any:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Граф знаний ГеоRAG: факты из статей")
     parser.add_argument(
-        "command", choices=["build", "report", "dataset", "synonyms", "questions", "gaps"]
+        "command",
+        choices=[
+            "build",
+            "confirm",
+            "recheck",
+            "report",
+            "dataset",
+            "synonyms",
+            "questions",
+            "gaps",
+        ],
     )
     parser.add_argument(
         "--no-llm", action="store_true", help="вопросы по шаблону, без модели (questions)"
@@ -289,6 +320,11 @@ def main(argv: list[str] | None = None) -> int:
             store.init(conn)
             if args.command == "build":
                 return _build(conn, args)
+            if args.command == "confirm":
+                return _confirm(conn, args)
+            if args.command == "recheck":
+                facts.recheck(conn)
+                return 0
             if args.command == "report":
                 return _report(conn, syn)
             if args.command == "dataset":
