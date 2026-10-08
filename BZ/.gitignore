@@ -22,3 +22,6 @@ config/synonyms-предложения.yaml
 # Пересоздаются командами questions и gaps
 config/eval-graph.yaml
 config/topics-graph.yaml
+
+# Системный промпт — только локально, в репозиторий не идёт.
+docs/СИСТЕМНЫЙ-ПРОМПТ.md

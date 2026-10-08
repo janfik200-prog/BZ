@@ -473,7 +473,7 @@ TEST_NAMES = {
 
 
 def cmd_lint(opts: argparse.Namespace) -> int:
-    """ruff, black --check и mypy --strict — раздел 8.2 docs/СИСТЕМНЫЙ-ПРОМПТ.md.
+    """ruff, black --check и mypy --strict.
     Пакет georag и файл georag.py проверяются mypy отдельно: у них одно имя."""
     steps = [
         ("ruff", ["-m", "ruff", "check", "georag", "georag.py", "tests"]),
