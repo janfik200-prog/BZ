@@ -179,6 +179,14 @@ def search_notes(info: dict[str, Any]) -> str:
     if info.get("extra"):
         missing = f", не хватало: {'; '.join(info['missing'])}" if info.get("missing") else ""
         notes.append(f"искал ещё{missing}; запросы: " + ", ".join(f"«{q}»" for q in info["extra"]))
+    if info.get("conflicts"):
+        notes.append(
+            "статьи отвечают по-разному: "
+            + "; ".join(
+                f"[{c['a']}] «{c['said_a']}» — [{c['b']}] «{c['said_b']}»"
+                for c in info["conflicts"]
+            )
+        )
     return "\n".join(notes)
 
 
@@ -250,9 +258,32 @@ def answer_text(
 
 
 def answer_keyboard(aid: int, sources: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """Под ответом: фрагменты, как искал, новый разговор."""
+    """Под ответом: фрагменты, связи из графа, как искал, новый разговор."""
     frags = [button(f"[{s['n']}]", f"f:{aid}:{s['n']}") for s in sources[:FRAGMENT_BUTTONS]]
-    return inline([*rows_of(frags), [button("Как искал", f"how:{aid}"), button(MENU_NEW, "new")]])
+    tail = [button("Как искал", f"how:{aid}"), button(MENU_NEW, "new")]
+    if any(s.get("chunk_id") for s in sources):
+        tail.insert(0, button("Связи", f"lk:{aid}"))
+    return inline([*rows_of(frags), tail])
+
+
+LINKS_IN_MESSAGE = 12
+
+
+def links_text(rows: list[tuple[int, dict[str, Any]]]) -> str:
+    """Связи, которые граф выписал из фрагментов ответа: [n] имя — связь → имя."""
+    lines = [
+        f"[{n}] {esc(f['src'])} — <i>{esc(f['relation'])}</i> → {esc(f['dst'])}"
+        for n, f in rows[:LINKS_IN_MESSAGE]
+    ]
+    more = f"\n<i>и ещё {len(rows) - LINKS_IN_MESSAGE}</i>" if len(rows) > LINKS_IN_MESSAGE else ""
+    return (
+        "<b>Связи из графа</b> — из фрагментов, на которые ссылается ответ. Кнопка с именем "
+        "— картинка всех его связей по базе.\n\n" + "\n".join(lines) + more
+    )
+
+
+def links_keyboard(names: list[tuple[str, int]]) -> dict[str, Any] | None:
+    return inline(rows_of([button(name[:40], f"ds:{n}") for name, n in names], per_row=2))
 
 
 def stop_keyboard(aid: int) -> dict[str, Any] | None:

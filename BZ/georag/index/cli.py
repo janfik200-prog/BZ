@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 from ..common import add_db_args
-from ..llm import OLLAMA_HOST
+from ..paths import ARTICLES
 from . import db
 from .embed import build_embedder
 from .ingest import ingest_dir, tidy_indexed
@@ -29,17 +29,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("command", choices=["init", "ingest", "tidy", "search", "stats"])
     p.add_argument("query", nargs="?", help="поисковый запрос для команды search")
     add_db_args(p)
-    p.add_argument("--acquired", type=Path, default=Path("data/acquired"))
-    p.add_argument(
-        "--embedder",
-        choices=["local", "ollama"],
-        default="local",
-        help="чем считать векторы: local — прямо на видеокарте (по умолчанию), либо ollama",
-    )
-    p.add_argument(
-        "--model", default=None, help="имя модели: bge-m3 для ollama, BAAI/bge-m3 для local"
-    )
-    p.add_argument("--ollama-host", default=OLLAMA_HOST)
+    p.add_argument("--acquired", type=Path, default=ARTICLES)
+    p.add_argument("--model", default=None, help="модель векторов (по умолчанию BAAI/bge-m3)")
     p.add_argument("--device", choices=["auto", "cuda", "cpu"], default="auto")
     p.add_argument("--batch", type=int, default=8, help="сколько чанков кодировать за раз")
     p.add_argument("--force", action="store_true", help="переиндексировать, даже если уже есть")
@@ -91,18 +82,14 @@ def main(argv: list[str] | None = None) -> int:
                 return 0
 
             embedder = build_embedder(
-                args.embedder,
-                model_id=args.model,
-                device=args.device,
-                batch_size=args.batch,
-                host=args.ollama_host,
+                model_id=args.model, device=args.device, batch_size=args.batch
             )
 
             if args.command == "ingest":
                 if not args.acquired.exists():
                     print(f"Папки {args.acquired} нет — сначала добыча", file=sys.stderr)
                     return 1
-                print(f"Векторы считает: {embedder.name}")
+                print(f"Векторы считает BGE-M3 на {args.device}")
                 report = ingest_dir(conn, embedder, args.acquired, force=args.force)
                 print(
                     f"\nДокументов просмотрено {report.seen}, проиндексировано {report.indexed}, "
@@ -135,7 +122,7 @@ def main(argv: list[str] | None = None) -> int:
                 return 0
 
             if args.command == "tidy":
-                print(f"Векторы считает: {embedder.name}")
+                print(f"Векторы считает BGE-M3 на {args.device}")
                 tidy = tidy_indexed(conn, embedder)
                 print(
                     f"\nСлужебный текст убран в {tidy.documents} статьях: фрагментов убрано "

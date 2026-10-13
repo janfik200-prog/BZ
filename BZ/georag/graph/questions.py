@@ -13,8 +13,8 @@
 вопроса, и оценка была бы завышена. Факты берутся из разных статей по очереди —
 чтобы проверялась вся база, а не одна подробная статья.
 
-    python georag.py questions              → config/eval-graph.yaml
-    python georag.py eval --questions config/eval-graph.yaml
+    python georag.py questions              → .local/eval-graph.yaml
+    python georag.py eval --questions .local/eval-graph.yaml
 
 Модель (Qwen3) только переформулирует факт в вопрос геолога; нет модели —
 вопрос по шаблону. Проверяет ответы, как и прежде, код.
@@ -23,13 +23,12 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from typing import Any
 
+from ..paths import LOCAL
 from ..text import mentions, normalize
 
-ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_OUT = ROOT / "config" / "eval-graph.yaml"
+DEFAULT_OUT = LOCAL / "eval-graph.yaml"
 
 SYSTEM = "Ты составляешь вопросы для проверки поиска по геологическим статьям. Отвечай только JSON."
 USER = """Факт из статьи: «{src}» — {relation} — «{dst}».
@@ -141,7 +140,7 @@ def to_yaml(items: list[dict[str, Any]]) -> str:
         "# конец, «статьи» — где он сказан. Поиск должен найти эти статьи, ответ —",
         "# назвать ключевое.",
         "#",
-        "# Запуск: python georag.py eval --questions config/eval-graph.yaml",
+        "# Запуск: python georag.py eval --questions .local/eval-graph.yaml",
         "",
     ]
     body = yaml.safe_dump({"вопросы": items}, allow_unicode=True, sort_keys=False, width=100)

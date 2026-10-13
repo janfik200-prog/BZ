@@ -76,17 +76,27 @@ def todo(conn: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
 
 
 def save(
-    conn: Any, chunk_id: int, doc_id: str, facts: list[Any], rejected: list[str], model: str
+    conn: Any,
+    chunk_id: int,
+    doc_id: str,
+    facts: list[Any],
+    rejected: list[str],
+    model: str,
+    votes: list[int] | None = None,
 ) -> None:
-    """Результат модели по фрагменту — целиком вместо прошлого."""
+    """Результат модели по фрагменту — целиком вместо прошлого.
+
+    votes — подтверждения вопросами по каждому факту, если их уже поставили
+    (facts.run с confirm); иначе пусто, и их потом поставит confirm.run."""
+    marks: list[int | None] = list(votes) if votes is not None else [None] * len(facts)
     with conn.cursor() as cur:
         cur.execute("DELETE FROM facts WHERE chunk_id = %s", (chunk_id,))
         if facts:
             cur.executemany(
                 """
                 INSERT INTO facts (chunk_id, doc_id, src, relation, dst, src_key, dst_key,
-                                   quote, model)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING
+                                   quote, model, votes)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING
                 """,
                 [
                     (
@@ -99,8 +109,9 @@ def save(
                         f.dst_key,
                         f.quote,
                         model,
+                        mark,
                     )
-                    for f in facts
+                    for f, mark in zip(facts, marks, strict=True)
                 ],
             )
         cur.execute(
@@ -162,13 +173,6 @@ def set_votes(conn: Any, fact_id: int, votes: int) -> None:
         cur.execute("UPDATE facts SET votes = %s WHERE id = %s", (votes, fact_id))
 
 
-def votes_summary(conn: Any) -> dict[int | None, int]:
-    """Сколько фактов с каким числом подтверждений (None — не проверены)."""
-    with conn.cursor() as cur:
-        cur.execute("SELECT votes, count(*) FROM facts GROUP BY votes")
-        return {r[0]: int(r[1]) for r in cur.fetchall()}
-
-
 def clear(conn: Any) -> None:
     """Забыть всё, что сделала модель, — перед проходом заново (правила поменялись)."""
     with conn.cursor() as cur:
@@ -180,21 +184,25 @@ def clear(conn: Any) -> None:
 MIN_VOTES = 3
 
 
-def all_facts(conn: Any, min_votes: int = MIN_VOTES) -> list[dict[str, Any]]:
+def all_facts(
+    conn: Any, min_votes: int = MIN_VOTES, after: int = 0, upto: int | None = None
+) -> list[dict[str, Any]]:
     """Факты со статьёй: из них в памяти собирается граф (фактов — тысячи).
 
     Факт, проверенный вопросами (confirm.py) и подтверждённый меньше чем min_votes
-    проверками из 4, в граф не идёт, но в базе остаётся. Непроверенный — идёт."""
+    проверками из 4, в граф не идёт, но в базе остаётся. Непроверенный — идёт.
+    after/upto — только факты с номером в (after, upto]: дописать новые к графу."""
     with conn.cursor() as cur:
         cur.execute(
             """
             SELECT f.id, f.chunk_id, f.doc_id, f.src, f.relation, f.dst, f.quote,
                    d.title, d.year, d.url, d.doi, f.votes
             FROM facts f JOIN documents d ON d.doc_id = f.doc_id
-            WHERE f.votes IS NULL OR f.votes >= %s
+            WHERE (f.votes IS NULL OR f.votes >= %s) AND f.id > %s
+                  AND (%s::bigint IS NULL OR f.id <= %s)
             ORDER BY f.id
             """,
-            (min_votes,),
+            (min_votes, after, upto, upto),
         )
         return [
             {

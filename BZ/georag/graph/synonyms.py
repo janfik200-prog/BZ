@@ -20,7 +20,7 @@
 
 Пополнять словарь помогает модель: `python georag.py synonyms` находит
 похожие имена (по смыслу, через векторы BGE-M3), Qwen3 решает, одно ли это,
-и предложения ложатся в `config/synonyms-предложения.yaml`. Нужное оттуда
+и предложения ложатся в `.local/synonyms-предложения.yaml`. Нужное оттуда
 переносится сюда руками — модель сама словарь не правит.
 """
 
@@ -32,11 +32,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ..paths import CONFIG, LOCAL
 from ..text import name_key, normalize
 
-ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_PATH = ROOT / "config" / "synonyms.yaml"
-PROPOSALS_PATH = ROOT / "config" / "synonyms-предложения.yaml"
+DEFAULT_PATH = CONFIG / "synonyms.yaml"
+PROPOSALS_PATH = LOCAL / "synonyms-предложения.yaml"
 
 PART_OF = "входит в"  # связь «часть → целое»: по ней собирается датасет
 

@@ -22,7 +22,7 @@
 пишется в отдельном потоке — бот тем временем принимает нажатия, поэтому
 «Остановить» срабатывает сразу.
 
-Доступ — telegram_users.txt, по одной записи в строке, # — комментарий:
+Доступ — .local/telegram_users.txt, по одной записи в строке, # — комментарий:
 
 * id человека — кому можно;
 * строка «*» — бот открыт всем, без ограничений.
@@ -30,12 +30,12 @@
 Без «*» чужим бот отвечает только их id (не чаще раза в 10 минут). Файл
 перечитывается на каждом сообщении, перезапускать бота после правки не нужно.
 
-Модель пишет ответы по одному (MAX_PARALLEL): кто спросил, пока она занята,
-получает «в очереди» с местом и ждёт. Вторая копия бота на том же компьютере не
+Модель пишет до MAX_PARALLEL ответов сразу (по умолчанию 4, переменная
+GEORAG_PARALLEL): кто спросил сверх этого, получает «в очереди» с местом и ждёт. Вторая копия бота на том же компьютере не
 запускается: две копии забирают одни и те же сообщения, и на один /start
 приходило по десять ответов.
 
-Токен бота (выдаёт @BotFather) — в telegram_token.txt или в GEORAG_TG_TOKEN.
+Токен бота (выдаёт @BotFather) — в .local/telegram_token.txt или в GEORAG_TG_TOKEN.
 Оба файла в .gitignore: в репозиторий не попадают.
 """
 
@@ -50,6 +50,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ..paths import LOCAL
 from . import ui
 from .ui import (  # noqa: F401 — для внешних
     LIMIT,
@@ -60,9 +61,8 @@ from .ui import (  # noqa: F401 — для внешних
     split,
 )
 
-ROOT = Path(__file__).resolve().parents[2]
-TOKEN_FILE = ROOT / "telegram_token.txt"
-USERS_FILE = ROOT / "telegram_users.txt"
+TOKEN_FILE = LOCAL / "telegram_token.txt"
+USERS_FILE = LOCAL / "telegram_users.txt"
 API = os.environ.get("GEORAG_TG_API", "").strip() or "https://api.telegram.org"
 
 EDIT_EVERY = 1.5  # как часто обновлять сообщение, пока модель пишет, с
@@ -72,8 +72,16 @@ KEEP = 20  # сколько последних ответов и списков 
 SEARCH_HITS = 20
 HELP = ui.HELP
 
-OPEN_ACCESS = {"*", "все", "всем", "all", "everyone"}  # строка в telegram_users.txt: открыт всем
-MAX_PARALLEL = 1  # ответов модели одновременно: видеокарта одна
+OPEN_ACCESS = {
+    "*",
+    "все",
+    "всем",
+    "all",
+    "everyone",
+}  # строка в .local/telegram_users.txt: открыт всем
+# Ответов модели одновременно. vLLM считает одновременные запросы одной пачкой;
+# сверх этого числа вопросы ждут здесь, и человек видит своё место в очереди.
+MAX_PARALLEL = max(1, int(os.environ.get("GEORAG_PARALLEL", "4")))
 MAX_SESSIONS = 300  # разговоров в памяти; старые забываются
 MAX_TERRITORIES = 400  # сущностей в разговоре (для кнопок картинки связей)
 DENIED_EVERY = 600  # как часто чужому напоминать его id, с
@@ -118,11 +126,6 @@ def access(path: Path = USERS_FILE) -> tuple[bool, set[int]]:
         elif line.lstrip("-").isdigit():
             owners.add(int(line))
     return everyone, owners
-
-
-def allowed_users(path: Path = USERS_FILE) -> set[int]:
-    """Владельцы: id из файла (без «*»)."""
-    return access(path)[1]
 
 
 def _instance_lock(token: str) -> Any:
@@ -317,7 +320,7 @@ class Bot:
         self.offset: int | None = None
         self.background = False  # в run() — ответы модели в отдельном потоке
         self.workers: dict[int, threading.Thread] = {}
-        self.slots = threading.BoundedSemaphore(MAX_PARALLEL)  # модель пишет по одному
+        self.slots = threading.BoundedSemaphore(MAX_PARALLEL)  # ответов одновременно
         self.lock = threading.Lock()
         self.waiting = 0  # сколько ответов ждут очереди
         self.denied: dict[int, float] = {}  # чужой → когда последний раз отвечали
@@ -351,7 +354,7 @@ class Bot:
         self.tg.send(
             chat_id,
             f"Нет доступа. Ваш id: <code>{user_id}</code>\n"
-            "Владелец базы добавляет его в telegram_users.txt.",
+            "Владелец базы добавляет его в .local/telegram_users.txt.",
         )
 
     # -- разбор входящих ---------------------------------------------------- #
@@ -488,10 +491,13 @@ class Bot:
                 session.stop.set()
                 return "Останавливаю…"
             return "Ответ уже готов"
-        if action in ("f", "how"):
+        if action in ("f", "how", "lk"):
             record = session.answers.get(nums[0]) if nums else None
             if record is None:
                 return STALE
+            if action == "lk":
+                self.answer_links(chat_id, session, record)
+                return None
             if action == "f":
                 src = next((s for s in record["sources"] if s["n"] == nums[1]), None)
                 if src is None:
@@ -589,7 +595,7 @@ class Bot:
             session.busy = False
 
     def _wait_turn(self, chat_id: int) -> None:
-        """Модель одна: пока она отвечает другим, вопрос ждёт — человеку видно место в очереди."""
+        """Все места у модели заняты (MAX_PARALLEL) — вопрос ждёт, человеку видно место в очереди."""
         if self.slots.acquire(blocking=False):
             return
         with self.lock:
@@ -668,7 +674,7 @@ class Bot:
                     elif kind == "error":
                         error = ev["error"]
             finally:
-                events.close()  # остановили — Ollama перестаёт писать
+                events.close()  # остановили — модель перестаёт писать
         if error:
             self.tg.edit(chat_id, mid, f"Ошибка: {esc(error)}")
             return
@@ -758,7 +764,7 @@ class Bot:
         self.tg.send(chat_id, ui.list_text(lst, 0), ui.list_keyboard(pid, lst, 0, lst.get("extra")))
 
     def search(self, chat_id: int, session: Session, query: str) -> None:
-        from ..chat.answer import source_dict
+        from ..chat.search import source_dict
         from ..index import db
         from ..index.search import hybrid_search
 
@@ -938,19 +944,64 @@ class Bot:
             return
         self.graph_card(chat_id, session, self._territory(session, data), data=data)
 
-    def _territory(self, session: Session, data: dict[str, Any]) -> int:
-        """Номер сущности в списке разговора — для кнопок (в callback_data только номер)."""
-        idx = next(
-            (i for i, r in enumerate(session.territories) if r["name"] == data["name"]), None
-        )
-        if idx is None:
-            if len(session.territories) >= MAX_TERRITORIES:
-                session.territories = []  # старые кнопки ответят «от старого сообщения»
-            session.territories.append(
-                {"name": data["name"], "documents": data["documents"], "facts": len(data["facts"])}
+    def _links(self, chunk_ids: list[int]) -> dict[str, list[dict[str, Any]]]:
+        """Фрагмент → связи графа, выписанные из него (graph.api.facts_response)."""
+        from ..graph import api
+        from ..graph.synonyms import load
+        from ..index import db
+
+        with db.connect(self.dsn) as conn:
+            chunks: dict[str, list[dict[str, Any]]] = api.facts_response(conn, load(), chunk_ids)[
+                "chunks"
+            ]
+            return chunks
+
+    def answer_links(self, chat_id: int, session: Session, record: dict[str, Any]) -> None:
+        """«Связи» под ответом: что граф выписал из процитированных фрагментов; кнопки
+        с именами — картинка связей сущности, оттуда — дальше по соседям."""
+        sources = [s for s in record.get("sources") or [] if s.get("chunk_id")]
+        used = set(record.get("used") or [])
+        pool = [s for s in sources if s["n"] in used] or sources
+        by_chunk = self._links([s["chunk_id"] for s in pool]) if pool else {}
+        rows = [(s["n"], f) for s in pool for f in by_chunk.get(str(s["chunk_id"]), [])]
+        if not rows:
+            self.tg.send(
+                chat_id,
+                "Граф не выписал связей из этих фрагментов (или ещё не построен: "
+                "python georag.py graph).",
             )
+            return
+        names = list(dict.fromkeys(x for _, f in rows for x in (f["src"], f["dst"])))
+        shown = names[: ui.NEIGHBOR_BUTTONS]
+        # Список сущностей полон — заново до кнопок, а не посреди них: иначе первые
+        # кнопки сообщения вели бы на чужие номера.
+        if len(session.territories) + len(shown) > MAX_TERRITORIES:
+            session.territories = []
+        buttons = [(name, self._entity_index(session, name, reset=False)) for name in shown]
+        self.tg.send(chat_id, ui.links_text(rows), ui.links_keyboard(buttons))
+
+    def _entity_index(
+        self,
+        session: Session,
+        name: str,
+        documents: int = 0,
+        facts: int = 0,
+        reset: bool = True,
+    ) -> int:
+        """Номер сущности в списке разговора — для кнопок (в callback_data только номер).
+        Нет в списке — дописывается; список полон (reset) — начинается заново, и старые
+        кнопки ответят «от старого сообщения»."""
+        idx = next((i for i, r in enumerate(session.territories) if r["name"] == name), None)
+        if idx is None:
+            if reset and len(session.territories) >= MAX_TERRITORIES:
+                session.territories = []
+            session.territories.append({"name": name, "documents": documents, "facts": facts})
             idx = len(session.territories) - 1
         return idx
+
+    def _territory(self, session: Session, data: dict[str, Any]) -> int:
+        """Номер сущности из датасета — со счётом статей и фактов."""
+        return self._entity_index(session, data["name"], data["documents"], len(data["facts"]))
 
     def graph_card(
         self,
@@ -971,13 +1022,10 @@ class Bot:
             self.dataset_card(chat_id, session, idx)
             return
         idx = self._territory(session, data)  # сначала сама сущность: список мог обнулиться
-        buttons = []
-        for name in neighbors[: ui.NEIGHBOR_BUTTONS]:
-            n = next((i for i, r in enumerate(session.territories) if r["name"] == name), None)
-            if n is None:
-                session.territories.append({"name": name, "documents": 0, "facts": 0})
-                n = len(session.territories) - 1
-            buttons.append((name, n))
+        buttons = [
+            (name, self._entity_index(session, name, reset=False))
+            for name in neighbors[: ui.NEIGHBOR_BUTTONS]
+        ]
         caption, markup = ui.graph_caption(data, len(neighbors)), ui.graph_keyboard(idx, buttons)
         if mid:
             try:
@@ -1011,7 +1059,7 @@ class Bot:
     def stats(self, chat_id: int) -> None:
         from ..chat import answer as chat
 
-        status = chat.ollama_status(self.chat_settings.host, self.chat_settings.model, timeout=3)
+        status = chat.llm_status(self.chat_settings.host, self.chat_settings.model, timeout=3)
         self.tg.send(chat_id, ui.status_text(status, self._stats()))
 
     # -- цикл --------------------------------------------------------------- #
@@ -1071,7 +1119,7 @@ def explain_error(exc: Exception) -> str:
     if "401" in text or "Unauthorized" in text or "Not Found" in text:
         return (
             "Телеграм не принимает токен. Возьмите токен заново у @BotFather "
-            "(/mybots → бот → API Token) и сохраните в telegram_token.txt."
+            "(/mybots → бот → API Token) и сохраните в .local/telegram_token.txt."
         )
     return f"Телеграм не ответил ({type(exc).__name__}: {text[:200]}) — повтор через 5 с"
 
@@ -1085,7 +1133,7 @@ def check(
     if not token:
         log(
             f"[СБОЙ] Токена нет: нет файла {TOKEN_FILE.name} в папке проекта (или он пустой).\n"
-            "       Сохранить: python -c \"open('telegram_token.txt','w',encoding='utf-8')"
+            "       Сохранить: python -c \"open('.local/telegram_token.txt','w',encoding='utf-8')"
             ".write('ТОКЕН')\""
         )
         return 1
@@ -1112,13 +1160,15 @@ def check(
         pass
     everyone, users = access(users_file)
     if everyone:
-        log("[OK  ] Бот открыт всем («*» в telegram_users.txt), без ограничений.")
+        log("[OK  ] Бот открыт всем («*» в .local/telegram_users.txt), без ограничений.")
     elif users:
-        log(f"[OK  ] Кому бот отвечает (telegram_users.txt): {', '.join(map(str, sorted(users)))}")
+        log(
+            f"[OK  ] Кому бот отвечает (.local/telegram_users.txt): {', '.join(map(str, sorted(users)))}"
+        )
     else:
         log(
-            "[ !! ] В telegram_users.txt никого нет — бот на всё отвечает «Нет доступа. Ваш id».\n"
-            "       Открыть всем: строка * в telegram_users.txt."
+            "[ !! ] В .local/telegram_users.txt никого нет — бот на всё отвечает «Нет доступа. Ваш id».\n"
+            "       Открыть всем: строка * в .local/telegram_users.txt."
         )
     try:
         waiting = tg.call("getUpdates", timeout=0, http_timeout=20) or []
@@ -1136,12 +1186,12 @@ def check(
             mark = (
                 "есть доступ"
                 if uid in users
-                else "гость — бот открыт всем" if everyone else "НЕТ в telegram_users.txt"
+                else "гость — бот открыт всем" if everyone else "НЕТ в .local/telegram_users.txt"
             )
             log(f"       от {name} — id {uid} ({mark})")
         if not everyone and any(uid not in users for uid in senders):
             log(
-                "       Добавить id: python -c \"open('telegram_users.txt','a',"
+                "       Добавить id: python -c \"open('.local/telegram_users.txt','a',"
                 "encoding='utf-8').write('ID\\n')\""
             )
     else:
@@ -1164,7 +1214,9 @@ def start_in_thread(
     """Бот в фоне того же процесса — для `web --tg`: модель векторов одна на двоих."""
     token = read_token()
     if not token:
-        log("Телеграм-бот не запущен: нет токена (telegram_token.txt). Как завести — ЗАПУСК.md.")
+        log(
+            "Телеграм-бот не запущен: нет токена (.local/telegram_token.txt). Как завести — ЗАПУСК.md."
+        )
         return None
     bot = Bot(Telegram(token), dsn, embedder, chat_settings, log=log)
     try:
@@ -1177,7 +1229,7 @@ def start_in_thread(
         )
         return None
     everyone, owners = access()
-    who = "всем" if everyone else f"тем, кто в telegram_users.txt ({len(owners)} чел.)"
+    who = "всем" if everyone else f"тем, кто в .local/telegram_users.txt ({len(owners)} чел.)"
     log(
         f"Телеграм-бот: @{me.get('username')} — отвечает {who}; входящие сообщения видны в этом окне"
     )
@@ -1190,6 +1242,7 @@ def main(argv: list[str] | None = None) -> int:
     import argparse
 
     from ..chat import answer as chat
+    from ..chat.settings import Settings
     from ..common import add_db_args, add_embedder_args, add_llm_args
     from ..index import db
     from ..index.embed import build_embedder
@@ -1207,7 +1260,7 @@ def main(argv: list[str] | None = None) -> int:
     if not token:
         print(
             "Нет токена бота. Получить у @BotFather в Телеграме и сохранить:\n"
-            "    python -c \"open('telegram_token.txt','w').write('ТОКЕН')\"",
+            "    python -c \"open('.local/telegram_token.txt','w').write('ТОКЕН')\"",
             file=sys.stderr,
         )
         return 1
@@ -1229,14 +1282,14 @@ def main(argv: list[str] | None = None) -> int:
         print("Бот открыт всем, без ограничений.")
     elif not users:
         print(
-            "В telegram_users.txt никого нет — бот никому не ответит по существу. Напишите\n"
-            "ему что-нибудь: он пришлёт ваш id, его и записать в telegram_users.txt."
+            "В .local/telegram_users.txt никого нет — бот никому не ответит по существу. Напишите\n"
+            "ему что-нибудь: он пришлёт ваш id, его и записать в .local/telegram_users.txt."
         )
     print("Загружаю модель эмбеддингов…")
-    embedder = build_embedder(args.embedder, device=args.device)
+    embedder = build_embedder(device=args.device)
     embedder.encode_one("прогрев")
-    settings = chat.Settings(model=args.model, host=args.ollama_host)
-    status = chat.ollama_status(settings.host, settings.model)
+    settings = Settings(model=args.model, host=args.llm_host)
+    status = chat.llm_status(settings.host, settings.model)
     print(f"Чат-бот: {settings.model} — " + ("готов" if status["ok"] else status["error"]))
     print(
         f"Бот работает: пишите @{me.get('username')} в Телеграме (сначала /start). "

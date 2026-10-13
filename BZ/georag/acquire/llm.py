@@ -6,8 +6,8 @@
 Особенности Qwen3, из-за которых наивный код ломается:
 
 * это думающая модель, и по умолчанию она выдаёт блок <think>…</think> перед ответом.
-  С `format: json` Ollama ждёт чистый JSON, поэтому размышления либо выключаются
-  (`think: false`, плюс подсказка /no_think в промпте), либо срезаются из ответа;
+  Размышления выключаются в самом запросе (llm.NO_THINK), а если блок всё же
+  пришёл, он срезается из ответа;
 * даже с JSON-режимом ответ иногда приходит с обёрткой — поэтому JSON вытаскивается
   по границам скобок, а не через прямой json.loads всего текста.
 
@@ -21,7 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ..llm import Ollama, extract_json
+from ..llm import LLM
 from .models import Candidate
 
 # О чём база. Без этого модель понимает тему буквально: вопрос про «признаки
@@ -94,13 +94,9 @@ FILTER_USER = """Тема: «{topic}».
 Причина — не больше 15 слов. Реши по каждому номеру из списка."""
 
 
-# Разбор JSON и сам клиент — общие для всего проекта, в georag/llm.py.
-_extract_json = extract_json
-
-
 @dataclass
-class OllamaLLM(Ollama):
-    """Клиент Ollama с двумя вопросами добычи: запросы и отбор аннотаций."""
+class ModelFilter(LLM):
+    """Клиент модели с двумя вопросами добычи: запросы и отбор аннотаций."""
 
     # -- шаг 2: формулировка запросов -------------------------------------- #
     def queries(self, topic: str, n: int = 5) -> list[str]:

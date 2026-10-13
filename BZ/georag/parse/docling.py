@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -99,6 +100,10 @@ def build_converter(settings: Settings, full_page_ocr: bool = False) -> Document
         do_cell_matching=settings.do_cell_matching,
     )
     pipeline_options.ocr_options = _ocr_options(settings, full_page=full_page_ocr)
+    pipeline_options.do_formula_enrichment = settings.formulas
+    if settings.figures:
+        pipeline_options.generate_picture_images = True
+        pipeline_options.images_scale = settings.figures_scale
     pipeline_options.accelerator_options = AcceleratorOptions(
         num_threads=settings.num_threads, device=device
     )
@@ -111,6 +116,32 @@ def build_converter(settings: Settings, full_page_ocr: bool = False) -> Document
     return DocumentConverter(
         format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
     )
+
+
+_CYRILLIC = re.compile(r"[А-Яа-яЁё]")
+# Номер формулы, который модель дописывает в LaTeX («\quad \ \ ( 8 )»), и всё
+# после него: там бывает мусор («\quad p a r { x }»).
+_EQ_NUMBER = re.compile(r"(?:\s*(?:\\q?quad|\\ ))+\s*\(\s*\d+\s*\)[\s\S]*$")
+_ORIG_NUMBER = re.compile(r"\s*\(\s*\d+\s*\)\s*$")
+
+
+def tidy_formula(latex: str, orig: str) -> str:
+    """LaTeX формулы без номера и мусора после него. Русские обозначения модель
+    читает латиницей («V_{обр}» → «V_{op6}»), а в тексте PDF они верные, — тогда он
+    приписывается к формуле: \\text{[K п = V пор V обр · 100 %]}."""
+    latex = _EQ_NUMBER.sub("", latex or "").strip()
+    if not latex:
+        return ""
+    orig = _ORIG_NUMBER.sub("", " ".join((orig or "").split()))
+    if _CYRILLIC.search(orig):
+        return f"{latex} \\quad \\text{{[{orig}]}}"
+    return latex
+
+
+def _tidy_formulas(doc: Any) -> None:
+    for item in getattr(doc, "texts", []) or []:
+        if _label_of(item) == "formula" and item.text:
+            item.text = tidy_formula(item.text, getattr(item, "orig", "") or "")
 
 
 def _label_of(item: Any) -> str:
@@ -189,6 +220,7 @@ class DoclingParser:
         sections, pages_text, page_count = _extract_structure(doc)
 
         result.status = OK if status == ConversionStatus.SUCCESS else PARTIAL
+        _tidy_formulas(doc)
         result.markdown = doc.export_to_markdown()
         result.sections = sections
         result.pages_text = pages_text

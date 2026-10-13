@@ -19,18 +19,40 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from functools import lru_cache
 from typing import Any
 
 from .config import Settings
 from .models import Chunk, ParsedDoc
 
 
-def _build_chunker(settings: Settings) -> Any:
-    from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
+@lru_cache(maxsize=4)
+def _tokenizer(model_id: str) -> Any:
+    """Токенайзер модели — один на процесс.
+
+    Загрузка занимает 1,5–2,5 с, а нарезка самой статьи — доли секунды: раньше
+    токенайзер грузился заново на каждую статью, и это было 80% времени нарезки.
+    Сначала берём скачанный с диска: иначе каждая загрузка спрашивает Hugging Face,
+    не вышла ли новая версия, — лишняя секунда и зависимость от сети.
+    """
     from transformers import AutoTokenizer
 
-    hf_tokenizer = AutoTokenizer.from_pretrained(settings.embed_model_id)
-    budget = max(settings.max_tokens - settings.overlap_tokens, 64)
+    try:
+        return AutoTokenizer.from_pretrained(model_id, local_files_only=True)
+    except (OSError, ValueError):  # ещё не скачан — качаем
+        return AutoTokenizer.from_pretrained(model_id)
+
+
+def _build_chunker(settings: Settings) -> Any:
+    return _cached_chunker(settings.embed_model_id, settings.max_tokens, settings.overlap_tokens)
+
+
+@lru_cache(maxsize=4)
+def _cached_chunker(model_id: str, max_tokens: int, overlap_tokens: int) -> Any:
+    from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
+
+    hf_tokenizer = _tokenizer(model_id)
+    budget = max(max_tokens - overlap_tokens, 64)
 
     try:  # docling-core >= 2.2x
         from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
@@ -39,7 +61,7 @@ def _build_chunker(settings: Settings) -> Any:
         chunker = HybridChunker(tokenizer=tokenizer, merge_peers=True)
     except ImportError:  # pragma: no cover — старый API
         chunker = HybridChunker(  # type: ignore[call-arg]
-            tokenizer=hf_tokenizer, max_tokens=budget, merge_peers=True  # type: ignore[arg-type]
+            tokenizer=hf_tokenizer, max_tokens=budget, merge_peers=True
         )
 
     return chunker, hf_tokenizer
@@ -119,9 +141,7 @@ def _chunk_plain_text(parsed: ParsedDoc, settings: Settings) -> list[Chunk]:
 
     Страницу сохраняем — она известна из pages_text, и цитирование не ломается.
     """
-    from transformers import AutoTokenizer
-
-    hf_tokenizer = AutoTokenizer.from_pretrained(settings.embed_model_id)
+    hf_tokenizer = _tokenizer(settings.embed_model_id)
     budget = max(settings.max_tokens - settings.overlap_tokens, 64)
 
     chunks: list[Chunk] = []

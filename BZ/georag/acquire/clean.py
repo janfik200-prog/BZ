@@ -1,12 +1,12 @@
 """Чистка папки добычи от статей не по теме.
 
-Ранние прогоны шли со старым отбором, и в data/acquired осели работы про
+Ранние прогоны шли со старым отбором, и в .local/acquired осели работы про
 маркетинг, палеогеографию и звёздные скопления. Этот скрипт прогоняет по уже
 добытому тот же доменный фильтр, что теперь стоит на входе: статья, где ни в
 названии, ни в тексте нет ни одного слова рудной тематики, к базе отношения
 не имеет.
 
-Ничего не удаляется. Отбракованное переезжает в data/acquired/_отсев,
+Ничего не удаляется. Отбракованное переезжает в .local/acquired/_отсев,
 оттуда его можно вернуть или посмотреть глазами.
 
     python georag.py clean            # только показать, что уйдёт
@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Any
 
 from ..common import add_llm_args
+from ..paths import ARTICLES
 from .heuristic import has_domain_term
 
 REJECTED_DIR = "_отсев"
@@ -62,10 +63,10 @@ def recheck(
     acquired: Path, keep: list[tuple[str, str]], topic: str, model: str, host: str
 ) -> tuple[list[Any], list[Any]]:
     """Спросить Qwen3 про каждую оставшуюся статью. Не отвечает — ничего не трогаем."""
-    from .llm import OllamaLLM
+    from .llm import ModelFilter
     from .models import Candidate
 
-    llm = OllamaLLM(model=model, host=host)
+    llm = ModelFilter(model=model, host=host)
     status = llm.status()
     if not status["ok"]:
         print(f"Qwen3 недоступна ({status['error']}) — проверяю только доменным фильтром.\n")
@@ -94,7 +95,7 @@ def recheck(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Убрать из добытого статьи не по теме")
-    parser.add_argument("--acquired", type=Path, default=Path("data/acquired"))
+    parser.add_argument("--acquired", type=Path, default=ARTICLES)
     parser.add_argument("--apply", action="store_true", help="перенести, а не только показать")
     parser.add_argument("--topic", default="", help="тема: проверить статьи ещё и моделью")
     add_llm_args(parser)
@@ -125,7 +126,7 @@ def main() -> int:
         (keep if ok else drop).append((doc_id, title))
 
     if args.topic and keep:
-        keep, by_model = recheck(args.acquired, keep, args.topic, args.model, args.ollama_host)
+        keep, by_model = recheck(args.acquired, keep, args.topic, args.model, args.llm_host)
         drop += by_model
 
     print(f"Просмотрено статей: {len(doc_ids)}")

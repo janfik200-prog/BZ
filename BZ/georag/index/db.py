@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import os
+import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
@@ -98,6 +99,49 @@ def connect(dsn: str | None = None) -> Iterator[Any]:
         raise
     finally:
         conn.close()
+
+
+# Запасные соединения к той же базе — для поиска в несколько потоков (search.search_many).
+# Новое соединение — около 30 мс, а поиск по одному запросу — 20: открывать на каждый
+# поиск невыгодно, поэтому отработавшие соединения ждут следующего вопроса здесь.
+_SPARE: dict[str, list[Any]] = {}
+_SPARE_LOCK = threading.Lock()
+SPARE_MAX = 8  # сколько свободных соединений к одной базе держать
+
+
+def is_real(conn: Any) -> bool:
+    """Настоящее соединение psycopg (а не заглушка в проверках)."""
+    return type(conn).__module__.startswith("psycopg") and hasattr(conn, "pgconn")
+
+
+@contextmanager
+def sibling(conn: Any) -> Iterator[Any]:
+    """Ещё одно соединение к той же базе, что и conn, — из запаса или новое.
+
+    Пароля в conn.info.dsn нет — он берётся у самого соединения. После работы
+    соединение возвращается в запас; сломанное (ошибка внутри) — закрывается."""
+    import psycopg
+
+    key = conn.info.dsn
+    with _SPARE_LOCK:
+        spare = _SPARE.get(key) or []
+        other = spare.pop() if spare else None
+    if other is None or other.closed:
+        password = conn.pgconn.password
+        other = psycopg.connect(
+            key, password=password.decode() if password else None, autocommit=True
+        )
+    try:
+        yield other
+    except Exception:
+        other.close()
+        raise
+    with _SPARE_LOCK:
+        spare = _SPARE.setdefault(key, [])
+        if len(spare) < SPARE_MAX and not other.closed:
+            spare.append(other)
+            return
+    other.close()
 
 
 def autocommit(conn: Any) -> None:

@@ -3,7 +3,7 @@
 С 13 февраля 2026 года OpenAlex без ключа отвечает на сотню запросов в день, дальше —
 ошибкой. Ключ бесплатный: завести учётную запись на openalex.org и взять его на
 openalex.org/settings/api. Ключ берётся из параметра api_key каталога, переменной
-GEORAG_OPENALEX_KEY или файла openalex_key.txt рядом с georag.py (он не уходит в git).
+GEORAG_OPENALEX_KEY или файла .local/openalex_key.txt (он не уходит в git).
 
 Почему он: официальный открытый API без проверок на робота, и при этом
 индексирует русскую периодику с DOI — «Отечественная геология», «Руды и металлы»,
@@ -25,17 +25,17 @@ import os
 import re
 import sys
 import time
-from pathlib import Path
 from typing import Any
 
+from ...paths import LOCAL
 from ..models import Candidate
 
 BASE = "https://api.openalex.org/works"
-KEY_FILE = Path(__file__).resolve().parents[3] / "openalex_key.txt"
+KEY_FILE = LOCAL / "openalex_key.txt"
 KEY_HELP = (
     "OpenAlex требует ключ API (с 13.02.2026). Он бесплатный: учётная запись на "
     "openalex.org, ключ — на openalex.org/settings/api. Сохранить в папке проекта: "
-    "python -c \"open('openalex_key.txt','w').write('ВАШ_КЛЮЧ')\""
+    "python -c \"open('.local/openalex_key.txt','w').write('ВАШ_КЛЮЧ')\""
 )
 
 
@@ -44,7 +44,7 @@ class OpenAlexKeyError(RuntimeError):
 
 
 # Токен Телеграм-бота (цифры:буквы) — не ключ OpenAlex. Такой уже попадал в
-# openalex_key.txt по ошибке: OpenAlex отвергал каждый запрос, добыча шла без
+# .local/openalex_key.txt по ошибке: OpenAlex отвергал каждый запрос, добыча шла без
 # главного источника, а сам токен уходил в чужие журналы с каждым запросом.
 _TELEGRAM_TOKEN = re.compile(r"\d{6,}:[\w-]{30,}")
 
@@ -173,7 +173,7 @@ class OpenAlexProvider:
         # день): лучше искать так, чем потерять главный источник на весь прогон.
         if response.status_code in (401, 403) and self.api_key:
             print(
-                "OpenAlex не принял ключ из openalex_key.txt — дальше ищу без ключа (до 100 "
+                "OpenAlex не принял ключ из .local/openalex_key.txt — дальше ищу без ключа (до 100 "
                 "запросов в день). Проверьте ключ на openalex.org/settings/api",
                 file=sys.stderr,
             )
@@ -186,7 +186,7 @@ class OpenAlexProvider:
             raise OpenAlexKeyError(KEY_HELP)
         if response.status_code in (401, 403):
             raise OpenAlexKeyError(
-                "OpenAlex не принял ключ из openalex_key.txt — проверьте его "
+                "OpenAlex не принял ключ из .local/openalex_key.txt — проверьте его "
                 "на openalex.org/settings/api"
             )
         response.raise_for_status()

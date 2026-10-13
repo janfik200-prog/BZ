@@ -4,24 +4,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# Добытое и логи — живут только на машине, в репозиторий не идут
-data/
-logs/
-
-# Личный e-mail для OpenAlex и Crossref и ключ OpenAlex
-mailto.txt
-openalex_key.txt
-
-# Телеграм-бот: токен и кому можно
-telegram_token.txt
-telegram_users.txt
-
-# Предложения модели в словарь синонимов — пересоздаются командой synonyms
-config/synonyms-предложения.yaml
-
-# Пересоздаются командами questions и gaps
-config/eval-graph.yaml
-config/topics-graph.yaml
-
-# Системный промпт — только локально, в репозиторий не идёт.
-docs/СИСТЕМНЫЙ-ПРОМПТ.md
+# Только для этой машины — в репозиторий не идёт: разобранные статьи, логи, ключи
+# и токены (OpenAlex, Телеграм), файлы, которые пересоздают команды questions, gaps,
+# synonyms. Где что — georag/paths.py.
+.local/

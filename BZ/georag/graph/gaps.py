@@ -11,18 +11,18 @@
 если в словаре есть английское написание, оно же отдельной темой — открытых
 статей на английском больше.
 
-    python georag.py gaps                             → config/topics-graph.yaml
+    python georag.py gaps                             → .local/topics-graph.yaml
     python georag.py all --topics topics-graph.yaml   добыть
 """
 
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from typing import Any
 
-ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_OUT = ROOT / "config" / "topics-graph.yaml"
+from ..paths import LOCAL
+
+DEFAULT_OUT = LOCAL / "topics-graph.yaml"
 
 MIN_FACTS = 3  # «много фактов» — от стольких
 MAX_WORDS = 5  # длинные имена — пересказ, а не название: темой не годятся

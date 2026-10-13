@@ -78,7 +78,7 @@ def parse_with_pymupdf(source: Path | str | ParseInput, settings: Settings) -> P
 
 
 def manual_text_path(source: Path | str | ParseInput, settings: Settings) -> Path | None:
-    """manual.txt ищем рядом с PDF и в data/manual/ по имени документа."""
+    """manual.txt ищем рядом с PDF и в .local/manual/ по имени документа."""
     inp = ParseInput.of(source)
     candidates = [settings.manual_dir / f"{inp.doc_id}.txt"]
     if inp.path is not None:

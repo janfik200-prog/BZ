@@ -176,11 +176,6 @@ def _is_web_syntax(query: str) -> bool:
     return '"' in query or bool(re.search(r"(^|\s)-\w", query))
 
 
-def loose_query(query: str) -> str:
-    """«Хотя бы одно из слов» — для мягкого захода полнотекста."""
-    return build_tsquery(query, any_word=True)
-
-
 def text_search(
     conn: Any,
     query: str,
@@ -260,10 +255,13 @@ def hybrid_search(
     min_similarity: float = 0.0,
     require_words: bool = False,
     alternatives: list[str] | None = None,
+    vector: list[float] | None = None,
 ) -> list[Hit]:
     """alternatives — написания запроса из словаря синонимов (synonyms.synonym_variants):
-    идут только в полнотекст, вектор и так понимает перевод."""
-    vector = embedder.encode_one(query)
+    идут только в полнотекст, вектор и так понимает перевод. vector — уже посчитанный
+    вектор запроса (search_many считает их пачкой)."""
+    if vector is None:
+        vector = embedder.encode_one(query)
     vec_rows = vector_search(conn, vector, candidates, year_from, source)
     fts_rows = text_search(conn, query, candidates, year_from, source, alternatives=alternatives)
     strict = True

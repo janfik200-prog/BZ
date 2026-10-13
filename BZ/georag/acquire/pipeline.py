@@ -17,9 +17,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ..llm import LLM
 from ..parse.config import Settings
+from ..parse.figures import FIGURE_HOST, FIGURE_MODEL, figure_chunks, strip_images
 from ..parse.models import OK, PARTIAL, ParseInput
 from ..parse.pipeline import DoclingWorker, StepLogger, process_document
+from ..paths import ARTICLES
 from .fetch import fetch_pdf
 from .heuristic import HeuristicFilter, has_domain_term
 from .llm import filter_candidates
@@ -44,7 +47,7 @@ INDEX_NAME = "index.jsonl"
 @dataclass
 class AcquireConfig:
     sources_path: Path = Path("config/sources.yaml")
-    out_dir: Path = Path("data/acquired")
+    out_dir: Path = ARTICLES
     queries: int = 5
     per_query: int = 25
     max_docs: int = 20
@@ -66,6 +69,9 @@ class AcquireConfig:
     # Заранее подготовленные запросы по темам. Если для темы они есть, модель
     # на этом шаге не дёргается: думали один раз, ищем каждую ночь одинаково.
     queries_map: dict[str, list[str]] | None = None
+    # Рисунки → фрагменты с описанием моделью со зрением (parse/figures.py, --figures).
+    figures: bool = False
+    figure_model: str = FIGURE_MODEL
 
 
 # --------------------------------------------------------------------------- #
@@ -486,6 +492,21 @@ def _acquire_one(
         make_chunks=cfg.make_chunks,
         write_outputs=False,  # свои файлы пишем сами, PDF не сохраняем
     )
+    if cfg.figures and parsed is not None and parsed.docling_doc:
+        # PDF не хранится — рисунки описываются сейчас или никогда.
+        if doc_result.status in (OK, PARTIAL) and cfg.make_chunks:
+            step = time.monotonic()
+            client = LLM(model=cfg.figure_model, host=FIGURE_HOST, temperature=0, timeout=300)
+            extra = figure_chunks(cand.doc_id, parsed.docling_doc, len(chunks), client, cand.url)
+            chunks = [*chunks, *extra]
+            logger.log(
+                cand.doc_id,
+                "figures",
+                OK,
+                time.monotonic() - step,
+                detail=f"рисунков описано: {len(extra)}",
+            )
+        strip_images(parsed.docling_doc)
 
     status = ACQUIRED if doc_result.status in (OK, PARTIAL) else PARSE_FAILED
     record = AcquiredRecord.from_candidate(

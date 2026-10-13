@@ -1,8 +1,8 @@
 """CLI этапа парсинга.
 
-python -m georag.parse.cli --input data/pdf --out data/parsed
-python -m georag.parse.cli --input data/pdf --device cuda --table-mode accurate
-python -m georag.parse.cli --input data/pdf/one.pdf --no-chunks   # быстрая проверка парсинга
+python -m georag.parse.cli --input .local/pdf --out .local/parsed
+python -m georag.parse.cli --input .local/pdf --device cuda --table-mode accurate
+python -m georag.parse.cli --input .local/pdf/one.pdf --no-chunks   # быстрая проверка парсинга
 """
 
 from __future__ import annotations

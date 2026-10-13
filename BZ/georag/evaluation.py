@@ -1,6 +1,6 @@
 """Оценка базы знаний и чат-бота по набору вопросов с ожидаемым результатом.
 
-    python -m georag.evaluation                     поиск и ответы (нужна Ollama)
+    python -m georag.evaluation                     поиск и ответы (нужна модель)
     python -m georag.evaluation --only-search       только поиск
     python -m georag.evaluation --only s01,t01      отдельные вопросы
 
@@ -34,11 +34,15 @@ from pathlib import Path
 from typing import Any
 
 from .chat import answer as chat
+from .chat.dataset import collect_dataset, graph_candidates
+from .chat.plan import plan_question
+from .chat.retrieval import judge_fragments, run
+from .chat.settings import Settings
+from .paths import CONFIG, LOGS
 from .text import normalize, phrase_pattern
 
-ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_QUESTIONS = ROOT / "config" / "eval-questions.yaml"
-DEFAULT_LOGS = ROOT / "logs"
+DEFAULT_QUESTIONS = CONFIG / "eval-questions.yaml"
+DEFAULT_LOGS = LOGS
 IN_BASE = "база"
 NOT_IN_BASE = "без базы"
 
@@ -234,20 +238,22 @@ def run_question(
     conn: Any,
     embedder: Any,
     q: Question,
-    settings: chat.Settings,
+    settings: Settings,
     *,
     with_answer: bool,
     planner: Any = None,
     llm: Any = None,
-    judge: Any = chat.judge_fragments,
-    datasets: Any = chat.collect_dataset,
+    judge: Any = judge_fragments,
+    datasets: Any = collect_dataset,
+    graph_hits: Any = graph_candidates,
 ) -> dict[str, Any]:
     """Один вопрос: поиск — тот же, что у чат-бота (разбор, отбор моделью, датасет),
-    и по найденному — ответ. Ищется один раз и для оценки поиска, и для ответа."""
-    planner = planner or chat.plan_question
+    и по найденному — ответ. Ищется один раз и для оценки поиска, и для ответа.
+    datasets=None и graph_hits=None — без графа (--no-graph)."""
+    planner = planner or plan_question
     started = time.monotonic()
-    prepared = chat.run(
-        chat.prepare(conn, embedder, q.text, [], settings, planner, judge, datasets)
+    prepared = run(
+        chat.prepare(conn, embedder, q.text, [], settings, planner, judge, datasets, graph_hits)
     )
     found = prepared.retrieval
     result = {
@@ -271,7 +277,7 @@ def run_question(
                 q.text,
                 [],
                 settings,
-                llm=llm or chat.stream_ollama,
+                llm=llm or chat.stream_llm,
                 prepared=prepared,
             )
         )
@@ -480,6 +486,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--questions", type=Path, default=DEFAULT_QUESTIONS)
     parser.add_argument("--only-search", action="store_true", help="без ответов модели")
     parser.add_argument("--only", default="", help="id вопросов через запятую")
+    parser.add_argument(
+        "--no-graph",
+        action="store_true",
+        help="без графа: ни датасетов «что известно о…», ни фрагментов о предмете из графа",
+    )
     parser.add_argument("--logs", type=Path, default=DEFAULT_LOGS)
     add_db_args(parser)
     add_embedder_args(parser)
@@ -498,24 +509,32 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Нет вопросов с id {', '.join(sorted(wanted))}", file=sys.stderr)
             return 1
 
-    settings = chat.Settings(model=args.model, host=args.ollama_host)
-    status = chat.ollama_status(settings.host, settings.model)
+    settings = Settings(model=args.model, host=args.llm_host)
+    status = chat.llm_status(settings.host, settings.model)
     with_answer = not args.only_search
     if with_answer and not status["ok"]:
         print(f"{status['error']}\nОценю только поиск (--only-search).", file=sys.stderr)
         with_answer = False
-    planner = chat.plan_question if status["ok"] else (lambda *_: [])
-    judge = chat.judge_fragments if status["ok"] else None
+    planner = plan_question if status["ok"] else (lambda *_: [])
+    judge = judge_fragments if status["ok"] else None
 
     print("Загружаю модель эмбеддингов…", file=sys.stderr)
-    embedder = build_embedder(args.embedder, device=args.device)
+    embedder = build_embedder(device=args.device)
     results = []
     with db.connect(args.dsn) as conn:
         info = db.stats(conn)
         for i, q in enumerate(questions, start=1):
             print(f"[{i}/{len(questions)}] {q.id}: {q.text[:70]}", file=sys.stderr)
+            graph = {"datasets": None, "graph_hits": None} if args.no_graph else {}
             r = run_question(
-                conn, embedder, q, settings, with_answer=with_answer, planner=planner, judge=judge
+                conn,
+                embedder,
+                q,
+                settings,
+                with_answer=with_answer,
+                planner=planner,
+                judge=judge,
+                **graph,
             )
             results.append(r)
             s, a = r["search"], r.get("answer")

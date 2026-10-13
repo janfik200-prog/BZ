@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ..text import name_key, normalize
-from . import store
+from . import autosyn, store
 from .synonyms import PART_OF, Synonyms
 
 ENTITY = "сущность"
@@ -82,20 +82,75 @@ def _quote(f: dict[str, Any]) -> dict[str, Any]:
 
 
 class Graph:
-    """Факты с именами, сведёнными словарём и ключом без падежей."""
+    """Факты с именами, сведёнными словарём и ключом без падежей.
+
+    Граф не меняется после сборки: его в это время читают другие запросы. Новые
+    факты дают новый граф — extended(): копируются только словари верхнего уровня
+    и то, чего новые факты коснулись, остальное общее. Так новая статья
+    добавляется к графу за сотые доли секунды, а не пересборкой из всех фактов
+    (на 90 тысячах фактов — 19 мс против 12 с)."""
 
     def __init__(self, rows: list[dict[str, Any]], syn: Synonyms):
         self.syn = syn
-        spelled: dict[str, Counter[str]] = defaultdict(Counter)
+        self._spelled: dict[str, Counter[str]] = defaultdict(Counter)
         for r in rows:
             for raw in (r["src"], r["dst"]):
-                spelled[name_key(raw)][raw] += 1
-        self.display = {k: c.most_common(1)[0][0] for k, c in spelled.items()}
+                self._spelled[name_key(raw)][raw] += 1
+        self.display = {k: c.most_common(1)[0][0] for k, c in self._spelled.items()}
         self.links: dict[tuple[str, str, str], Link] = {}
         self.entities: dict[str, dict[str, Any]] = {}
         self.touching: dict[str, list[Link]] = defaultdict(list)  # сущность → её связи
         self.children: dict[str, list[str]] = defaultdict(list)  # целое → что входит
+        self._keys: dict[str, list[str]] = {}  # сущность → слова ключа (для related)
+        self._by_key: dict[str, str] = {}  # ключ без падежей → сущность (для resolve)
+        # Слова, которые где-то в графе пишутся со строчной: «high reflectance»,
+        # «главная зона». Значит, «High» или «Главная» с заглавной — просто начало
+        # имени, а не имя собственное.
+        self._common: set[str] = set()
+        self.max_id = 0  # последний факт в графе — с него extended() продолжает
+        self._own: dict[str, set[Any]] | None = None  # None — всё своё, копировать нечего
+        self._by_chunk: dict[int, list[tuple[Link, dict[str, Any]]]] | None = None
+        self._take(rows)
+
+    def extended(self, rows: list[dict[str, Any]]) -> Graph:
+        """Этот граф и ещё факты — новым графом. Этот остаётся как был."""
+        g = Graph.__new__(Graph)
+        g.syn = self.syn
+        g._spelled = defaultdict(Counter, self._spelled)
+        g.display = dict(self.display)
+        g.links = dict(self.links)
+        g.entities = dict(self.entities)
+        g.touching = defaultdict(list, self.touching)
+        g.children = defaultdict(list, self.children)
+        g._keys, g._by_key, g._common = dict(self._keys), dict(self._by_key), set(self._common)
+        g.max_id = self.max_id
+        g._by_chunk = None
+        g._own = {"links": set(), "entities": set(), "touching": set(), "children": set()}
+        fresh: dict[str, Counter[str]] = defaultdict(Counter)
         for r in rows:
+            for raw in (r["src"], r["dst"]):
+                key = name_key(raw)
+                g._spelled[key] = g._spelled[key] + Counter({raw: 1})  # копия, не правка
+                fresh[key][raw] += 1
+        # Подпись узла не меняется — иначе старые связи и новые разошлись бы по разным
+        # узлам. Новый ключ подписывается самым частым написанием среди новых фактов.
+        for key, counts in fresh.items():
+            g.display.setdefault(key, counts.most_common(1)[0][0])
+        g._take(rows)
+        return g
+
+    def _mine(self, part: str, key: Any) -> bool:
+        """Своё ли это у графа (можно менять) — или общее с прежним (сначала копия)."""
+        if self._own is None or key in self._own[part]:
+            return True
+        self._own[part].add(key)
+        return False
+
+    def _take(self, rows: list[dict[str, Any]]) -> None:
+        syn = self.syn
+        added: list[str] = []
+        for r in rows:
+            self.max_id = max(self.max_id, int(r.get("id") or 0))
             src_raw, dst_raw = r["src"], r["dst"]
             # «щит включает зону» — это «зона входит в щит»: факт разворачивается.
             relation, flip = syn.relation_dir(r["relation"])
@@ -105,40 +160,66 @@ class Graph:
             if src == dst:
                 continue
             key = (src, relation, dst)
-            if key not in self.links:
-                self.links[key] = Link(src, relation, dst)
-                self.touching[src].append(self.links[key])
-                self.touching[dst].append(self.links[key])
+            link = self.links.get(key)
+            if link is None:
+                link = self.links[key] = Link(src, relation, dst)
+                self._mine("links", key)
+                for end in (src, dst):
+                    if not self._mine("touching", end):
+                        self.touching[end] = list(self.touching.get(end, []))
+                    self.touching[end].append(link)
                 if relation == PART_OF:
+                    if not self._mine("children", dst):
+                        self.children[dst] = list(self.children.get(dst, []))
                     self.children[dst].append(src)
-            link = self.links[key]
+            elif not self._mine("links", key):
+                link = self.links[key] = Link(src, relation, dst, list(link.facts))
+                for end in (src, dst):  # связи сущности указывают на прежнюю копию
+                    if not self._mine("touching", end):
+                        self.touching[end] = list(self.touching.get(end, []))
+                    self.touching[end] = [
+                        link if (x.src, x.relation, x.dst) == key else x for x in self.touching[end]
+                    ]
             link.facts.append(r)
             for name, raw in ((src, src_raw), (dst, dst_raw)):
-                e = self.entities.setdefault(
-                    name,
-                    {
+                e = self.entities.get(name)
+                if e is None:
+                    e = self.entities[name] = {
                         "name": name,
                         "facts": 0,
                         "docs": set(),
                         "spellings": set(),
                         "in_dictionary": name in syn.groups,
-                    },
-                )
+                    }
+                    self._mine("entities", name)
+                    added.append(name)
+                elif not self._mine("entities", name):
+                    e = self.entities[name] = {
+                        **e,
+                        "docs": set(e["docs"]),
+                        "spellings": set(e["spellings"]),
+                    }
                 e["facts"] += 1
                 e["docs"].add(r["doc_id"])
                 if normalize(raw) != normalize(name):
                     e["spellings"].add(raw)
+        for name in added:
+            self._keys[name] = name_key(name).split()
+            self._by_key.setdefault(" ".join(self._keys[name]), name)
+            self._common.update(
+                w.lower() for w in re.findall(r"[^\W\d_]+", name) if w[:1].islower()
+            )
 
-        self._keys = {name: name_key(name).split() for name in self.entities}
-        # Слова, которые где-то в графе пишутся со строчной: «high reflectance»,
-        # «главная зона». Значит, «High» или «Главная» с заглавной — просто начало
-        # имени, а не имя собственное.
-        self._common = {
-            w.lower()
-            for name in self.entities
-            for w in re.findall(r"[^\W\d_]+", name)
-            if w[:1].islower()
-        }
+    def by_chunk(self) -> dict[int, list[tuple[Link, dict[str, Any]]]]:
+        """Фрагмент → связи, выписанные из него (с самим фактом). Считается один раз
+        на граф, при первом вопросе: 13 тысяч фактов — миллисекунды."""
+        if self._by_chunk is None:
+            index: dict[int, list[tuple[Link, dict[str, Any]]]] = defaultdict(list)
+            for link in self.links.values():
+                for f in link.facts:
+                    index[int(f["chunk_id"])].append((link, f))
+            self._by_chunk = index
+        return self._by_chunk
 
     def canonical(self, raw: str) -> str:
         return self.syn.name(raw) or self.display.get(name_key(raw)) or raw
@@ -154,10 +235,9 @@ class Graph:
         name = self.syn.name(raw)
         if name in self.entities:
             return name
-        key = name_key(raw)
-        for entity in self.entities:
-            if name_key(entity) == key:
-                return entity
+        entity = self._by_key.get(name_key(raw))
+        if entity is not None:
+            return entity
         wanted = name or " ".join(raw.split())
         return wanted if self.related(wanted) else None
 
@@ -224,27 +304,48 @@ def _stamp(conn: Any) -> Any:
         return tuple(row) if row else None
 
 
+def _only_added(conn: Any, old: tuple[Any, ...]) -> bool:
+    """Прежние факты (номер ≤ прежнего последнего) не тронуты — только дописаны новые.
+
+    Отпечаток прежних фактов сверяется заново: сколько их, сколько проверено и сумма
+    подтверждений. Удаление, перепроверка или подтверждение старого факта его меняют —
+    тогда граф собирается с нуля."""
+    count, last, checked, total = old
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT count(*), count(votes), coalesce(sum(votes), 0) FROM facts WHERE id <= %s",
+            (last,),
+        )
+        row = cur.fetchone()
+    return bool(row) and tuple(row) == (count, checked, total)
+
+
 def graph(conn: Any, syn: Synonyms) -> Graph:
-    """Граф из фактов. Собирается заново, только если факты или словарь поменялись:
-    раньше его пересобирали из всех фактов на каждый запрос страницы и каждый
-    вопрос чат-бота."""
+    """Граф из фактов. Собирается только когда факты или словарь поменялись (раньше —
+    на каждый запрос страницы и каждый вопрос чат-бота). Если к фактам только
+    добавились новые — новая статья прошла через graph, — они дописываются к готовому
+    графу (Graph.extended), а не собирается всё заново."""
     stamp = _stamp(conn)
     if stamp is None:
         return Graph(store.all_facts(conn), syn)
-    key = (
-        stamp,
-        syn.sha
-        or repr(
-            (sorted(syn.names.items()), sorted(syn.relations.items()), sorted(syn.inverse.items()))
-        ),
+    # Автосинонимы (autosyn.py) — к словарю; сведено новое — граф собирается заново.
+    auto, auto_stamp = autosyn.mapping(conn)
+    syn = autosyn.extend(syn, auto, auto_stamp)
+    words = syn.sha or repr(
+        (sorted(syn.names.items()), sorted(syn.relations.items()), sorted(syn.inverse.items()))
     )
     with _CACHE_LOCK:
-        if _CACHE.get("key") == key:
-            cached: Graph = _CACHE["graph"]
-            return cached
-    g = Graph(store.all_facts(conn), syn)
+        cached: Graph | None = _CACHE.get("graph") if _CACHE.get("words") == words else None
+        old = _CACHE.get("stamp")
+    if cached is not None and old == stamp:
+        return cached
+    last = stamp[1]
+    if cached is not None and old is not None and stamp[0] > old[0] and _only_added(conn, old):
+        g = cached.extended(store.all_facts(conn, after=old[1], upto=last))
+    else:
+        g = Graph(store.all_facts(conn, upto=last), syn)
     with _CACHE_LOCK:
-        _CACHE.update(key=key, graph=g)
+        _CACHE.update(words=words, stamp=stamp, graph=g)
     return g
 
 
@@ -314,6 +415,43 @@ def network_response(conn: Any, syn: Synonyms, with_articles: bool = True) -> di
         "pass": store.summary(conn),
         "dictionary": {"names": len(syn.groups), "sha": syn.sha},
     }
+
+
+LINKS_PER_CHUNK = 12  # связей одного фрагмента под ответом — больше не читают
+
+
+def facts_response(conn: Any, syn: Synonyms, chunk_ids: list[int]) -> dict[str, Any]:
+    """Связи, которые граф выписал из этих фрагментов, — под ответом чат-бота: щёлкнуть
+    имя и открыть его на графе. Ответ строит не граф, а поиск по фрагментам; граф тут —
+    карта, по которой можно дальше копаться руками (замер 13.10.2026: ответам граф
+    почти ничего не добавляет, а связи с цитатами людям нужны)."""
+    g = graph(conn, syn)
+    index = g.by_chunk()
+    out: dict[str, list[dict[str, Any]]] = {}
+    for cid in chunk_ids:
+        items, seen = [], set()
+        for link, f in index.get(cid, []):
+            key = (link.src, link.relation, link.dst)
+            if key in seen:
+                continue
+            seen.add(key)
+            items.append(
+                {
+                    "src": link.src,
+                    "relation": link.relation,
+                    "dst": link.dst,
+                    "src_id": f"{ENTITY}:{link.src}",
+                    "dst_id": f"{ENTITY}:{link.dst}",
+                    "quote": f["quote"],
+                    "documents": link.documents,
+                    "src_facts": g.entities[link.src]["facts"],
+                    "dst_facts": g.entities[link.dst]["facts"],
+                }
+            )
+        # Сначала — связи, за которыми на графе больше всего: их есть куда раскрывать.
+        items.sort(key=lambda x: -(x["src_facts"] + x["dst_facts"] + 5 * x["documents"]))
+        out[str(cid)] = items[:LINKS_PER_CHUNK]
+    return {"chunks": out}
 
 
 # --------------------------------------------------------------------------- #

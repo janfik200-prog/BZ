@@ -16,7 +16,8 @@ from typing import Any
 from ..common import add_db_args, add_embedder_args, add_llm_args
 from ..index import db
 from ..index.embed import build_embedder
-from .answer import Settings, answer, ollama_status
+from .answer import answer, llm_status
+from .settings import Settings
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -27,14 +28,14 @@ def main(argv: list[str] | None = None) -> int:
     add_embedder_args(parser)
     args = parser.parse_args(argv)
 
-    settings = Settings(model=args.model, host=args.ollama_host)
-    status = ollama_status(settings.host, settings.model)
+    settings = Settings(model=args.model, host=args.llm_host)
+    status = llm_status(settings.host, settings.model)
     if not status["ok"]:
         print(status["error"], file=sys.stderr)
         return 1
 
     print("Загружаю модель эмбеддингов…", file=sys.stderr)
-    embedder = build_embedder(args.embedder, device=args.device)
+    embedder = build_embedder(device=args.device)
     sources: list[dict[str, Any]] = []
     code = 0
     with db.connect(args.dsn) as conn:

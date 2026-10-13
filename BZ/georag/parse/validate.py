@@ -6,7 +6,7 @@
    кодировка, нет ли патологических повторов). Они ловят самые частые провалы:
    скан без текстового слоя и PDF с поломанными шрифтами, из которого извлекается
    мусор вида (cid:34).
-2. Сверка с эталоном (golden standard) из tests/golden/<имя>.json: разделы, ключевые
+2. Сверка с эталоном (golden standard) из <папка эталонов>/<имя>.json: разделы, ключевые
    сущности, число таблиц и страниц. Это и есть метрика «точность парсинга».
 
 Сопоставление сущностей — с поправкой на русскую морфологию: эталонное
@@ -21,7 +21,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from ..text import normalize, phrase_pattern, ru_stem, stem_variants
+from ..text import normalize, phrase_pattern
 from .config import Settings
 from .models import ParsedDoc, ValidationReport
 
@@ -34,16 +34,9 @@ _ALLOWED_RE = re.compile(
 )
 _CID_RE = re.compile(r"\(cid:\d+\)")
 
-# Нормализация и основы слов — общие, в georag/text.py. Старые имена оставлены:
-# на них опираются проверки.
-_normalize = normalize
-_stem = ru_stem
-_word_variants = stem_variants
-_entity_pattern = phrase_pattern
-
 
 def load_golden(doc: Path | str, settings: Settings) -> dict[str, Any] | None:
-    """Эталон для документа: tests/golden/<doc_id>.json."""
+    """Эталон для документа: <Settings.golden_dir>/<doc_id>.json."""
     stem = doc.stem if isinstance(doc, Path) else str(doc)
     candidate = settings.golden_dir / f"{stem}.json"
     if not candidate.exists():
@@ -76,7 +69,7 @@ def validate(
 ) -> ValidationReport:
     report = ValidationReport()
     text = parsed.text
-    norm = _normalize(text)
+    norm = normalize(text)
     pages = max(parsed.page_count, 1)
 
     # --- 1. Есть ли вообще текст --------------------------------------------
@@ -134,7 +127,7 @@ def validate(
 
     expected_sections = [s for s in (golden.get("sections") or []) if s.strip()]
     if expected_sections:
-        found = [s for s in expected_sections if _entity_pattern(s).search(norm)]
+        found = [s for s in expected_sections if phrase_pattern(s).search(norm)]
         ratio_sections = len(found) / len(expected_sections)
         missing = [s for s in expected_sections if s not in found]
         report.add(
@@ -147,7 +140,7 @@ def validate(
 
     expected_entities = [e for e in (golden.get("entities") or []) if e.strip()]
     if expected_entities:
-        found_e = [e for e in expected_entities if _entity_pattern(e).search(norm)]
+        found_e = [e for e in expected_entities if phrase_pattern(e).search(norm)]
         ratio_entities = len(found_e) / len(expected_entities)
         missing_e = [e for e in expected_entities if e not in found_e]
         report.add(

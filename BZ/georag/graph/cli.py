@@ -7,8 +7,10 @@
     python -m georag.graph.cli dataset           сущности, у которых больше всего фактов
     python -m georag.graph.cli dataset --name "Анабарский щит"   датасет и файл CSV
     python -m georag.graph.cli synonyms          предложения в словарь синонимов
-    python -m georag.graph.cli questions         вопросы оценки из фактов (config/eval-graph.yaml)
-    python -m georag.graph.cli gaps              темы для добычи по пробелам (config/topics-graph.yaml)
+    python -m georag.graph.cli names             автосинонимы: новые имена — к известным (идёт и после build)
+    python -m georag.graph.cli names --redo      автосинонимы заново, по всем именам
+    python -m georag.graph.cli questions         вопросы оценки из фактов (.local/eval-graph.yaml)
+    python -m georag.graph.cli gaps              темы для добычи по пробелам (.local/topics-graph.yaml)
 
 Факт — «от — связь — к» с дословной цитатой (подробно — в facts.py). Разные
 написания одного и того же сводит словарь config/synonyms.yaml (synonyms.py):
@@ -18,22 +20,29 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from typing import Any
 
 from ..common import add_db_args, add_embedder_args, add_llm_args
 from ..index import db
-from . import api, confirm, facts, store
+from ..paths import LOCAL, ROOT
+from . import api, autosyn, confirm, facts, store
 from .synonyms import PROPOSALS_PATH, SynonymsError, judge_pairs, load, proposals_text, suggest
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+# Сколько запросов держать у модели одновременно. vLLM считает их одной пачкой:
+# на RTX 5070 Ti (16 ГБ) выписать и подтвердить — 1,3 с на фрагмент при 8 сразу
+# против 2,1 с при 4 (40 фрагментов, 2026-10-12). Больше 8 vLLM на 16 ГБ всё равно
+# не держит (--max-num-seqs в docker-compose.yml). Другое число — --workers или
+# переменная GEORAG_WORKERS.
+WORKERS = 8
 
 
 def _llm(args: Any) -> Any:
-    from ..llm import Ollama
+    from ..llm import LLM
 
-    return Ollama(model=args.model, host=args.ollama_host, timeout=args.timeout)
+    return LLM(model=args.model, host=args.llm_host, timeout=args.timeout)
 
 
 def _confirm(conn: Any, args: Any) -> int:
@@ -47,7 +56,7 @@ def _confirm(conn: Any, args: Any) -> int:
         f"Проверяю факты вопросами по цитате: {todo}. В граф идут подтверждённые не меньше "
         f"чем {confirm.MIN_VOTES} проверками из 4. Можно прервать Ctrl+C — продолжится."
     )
-    stats = confirm.run(conn, _llm(args), limit=args.limit)
+    stats = confirm.run(conn, _llm(args), limit=args.limit, workers=args.workers)
     print(
         f"Проверено фактов: {stats['done']}; в граф идут {stats['kept']}, остальные "
         "остаются в базе." + (f" Модель не ответила: {stats['errors']}." if stats["errors"] else "")
@@ -60,7 +69,7 @@ def _build(conn: Any, args: Any) -> int:
     status = llm.status()
     if not status["ok"]:
         print(
-            f"Qwen3 недоступна: {status['error']}\nГраф строит модель — запустите Ollama и "
+            f"Qwen3 недоступна: {status['error']}\nГраф строит модель — запустите её (python georag.py start) и "
             "снова python georag.py graph.",
             file=sys.stderr,
         )
@@ -84,9 +93,18 @@ def _build(conn: Any, args: Any) -> int:
     todo = min(left, args.limit) if args.limit else left
     print(
         f"Факты выписывает {args.model} по правилам config/graph-rules.txt, каждый проверяет "
-        f"код. Фрагментов: {todo}. Можно прервать Ctrl+C — продолжится с этого места."
+        f"код и тут же — вопросы по цитате. Фрагментов: {todo}, одновременно у модели "
+        f"{args.workers}. "
+        "Можно прервать Ctrl+C — продолжится с этого места."
     )
-    stats = facts.run(conn, llm, limit=args.limit, rules_path=args.rules)
+    stats = facts.run(
+        conn,
+        llm,
+        limit=args.limit,
+        rules_path=args.rules,
+        workers=args.workers,
+        confirm=confirm.fact_votes,
+    )
     print(
         f"\nПройдено фрагментов: {stats['done']} из {stats['todo']}. Фактов принято: "
         f"{stats['facts']}; отброшено проверкой: {stats['rejected']}."
@@ -94,6 +112,7 @@ def _build(conn: Any, args: Any) -> int:
     )
     if not stats["stopped"]:
         _confirm(conn, args)
+        _names(conn, args)
     print(
         "Что нашла модель и где ошибалась: python georag.py graph --new\n"
         "Свести разные написания одного и того же: python georag.py synonyms"
@@ -101,11 +120,37 @@ def _build(conn: Any, args: Any) -> int:
     return 2 if stats["stopped"] else 0
 
 
+def _names(conn: Any, args: Any) -> int:
+    """Автосинонимы: новые имена графа сводятся к уже известным (autosyn.py)."""
+    from ..index.embed import build_embedder
+
+    try:
+        syn = load(args.synonyms)
+    except SynonymsError as exc:
+        print(f"Словарь синонимов: {exc}", file=sys.stderr)
+        return 1
+    print(
+        "Свожу написания одного и того же: имя сравнивается с уже известными по смыслу "
+        f"(похожесть от {autosyn.AUTO})" + (" — всё заново." if args.redo else ".")
+    )
+    stats = autosyn.update(conn, build_embedder(device=args.device), syn, args.redo)
+    print(
+        f"Новых имён: {stats['new']}; сведено к известным: {stats['merged']}"
+        + (
+            f"; похожих, но разных по числам, сторонам или названиям: {stats['stopped_by_rules']}"
+            if stats["stopped_by_rules"]
+            else ""
+        )
+        + ". Переводы и сокращения («золото» — «gold») сводит словарь: python georag.py synonyms"
+    )
+    return 0
+
+
 def _report(conn: Any, syn: Any) -> int:
     data = api.report(conn, syn)
     p = data["pass"]
     if not p["passed"]:
-        print("Модель ещё не выписывала факты: python georag.py graph (нужна Ollama).")
+        print("Модель ещё не выписывала факты: python georag.py graph (нужна модель).")
         return 0
     print(
         f"\nМодель прошла фрагментов: {p['passed']} из {p['chunks']}; фактов: {p['facts']}; "
@@ -134,7 +179,7 @@ def _dataset(conn: Any, syn: Any, args: Any) -> int:
     if not args.name:
         data = api.datasets_response(conn, syn, limit=40)
         if not data["datasets"]:
-            print("Фактов пока нет: python georag.py graph (нужна Ollama).")
+            print("Фактов пока нет: python georag.py graph (нужна модель).")
             return 0
         print(f"\nСущностей с фактами: {data['total']}. Больше всего фактов у:\n")
         print(f"{'сущность':<50}{'статей':>7}{'фактов':>8}")
@@ -174,7 +219,7 @@ def _synonyms(conn: Any, syn: Any, args: Any) -> int:
 
     g = api.graph(conn, syn)
     if not g.entities:
-        print("Фактов пока нет: python georag.py graph (нужна Ollama).")
+        print("Фактов пока нет: python georag.py graph (нужна модель).")
         return 0
     llm = _llm(args)
     status = llm.status()
@@ -182,7 +227,7 @@ def _synonyms(conn: Any, syn: Any, args: Any) -> int:
         print(f"Qwen3 недоступна: {status['error']}", file=sys.stderr)
         return 1
     print("Загружаю модель векторов…")
-    embedder = build_embedder(args.embedder, device=args.device)
+    embedder = build_embedder(device=args.device)
     names = {name: (name, e["facts"]) for name, e in g.entities.items()}
     relations = Counter_relations(g)
     print(
@@ -213,7 +258,7 @@ def _questions(conn: Any, syn: Any, args: Any) -> int:
 
     g = api.graph(conn, syn)
     if not g.links:
-        print("Фактов пока нет: python georag.py graph (нужна Ollama).")
+        print("Фактов пока нет: python georag.py graph (нужна модель).")
         return 0
     llm = None
     if not args.no_llm:
@@ -231,7 +276,7 @@ def _questions(conn: Any, syn: Any, args: Any) -> int:
     docs = len({d for item in items for d in item["статьи"]})
     print(
         f"\nВопросов: {len(items)} по {docs} статьям. Файл: {out}\n"
-        f"Оценка по ним: python georag.py eval --questions {out.relative_to(ROOT_DIR)}"
+        f"Оценка по ним: python georag.py eval --questions {out.relative_to(ROOT)}"
     )
     return 0
 
@@ -275,6 +320,7 @@ def main(argv: list[str] | None = None) -> int:
             "build",
             "confirm",
             "recheck",
+            "names",
             "report",
             "dataset",
             "synonyms",
@@ -285,11 +331,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--no-llm", action="store_true", help="вопросы по шаблону, без модели (questions)"
     )
-    parser.add_argument("--out-questions", default=str(ROOT_DIR / "config" / "eval-graph.yaml"))
-    parser.add_argument("--out-topics", default=str(ROOT_DIR / "config" / "topics-graph.yaml"))
+    parser.add_argument("--out-questions", default=str(LOCAL / "eval-graph.yaml"))
+    parser.add_argument("--out-topics", default=str(LOCAL / "topics-graph.yaml"))
     parser.add_argument("--name", default=None, help="чей датасет (dataset)")
     parser.add_argument("--territory", default=None, help=argparse.SUPPRESS)
-    parser.add_argument("--out", default="data/datasets", help="куда класть таблицу датасета")
+    parser.add_argument(
+        "--out", default=str(LOCAL / "datasets"), help="куда класть таблицу датасета"
+    )
     parser.add_argument("--redo", action="store_true", help="модель проходит всё заново")
     parser.add_argument("--limit", type=int, default=None, help="сколько фрагментов пройти")
     parser.add_argument("--rules", default=None, help="другой файл правил для модели")
@@ -301,6 +349,12 @@ def main(argv: list[str] | None = None) -> int:
         help="насколько похожи имена, чтобы спросить модель (synonyms)",
     )
     parser.add_argument("--timeout", type=int, default=300, help="сколько ждать модель, с")
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=int(os.environ.get("GEORAG_WORKERS") or WORKERS),
+        help="сколько фрагментов у модели одновременно (build, confirm)",
+    )
     add_db_args(parser)
     add_embedder_args(parser)
     add_llm_args(parser)
@@ -325,6 +379,8 @@ def main(argv: list[str] | None = None) -> int:
             if args.command == "recheck":
                 facts.recheck(conn)
                 return 0
+            if args.command == "names":
+                return _names(conn, args)
             if args.command == "report":
                 return _report(conn, syn)
             if args.command == "dataset":

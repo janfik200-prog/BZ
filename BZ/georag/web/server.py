@@ -16,9 +16,10 @@
     GET  /api/search?q=...             гибридный поиск
     GET  /api/documents                список статей
     GET  /api/document?doc_id=...      разбор статьи по фрагментам
-    GET  /api/chat/status              жива ли Ollama и скачана ли модель
+    GET  /api/chat/status              жив ли сервер модели и та ли на нём модель
     POST /api/chat                     вопрос чат-боту; ответ потоком, строка JSON на событие
     GET  /api/network                  граф: сущности, связи с цитатами, статьи
+    GET  /api/facts?chunks=12,34       связи графа, выписанные из этих фрагментов (под ответом)
     GET  /api/datasets                 у каких сущностей больше всего фактов
     GET  /api/dataset?name=...         датасет сущности: все факты о ней с цитатами
                                        (POST — то же JSON в теле); &format=csv — для Excel
@@ -38,6 +39,7 @@ from typing import Any
 from urllib.parse import parse_qs, quote, urlparse
 
 from ..chat import answer as chat
+from ..chat.settings import Settings
 from ..common import add_db_args, add_embedder_args, add_llm_args
 from ..graph import api as graph_api
 from ..graph import store as graph
@@ -56,7 +58,7 @@ class State:
 
     dsn: str | None = None
     embedder: Any = None
-    chat_settings = chat.Settings()
+    chat_settings = Settings()
     synonyms_path = None
     _syn = None
     _syn_mtime = None
@@ -133,8 +135,12 @@ class Handler(BaseHTTPRequestHandler):
                 self._dataset({k: v[0] for k, v in query.items() if v})
             elif route.path == "/api/network":
                 self._graph(graph_api.network_response)
+            elif route.path == "/api/facts":
+                raw = (query.get("chunks") or [""])[0].split(",")
+                ids = [int(x) for x in raw if x.strip().isdigit()][:40]
+                self._graph(lambda conn, syn: graph_api.facts_response(conn, syn, ids))
             elif route.path == "/api/chat/status":
-                self._json(chat.ollama_status(State.chat_settings.host, State.chat_settings.model))
+                self._json(chat.llm_status(State.chat_settings.host, State.chat_settings.model))
             elif route.path == "/api/document":
                 doc_id = (query.get("doc_id") or [""])[0]
                 with db.connect(State.dsn) as conn:
@@ -201,7 +207,7 @@ class Handler(BaseHTTPRequestHandler):
                 pass
         finally:
             if events is not None:
-                events.close()  # закрывает и поток от Ollama: она перестаёт писать
+                events.close()  # закрывает и поток от модели: она перестаёт писать
 
     # -- граф знаний: сеть, датасеты ------------------------------------------ #
     def _graph(self, build: Any) -> None:
@@ -336,7 +342,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     State.dsn = args.dsn
-    State.chat_settings = chat.Settings(model=args.model, host=args.ollama_host)
+    State.chat_settings = Settings(model=args.model, host=args.llm_host)
     try:
         syn = State.synonyms()
         print(f"Словарь синонимов: {len(syn.groups)} имён")
@@ -358,7 +364,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"В базе: {info['documents']} статей, {info['chunks']} чанков")
     print("Загружаю модель эмбеддингов (один раз на весь запуск)...")
-    State.embedder = build_embedder(args.embedder, device=args.device)
+    State.embedder = build_embedder(device=args.device)
     State.embedder.encode_one("прогрев")  # чтобы первый поиск не ждал загрузку весов
 
     if args.tg:
@@ -378,7 +384,7 @@ def main(argv: list[str] | None = None) -> int:
             )
 
     address = f"http://localhost:{args.port}"
-    status = chat.ollama_status(State.chat_settings.host, State.chat_settings.model)
+    status = chat.llm_status(State.chat_settings.host, State.chat_settings.model)
     print(
         f"Чат-бот: {State.chat_settings.model} — " + ("готов" if status["ok"] else status["error"])
     )

@@ -1,12 +1,16 @@
-"""Языковая модель в Ollama — один клиент на весь проект.
+"""Языковая модель — один клиент на весь проект.
 
-Раньше к Ollama ходили четыре места, каждое по-своему: отбор статей, чат-бот
-(запросы к базе и ответ потоком), проверка разметки. Адрес, срезание блока
-размышлений Qwen3, разбор JSON из ответа и тексты ошибок повторялись. Теперь
-всё это здесь, а остальные модули только задают вопросы.
+Модель работает в vLLM (Docker, `python georag.py start`), и проект говорит с ней
+по OpenAI-совместимому протоколу /v1/chat/completions. Тот же протокол понимают
+и другие серверы (llama.cpp, SGLang), так что сервер можно сменить, не трогая код.
+Здесь — адрес, выключение размышлений Qwen3, разбор JSON из ответа и тексты
+ошибок; остальные модули только задают вопросы.
 
-Адрес по умолчанию — localhost:11434; другой задаётся переменной окружения
-GEORAG_OLLAMA (например, если Ollama стоит на соседней машине).
+vLLM сам ставит одновременные запросы в одну пачку (continuous batching): несколько
+пользователей и несколько фрагментов графа считаются разом, без настроек.
+
+Адрес по умолчанию — localhost:8100 (на 8000 — веб-страница проекта); другой задаётся
+переменной окружения GEORAG_LLM (например, если модель работает на сервере: http://сервер:8100).
 """
 
 from __future__ import annotations
@@ -18,11 +22,20 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
-DEFAULT_MODEL = "qwen3:14b"
-OLLAMA_HOST = os.environ.get("GEORAG_OLLAMA", "").strip() or "http://localhost:11434"
+# Имя модели на сервере (vLLM --served-model-name): сама модель — Qwen/Qwen3-14B-AWQ,
+# та же Qwen3-14B, сжатая до 4 бит.
+DEFAULT_MODEL = "qwen3-14b"
+# Окно модели задаёт сервер (vLLM --max-model-len). Здесь — то же число, чтобы
+# задание вместе с ответом в него помещалось (chat.messages.fit_budget).
+NUM_CTX = 12288
+LLM_HOST = os.environ.get("GEORAG_LLM", "").strip() or "http://localhost:8100"
+
+# Qwen3 по умолчанию сначала «думает» вслух — это в разы дольше, а рассуждать в
+# наших заданиях не о чем. vLLM выключает размышления так, через шаблон чата.
+NO_THINK = {"chat_template_kwargs": {"enable_thinking": False}}
 
 THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
-INSTALL_HINT = "Запустите её или переустановите с ollama.com/download."
+INSTALL_HINT = "Запустите её: python georag.py start (модель грузится 1–2 минуты)."
 
 
 class LLMError(RuntimeError):
@@ -30,7 +43,8 @@ class LLMError(RuntimeError):
 
 
 def strip_think(text: str) -> str:
-    """Убрать блок размышлений Qwen3, в том числе незакрытый."""
+    """Убрать блок размышлений Qwen3, в том числе незакрытый (на всякий случай:
+    с NO_THINK его нет)."""
     cleaned = THINK_RE.sub("", text or "")
     if "</think>" in cleaned:
         cleaned = cleaned.rsplit("</think>", 1)[-1]
@@ -47,21 +61,23 @@ def extract_json(text: str) -> dict[str, Any]:
     return data
 
 
-def no_think(model: str, text: str) -> str:
-    """Qwen3 без размышлений вслух: ответ в разы быстрее, а рассуждать тут не о чем."""
-    return f"{text}\n\n/no_think" if model.lower().startswith("qwen3") else text
-
-
 @dataclass
-class Ollama:
+class LLM:
     model: str = DEFAULT_MODEL
-    host: str = OLLAMA_HOST
+    host: str = LLM_HOST
     timeout: int = 180
     temperature: float = 0.2
-    num_ctx: int = 8192
 
     def _url(self, path: str) -> str:
-        return f"{self.host.rstrip('/')}{path}"
+        return f"{self.host.rstrip('/')}/v1{path}"
+
+    def _payload(self, messages: list[dict[str, Any]], temperature: float | None) -> dict[str, Any]:
+        return {
+            "model": self.model,
+            "messages": messages,
+            "temperature": self.temperature if temperature is None else temperature,
+            **NO_THINK,
+        }
 
     def chat_json(
         self,
@@ -69,103 +85,99 @@ class Ollama:
         user: str,
         *,
         temperature: float | None = None,
-        num_ctx: int | None = None,
         timeout: Any = None,
+        max_tokens: int | None = None,
     ) -> dict[str, Any]:
-        """Один вопрос — один объект JSON в ответ."""
+        """Один вопрос — один объект JSON в ответ.
+
+        max_tokens — потолок длины ответа: зациклившаяся модель иначе пишет до
+        конца окна и держит занятым место, которое нужно другим запросам."""
         import requests
 
-        payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": no_think(self.model, user)},
-            ],
-            "stream": False,
-            "format": "json",
-            "think": False,
-            "options": {
-                "temperature": self.temperature if temperature is None else temperature,
-                "num_ctx": num_ctx or self.num_ctx,
-            },
-        }
+        payload = self._payload(
+            [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            temperature,
+        )
+        payload["response_format"] = {"type": "json_object"}
+        if max_tokens:
+            payload["max_tokens"] = max_tokens
         response = requests.post(
-            self._url("/api/chat"), json=payload, timeout=timeout or self.timeout
+            self._url("/chat/completions"), json=payload, timeout=timeout or self.timeout
         )
         response.raise_for_status()
-        return extract_json((response.json().get("message") or {}).get("content", ""))
+        message = response.json()["choices"][0]["message"]
+        return extract_json(message.get("content") or "")
 
     def stream(
         self,
         messages: list[dict[str, Any]],
         *,
         temperature: float | None = None,
-        num_ctx: int | None = None,
     ) -> Iterator[dict[str, Any]]:
-        """Ответ кусками: {"text": …}, в конце {"done": True, "tokens": …}."""
+        """Ответ кусками: {"text": …}, в конце {"done": True, "tokens": …}.
+
+        Картинка в сообщении — частью {"type": "image_url", "image_url": {"url":
+        "data:image/png;base64,…"}}, как в протоколе OpenAI."""
         import requests
 
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "stream": True,
-            "think": False,
-            "options": {
-                "temperature": self.temperature if temperature is None else temperature,
-                "num_ctx": num_ctx or self.num_ctx,
-            },
-        }
+        payload = self._payload(messages, temperature)
+        payload.update(stream=True, stream_options={"include_usage": True})
         try:
             response = requests.post(
-                self._url("/api/chat"), json=payload, stream=True, timeout=(10, self.timeout)
+                self._url("/chat/completions"),
+                json=payload,
+                stream=True,
+                timeout=(10, self.timeout),
             )
         except requests.RequestException as exc:
             raise LLMError(
-                f"Ollama не отвечает на {self.host}: {type(exc).__name__}. " f"{INSTALL_HINT}"
+                f"Модель не отвечает на {self.host}: {type(exc).__name__}. {INSTALL_HINT}"
             ) from None
         with response:
             if response.status_code == 404:
-                raise LLMError(f"Модель {self.model} не скачана: ollama pull {self.model}")
+                raise LLMError(f"На сервере {self.host} нет модели {self.model}")
             if response.status_code >= 400:
                 raise LLMError(
-                    f"Ollama ответила ошибкой {response.status_code}: " f"{response.text[:300]}"
+                    f"Сервер модели ответил ошибкой {response.status_code}: "
+                    f"{response.text[:300]}"
                 )
+            tokens = None
             for line in response.iter_lines():
-                if not line:
+                if not line.startswith(b"data:"):
                     continue
-                data = json.loads(line)
-                if data.get("error"):
-                    raise LLMError(f"Ollama: {data['error']}")
-                text = (data.get("message") or {}).get("content") or ""
-                if text:
-                    yield {"text": text}
-                if data.get("done"):
-                    yield {"done": True, "tokens": data.get("eval_count")}
-                    return
+                data = line[5:].strip()
+                if data == b"[DONE]":
+                    break
+                chunk = json.loads(data)
+                if chunk.get("error"):
+                    raise LLMError(f"Модель: {chunk['error']}")
+                if chunk.get("usage"):
+                    tokens = chunk["usage"].get("completion_tokens")
+                for choice in chunk.get("choices") or []:
+                    text = (choice.get("delta") or {}).get("content") or ""
+                    if text:
+                        yield {"text": text}
+            yield {"done": True, "tokens": tokens}
 
     def status(self, timeout: int = 5) -> dict[str, Any]:
-        """Жива ли Ollama и скачана ли модель — для подсказки человеку."""
+        """Жив ли сервер модели и та ли на нём модель — для подсказки человеку."""
         import requests
 
         try:
-            response = requests.get(self._url("/api/tags"), timeout=timeout)
+            response = requests.get(self._url("/models"), timeout=timeout)
             response.raise_for_status()
-            names = [m.get("name", "") for m in response.json().get("models", [])]
+            names = [m.get("id", "") for m in response.json().get("data", [])]
         except Exception as exc:  # noqa: BLE001
             return {
                 "ok": False,
                 "model": self.model,
-                "error": f"Ollama не отвечает ({type(exc).__name__}). {INSTALL_HINT}",
+                "error": f"Модель не отвечает ({type(exc).__name__}). {INSTALL_HINT}",
             }
-        base = self.model.split(":")[0]
-        present = self.model in names or (
-            ":" not in self.model and any(n.split(":")[0] == base for n in names)
-        )
-        if not present:
+        if self.model not in names:
             return {
                 "ok": False,
                 "model": self.model,
                 "models": names,
-                "error": f"Модель {self.model} не скачана: ollama pull {self.model}",
+                "error": f"На сервере {self.host} другая модель: {', '.join(names) or 'нет'}",
             }
         return {"ok": True, "model": self.model}

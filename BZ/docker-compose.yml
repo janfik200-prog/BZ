@@ -3,11 +3,13 @@
 # «исчезает», хотя данные никуда не делись.
 name: georag
 
-# Локальная база для ГеоRAG: PostgreSQL с расширением pgvector.
+# ГеоRAG в Docker: база (PostgreSQL с pgvector) и языковая модель (vLLM).
 #
-#   docker compose up -d      поднять (первый раз скачает образ, ~400 МБ)
-#   docker compose ps         проверить, что живёт
-#   docker compose down       остановить (данные останутся в томе georag-data)
+#   python georag.py start    поднять базу и модель (так проще всего)
+#   docker compose up -d      поднять только базу (первый раз скачает образ, ~400 МБ)
+#   docker compose --profile llm up -d    и базу, и модель
+#   docker compose --profile llm ps       проверить, что живёт
+#   docker compose --profile llm stop     остановить (данные и модель остаются в томах)
 #
 # Данные лежат в docker-томе, а не в папке проекта: так их не затрёт распаковка
 # архива с кодом и не попортит антивирус.
@@ -40,5 +42,55 @@ services:
       timeout: 5s
       retries: 10
 
+  # Языковая модель: Qwen3-14B, сжатая до 4 бит (AWQ), в vLLM. vLLM отвечает по
+  # протоколу OpenAI (/v1/chat/completions) и сам собирает одновременные запросы
+  # в одну пачку — несколько пользователей и фрагменты графа считаются разом.
+  # Профиль llm: обычный «docker compose up -d» поднимает только базу, и загрузка
+  # статей не делит видеокарту с моделью.
+  llm:
+    image: vllm/vllm-openai:v0.30.0
+    container_name: georag-llm
+    profiles: ["llm"]
+    restart: "no"  # видеокарту модель занимает, только когда её запустили
+    entrypoint: ["vllm", "serve"]
+    command:
+      - Qwen/Qwen3-14B-AWQ
+      # Имя, под которым модель видит проект (georag/llm.py: DEFAULT_MODEL).
+      - --served-model-name=qwen3-14b
+      # Окно задания вместе с ответом — то же число, что NUM_CTX в georag/llm.py.
+      - --max-model-len=12288
+      # Доля памяти видеокарты для vLLM. На 16 ГБ меньше нельзя: модель — 9,4 ГБ,
+      # и под окна остаётся 13 600 токенов. Векторы, пока vLLM работает, считаются
+      # на процессоре (georag/index/embed.py) — рядом им не хватает места.
+      - --gpu-memory-utilization=0.90
+      # Память под окна в 8 бит — вдвое больше одновременных запросов.
+      - --kv-cache-dtype=fp8
+      # Сколько запросов в одной пачке и сколько токенов задания читать за шаг.
+      # По умолчанию vLLM готовится к сотням запросов сразу, и на 16 ГБ служебная
+      # память съедала всё место под окна. На сервере эти две строки можно убрать.
+      - --max-num-seqs=8
+      - --max-num-batched-tokens=2048
+    ports:
+      # Снаружи 8100: на 8000 — веб-страница проекта (python georag.py web).
+      - "127.0.0.1:8100:8000"
+    volumes:
+      # Скачанная модель (около 10 ГБ) хранится в томе и не качается заново.
+      - georag-models:/root/.cache/huggingface
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 900s
+
 volumes:
   georag-data:
+  georag-models:

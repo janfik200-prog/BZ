@@ -157,6 +157,17 @@
   .src .text { font-size: 14px; border-left: 3px solid var(--llm); padding: 2px 0 2px 12px; margin: 0; }
   .src.flash { background: var(--sunken); border-radius: 6px; }
   .bot-foot { font-size: 12.5px; color: var(--muted); display: flex; gap: 4px 12px; flex-wrap: wrap; }
+  /* Связи графа из процитированных фрагментов: щелчок по имени — узел на графе. */
+  .graph-links { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px;
+                 border-top: 1px solid var(--rule); padding-top: 10px; }
+  .graph-links .sub { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .graph-links .hint { font-size: 12.5px; color: var(--muted); }
+  .gl { display: flex; flex-wrap: wrap; gap: 2px 6px; align-items: baseline; }
+  .gl .n { font-weight: 600; color: var(--gpu); cursor: pointer; min-width: 26px; }
+  .gl button.ent { all: unset; cursor: pointer; color: var(--db); border-bottom: 1px dotted var(--db); }
+  .gl button.ent:hover, .gl button.ent:focus-visible { border-bottom-style: solid; }
+  .gl .rel { color: var(--muted); font-style: italic; }
+  .graph-links details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
   .not-in-base { border: 1px solid var(--gpu); border-radius: 8px; padding: 10px 14px;
                  display: flex; flex-direction: column; gap: 4px; font-size: 14.5px; }
   .not-in-base strong { color: var(--gpu); }
@@ -1495,6 +1506,11 @@ function renderSources(sources, used, queries, info) {
   } else if (info.judged === false) {
     line("Модель при отборе не ответила — фрагменты взяты по близости, как в обычном поиске.");
   }
+  if (info.conflicts && info.conflicts.length) {
+    line("Статьи отвечают по-разному: " + info.conflicts.map((c) =>
+      `[${c.a}] «${c.said_a}» — [${c.b}] «${c.said_b}»`).join(" · ") +
+      ". Модели велено сверить по фрагментам и, если это так, привести обе позиции.");
+  }
   if (info.extra && info.extra.length) {
     line("Искал ещё" + (info.missing && info.missing.length
       ? ` — не хватало: ${info.missing.join("; ")}` : "") +
@@ -1559,6 +1575,72 @@ function renderSources(sources, used, queries, info) {
     box.append(item);
   }
   return box;
+}
+
+// Связи, которые граф выписал из процитированных фрагментов. Ответ строит поиск по
+// фрагментам; граф здесь — карта: щёлкнуть имя и копаться дальше на вкладке графа.
+const LINKS_SHOWN = 8;
+
+function renderGraphLinks(bot, sources, used) {
+  const box = document.createElement("div");
+  box.className = "graph-links";
+  box.hidden = true;
+  const cited = sources.filter((s) => s.chunk_id && used.includes(s.n));
+  const pool = cited.length ? cited : sources.filter((s) => s.chunk_id);
+  if (!pool.length) return box;
+  fetch("/api/facts?chunks=" + pool.map((s) => s.chunk_id).join(","))
+    .then((r) => r.json())
+    .then((data) => fillGraphLinks(bot, box, pool, (data && data.chunks) || {}, !cited.length))
+    .catch(() => {});
+  return box;
+}
+
+function fillGraphLinks(bot, box, pool, byChunk, uncited) {
+  const rows = [];
+  for (const s of pool) {
+    for (const f of byChunk[String(s.chunk_id)] || []) rows.push({ n: s.n, f });
+  }
+  if (!rows.length) return;
+  const head = document.createElement("div");
+  head.className = "sub";
+  head.textContent = `Связи из графа · ${rows.length}`;
+  const hint = document.createElement("div");
+  hint.className = "hint";
+  hint.textContent = (uncited ? "Из найденных фрагментов" : "Из фрагментов, на которые ссылается ответ") +
+    ": щёлкните имя — откроется на графе, номер — сам фрагмент.";
+  box.append(head, hint);
+  const line = (n, f) => {
+    const div = document.createElement("div");
+    div.className = "gl";
+    div.title = "«" + f.quote + "»";
+    const num = document.createElement("span");
+    num.className = "n";
+    num.textContent = `[${n}]`;
+    num.addEventListener("click", () => openSource(bot, n));
+    const ent = (name, id) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "ent";
+      b.textContent = name;
+      b.addEventListener("click", () => focusNode(id));
+      return b;
+    };
+    const rel = document.createElement("span");
+    rel.className = "rel";
+    rel.textContent = "— " + f.relation + " →";
+    div.append(num, ent(f.src, f.src_id), rel, ent(f.dst, f.dst_id));
+    return div;
+  };
+  rows.slice(0, LINKS_SHOWN).forEach((r) => box.append(line(r.n, r.f)));
+  if (rows.length > LINKS_SHOWN) {
+    const more = document.createElement("details");
+    const sum = document.createElement("summary");
+    sum.textContent = `ещё ${rows.length - LINKS_SHOWN}`;
+    more.append(sum);
+    rows.slice(LINKS_SHOWN).forEach((r) => more.append(line(r.n, r.f)));
+    box.append(more);
+  }
+  box.hidden = false;
 }
 
 function openSource(bot, n) {
@@ -1660,10 +1742,13 @@ async function ask(question) {
     w.className = "warn";
     w.textContent = error;
     bot.append(w);
-    if (/ollama/i.test(error)) loadBotStatus();
+    if (/модел/i.test(error)) loadBotStatus();  // сервер модели молчит — обновить строку состояния
   }
   const used = done ? done.used : [];
-  if (sources.length && !general) bot.append(renderSources(sources, used, queries, info));
+  if (sources.length && !general) {
+    bot.append(renderGraphLinks(bot, sources, used));
+    bot.append(renderSources(sources, used, queries, info));
+  }
   if (removed.length) {
     // Что убрано из ответа: фразы модели без ссылки на фрагмент статьи.
     const d = document.createElement("details");

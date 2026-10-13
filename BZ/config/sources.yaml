@@ -45,7 +45,7 @@ sources:
       mailto: ""           # ваш e-mail: переводит запросы в polite pool, ответы ровнее
       api_key: ""          # ОБЯЗАТЕЛЕН с 13.02.2026, бесплатный: openalex.org/settings/api.
                            # Сюда не писать (файл уходит в репозиторий) — положить в
-                           # openalex_key.txt рядом с georag.py или в GEORAG_OPENALEX_KEY
+                           # .local/openalex_key.txt или в GEORAG_OPENALEX_KEY
       per_page: 50
       min_year: 2000       # уберите строку, если нужна вся глубина
       only_oa: false       # true — только статьи с открытым доступом
@@ -129,7 +129,7 @@ sources:
     notes: >
       Полные тексты русских статей в открытом доступе, но страница поиска закрыта
       в robots.txt — автоматически обходить поиск не будем. Статьи берутся по прямым
-      ссылкам, их список — в tests/corpus/corpus.json.
+      ссылкам.
 
   - name: lens
     mode: manual
@@ -143,4 +143,4 @@ sources:
     enabled: false
     notes: >
       Нужен институциональный логин, скриптом не обойти. Статьи оттуда добавляются
-      руками: положить PDF в data/pdf или текст в data/manual.
+      руками: положить PDF в .local/pdf или текст в .local/manual.

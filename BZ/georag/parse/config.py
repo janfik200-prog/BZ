@@ -3,11 +3,11 @@
 Всё, что можно захотеть покрутить, живёт здесь, а не разбросано по коду.
 Пути по умолчанию рассчитаны на структуру:
 
-    data/pdf/      — исходные PDF
-    data/manual/   — ручные manual.txt (последний fallback), имя = имя PDF + .txt
-    data/parsed/   — результат: <stem>.json, <stem>.md, <stem>.chunks.json
-    tests/golden/  — эталоны (golden standard), имя = имя PDF + .json
-    logs/          — JSONL-лог по шагам
+    .local/pdf/      — исходные PDF
+    .local/manual/   — ручные manual.txt (последний fallback), имя = имя PDF + .txt
+    .local/parsed/   — результат: <stem>.json, <stem>.md, <stem>.chunks.json
+    .local/tests/golden/ — эталоны (golden standard), имя = имя PDF + .json
+    .local/logs/     — JSONL-лог по шагам
 """
 
 from __future__ import annotations
@@ -16,15 +16,17 @@ from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 from typing import Any
 
+from ..paths import LOCAL, LOGS
+
 
 @dataclass
 class Settings:
     # --- пути ---
-    pdf_dir: Path = Path("data/pdf")
-    manual_dir: Path = Path("data/manual")
-    out_dir: Path = Path("data/parsed")
-    golden_dir: Path = Path("tests/golden")
-    log_dir: Path = Path("logs")
+    pdf_dir: Path = LOCAL / "pdf"
+    manual_dir: Path = LOCAL / "manual"
+    out_dir: Path = LOCAL / "parsed"
+    golden_dir: Path = LOCAL / "tests" / "golden"
+    log_dir: Path = LOGS
 
     # --- OCR ---
     # ВАЖНО: у EasyOCR в docling язык по умолчанию ["fr","de","es","en"] — русского там нет.
@@ -39,6 +41,20 @@ class Settings:
     # --- таблицы ---
     table_mode: str = "accurate"  # accurate | fast (accurate медленнее, но держит сложные шапки)
     do_cell_matching: bool = True
+
+    # --- формулы ---
+    # Распознавать формулы в LaTeX (модель CodeFormulaV2, 0,64 ГБ, скачивается сама при
+    # первом разборе). Без неё формула — пустая заглушка, и из базы она пропадает.
+    # Проверка на проверочном PDF (.local/tests/formulas): 13 из 13 формул с латинскими
+    # обозначениями верно; русские индексы модель читает латиницей («обр» → «o6p»),
+    # поэтому к такой формуле приписывается её текст из PDF (docling.tidy_formula).
+    formulas: bool = True
+
+    # --- рисунки ---
+    # Вырезать рисунки, чтобы их описала модель со зрением (добыча с --figures).
+    # Без этого docling картинок не сохраняет, а PDF после разбора не хранится.
+    figures: bool = False
+    figures_scale: float = 2.0  # 144 точки на дюйм: мелкие подписи на карте читаются
 
     # --- железо ---
     device: str = "auto"  # auto | cuda | cpu | mps

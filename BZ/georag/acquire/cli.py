@@ -23,8 +23,9 @@ from typing import Any
 
 from ..common import add_llm_args
 from ..parse.config import Settings
+from ..paths import ARTICLES
 from .heuristic import HeuristicFilter
-from .llm import OllamaLLM
+from .llm import ModelFilter
 from .models import (
     ACQUIRED,
     FETCH_FAILED,
@@ -127,7 +128,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--sources", type=Path, default=Path("config/sources.yaml"), help="каталог источников"
     )
-    p.add_argument("--out", type=Path, default=Path("data/acquired"))
+    p.add_argument("--out", type=Path, default=ARTICLES)
     p.add_argument("--queries", type=int, default=5, help="сколько запросов просить у модели")
     p.add_argument("--per-query", type=int, default=25, help="сколько результатов на запрос")
     p.add_argument("--max-docs", type=int, default=20, help="сколько статей разбирать за тему")
@@ -159,6 +160,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-ocr",
         action="store_true",
         help="не распознавать картинки: быстрее в разы, годится для обычных статей",
+    )
+    p.add_argument(
+        "--figures",
+        action="store_true",
+        help="описать рисунки моделью со зрением (qwen3.5:9b) — фрагменты «Рисунок»",
     )
     p.add_argument(
         "--tables",
@@ -225,12 +231,14 @@ def _by_doi(args: Any) -> int:
         settings.device = args.device
     if args.no_ocr:
         settings.use_ocr = False
+    settings.figures = args.figures
     cfg = AcquireConfig(
         out_dir=args.out,
         force=args.force,
         make_chunks=not args.no_chunks,
         mailto=args.mailto,
         dry_run=args.dry_run,
+        figures=args.figures,
     )
     print(f"Статей по DOI: {len(dois)}")
     report, missing = acquire_dois(dois, settings, cfg)
@@ -276,6 +284,7 @@ def main(argv: list[str] | None = None) -> int:
         settings.use_ocr = False
     if args.tables:
         settings.table_mode = args.tables
+    settings.figures = args.figures
 
     cfg = AcquireConfig(
         sources_path=args.sources,
@@ -288,6 +297,7 @@ def main(argv: list[str] | None = None) -> int:
         make_chunks=not args.no_chunks,
         mailto=args.mailto,
         fallback_filter=not args.no_fallback,
+        figures=args.figures,
     )
 
     if args.queries_file:
@@ -297,7 +307,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Не читаются готовые запросы: {exc}", file=sys.stderr)
             return 1
 
-    llm = HeuristicFilter() if args.no_llm else OllamaLLM(model=args.model, host=args.ollama_host)
+    llm = HeuristicFilter() if args.no_llm else ModelFilter(model=args.model, host=args.llm_host)
 
     # Режим «только запросы»: тема уходит в модель, обратно приходят запросы.
     # Поиск не запускается — это шаг, который можно посмотреть и поправить.
