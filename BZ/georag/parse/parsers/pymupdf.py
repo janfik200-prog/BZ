@@ -12,8 +12,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-from .diag import describe, full_traceback
-from .models import FAILED, OK, PYMUPDF, ParsedDoc, ParseInput
+from ..diag import describe, full_traceback
+from ..models import FAILED, OK, PYMUPDF, ParsedDoc, ParseInput
 
 _HEADING_RE = re.compile(r"^#{1,4}\s+(.+?)\s*$", re.MULTILINE)
 

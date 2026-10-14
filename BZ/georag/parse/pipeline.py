@@ -23,10 +23,10 @@ from pathlib import Path
 from statistics import median_high
 from typing import Any
 
-from . import orchestrator, profile
+from ..chunks.models import Chunk
+from . import orchestrator
 from .config import Settings
 from .diag import describe, full_traceback
-from .fallback import parse_with_pymupdf
 from .models import (
     FAILED,
     MANUAL_REVIEW,
@@ -36,13 +36,14 @@ from .models import (
     PROBE,
     SCAN,
     TIMEOUT,
-    Chunk,
     ParsedDoc,
     ParseInput,
     ValidationReport,
 )
+from .orchestrator import profile
+from .parsers.pymupdf import parse_with_pymupdf
+from .parsers.worker import DoclingWorker
 from .validate import accuracy, load_golden, validate
-from .worker import DoclingWorker
 
 
 def say(line: str) -> None:
@@ -302,7 +303,7 @@ def _chunk(parsed: ParsedDoc, settings: Settings, logger: StepLogger) -> tuple[l
     Не вышло или вышло ноль — документ не попадёт в поиск, причина — в журнал и отчёт."""
     t0 = time.monotonic()
     try:
-        from .chunking import chunk_parsed_doc
+        from ..chunks.text import chunk_parsed_doc
 
         chunks = chunk_parsed_doc(parsed, settings)
     except Exception as exc:  # noqa: BLE001

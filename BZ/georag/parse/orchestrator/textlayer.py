@@ -24,9 +24,9 @@ import re
 from collections import Counter
 from typing import Any
 
-from .models import ParseInput
-from .structure import FURNITURE, label_of
-from .tidy import tidy_text
+from ..models import ParseInput
+from ..parsers.structure import FURNITURE, label_of
+from .words import tidy_text
 
 SAMPLE_PAGES = 12  # страниц для решения — как у зонда
 GARBLED_SHARE = 0.01  # доля лишних знаков docling, от которой текст берётся из PyMuPDF

@@ -17,13 +17,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ..chunks.figures import FIGURE_HOST, FIGURE_MODEL, figure_chunks, strip_images
 from ..llm import LLM
 from ..parse.config import Settings
 from ..parse.diag import describe, full_traceback
-from ..parse.figures import FIGURE_HOST, FIGURE_MODEL, figure_chunks, strip_images
 from ..parse.models import FAILED, OK, PARTIAL, SCAN, ParseInput
+from ..parse.parsers.worker import DoclingWorker
 from ..parse.pipeline import StepLogger, process_document
-from ..parse.worker import DoclingWorker
 from ..paths import ARTICLES
 from .fetch import fetch_pdf
 from .heuristic import HeuristicFilter, has_domain_term
@@ -72,7 +72,7 @@ class AcquireConfig:
     # Заранее подготовленные запросы по темам. Если для темы они есть, модель
     # на этом шаге не дёргается: думали один раз, ищем каждую ночь одинаково.
     queries_map: dict[str, list[str]] | None = None
-    # Рисунки → фрагменты с описанием моделью со зрением (parse/figures.py, --figures).
+    # Рисунки → фрагменты с описанием моделью со зрением (chunks/figures.py, --figures).
     figures: bool = False
     figure_model: str = FIGURE_MODEL
 

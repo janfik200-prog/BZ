@@ -31,9 +31,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from .config import Settings
-from .diag import describe, exit_reason, full_traceback, tail
-from .models import DOCLING, FAILED, TIMEOUT, ParsedDoc, ParseInput
+from ..config import Settings
+from ..diag import describe, exit_reason, full_traceback, tail
+from ..models import DOCLING, FAILED, TIMEOUT, ParsedDoc, ParseInput
 
 START_TIMEOUT_SEC = 300  # импорт docling на холодном диске — десятки секунд
 HANG_DUMP_SHARE = 0.9  # стек зависания — на 90 % таймаута, до того как процесс убьют

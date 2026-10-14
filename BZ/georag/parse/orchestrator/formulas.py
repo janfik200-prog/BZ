@@ -27,8 +27,10 @@ _ORIG_NUMBER = re.compile(r"\s*\(\s*\d+\s*\)\s*$")
 # («… Southlist(c); (31) c ∈ Eastlist(b) …»). «f(2)» — не номер: перед скобкой буква.
 _ORIG_TAG = re.compile(r"(?<![\w.])\(\s*(\d{1,3})\s*\)(?![\w(])")
 # Что дописывает сама чистка: текст из PDF и номер. Повторная чистка (перечанкинг)
-# снимает их и ставит заново — иначе «\tag{2} \tag{2}».
-_OURS = re.compile(r"(?:\s*\\quad \\text\{\[.*\]\})?(?:\s*\\tag\{\d{1,3}\})?\s*$")
+# снимает их и ставит заново — иначе «(2) (2)». Старый вид номера (\tag) — тоже.
+_OURS = re.compile(
+    r"(?:\s*\\quad \\text\{\[.*\]\})?(?:\s*(?:\\tag\{\d{1,3}\}|\\quad \(\d{1,3}\)))?\s*$"
+)
 
 
 @dataclass
@@ -37,12 +39,12 @@ class FormulaFix:
 
     text: str
     tail: bool = False  # убрана соседняя строка, которую модель дописала к формуле
-    number: str = ""  # номер из текста PDF (\tag)
+    number: str = ""  # номер из текста PDF — «(N)» в конце формулы
     russian: bool = False  # приписан текст из PDF с русскими обозначениями
 
 
 def fix_formula(latex: str, orig: str) -> FormulaFix:
-    """LaTeX формулы без выравнивания и мусора после формулы. Номер — \\tag{N} из
+    """LaTeX формулы без выравнивания и мусора после формулы. Номер — «\\quad (N)» из
     текста PDF: модель его не видит (рамка узкая), а текст на него ссылается («(55)»).
     Русские обозначения модель читает латиницей («V_{обр}» → «V_{op6}»), а в тексте PDF
     они верные, — тогда он приписывается к формуле: \\text{[K п = V пор V обр · 100 %]}."""
@@ -55,7 +57,9 @@ def fix_formula(latex: str, orig: str) -> FormulaFix:
     orig = " ".join((orig or "").split())
     numbers = _ORIG_TAG.findall(orig)
     number = numbers[-1] if numbers else ""
-    tag = f" \\tag{{{number}}}" if number else ""
+    # \tag{N} просмотрщик без его поддержки показывает буквами «tag» — похоже на тангенс;
+    # «(N)» после отступа виден одинаково везде (так же пишет номер Marker).
+    tag = f" \\quad ({number})" if number else ""
     orig = _ORIG_NUMBER.sub("", orig)
     if _CYRILLIC.search(orig):
         return FormulaFix(f"{latex} \\quad \\text{{[{orig}]}}{tag}", tail, number, russian=True)

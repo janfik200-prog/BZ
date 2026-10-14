@@ -1,7 +1,7 @@
 """Парсинг PDF через Docling: текстовый слой PDF → абзацы, заголовки, таблицы, формулы.
 
 Только конвертация — в дочернем процессе (worker). Доводка результата (подписи, знаки,
-формулы, слова, дефисы) — в основном процессе, у оркестратора (orchestrator.py).
+формулы, слова, дефисы) — в основном процессе, у оркестратора (parse/orchestrator).
 
 Отличия от типового кода из статей и туториалов — см. docs/УСТРОЙСТВО.md, раздел
 «Что поправлено». Коротко: без распознавания картинок (OCR), режим TableFormer,
@@ -23,9 +23,9 @@ from docling.datamodel.pipeline_options import (
 )
 from docling.document_converter import DocumentConverter, PdfFormatOption
 
-from .config import Settings
-from .diag import describe, full_traceback
-from .models import DOCLING, FAILED, OK, PARTIAL, ParsedDoc, ParseInput
+from ..config import Settings
+from ..diag import describe, full_traceback
+from ..models import DOCLING, FAILED, OK, PARTIAL, ParsedDoc, ParseInput
 from .structure import extract_structure
 
 log = logging.getLogger(__name__)

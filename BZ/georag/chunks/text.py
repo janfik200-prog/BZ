@@ -20,8 +20,9 @@ from collections.abc import Iterable
 from functools import lru_cache
 from typing import Any
 
-from .config import Settings
-from .models import Chunk, ParsedDoc
+from ..parse.config import Settings
+from ..parse.models import ParsedDoc
+from .models import Chunk
 
 
 @lru_cache(maxsize=4)

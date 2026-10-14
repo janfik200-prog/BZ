@@ -34,5 +34,5 @@ cache_dir = ".local/cache/mypy"
 
 # PyMuPDF без аннотаций типов: вызовы из запасного парсера и зонда — не наша ошибка типов.
 [[tool.mypy.overrides]]
-module = ["georag.parse.fallback", "georag.parse.profile", "georag.parse.textlayer"]
+module = ["georag.parse.parsers.pymupdf", "georag.parse.orchestrator.profile", "georag.parse.orchestrator.textlayer"]
 disallow_untyped_calls = false
