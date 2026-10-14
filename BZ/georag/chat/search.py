@@ -1,10 +1,12 @@
 """Поиск фрагментов по порогу близости: запросы разбора → гибридный поиск → слияние.
 
 Так отбирается, когда модель молчит; merged_search даёт и кандидатов для модели
-(retrieval). К короткому фрагменту добавляется продолжение из того же раздела."""
+(retrieval). К фрагменту, оборванному на полуслове или начатому с середины мысли,
+добавляется соседний кусок того же раздела (add_neighbors)."""
 
 from __future__ import annotations
 
+import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from typing import Any
@@ -23,11 +25,54 @@ SEARCH_WORKERS = 4
 # словам запроса проходит всегда: оно само по себе доказательство.
 MIN_SIMILARITY = 0.45
 
-# Короткий фрагмент (заголовок, подпись, обрывок абзаца) без соседей почти
-# ничего не говорит. К такому добавляется следующий кусок той же статьи,
-# если он из того же раздела. Номер у них общий.
-SHORT_FRAGMENT = 900
+# Фрагмент — кусок раздела, и мысль бывает начата в предыдущем куске («Однако в
+# другом районе…», «Таким образом…»), а закончена в следующем. По базе 13.10.2026
+# (4272 фрагмента): 8 % начинаются посреди фразы, 4 % — со ссылки назад, 21 %
+# кончаются не на конце фразы, 24 % короче 900 знаков. К такому фрагменту
+# добавляется соседний кусок того же раздела — целыми предложениями, под тем же
+# номером: ссылка [n] по-прежнему ведёт на ту же статью.
+SHORT_FRAGMENT = 900  # короткий (заголовок, подпись, обрывок) — продолжение до NEIGHBOR_CHARS
 NEIGHBOR_CHARS = 1200
+PREV_CHARS = 600  # начало мысли — из конца предыдущего куска
+TAIL_CHARS = 500  # конец оборванной фразы — из начала следующего
+_BACK_REF = re.compile(
+    r"(?:Однако|При этом|Таким образом|Поэтому|Следовательно|Кроме того|Вместе с тем|"
+    r"Тем не менее|В то же время|Это|Эти|Этот|Эта|Такие|Такой|Такая|Здесь|However|Thus|"
+    r"Therefore|Hence|Moreover|In addition|This|These|Such)\b"
+)
+_SENTENCE = re.compile(r"(?<=[.!?…])\s+")
+
+
+def starts_mid_thought(text: str) -> bool:
+    """Начат с середины фразы (с маленькой буквы) или со ссылки на сказанное раньше."""
+    head = text.lstrip()
+    return bool(head) and (head[0].islower() or bool(_BACK_REF.match(head)))
+
+
+def ends_mid_thought(text: str) -> bool:
+    """Оборван: не на конце фразы (двоеточие перед списком — тоже обрыв). Таблица — нет."""
+    tail = text.rstrip().rstrip("»\"')]")
+    return bool(tail) and not text.rstrip().endswith("|") and tail[-1] not in ".!?…"
+
+
+def _head(text: str, limit: int, sentences: int = 99) -> str:
+    """Начало текста целыми предложениями, не длиннее limit (первое — как влезет)."""
+    out = ""
+    for part in _SENTENCE.split(" ".join(text.split()))[:sentences]:
+        if out and len(out) + 1 + len(part) > limit:
+            break
+        out = f"{out} {part}" if out else part
+    return out if len(out) <= limit else out[:limit].rsplit(" ", 1)[0] + " …"
+
+
+def _tail(text: str, limit: int) -> str:
+    """Конец текста целыми предложениями, не длиннее limit (последнее — как влезет)."""
+    out = ""
+    for part in reversed(_SENTENCE.split(" ".join(text.split()))):
+        if out and len(out) + 1 + len(part) > limit:
+            break
+        out = f"{part} {out}" if out else part
+    return out if len(out) <= limit else "… " + out[-limit:].split(" ", 1)[-1]
 
 
 def source_dict(n: int, hit: Any, part: Any = None) -> dict[str, Any]:
@@ -185,42 +230,62 @@ def find_sources(
 
 
 def add_neighbors(conn: Any, sources: list[dict[str, Any]]) -> None:
-    """Короткому фрагменту — продолжение из той же статьи и того же раздела.
+    """Соседний кусок той же статьи и того же раздела — где без него мысль неполна.
 
-    Поиск находит самый похожий кусок, а он бывает обрывком: заголовок и две
-    строки, дальше «см. ниже». Для развёрнутого ответа модели нужно то, что
-    идёт следом. Добавленный текст идёт под тем же номером — ссылка [n]
-    по-прежнему ведёт на ту же статью.
-    """
-    short = [s for s in sources if len(s["text"]) < SHORT_FRAGMENT]
-    if not short:
-        return
-    wanted = {(s["doc_id"], s["ord"] + 1) for s in short}
+    Начат с середины мысли — спереди конец предыдущего куска (до PREV_CHARS):
+    там начало фразы, оговорка или то, на что ссылается «Таким образом».
+    Короткий — сзади продолжение (до NEIGHBOR_CHARS); оборван на полуслове —
+    сзади конец фразы из следующего (до TAIL_CHARS). Кусок, который и так
+    среди фрагментов ответа, не повторяется; таблица в соседи не берётся — её строки
+    вместо начала фразы только занимают окно модели. Номер у добавленного — тот же."""
     taken = {(s["doc_id"], s["ord"]) for s in sources}
-    wanted -= taken
+    Key = tuple[str, int] | None
+    plan: list[tuple[dict[str, Any], Key, Key, bool]] = []
+    for s in sources:
+        if s.get("kind") == "датасет":
+            continue
+        text = s["text"]
+        prev = (s["doc_id"], s["ord"] - 1) if starts_mid_thought(text) else None
+        short = len(text) < SHORT_FRAGMENT
+        nxt = (s["doc_id"], s["ord"] + 1) if short or ends_mid_thought(text) else None
+        prev = None if prev in taken else prev
+        nxt = None if nxt in taken else nxt
+        if prev or nxt:
+            plan.append((s, prev, nxt, short))
+    wanted = {key for _, p, n, _ in plan for key in (p, n) if key}
     if not wanted:
         return
     try:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT doc_id, ord, text, headings, pages FROM chunks
+                SELECT doc_id, ord, text, headings, pages, has_table FROM chunks
                 WHERE (doc_id, ord) IN (SELECT * FROM unnest(%s::text[], %s::int[]))
                 """,
                 ([d for d, _ in wanted], [o for _, o in wanted]),
             )
-            rows = cur.fetchall()
+            rows = {(r[0], r[1]): r for r in cur.fetchall()}
     except Exception:  # noqa: BLE001 — без соседей ответ всё равно будет
         return
-    after = {(r[0], r[1]): r for r in rows}
-    for s in short:
-        row = after.get((s["doc_id"], s["ord"] + 1))
-        if not row:
-            continue
-        same_section = list(row[3] or [])[-1:] == list(s.get("headings") or [])[-1:]
-        if not same_section:
-            continue
-        extra = " ".join((row[2] or "").split())[:NEIGHBOR_CHARS]
-        s["text"] = f"{s['text']} {extra}"
-        s["pages"] = sorted(set(s.get("pages") or []) | set(row[4] or []))
-        s["with_next"] = True
+
+    def fits(s: dict[str, Any], row: Any) -> bool:
+        """Сосед годится: тот же раздел и не таблица."""
+        return not row[5] and list(row[3] or [])[-1:] == list(s.get("headings") or [])[-1:]
+
+    for s, prev, nxt, short in plan:
+        pages = set(s.get("pages") or [])
+        before = rows.get(prev) if prev else None
+        if before and fits(s, before) and (piece := _tail(before[2] or "", PREV_CHARS)):
+            s["text"] = f"{piece} {s['text']}"
+            s["with_prev"] = True
+            pages |= set(before[4] or [])
+        after = rows.get(nxt) if nxt else None
+        if after and fits(s, after):
+            piece = _head(
+                after[2] or "", NEIGHBOR_CHARS if short else TAIL_CHARS, 99 if short else 1
+            )
+            if piece:
+                s["text"] = f"{s['text']} {piece}"
+                s["with_next"] = True
+                pages |= set(after[4] or [])
+        s["pages"] = sorted(pages)

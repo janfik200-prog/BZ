@@ -4,8 +4,8 @@
 
 1. Эвристики, которые работают без эталона (есть ли вообще текст, не битая ли
    кодировка, нет ли патологических повторов). Они ловят самые частые провалы:
-   скан без текстового слоя и PDF с поломанными шрифтами, из которого извлекается
-   мусор вида (cid:34).
+   парсер вытащил почти пустой текст или PDF с поломанными шрифтами отдал мусор
+   вида (cid:34). Не прошли — документ разбирает запасной парсер.
 2. Сверка с эталоном (golden standard) из <папка эталонов>/<имя>.json: разделы, ключевые
    сущности, число таблиц и страниц. Это и есть метрика «точность парсинга».
 
@@ -68,8 +68,19 @@ def validate(
     parsed: ParsedDoc, settings: Settings, golden: dict[str, Any] | None = None
 ) -> ValidationReport:
     report = ValidationReport()
+    _text_checks(report, parsed, settings)
+    if golden:
+        _golden_checks(report, parsed, golden, settings)
+    else:
+        report.add(
+            "golden_standard", True, critical=False, detail="эталон не задан, сверка пропущена"
+        )
+    return report
+
+
+def _text_checks(report: ValidationReport, parsed: ParsedDoc, settings: Settings) -> None:
+    """Проверки без эталона: есть ли текст, не мусор ли, нет ли повторов и пустых страниц."""
     text = parsed.text
-    norm = normalize(text)
     pages = max(parsed.page_count, 1)
 
     # --- 1. Есть ли вообще текст --------------------------------------------
@@ -81,21 +92,15 @@ def validate(
         critical=True,
         detail=f"{chars_per_page:.0f} символов на страницу (порог {settings.min_chars_per_page})",
     )
-    if not has_text:
-        report.suggestion = "rerun_ocr"
 
     # --- 2. Кодировка и мусор ------------------------------------------------
     ratio = garbage_ratio(text)
-    ok_garbage = ratio <= settings.max_garbage_ratio
     report.add(
         "encoding_sane",
-        ok_garbage,
+        ratio <= settings.max_garbage_ratio,
         critical=True,
         detail=f"доля мусорных символов {ratio:.1%} (порог {settings.max_garbage_ratio:.0%})",
     )
-    if not ok_garbage and report.suggestion == "none":
-        # Битые шрифты OCR не лечит — тут нужен другой парсер.
-        report.suggestion = "fallback"
 
     # --- 3. Патологические повторы ------------------------------------------
     lines = [line.strip() for line in text.splitlines() if len(line.strip()) > 20]
@@ -118,38 +123,14 @@ def validate(
         + (f" → {thin[:10]}" if thin else ""),
     )
 
-    # --- 5. Сверка с эталоном ------------------------------------------------
-    if not golden:
-        report.add(
-            "golden_standard", True, critical=False, detail="эталон не задан, сверка пропущена"
-        )
-        return report
 
-    expected_sections = [s for s in (golden.get("sections") or []) if s.strip()]
-    if expected_sections:
-        found = [s for s in expected_sections if phrase_pattern(s).search(norm)]
-        ratio_sections = len(found) / len(expected_sections)
-        missing = [s for s in expected_sections if s not in found]
-        report.add(
-            "sections",
-            ratio_sections >= settings.min_sections_ratio,
-            critical=True,
-            detail=f"найдено {len(found)}/{len(expected_sections)}"
-            + (f", нет: {', '.join(missing[:5])}" if missing else ""),
-        )
-
-    expected_entities = [e for e in (golden.get("entities") or []) if e.strip()]
-    if expected_entities:
-        found_e = [e for e in expected_entities if phrase_pattern(e).search(norm)]
-        ratio_entities = len(found_e) / len(expected_entities)
-        missing_e = [e for e in expected_entities if e not in found_e]
-        report.add(
-            "entities",
-            ratio_entities >= settings.min_entities_ratio,
-            critical=True,
-            detail=f"найдено {len(found_e)}/{len(expected_entities)}"
-            + (f", нет: {', '.join(missing_e[:5])}" if missing_e else ""),
-        )
+def _golden_checks(
+    report: ValidationReport, parsed: ParsedDoc, golden: dict[str, Any], settings: Settings
+) -> None:
+    """Сверка с эталоном: разделы, ключевые сущности, число таблиц и страниц."""
+    norm = normalize(parsed.text)
+    _found_share(report, "sections", golden.get("sections"), norm, settings.min_sections_ratio)
+    _found_share(report, "entities", golden.get("entities"), norm, settings.min_entities_ratio)
 
     if golden.get("tables") is not None:
         expected_tables = int(golden["tables"])
@@ -170,13 +151,23 @@ def validate(
             detail=f"страниц {parsed.page_count}, ожидалось {expected_pages}",
         )
 
-    # Если эталон не сошёлся, а текст при этом тонкий — сначала пробуем OCR.
-    if not report.ok and report.suggestion == "none":
-        report.suggestion = (
-            "rerun_ocr" if chars_per_page < settings.min_chars_per_page * 2 else "fallback"
-        )
 
-    return report
+def _found_share(
+    report: ValidationReport, name: str, expected: Any, norm: str, threshold: float
+) -> None:
+    """Доля эталонных фраз, что нашлись в тексте (с поправкой на падежи), от порога."""
+    wanted = [x for x in (expected or []) if x.strip()]
+    if not wanted:
+        return
+    found = [x for x in wanted if phrase_pattern(x).search(norm)]
+    missing = [x for x in wanted if x not in found]
+    report.add(
+        name,
+        len(found) / len(wanted) >= threshold,
+        critical=True,
+        detail=f"найдено {len(found)}/{len(wanted)}"
+        + (f", нет: {', '.join(missing[:5])}" if missing else ""),
+    )
 
 
 def accuracy(report: ValidationReport) -> float:

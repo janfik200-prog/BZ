@@ -282,7 +282,6 @@ def _acquire(opts: argparse.Namespace, topic_args: list[str]) -> int:
         *topic_args,
         "--max-docs",
         str(opts.max_docs),
-        "--no-ocr",
         "--device",
         "cuda",
         *(["--mailto", MAILTO] if MAILTO else []),

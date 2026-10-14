@@ -11,7 +11,14 @@ OK = "ok"  # распарсили и прошли валидацию
 PARTIAL = "partial"  # распарсили, но парсер сам сообщил об ошибках
 FAILED = "failed"  # парсер упал
 TIMEOUT = "timeout"  # процесс убит по таймауту
-MANUAL_REVIEW = "manual_review"  # не смогли — на ручную проверку
+MANUAL_REVIEW = "manual_review"  # ни одна попытка не прошла проверку — смотреть человеку
+SCAN = "scan"  # текстового слоя нет (скан) — не разбирается (profile.probe)
+
+# Парсеры — они же шаги в журнале и в списке попыток («docling:ok»)
+DOCLING = "docling"
+PYMUPDF = "pymupdf4llm"  # запасной: когда docling упал, завис или не прошёл проверку
+PROBE = "зонд"  # разбор остановлен зондом (скан)
+PIPELINE = "конвейер"  # непредвиденный сбой в самом конвейере — причина и стек в журнале
 
 
 @dataclass
@@ -39,6 +46,11 @@ class ParseInput:
     def name(self) -> str:
         return self.display_name or f"{self.doc_id}.pdf"
 
+    @property
+    def source(self) -> str:
+        """Откуда документ — ссылка, путь или имя: с этим он живёт в отчётах вместо PDF."""
+        return self.origin or str(self.path or self.name)
+
 
 @dataclass
 class ParsedDoc:
@@ -46,8 +58,8 @@ class ParsedDoc:
 
     doc_id: str
     source_path: str
-    parser: str  # docling | docling+ocr | pymupdf4llm | manual
-    status: str  # OK | PARTIAL | FAILED | TIMEOUT
+    parser: str  # DOCLING | PYMUPDF | PROBE
+    status: str  # OK | PARTIAL | FAILED | TIMEOUT | SCAN
     markdown: str = ""
     page_count: int = 0
     sections: list[str] = field(default_factory=list)
@@ -58,25 +70,37 @@ class ParsedDoc:
     # Сериализованный DoclingDocument — нужен для чанкинга. У fallback-парсеров его нет.
     docling_doc: dict[str, Any] | None = None
 
+    @classmethod
+    def failed(
+        cls,
+        inp: ParseInput,
+        parser: str,
+        *errors: str,
+        status: str = FAILED,
+        duration: float = 0.0,
+    ) -> ParsedDoc:
+        """Пустой результат попытки: с него разбор начинается, им же кончается при сбое."""
+        return cls(
+            doc_id=inp.doc_id,
+            source_path=inp.source,
+            parser=parser,
+            status=status,
+            errors=list(errors),
+            duration_sec=duration,
+        )
+
     @property
     def text(self) -> str:
         return self.markdown or "\n\n".join(
             self.pages_text.get(p, "") for p in sorted(self.pages_text)
         )
 
-    def to_dict(self, with_doc: bool = True) -> dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
+        """Всё, кроме разметки docling, — для отчёта рядом с результатом."""
         d = asdict(self)
+        d.pop("docling_doc", None)
         d["pages_text"] = {str(k): v for k, v in self.pages_text.items()}
-        if not with_doc:
-            d.pop("docling_doc", None)
         return d
-
-    @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> ParsedDoc:
-        d = dict(d)
-        d["pages_text"] = {int(k): v for k, v in (d.get("pages_text") or {}).items()}
-        known = {f for f in cls.__dataclass_fields__}
-        return cls(**{k: v for k, v in d.items() if k in known})
 
 
 @dataclass
@@ -94,8 +118,6 @@ class Check:
 class ValidationReport:
     ok: bool = True
     checks: list[Check] = field(default_factory=list)
-    # Подсказка пайплайну, что делать дальше: rerun_ocr | fallback | none
-    suggestion: str = "none"
 
     def add(self, name: str, ok: bool, critical: bool, detail: str = "") -> None:
         self.checks.append(Check(name=name, ok=ok, critical=critical, detail=detail))
@@ -107,11 +129,7 @@ class ValidationReport:
         return [c for c in self.checks if not c.ok]
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "ok": self.ok,
-            "suggestion": self.suggestion,
-            "checks": [c.to_dict() for c in self.checks],
-        }
+        return {"ok": self.ok, "checks": [c.to_dict() for c in self.checks]}
 
 
 @dataclass

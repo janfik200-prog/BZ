@@ -27,19 +27,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--input", type=Path, default=None, help="папка с PDF или один файл")
     p.add_argument("--out", type=Path, default=None, help="куда складывать результат")
     p.add_argument("--golden", type=Path, default=None, help="папка с эталонами")
-    p.add_argument("--manual", type=Path, default=None, help="папка с ручными manual.txt")
     p.add_argument("--logs", type=Path, default=None, help="папка для логов")
     p.add_argument("--device", choices=["auto", "cuda", "cpu", "mps"], default=None)
     p.add_argument("--threads", type=int, default=None)
     p.add_argument("--table-mode", choices=["accurate", "fast"], default=None)
-    p.add_argument("--ocr-langs", default=None, help="через запятую, например ru,en")
     p.add_argument("--max-tokens", type=int, default=None, help="размер чанка в токенах")
-    p.add_argument(
-        "--overlap-tokens",
-        type=int,
-        default=None,
-        help="перекрытие чанков; 0 — как задумано в HybridChunker",
-    )
     p.add_argument("--timeout", type=int, default=None, help="жёсткий таймаут на документ, сек")
     p.add_argument("--limit", type=int, default=None, help="обработать только первые N файлов")
     p.add_argument("--no-chunks", action="store_true", help="только парсинг и валидация")
@@ -54,8 +46,6 @@ def settings_from_args(args: argparse.Namespace) -> Settings:
         s.out_dir = args.out
     if args.golden:
         s.golden_dir = args.golden
-    if args.manual:
-        s.manual_dir = args.manual
     if args.logs:
         s.log_dir = args.logs
     if args.device:
@@ -64,15 +54,10 @@ def settings_from_args(args: argparse.Namespace) -> Settings:
         s.num_threads = args.threads
     if args.table_mode:
         s.table_mode = args.table_mode
-    if args.ocr_langs:
-        s.ocr_langs = tuple(x.strip() for x in args.ocr_langs.split(",") if x.strip())
     if args.max_tokens:
         s.max_tokens = args.max_tokens
-    if args.overlap_tokens is not None:
-        s.overlap_tokens = args.overlap_tokens
     if args.timeout:
         s.doc_timeout_sec = args.timeout
-        s.ocr_doc_timeout_sec = max(args.timeout, s.ocr_doc_timeout_sec)
     return s
 
 
@@ -89,9 +74,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Не нашёл PDF в {target}", file=sys.stderr)
         return 1
 
-    print(
-        f"Документов: {len(pdfs)} | устройство: {settings.device} | OCR: {', '.join(settings.ocr_langs)}"
-    )
+    print(f"Документов: {len(pdfs)} | устройство: {settings.device}")
     results = process_all(pdfs, settings, make_chunks=not args.no_chunks)
 
     ok = [r for r in results if r.status != MANUAL_REVIEW]

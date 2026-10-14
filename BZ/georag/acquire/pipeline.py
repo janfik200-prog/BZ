@@ -19,9 +19,11 @@ from typing import Any
 
 from ..llm import LLM
 from ..parse.config import Settings
+from ..parse.diag import describe, full_traceback
 from ..parse.figures import FIGURE_HOST, FIGURE_MODEL, figure_chunks, strip_images
-from ..parse.models import OK, PARTIAL, ParseInput
-from ..parse.pipeline import DoclingWorker, StepLogger, process_document
+from ..parse.models import FAILED, OK, PARTIAL, SCAN, ParseInput
+from ..parse.pipeline import StepLogger, process_document
+from ..parse.worker import DoclingWorker
 from ..paths import ARTICLES
 from .fetch import fetch_pdf
 from .heuristic import HeuristicFilter, has_domain_term
@@ -33,6 +35,7 @@ from .models import (
     NOT_FETCHED,
     PARSE_FAILED,
     REJECTED,
+    SCANNED,
     UNREVIEWED,
     AcquiredRecord,
     AcquireReport,
@@ -317,7 +320,7 @@ def acquire(topic: str, llm: Any, settings: Settings, cfg: AcquireConfig) -> Acq
     try:
         for i, cand in enumerate(relevant[: cfg.max_docs], start=1):
             print(f"\n[{i}/{min(len(relevant), cfg.max_docs)}] {cand.title[:70]}")
-            record = _acquire_one(cand, settings, cfg, worker, logger)
+            record = _acquire_safely(cand, settings, cfg, worker, logger)
             report.records.append(record)
             append_index(cfg.out_dir, record)
     finally:
@@ -374,7 +377,7 @@ def acquire_dois(
         try:
             for i, cand in enumerate(candidates, start=1):
                 print(f"\n[{i}/{len(candidates)}] {cand.title[:70]}")
-                record = _acquire_one(cand, settings, cfg, worker, logger)
+                record = _acquire_safely(cand, settings, cfg, worker, logger)
                 report.records.append(record)
                 append_index(cfg.out_dir, record)
         finally:
@@ -403,6 +406,27 @@ def load_dois(path: Path) -> list[str]:
         for line in text.splitlines()
         if line.strip() and not line.lstrip().startswith("#")
     ]
+
+
+def _acquire_safely(
+    cand: Candidate, settings: Settings, cfg: AcquireConfig, worker: Any, logger: Any
+) -> AcquiredRecord:
+    """Одна статья не рушит прогон: непредвиденный сбой — запись parse_failed с причиной
+    и местом, полный стек — в журнал (шаг «сбой»)."""
+    try:
+        return _acquire_one(cand, settings, cfg, worker, logger)
+    except Exception as exc:  # noqa: BLE001
+        reason = describe(exc)
+        logger.log(
+            cand.doc_id,
+            "сбой",
+            FAILED,
+            0.0,
+            detail=reason,
+            errors=[reason],
+            traceback=full_traceback(exc),
+        )
+        return AcquiredRecord.from_candidate(cand, PARSE_FAILED, note=f"сбой: {reason}")
 
 
 def _acquire_one(
@@ -508,7 +532,12 @@ def _acquire_one(
             )
         strip_images(parsed.docling_doc)
 
-    status = ACQUIRED if doc_result.status in (OK, PARTIAL) else PARSE_FAILED
+    if doc_result.status in (OK, PARTIAL):
+        status = ACQUIRED
+    elif doc_result.status == SCAN:
+        status = SCANNED  # не ошибка: сканы не разбираем
+    else:
+        status = PARSE_FAILED
     record = AcquiredRecord.from_candidate(
         cand,
         status,
@@ -526,9 +555,12 @@ def _acquire_one(
         duration_sec=doc_result.duration_sec,
         failed_checks=doc_result.failed_checks,
         attempts=doc_result.attempts,
-        note="" if status == ACQUIRED else "не прошёл валидацию, нужен человек",
+        cases=doc_result.cases,
+        note={ACQUIRED: "", SCANNED: "скан: текстового слоя нет — не разбирается"}.get(
+            status, "не прошёл валидацию, нужен человек"
+        ),
     )
-    _write_doc(cfg.out_dir, record, parsed, chunks)
+    _write_doc(cfg.out_dir, record, None if status == SCANNED else parsed, chunks)
     return record
 
 

@@ -32,7 +32,7 @@ warn_unused_ignores = true
 exclude = ["^\\.venv/", "^\\.local/"]
 cache_dir = ".local/cache/mypy"
 
-# PyMuPDF без аннотаций типов: вызовы из запасного парсера — не наша ошибка типов.
+# PyMuPDF без аннотаций типов: вызовы из запасного парсера и зонда — не наша ошибка типов.
 [[tool.mypy.overrides]]
-module = ["georag.parse.fallback"]
+module = ["georag.parse.fallback", "georag.parse.profile", "georag.parse.textlayer"]
 disallow_untyped_calls = false

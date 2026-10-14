@@ -1,7 +1,7 @@
 # --- парсинг ---
-# ВАЖНО: easyocr идёт отдельным extra. Без него docling падает на первом же скане
-# с ImportError, потому что автовыбор движка (OcrAutoOptions) не находит ни одного.
-docling[easyocr]>=2.126.0
+# Распознавание картинок (OCR) выключено (do_ocr=False), поэтому движок OCR не нужен:
+# проверено 14.10.2026 — docling разбирает статью и при запрещённом импорте easyocr.
+docling>=2.126.0
 docling-core[chunking]>=2.0   # HybridChunker и токенайзеры
 pymupdf4llm>=1.26             # запасной парсер
 
@@ -22,11 +22,7 @@ pyyaml>=6.0                   # каталог источников sources.yaml
 #    рантайм, поставьте torch до docling:
 #       pip install torch --index-url https://download.pytorch.org/whl/cu124
 #
-# 2. Tesseract (альтернативный движок OCR и OCR внутри pymupdf4llm) требует
-#    системных пакетов, иначе русский не распознаётся:
-#       sudo apt install tesseract-ocr tesseract-ocr-rus tesseract-ocr-eng
-#
-# 3. Первый запуск docling скачивает модели разметки и TableFormer с HuggingFace.
+# 2. Первый запуск docling скачивает модели разметки и TableFormer с HuggingFace.
 #    Для офлайн-машины прогрейте кэш заранее:  docling-tools models download
 
 # --- проверки кода (python georag.py lint; настройки — pyproject.toml) ---

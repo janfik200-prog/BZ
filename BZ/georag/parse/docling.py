@@ -1,13 +1,16 @@
-"""Парсинг PDF через Docling.
+"""Парсинг PDF через Docling: текстовый слой PDF → абзацы, заголовки, таблицы, формулы.
 
-Отличия от типового кода из статей и туториалов — см. README, раздел «Что поправлено».
-Коротко: язык OCR, современный OcrMode вместо устаревшего force_full_page_ocr,
-режим TableFormer, ускоритель, разбор статуса конверсии и провенанс страниц.
+Только конвертация — в дочернем процессе (worker). Доводка результата (подписи, знаки,
+формулы, слова, дефисы) — в основном процессе, у оркестратора (orchestrator.py).
+
+Отличия от типового кода из статей и туториалов — см. docs/УСТРОЙСТВО.md, раздел
+«Что поправлено». Коротко: без распознавания картинок (OCR), режим TableFormer,
+ускоритель, рамка и пачка модели формул, разбор статуса конверсии и провенанс страниц.
 """
 
 from __future__ import annotations
 
-import re
+import logging
 import time
 from pathlib import Path
 from typing import Any
@@ -20,15 +23,12 @@ from docling.datamodel.pipeline_options import (
 )
 from docling.document_converter import DocumentConverter, PdfFormatOption
 
-from .config import Settings, ocr_langs_for
-from .models import FAILED, OK, PARTIAL, ParsedDoc, ParseInput
+from .config import Settings
+from .diag import describe, full_traceback
+from .models import DOCLING, FAILED, OK, PARTIAL, ParsedDoc, ParseInput
+from .structure import extract_structure
 
-# --- совместимость версий -----------------------------------------------------
-# OcrMode появился взамен force_full_page_ocr; на старых версиях его нет.
-try:
-    from docling.datamodel.pipeline_options import OcrMode  # docling >= 2.5x
-except ImportError:  # pragma: no cover
-    OcrMode = None  # type: ignore[misc,assignment]
+log = logging.getLogger(__name__)
 
 try:
     from docling.datamodel.accelerator_options import (
@@ -55,33 +55,8 @@ def _docling_source(inp: ParseInput) -> Any:
     return inp.path
 
 
-def _ocr_options(settings: Settings, full_page: bool) -> Any:
-    """Опции OCR c правильными языками и режимом."""
-    langs = ocr_langs_for(settings.ocr_engine, settings.ocr_langs)
-
-    if settings.ocr_engine == "tesseract":
-        from docling.datamodel.pipeline_options import TesseractCliOcrOptions
-
-        opts: Any = TesseractCliOcrOptions(lang=langs)
-    elif settings.ocr_engine == "rapidocr":
-        from docling.datamodel.pipeline_options import RapidOcrOptions
-
-        opts = RapidOcrOptions(lang=langs)
-    else:
-        from docling.datamodel.pipeline_options import EasyOcrOptions
-
-        opts = EasyOcrOptions(lang=langs)
-
-    if full_page:
-        # Новый способ; force_full_page_ocr помечен deprecated, но нужен для старых версий.
-        if OcrMode is not None and hasattr(opts, "mode"):
-            opts.mode = OcrMode.FULL_PAGE
-        else:  # pragma: no cover
-            opts.force_full_page_ocr = True
-    return opts
-
-
-def build_converter(settings: Settings, full_page_ocr: bool = False) -> DocumentConverter:
+def build_converter(settings: Settings, notes: list[str] | None = None) -> DocumentConverter:
+    """Конвертер docling по настройкам; что применить не удалось — в notes (и в лог)."""
     device = {
         "auto": AcceleratorDevice.AUTO,
         "cuda": AcceleratorDevice.CUDA,
@@ -90,17 +65,28 @@ def build_converter(settings: Settings, full_page_ocr: bool = False) -> Document
     }.get(settings.device, AcceleratorDevice.AUTO)
 
     pipeline_options = PdfPipelineOptions()
-    # Полностраничный проход всегда означает OCR; в обычном разбор идёт по настройке.
-    pipeline_options.do_ocr = bool(full_page_ocr or settings.use_ocr)
+    # Распознавание картинок (OCR) у docling включено по умолчанию — выключаем: сканы не
+    # разбираются (их останавливает зонд, profile.SCAN), а на PDF с текстовым слоем текст
+    # с OCR и без — тот же (замер 13.10.2026), OCR только добавлял время.
+    pipeline_options.do_ocr = False
     pipeline_options.do_table_structure = True
     pipeline_options.table_structure_options = TableStructureOptions(
         mode=(
             TableFormerMode.ACCURATE if settings.table_mode == "accurate" else TableFormerMode.FAST
         ),
-        do_cell_matching=settings.do_cell_matching,
+        do_cell_matching=True,  # текст ячеек — из текстового слоя PDF, а не с картинки
     )
-    pipeline_options.ocr_options = _ocr_options(settings, full_page=full_page_ocr)
     pipeline_options.do_formula_enrichment = settings.formulas
+    if settings.formulas and not _set_formula_model(
+        settings.formula_expansion, settings.formula_batch_size
+    ):
+        note = (
+            "модель формул docling не найдена (CodeFormulaVlmModel, CodeFormulaModel) — "
+            "рамка и пачка не применены, формулы медленнее и с мусором; проверьте версию docling"
+        )
+        log.warning(note)
+        if notes is not None:
+            notes.append(note)
     if settings.figures:
         pipeline_options.generate_picture_images = True
         pipeline_options.images_scale = settings.figures_scale
@@ -109,123 +95,90 @@ def build_converter(settings: Settings, full_page_ocr: bool = False) -> Document
     )
     # Таймаут внутри docling: не панацея (см. README), но дешёвая первая линия обороны.
     if hasattr(pipeline_options, "document_timeout"):
-        pipeline_options.document_timeout = float(
-            settings.ocr_doc_timeout_sec if full_page_ocr else settings.doc_timeout_sec
-        )
+        pipeline_options.document_timeout = float(settings.doc_timeout_sec)
 
     return DocumentConverter(
         format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
     )
 
 
-_CYRILLIC = re.compile(r"[А-Яа-яЁё]")
-# Номер формулы, который модель дописывает в LaTeX («\quad \ \ ( 8 )»), и всё
-# после него: там бывает мусор («\quad p a r { x }»).
-_EQ_NUMBER = re.compile(r"(?:\s*(?:\\q?quad|\\ ))+\s*\(\s*\d+\s*\)[\s\S]*$")
-_ORIG_NUMBER = re.compile(r"\s*\(\s*\d+\s*\)\s*$")
+_FORMULA_MODELS = (
+    ("docling.models.stages.code_formula.code_formula_vlm_model", "CodeFormulaVlmModel"),
+    ("docling.models.stages.code_formula.code_formula_model", "CodeFormulaModel"),
+)
 
 
-def tidy_formula(latex: str, orig: str) -> str:
-    """LaTeX формулы без номера и мусора после него. Русские обозначения модель
-    читает латиницей («V_{обр}» → «V_{op6}»), а в тексте PDF они верные, — тогда он
-    приписывается к формуле: \\text{[K п = V пор V обр · 100 %]}."""
-    latex = _EQ_NUMBER.sub("", latex or "").strip()
-    if not latex:
-        return ""
-    orig = _ORIG_NUMBER.sub("", " ".join((orig or "").split()))
-    if _CYRILLIC.search(orig):
-        return f"{latex} \\quad \\text{{[{orig}]}}"
-    return latex
+def _set_formula_model(
+    factor: float, batch: int, models: tuple[tuple[str, str], ...] = _FORMULA_MODELS
+) -> bool:
+    """Расширение рамки формулы и размер пачки для модели — у docling это поля класса,
+    без опции. Обычный конвейер PDF берёт CodeFormulaVlmModel, старый — CodeFormulaModel.
+    False — ни одного класса нет (docling сменил устройство): настройки не применены."""
+    import importlib
 
-
-def _tidy_formulas(doc: Any) -> None:
-    for item in getattr(doc, "texts", []) or []:
-        if _label_of(item) == "formula" and item.text:
-            item.text = tidy_formula(item.text, getattr(item, "orig", "") or "")
-
-
-def _label_of(item: Any) -> str:
-    label = getattr(item, "label", "")
-    return str(getattr(label, "value", label)).lower()
-
-
-def _extract_structure(doc: Any) -> tuple[list[str], dict[int, str], int]:
-    """Заголовки разделов, текст по страницам и число страниц."""
-    sections: list[str] = []
-    pages_text: dict[int, str] = {}
-
-    for item in getattr(doc, "texts", []) or []:
-        text = (getattr(item, "text", "") or "").strip()
-        if not text:
+    applied = False
+    for module, name in models:
+        try:
+            cls = getattr(importlib.import_module(module), name)
+        except (ImportError, AttributeError):
             continue
-        label = _label_of(item)
-        if label in {"section_header", "title"} and len(text) < 300:
-            sections.append(text)
-        for prov in getattr(item, "prov", None) or []:
-            page_no = getattr(prov, "page_no", None)
-            if page_no is None:
-                continue
-            pages_text[page_no] = (pages_text.get(page_no, "") + "\n" + text).strip()
-
-    pages = getattr(doc, "pages", None) or {}
-    page_count = len(pages) if pages else (max(pages_text) if pages_text else 0)
-    return sections, pages_text, page_count
+        cls.expansion_factor = factor
+        cls.elements_batch_size = batch
+        applied = True
+    return applied
 
 
 class DoclingParser:
-    """Держит конвертеры в памяти: модели грузятся один раз на процесс."""
+    """Держит конвертер в памяти: модели грузятся один раз на процесс."""
 
     def __init__(self, settings: Settings):
         self.settings = settings
-        self._converters: dict[bool, DocumentConverter] = {}
+        self._converter: DocumentConverter | None = None
+        self.warnings: list[str] = []  # о настройке docling — в ошибки каждого документа
 
-    def converter(self, full_page_ocr: bool) -> DocumentConverter:
-        if full_page_ocr not in self._converters:
-            self._converters[full_page_ocr] = build_converter(self.settings, full_page_ocr)
-        return self._converters[full_page_ocr]
-
-    def parse(self, source: Path | str | ParseInput, full_page_ocr: bool = False) -> ParsedDoc:
+    def parse(self, source: Path | str | ParseInput) -> ParsedDoc:
+        """Любой сбой — статус FAILED с причиной, местом и стеком, а не исключение."""
         inp = ParseInput.of(source)
         started = time.monotonic()
-        parser_name = "docling+ocr" if full_page_ocr else "docling"
-
-        result = ParsedDoc(
-            doc_id=inp.doc_id,
-            source_path=inp.origin or str(inp.path or inp.name),
-            parser=parser_name,
-            status=FAILED,
-        )
-
+        result = ParsedDoc.failed(inp, DOCLING)
         try:
-            conv = self.converter(full_page_ocr).convert(
-                _docling_source(inp),
-                raises_on_error=False,  # разбираем статус сами, а не ловим исключение
-                max_num_pages=self.settings.max_pages,
-            )
-        except Exception as exc:  # noqa: BLE001 — любое падение парсера = повод для fallback
-            result.errors.append(f"{type(exc).__name__}: {exc}")
-            result.duration_sec = round(time.monotonic() - started, 2)
-            return result
+            self._convert(inp, result)
+        except Exception as exc:  # noqa: BLE001 — любое падение парсера = повод для запасного
+            result.status = FAILED
+            result.errors += [describe(exc), full_traceback(exc)]
+        result.errors += [f"предупреждение: {w}" for w in self.warnings]
+        result.duration_sec = round(time.monotonic() - started, 2)
+        return result
 
+    def _convert(self, inp: ParseInput, result: ParsedDoc) -> None:
+        if self._converter is None:
+            self._converter = build_converter(self.settings, self.warnings)
+        conv = self._converter.convert(
+            _docling_source(inp),
+            raises_on_error=False,  # разбираем статус сами, а не ловим исключение
+            max_num_pages=self.settings.max_pages,
+        )
         status = getattr(conv, "status", None)
         for err in getattr(conv, "errors", None) or []:
-            result.errors.append(str(getattr(err, "error_message", err)))
+            where = getattr(err, "module_name", "") or getattr(err, "component_type", "")
+            message = str(getattr(err, "error_message", err))
+            result.errors.append(f"{where}: {message}" if where else message)
 
         if status == ConversionStatus.FAILURE or getattr(conv, "document", None) is None:
-            result.status = FAILED
-            result.duration_sec = round(time.monotonic() - started, 2)
-            return result
+            if not result.errors:
+                result.errors.append(f"docling вернул статус {status} без описания ошибки")
+            return  # статус остаётся FAILED
 
-        doc = conv.document
-        sections, pages_text, page_count = _extract_structure(doc)
+        doc = conv.document  # как выдал docling: доводка — у оркестратора
+        sections, pages_text, page_count = extract_structure(doc)
+        markdown = doc.export_to_markdown()
+        docling_doc = doc.export_to_dict()
 
-        result.status = OK if status == ConversionStatus.SUCCESS else PARTIAL
-        _tidy_formulas(doc)
-        result.markdown = doc.export_to_markdown()
+        # Поля — только когда всё посчитано: сбой посередине не оставит полуготовый результат.
+        result.markdown = markdown
         result.sections = sections
         result.pages_text = pages_text
         result.page_count = page_count
         result.table_count = len(getattr(doc, "tables", []) or [])
-        result.docling_doc = doc.export_to_dict()
-        result.duration_sec = round(time.monotonic() - started, 2)
-        return result
+        result.docling_doc = docling_doc
+        result.status = OK if status == ConversionStatus.SUCCESS else PARTIAL

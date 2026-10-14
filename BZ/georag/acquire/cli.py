@@ -33,6 +33,7 @@ from .models import (
     NOT_FETCHED,
     PARSE_FAILED,
     REJECTED,
+    SCANNED,
     UNREVIEWED,
 )
 from .pipeline import AcquireConfig, acquire
@@ -43,6 +44,7 @@ STATUS_LABELS = {
     NOT_FETCHED: "отобрана, не качали",
     FETCH_FAILED: "не скачалась",
     PARSE_FAILED: "не разобралась",
+    SCANNED: "скан — не разбираем",
     REJECTED: "мимо темы",
     UNREVIEWED: "нужно решение",
 }
@@ -157,11 +159,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--mailto", default="", help="e-mail для polite pool OpenAlex и Crossref")
     p.add_argument("--device", choices=["auto", "cuda", "cpu", "mps"], default=None)
     p.add_argument(
-        "--no-ocr",
-        action="store_true",
-        help="не распознавать картинки: быстрее в разы, годится для обычных статей",
-    )
-    p.add_argument(
         "--figures",
         action="store_true",
         help="описать рисунки моделью со зрением (qwen3.5:9b) — фрагменты «Рисунок»",
@@ -229,8 +226,6 @@ def _by_doi(args: Any) -> int:
     settings = Settings()
     if args.device:
         settings.device = args.device
-    if args.no_ocr:
-        settings.use_ocr = False
     settings.figures = args.figures
     cfg = AcquireConfig(
         out_dir=args.out,
@@ -280,8 +275,6 @@ def main(argv: list[str] | None = None) -> int:
         settings.device = args.device
     if args.max_tokens:
         settings.max_tokens = args.max_tokens
-    if args.no_ocr:
-        settings.use_ocr = False
     if args.tables:
         settings.table_mode = args.tables
     settings.figures = args.figures

@@ -10,10 +10,8 @@
    chunk.meta.doc_items[].prov[].page_no — без него нечем выполнить
    требование «всегда указывай источник и страницу».
 
-Про overlap: у HybridChunker нет нативного перекрытия — он режет по семантическим
-границам. Если перекрытие всё-таки нужно (settings.overlap_tokens > 0), оно
-добавляется постобработкой и только в embed_text; текст для цитирования не трогаем.
-Чтобы итог остался в пределах max_tokens, режем на (max_tokens - overlap_tokens).
+Перекрытия фрагментов нет: HybridChunker режет по границам абзацев и разделов, а
+контекст вокруг найденного фрагмента добирается при поиске — соседними фрагментами.
 """
 
 from __future__ import annotations
@@ -43,25 +41,19 @@ def _tokenizer(model_id: str) -> Any:
         return AutoTokenizer.from_pretrained(model_id)
 
 
-def _build_chunker(settings: Settings) -> Any:
-    return _cached_chunker(settings.embed_model_id, settings.max_tokens, settings.overlap_tokens)
-
-
 @lru_cache(maxsize=4)
-def _cached_chunker(model_id: str, max_tokens: int, overlap_tokens: int) -> Any:
+def _chunker(model_id: str, max_tokens: int) -> Any:
     from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
 
     hf_tokenizer = _tokenizer(model_id)
-    budget = max(max_tokens - overlap_tokens, 64)
-
     try:  # docling-core >= 2.2x
         from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
 
-        tokenizer = HuggingFaceTokenizer(tokenizer=hf_tokenizer, max_tokens=budget)
+        tokenizer = HuggingFaceTokenizer(tokenizer=hf_tokenizer, max_tokens=max_tokens)
         chunker = HybridChunker(tokenizer=tokenizer, merge_peers=True)
     except ImportError:  # pragma: no cover — старый API
         chunker = HybridChunker(  # type: ignore[call-arg]
-            tokenizer=hf_tokenizer, max_tokens=budget, merge_peers=True
+            tokenizer=hf_tokenizer, max_tokens=max_tokens, merge_peers=True
         )
 
     return chunker, hf_tokenizer
@@ -85,24 +77,6 @@ def _has_table(chunk: Any) -> bool:
     return False
 
 
-def _apply_overlap(chunks: list[Chunk], hf_tokenizer: Any, overlap_tokens: int) -> list[Chunk]:
-    """Добавляет хвост предыдущего чанка в начало embed_text следующего."""
-    if overlap_tokens <= 0:
-        return chunks
-
-    for i in range(1, len(chunks)):
-        prev_ids = hf_tokenizer.encode(chunks[i - 1].text, add_special_tokens=False)
-        if not prev_ids:
-            continue
-        tail = hf_tokenizer.decode(prev_ids[-overlap_tokens:], skip_special_tokens=True).strip()
-        if tail:
-            chunks[i].embed_text = f"{tail}\n\n{chunks[i].embed_text}"
-            chunks[i].n_tokens = len(
-                hf_tokenizer.encode(chunks[i].embed_text, add_special_tokens=False)
-            )
-    return chunks
-
-
 def chunk_parsed_doc(parsed: ParsedDoc, settings: Settings) -> list[Chunk]:
     """Чанкинг документа. Для docling — по структуре, для fallback — по тексту."""
     if parsed.docling_doc:
@@ -113,7 +87,7 @@ def chunk_parsed_doc(parsed: ParsedDoc, settings: Settings) -> list[Chunk]:
 def _chunk_docling(parsed: ParsedDoc, settings: Settings) -> list[Chunk]:
     from docling_core.types.doc.document import DoclingDocument
 
-    chunker, hf_tokenizer = _build_chunker(settings)
+    chunker, hf_tokenizer = _chunker(settings.embed_model_id, settings.max_tokens)
     doc = DoclingDocument.model_validate(parsed.docling_doc)
 
     chunks: list[Chunk] = []
@@ -132,8 +106,7 @@ def _chunk_docling(parsed: ParsedDoc, settings: Settings) -> list[Chunk]:
                 source_path=parsed.source_path,
             )
         )
-
-    return _apply_overlap(chunks, hf_tokenizer, settings.overlap_tokens)
+    return chunks
 
 
 def _chunk_plain_text(parsed: ParsedDoc, settings: Settings) -> list[Chunk]:
@@ -142,7 +115,7 @@ def _chunk_plain_text(parsed: ParsedDoc, settings: Settings) -> list[Chunk]:
     Страницу сохраняем — она известна из pages_text, и цитирование не ломается.
     """
     hf_tokenizer = _tokenizer(settings.embed_model_id)
-    budget = max(settings.max_tokens - settings.overlap_tokens, 64)
+    budget = settings.max_tokens
 
     chunks: list[Chunk] = []
     index = 0
@@ -160,8 +133,7 @@ def _chunk_plain_text(parsed: ParsedDoc, settings: Settings) -> list[Chunk]:
         if buffer:
             chunks.append(_plain_chunk(parsed, index, buffer, buffer_tokens, page_no))
             index += 1
-
-    return _apply_overlap(chunks, hf_tokenizer, settings.overlap_tokens)
+    return chunks
 
 
 def _paragraphs(text: str) -> Iterable[str]:

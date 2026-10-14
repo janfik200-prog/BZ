@@ -12,6 +12,7 @@ ACQUIRED = "acquired"  # найден, скачан в память, разоб�
 NO_FULLTEXT = "no_fulltext"  # найден, но открытого PDF нет — только ссылка
 FETCH_FAILED = "fetch_failed"  # ссылка есть, но файл не отдался или это не PDF
 PARSE_FAILED = "parse_failed"  # скачали, но разобрать не смогли
+SCANNED = "scan"  # скачали, а это скан без текстового слоя — не разбираем
 REJECTED = "rejected"  # LLM посчитала статью нерелевантной теме
 UNREVIEWED = "unreviewed"  # LLM не смогла решить — нужен человек
 NOT_FETCHED = "not_fetched"  # пробный прогон: отобрана, но мы намеренно не качали
@@ -115,6 +116,7 @@ class AcquiredRecord:
     validation: dict[str, Any] | None = None
     failed_checks: list[str] = field(default_factory=list)
     attempts: list[str] = field(default_factory=list)
+    cases: list[str] = field(default_factory=list)  # что нашёл оркестратор разбора
     filtered_by: str = ""  # кто решил: модель или эвристика
     tried_urls: list[str] = field(default_factory=list)  # какие адреса полного текста пробовали
     note: str = ""

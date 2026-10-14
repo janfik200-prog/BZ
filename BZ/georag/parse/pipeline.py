@@ -1,32 +1,40 @@
-"""Пайплайн парсинга: Docling → валидация → OCR-пересборка → fallback → manual → ручная проверка.
+"""Конвейер разбора: зонд → docling → проверка → PyMuPDF4LLM → оркестратор → фрагменты.
 
-Каждый документ считается в отдельном процессе. Это не паранойя: у docling есть
-известные случаи зависания в нативном парсере, где ни document_timeout, ни Ctrl+C
-не помогают — процесс просто перестаёт отвечать. Для ночного cron это означало бы
-остановку всей очереди, поэтому родитель ждёт результат и убивает зависший процесс.
+Зонд (profile) за доли секунды решает, что за документ: скан дальше не идёт. docling
+считает в отдельном процессе (worker) с жёстким таймаутом. Если он упал, завис или не
+прошёл проверку (validate), документ разбирает PyMuPDF4LLM; из попыток берётся лучшая.
+Её доводит оркестратор (orchestrator): каждая найденная проблема PDF — отдельный случай
+со своей проверкой и обработкой; что нашлось и что сделано — в журнал и в итог документа.
 
-Логи пишутся построчно в JSONL: шаг, сколько занял, результат, ошибки — ровно то,
-что потом понадобится, чтобы понять, где узкое место.
+Журнал пишется построчно в JSONL: шаг, сколько занял, результат, ошибки — ровно то,
+что потом понадобится, чтобы понять, где узкое место. Сбой одного документа очередь
+не роняет: process_document не бросает исключений, а непредвиденная ошибка уходит в
+журнал с причиной, местом и полным стеком (шаг «сбой»), документ — со статусом failed.
 """
 
 from __future__ import annotations
 
 import json
-import multiprocessing as mp
-import queue
+import sys
 import time
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
+from statistics import median_high
 from typing import Any
 
+from . import orchestrator, profile
 from .config import Settings
-from .fallback import parse_manual, parse_with_pymupdf
+from .diag import describe, full_traceback
+from .fallback import parse_with_pymupdf
 from .models import (
     FAILED,
     MANUAL_REVIEW,
     OK,
     PARTIAL,
+    PIPELINE,
+    PROBE,
+    SCAN,
     TIMEOUT,
     Chunk,
     ParsedDoc,
@@ -34,11 +42,19 @@ from .models import (
     ValidationReport,
 )
 from .validate import accuracy, load_golden, validate
+from .worker import DoclingWorker
 
 
-# --------------------------------------------------------------------------- #
-#  Логирование
-# --------------------------------------------------------------------------- #
+def say(line: str) -> None:
+    """Строка в консоль. Вывод в файл бывает не в UTF-8 (cp1251 при перенаправлении) —
+    знак, которого в кодировке нет, заменяется, а не роняет разбор."""
+    try:
+        print(line, flush=True)
+    except UnicodeEncodeError:
+        encoding = getattr(sys.stdout, "encoding", None) or "ascii"
+        print(line.encode(encoding, errors="replace").decode(encoding), flush=True)
+
+
 class StepLogger:
     def __init__(self, log_dir: Path, run_id: str | None = None, prefix: str = "parse"):
         log_dir.mkdir(parents=True, exist_ok=True)
@@ -56,151 +72,16 @@ class StepLogger:
             **extra,
         }
         with self.path.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(record, ensure_ascii=False) + "\n")
-        print(
+            fh.write(json.dumps(record, ensure_ascii=False, default=str) + "\n")
+        say(
             f"  [{step}] {status} за {duration:.1f}с"
             + (f" — {extra.get('detail')}" if extra.get("detail") else "")
         )
+        errors = extra.get("errors") or []
+        if status in (FAILED, TIMEOUT) and errors:  # причина — сразу видна, не только в журнале
+            say(f"    ↳ {str(errors[0]).splitlines()[0][:300]}")
 
 
-# --------------------------------------------------------------------------- #
-#  Изоляция парсинга в отдельном процессе
-# --------------------------------------------------------------------------- #
-def _worker_loop(
-    tasks: mp.Queue[Any], results: mp.Queue[Any], settings_dict: dict[str, Any]
-) -> None:  # pragma: no cover
-    """Живёт в дочернем процессе: держит модели docling в памяти между документами."""
-    from .config import Settings as _Settings
-
-    settings = _Settings.from_dict(settings_dict)
-
-    parser = None
-    setup_error: str | None = None
-    try:
-        from .docling import DoclingParser
-
-        parser = DoclingParser(settings)
-    except Exception as exc:  # noqa: BLE001 — docling может быть не установлен
-        setup_error = f"{type(exc).__name__}: {exc}"
-
-    while True:
-        task = tasks.get()
-        if task is None:
-            break
-        inp = ParseInput(
-            doc_id=task["doc_id"],
-            path=Path(task["path"]) if task.get("path") else None,
-            data=task.get("data"),
-            display_name=task.get("display_name", ""),
-            origin=task.get("origin", ""),
-        )
-        base = {
-            "doc_id": inp.doc_id,
-            "source_path": inp.origin or str(inp.path or inp.name),
-            "parser": "docling+ocr" if task["full_page_ocr"] else "docling",
-            "status": FAILED,
-        }
-        if parser is None:
-            results.put({**base, "errors": [f"docling недоступен: {setup_error}"]})
-            continue
-        try:
-            parsed = parser.parse(inp, full_page_ocr=task["full_page_ocr"])
-            results.put(parsed.to_dict())
-        except Exception as exc:  # noqa: BLE001
-            results.put({**base, "errors": [f"{type(exc).__name__}: {exc}"]})
-
-
-class DoclingWorker:
-    """Один дочерний процесс + жёсткий таймаут на документ."""
-
-    def __init__(self, settings: Settings):
-        self.settings = settings
-        self._ctx = mp.get_context("spawn")
-        self._proc: mp.process.BaseProcess | None = None
-
-    def _start(self) -> None:
-        self.tasks = self._ctx.Queue()
-        self.results = self._ctx.Queue()
-        self._proc = self._ctx.Process(
-            target=_worker_loop,
-            args=(self.tasks, self.results, self.settings.to_dict()),
-            daemon=True,
-        )
-        self._proc.start()
-
-    def _ensure_alive(self) -> None:
-        if self._proc is None or not self._proc.is_alive():
-            self._start()
-
-    def restart(self) -> None:
-        if self._proc is not None and self._proc.is_alive():
-            self._proc.kill()
-            self._proc.join(timeout=10)
-        self._start()
-
-    def parse(self, source: Path | str | ParseInput, full_page_ocr: bool = False) -> ParsedDoc:
-        inp = ParseInput.of(source)
-        self._ensure_alive()
-        timeout = (
-            self.settings.ocr_doc_timeout_sec if full_page_ocr else self.settings.doc_timeout_sec
-        )
-        parser_name = "docling+ocr" if full_page_ocr else "docling"
-        self.tasks.put(
-            {
-                "doc_id": inp.doc_id,
-                "path": str(inp.path) if inp.path else None,
-                "data": inp.data,
-                "display_name": inp.display_name,
-                "origin": inp.origin,
-                "full_page_ocr": full_page_ocr,
-            }
-        )
-
-        started = time.monotonic()
-        deadline = started + timeout
-        while True:
-            try:
-                payload = self.results.get(timeout=2)
-                return ParsedDoc.from_dict(payload)
-            except queue.Empty:
-                # Процесс мог умереть сам: не установлен docling, OOM, сегфолт в
-                # нативном парсере. Ждать в этом случае весь таймаут бессмысленно.
-                if self._proc is None or not self._proc.is_alive():
-                    exitcode = getattr(self._proc, "exitcode", None)
-                    self.restart()
-                    return ParsedDoc(
-                        doc_id=inp.doc_id,
-                        source_path=inp.origin or str(inp.path or inp.name),
-                        parser=parser_name,
-                        status=FAILED,
-                        errors=[f"дочерний процесс завершился (exitcode={exitcode})"],
-                        duration_sec=round(time.monotonic() - started, 2),
-                    )
-                if time.monotonic() > deadline:
-                    # Завис — убиваем и поднимаем заново, очередь не встаёт.
-                    self.restart()
-                    return ParsedDoc(
-                        doc_id=inp.doc_id,
-                        source_path=inp.origin or str(inp.path or inp.name),
-                        parser=parser_name,
-                        status=TIMEOUT,
-                        errors=[f"парсер не ответил за {timeout} с, процесс убит"],
-                        duration_sec=float(timeout),
-                    )
-
-    def close(self) -> None:
-        if self._proc is not None and self._proc.is_alive():
-            try:
-                self.tasks.put(None)
-                self._proc.join(timeout=10)
-            finally:
-                if self._proc.is_alive():
-                    self._proc.kill()
-
-
-# --------------------------------------------------------------------------- #
-#  Результат по документу
-# --------------------------------------------------------------------------- #
 @dataclass
 class DocResult:
     doc_id: str
@@ -215,27 +96,13 @@ class DocResult:
     duration_sec: float = 0.0
     failed_checks: list[str] = field(default_factory=list)
     attempts: list[str] = field(default_factory=list)
+    variant: str = ""  # вариант документа по зонду (profile): скан, с переносами…
+    cases: list[str] = field(default_factory=list)  # найденные оркестратором случаи
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "doc_id": self.doc_id,
-            "source_path": self.source_path,
-            "parser": self.parser,
-            "status": self.status,
-            "accuracy": self.accuracy,
-            "pages": self.pages,
-            "sections": self.sections,
-            "tables": self.tables,
-            "chunks": self.chunks,
-            "duration_sec": round(self.duration_sec, 2),
-            "failed_checks": self.failed_checks,
-            "attempts": self.attempts,
-        }
+        return {**asdict(self), "duration_sec": round(self.duration_sec, 2)}
 
 
-# --------------------------------------------------------------------------- #
-#  Основной проход по документу
-# --------------------------------------------------------------------------- #
 def process_document(
     source: Path | str | ParseInput,
     settings: Settings,
@@ -244,119 +111,75 @@ def process_document(
     make_chunks: bool = True,
     write_outputs: bool = True,
 ) -> tuple[DocResult, ParsedDoc, list[Chunk]]:
-    """Прогон одного документа по цепочке попыток.
+    """Один документ от PDF до фрагментов. Исключений не бросает: любой сбой — статус
+    документа и запись в журнале с причиной и стеком.
 
     Возвращает сводку, лучший разобранный документ и чанки — режиму добычи нужны
     сами данные, а не только статистика.
     """
     inp = ParseInput.of(source)
     started = time.monotonic()
-    golden = load_golden(inp.doc_id, settings)
-    attempts: list[str] = []
-    best: tuple[ParsedDoc, ValidationReport] | None = None
+    try:
+        return _process(inp, settings, worker, logger, make_chunks, write_outputs, started)
+    except Exception as exc:  # noqa: BLE001 — сбой в нашем же коде не должен ронять очередь
+        return _crashed(inp, exc, logger, started)
 
-    def consider(parsed: ParsedDoc, report: ValidationReport) -> None:
-        """Запоминаем лучший результат — на случай, если ни один не пройдёт валидацию."""
-        nonlocal best
-        if best is None or accuracy(report) > accuracy(best[1]):
-            best = (parsed, report)
 
-    # --- попытка 1: docling как есть ----------------------------------------
-    parsed = worker.parse(inp, full_page_ocr=False)
-    attempts.append(f"docling:{parsed.status}")
-    report = validate(parsed, settings, golden)
+def _process(
+    inp: ParseInput,
+    settings: Settings,
+    worker: DoclingWorker,
+    logger: StepLogger,
+    make_chunks: bool,
+    write_outputs: bool,
+    started: float,
+) -> tuple[DocResult, ParsedDoc, list[Chunk]]:
+    kind = profile.probe(inp)
     logger.log(
         inp.doc_id,
-        "docling",
-        parsed.status,
-        parsed.duration_sec,
-        detail=f"страниц {parsed.page_count}, разделов {len(parsed.sections)}, таблиц {parsed.table_count}",
-        validation=report.to_dict(),
-        errors=parsed.errors,
+        "профиль",
+        kind.variant,
+        kind.seconds,
+        detail=f"{kind.variant}: {kind.reason}",
+        profile=kind.to_dict(),
     )
-    consider(parsed, report)
+    if kind.variant == profile.SCAN:
+        return _scan(inp, kind, logger, started)
 
-    # --- попытка 2: полностраничный OCR, если текста нет ---------------------
-    # Только когда парсер отработал, но текста не набралось (скан). Если docling
-    # упал или завис, второй заход тем же парсером — потерянное время.
-    if parsed.status in (OK, PARTIAL) and not report.ok and report.suggestion == "rerun_ocr":
-        parsed_ocr = worker.parse(inp, full_page_ocr=True)
-        attempts.append(f"docling+ocr:{parsed_ocr.status}")
-        report_ocr = validate(parsed_ocr, settings, golden)
+    try:
+        golden = load_golden(inp.doc_id, settings)
+    except (ValueError, OSError) as exc:  # битый эталон — сверка пропускается, не документ
+        golden = None
+        logger.log(inp.doc_id, "эталон", FAILED, 0.0, detail=f"сверка пропущена: {describe(exc)}")
+
+    # Попытки по очереди, пока одна не пройдёт проверку: docling, затем PyMuPDF4LLM —
+    # быстрее и проще, но хуже держит сложную вёрстку и таблицы.
+    tried: list[tuple[ParsedDoc, ValidationReport]] = []
+    for parse in (worker.parse, parse_with_pymupdf):
+        parsed = parse(inp)
+        report = validate(parsed, settings, golden)
         logger.log(
             inp.doc_id,
-            "docling+ocr",
-            parsed_ocr.status,
-            parsed_ocr.duration_sec,
-            detail=f"страниц {parsed_ocr.page_count}, символов {len(parsed_ocr.text)}",
-            validation=report_ocr.to_dict(),
-            errors=parsed_ocr.errors,
+            parsed.parser,
+            parsed.status,
+            parsed.duration_sec,
+            detail=f"страниц {parsed.page_count}, разделов {len(parsed.sections)}, "
+            f"таблиц {parsed.table_count}, символов {len(parsed.text)}",
+            validation=report.to_dict(),
+            errors=parsed.errors,
         )
-        consider(parsed_ocr, report_ocr)
-        parsed, report = parsed_ocr, report_ocr
+        tried.append((parsed, report))
+        if _passed(parsed, report):
+            break
 
-    # --- попытка 3: другой парсер -------------------------------------------
-    if not (report.ok and parsed.status in (OK, PARTIAL)):
-        parsed_fb = parse_with_pymupdf(inp, settings)
-        attempts.append(f"pymupdf4llm:{parsed_fb.status}")
-        report_fb = validate(parsed_fb, settings, golden)
-        logger.log(
-            inp.doc_id,
-            "pymupdf4llm",
-            parsed_fb.status,
-            parsed_fb.duration_sec,
-            detail=f"страниц {parsed_fb.page_count}, символов {len(parsed_fb.text)}",
-            validation=report_fb.to_dict(),
-            errors=parsed_fb.errors,
-        )
-        consider(parsed_fb, report_fb)
-        parsed, report = parsed_fb, report_fb
-
-    # --- попытка 4: ручной текст --------------------------------------------
-    if not (report.ok and parsed.status in (OK, PARTIAL)):
-        parsed_manual = parse_manual(inp, settings)
-        if parsed_manual is not None:
-            attempts.append(f"manual:{parsed_manual.status}")
-            report_manual = validate(parsed_manual, settings, golden)
-            logger.log(
-                inp.doc_id,
-                "manual",
-                parsed_manual.status,
-                parsed_manual.duration_sec,
-                detail="взят ручной текст",
-                validation=report_manual.to_dict(),
-            )
-            consider(parsed_manual, report_manual)
-            parsed, report = parsed_manual, report_manual
-
-    assert best is not None
-    parsed, report = best
-    passed = report.ok and parsed.status in (OK, PARTIAL)
+    # Лучшая попытка — с наибольшей долей пройденных проверок (из равных — первая):
+    # если ни одна не прошла, на ручную проверку уходит лучшее, а не пустой файл.
+    parsed, report = max(tried, key=lambda pr: accuracy(pr[1]))
+    findings = _orchestrate(inp, parsed, kind, tried, logger)
+    passed = _passed(parsed, report)
     status = parsed.status if passed else MANUAL_REVIEW
-
-    # --- чанкинг -------------------------------------------------------------
-    chunks: list[Chunk] = []
-    if passed and make_chunks:
-        t0 = time.monotonic()
-        try:
-            from .chunking import chunk_parsed_doc
-
-            chunks = chunk_parsed_doc(parsed, settings)
-            logger.log(
-                inp.doc_id,
-                "chunking",
-                OK,
-                time.monotonic() - t0,
-                detail=f"{len(chunks)} чанков, медиана {_median([c.n_tokens for c in chunks])} токенов",
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.log(
-                inp.doc_id,
-                "chunking",
-                FAILED,
-                time.monotonic() - t0,
-                errors=[f"{type(exc).__name__}: {exc}"],
-            )
+    chunks, chunk_problem = _chunk(parsed, settings, logger) if passed and make_chunks else ([], "")
+    findings.append(orchestrator.chunks(chunk_problem))
 
     if write_outputs:
         _write_outputs(parsed, report, chunks, settings, status)
@@ -372,8 +195,11 @@ def process_document(
         tables=parsed.table_count,
         chunks=len(chunks),
         duration_sec=time.monotonic() - started,
-        failed_checks=[f"{c.name}: {c.detail}" for c in report.failed],
-        attempts=attempts,
+        failed_checks=[f"{c.name}: {c.detail}" for c in report.failed]
+        + ([f"нарезка: {chunk_problem}"] if chunk_problem else []),
+        attempts=[f"{p.parser}:{p.status}" for p, _ in tried],
+        variant=kind.variant,
+        cases=[f.short() for f in findings if f.found or f.error],
     )
     logger.log(
         inp.doc_id,
@@ -385,11 +211,125 @@ def process_document(
     return result, parsed, chunks
 
 
-def _median(values: list[int]) -> int:
-    if not values:
-        return 0
-    values = sorted(values)
-    return values[len(values) // 2]
+def _orchestrate(
+    inp: ParseInput,
+    parsed: ParsedDoc,
+    kind: profile.Profile,
+    tried: list[tuple[ParsedDoc, ValidationReport]],
+    logger: StepLogger,
+) -> list[orchestrator.Finding]:
+    """Случаи документа: что сказал зонд, понадобился ли запасной парсер, доводка
+    выбранной попытки. В журнал — все случаи (нашёлся или нет), в консоль — найденные."""
+    t0 = time.monotonic()
+    findings = orchestrator.before(kind) + [orchestrator.attempts(tried)]
+    findings += orchestrator.after(parsed, inp, kind)
+    broken = [f for f in findings if f.error]
+    logger.log(
+        inp.doc_id,
+        "оркестратор",
+        FAILED if broken else OK,
+        time.monotonic() - t0,
+        detail=orchestrator.summary(findings),
+        cases=[f.to_dict() for f in findings],
+        **(
+            {
+                "errors": [f"{f.case}: {f.error}" for f in broken],
+                "traceback": [f.trace for f in broken],
+            }
+            if broken
+            else {}
+        ),
+    )
+    return findings
+
+
+def _crashed(
+    inp: ParseInput, exc: Exception, logger: StepLogger, started: float
+) -> tuple[DocResult, ParsedDoc, list[Chunk]]:
+    """Непредвиденный сбой: в журнал — причина, место и полный стек; документ — failed."""
+    reason = describe(exc)
+    duration = time.monotonic() - started
+    logger.log(
+        inp.doc_id,
+        "сбой",
+        FAILED,
+        duration,
+        detail=reason,
+        errors=[reason],
+        traceback=full_traceback(exc),
+    )
+    parsed = ParsedDoc.failed(inp, PIPELINE, reason, duration=round(duration, 2))
+    result = DocResult(
+        doc_id=inp.doc_id,
+        source_path=inp.source,
+        parser=PIPELINE,
+        status=FAILED,
+        duration_sec=duration,
+        failed_checks=[f"сбой конвейера: {reason}"],
+        attempts=[f"{PIPELINE}:{FAILED}"],
+    )
+    return result, parsed, []
+
+
+def _scan(
+    inp: ParseInput, kind: profile.Profile, logger: StepLogger, started: float
+) -> tuple[DocResult, ParsedDoc, list[Chunk]]:
+    """Скан не разбирается: текста нет, распознавание картинок не делаем."""
+    parsed = ParsedDoc.failed(inp, PROBE, kind.reason, status=SCAN)
+    parsed.page_count = kind.pages
+    result = DocResult(
+        doc_id=inp.doc_id,
+        source_path=inp.source,
+        parser=PROBE,
+        status=SCAN,
+        pages=kind.pages,
+        duration_sec=time.monotonic() - started,
+        failed_checks=[f"скан: {kind.reason}"],
+        attempts=[f"{PROBE}:скан"],
+        variant=kind.variant,
+        cases=[f.short() for f in orchestrator.before(kind) if f.found],
+    )
+    logger.log(inp.doc_id, "document", SCAN, result.duration_sec, detail="скан — не разбирается")
+    return result, parsed, []
+
+
+def _passed(parsed: ParsedDoc, report: ValidationReport) -> bool:
+    return report.ok and parsed.status in (OK, PARTIAL)
+
+
+def _chunk(parsed: ParsedDoc, settings: Settings, logger: StepLogger) -> tuple[list[Chunk], str]:
+    """Чанки разобранного документа и что с ними не так (пусто — всё в порядке).
+    Не вышло или вышло ноль — документ не попадёт в поиск, причина — в журнал и отчёт."""
+    t0 = time.monotonic()
+    try:
+        from .chunking import chunk_parsed_doc
+
+        chunks = chunk_parsed_doc(parsed, settings)
+    except Exception as exc:  # noqa: BLE001
+        problem = describe(exc)
+        logger.log(
+            parsed.doc_id,
+            "chunking",
+            FAILED,
+            time.monotonic() - t0,
+            detail=problem,
+            errors=[problem],
+            traceback=full_traceback(exc),
+        )
+        return [], problem
+    if not chunks:
+        problem = "ни одного фрагмента — документ не попадёт в поиск"
+        logger.log(parsed.doc_id, "chunking", FAILED, time.monotonic() - t0, detail=problem)
+        return [], problem
+    tokens = median_high([c.n_tokens for c in chunks])
+    logger.log(
+        parsed.doc_id,
+        "chunking",
+        OK,
+        time.monotonic() - t0,
+        detail=f"{len(chunks)} чанков, медиана {tokens} токенов",
+    )
+    return chunks, ""
 
 
 def _write_outputs(
@@ -405,9 +345,7 @@ def _write_outputs(
 
     (out / f"{stem}.md").write_text(parsed.text, encoding="utf-8")
 
-    payload = parsed.to_dict(with_doc=False)
-    payload["final_status"] = status
-    payload["validation"] = report.to_dict()
+    payload = {**parsed.summary(), "final_status": status, "validation": report.to_dict()}
     (out / f"{stem}.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -426,14 +364,13 @@ def _write_outputs(
 
 
 def process_all(paths: list[Path], settings: Settings, make_chunks: bool = True) -> list[DocResult]:
-    settings.ensure_dirs()
     logger = StepLogger(settings.log_dir)
     worker = DoclingWorker(settings)
     results: list[DocResult] = []
 
     try:
         for i, path in enumerate(paths, start=1):
-            print(f"\n[{i}/{len(paths)}] {path.name}")
+            say(f"\n[{i}/{len(paths)}] {path.name}")
             doc_result, _parsed, _chunks = process_document(
                 path, settings, worker, logger, make_chunks=make_chunks
             )
@@ -441,10 +378,11 @@ def process_all(paths: list[Path], settings: Settings, make_chunks: bool = True)
     finally:
         worker.close()
 
+    settings.out_dir.mkdir(parents=True, exist_ok=True)
     report_path = settings.out_dir / f"report-{logger.run_id}.json"
     report_path.write_text(
         json.dumps([r.to_dict() for r in results], ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    print(f"\nОтчёт: {report_path}\nЛог:    {logger.path}")
+    say(f"\nОтчёт: {report_path}\nЛог:    {logger.path}")
     return results
