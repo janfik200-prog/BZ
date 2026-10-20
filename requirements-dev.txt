@@ -1,0 +1,8 @@
+# Проверки кода (python georag.py lint, python georag.py test; настройки — pyproject.toml).
+# Для работы проекта — requirements.txt; эти — поверх него или отдельно в CI.
+pytest>=8.0
+ruff>=0.16
+black>=26.0
+mypy>=2.0
+types-PyYAML
+types-requests

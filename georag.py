@@ -61,7 +61,7 @@
 
 Проверка
     test                        проверить код (проверки — у разработчика, в .local/tests)
-    lint                        проверки кода: ruff, black --check, mypy --strict
+    lint                        проверки кода: ruff, black --check, mypy --strict (requirements-dev.txt)
     eval                        оценить базу и чат-бота по вопросам config/eval-questions.yaml
     eval --only-search          то же, только поиск — без модели
     eval --only s01,t01         только эти вопросы
@@ -889,6 +889,12 @@ def parse(argv: list[str]) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if sys.version_info < (3, 12):
+        print(
+            f"Нужен Python 3.12 или новее, а запущен {sys.version.split()[0]} — ЗАПУСК.md, раздел 1.",
+            file=sys.stderr,
+        )
+        return 1
     opts = parse(sys.argv[1:] if argv is None else argv)
     if opts.help:
         opts.command = "help"

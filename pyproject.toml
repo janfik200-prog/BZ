@@ -1,6 +1,12 @@
 # Настройки проверок кода: ruff, black, mypy --strict.
 # Запуск всех трёх разом: python georag.py lint
 
+[project]
+name = "georag"
+version = "0.1.0"
+description = "Локальная база знаний по рудной геологии: поиск, чат-бот и граф связей по статьям"
+requires-python = ">=3.12"
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"

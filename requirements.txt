@@ -1,15 +1,28 @@
+# Библиотеки для работы проекта. Проверки кода — отдельно: requirements-dev.txt.
+# Python 3.12 или новее (ЗАПУСК.md). torch с поддержкой видеокарты ставится вторым
+# шагом — ЗАПУСК.md, «Первый запуск»: с PyPI на Windows приходит сборка только для
+# процессора.
+
 # --- парсинг ---
 # Распознавание картинок (OCR) выключено (do_ocr=False), поэтому движок OCR не нужен:
 # проверено 14.10.2026 — docling разбирает статью и при запрещённом импорте easyocr.
-docling>=2.126.0
-docling-core[chunking]>=2.0   # HybridChunker и токенайзеры
-pymupdf4llm>=1.26             # запасной парсер
+#
+# Верхние границы — по проверенным версиям, а не по «следующей главной»: docling
+# выходит раз в 2–3 дня и меняет внутреннее устройство в обычных выпусках, а проект
+# настраивает модель формул через её класс (parse/parsers/docling.py, _FORMULA_MODELS).
+# Поднимать границу — после проверки разбора PDF с формулами на новой версии.
+docling>=2.126.0,<2.141
+docling-core[chunking]>=2.94.1,<2.103   # HybridChunker и токенайзеры
+pymupdf4llm>=1.26,<2          # запасной парсер; 2.0 — пустой пакет без кода
+pymupdf>=1.26,<2              # PDF напрямую (зонд, текстовый слой); ставит и pymupdf4llm
+pillow>=10.0                  # рисунки статей (chunks/figures.py, tg/picture.py)
 
 # --- чанкинг / токенайзер ---
-transformers>=4.44            # токенайзер BGE-M3 (должен совпадать с моделью эмбеддинга)
+transformers>=4.44,<5.21      # токенайзер BGE-M3 (должен совпадать с моделью эмбеддинга)
 
 # --- база знаний ---
 sentence-transformers>=3.0    # эмбеддинги BGE-M3 (1024 измерения, мультиязычная)
+numpy>=1.24                   # сравнение векторов (graph/synonyms.py)
 psycopg[binary]>=3.1          # PostgreSQL; binary — чтобы на Windows не собирать из исходников
 
 # --- добыча ---
@@ -18,16 +31,9 @@ pyyaml>=6.0                   # каталог источников sources.yaml
 
 # Примечания по окружению:
 #
-# 1. GPU: pip ставит сборку torch с CUDA автоматически. Если нужен конкретный
-#    рантайм, поставьте torch до docling:
-#       pip install torch --index-url https://download.pytorch.org/whl/cu124
+# 1. GPU: sentence-transformers тянет torch, но с PyPI на Windows это сборка без CUDA —
+#    векторы считались бы на процессоре. Сборку с CUDA ставят вторым шагом
+#    (ЗАПУСК.md, «Первый запуск на новой машине»).
 #
 # 2. Первый запуск docling скачивает модели разметки и TableFormer с HuggingFace.
 #    Для офлайн-машины прогрейте кэш заранее:  docling-tools models download
-
-# --- проверки кода (python georag.py lint; настройки — pyproject.toml) ---
-ruff>=0.16
-black>=26.0
-mypy>=2.0
-types-PyYAML
-types-requests
