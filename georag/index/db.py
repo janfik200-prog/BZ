@@ -22,8 +22,10 @@ from typing import Any
 VECTOR_DIM = 1024  # BGE-M3
 
 # Порт 5433 — тот, что публикует docker-compose.yml, чтобы не спорить
-# с уже установленным на машине PostgreSQL на 5432.
-DEFAULT_DSN = "postgresql://georag:georag@localhost:5433/georag"
+# с уже установленным на машине PostgreSQL на 5432. 127.0.0.1, а не localhost:
+# на Windows localhost сначала пробует IPv6 (::1), а Docker публикует порт только
+# на IPv4 — каждое новое соединение ждало, пока IPv6 не откажет.
+DEFAULT_DSN = "postgresql://georag:georag@127.0.0.1:5433/georag"
 
 SCHEMA = """
 CREATE EXTENSION IF NOT EXISTS vector;
