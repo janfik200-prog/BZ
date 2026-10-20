@@ -31,6 +31,10 @@
     search "запрос"             найти фрагменты статей в терминале
     ask "вопрос"                спросить чат-бота в терминале (нужна модель)
                                 (хотите подробно или кратко — так и напишите в вопросе)
+    collect                     выписки по частым предметам заранее: широкий вопрос о них
+                                не ждёт чтения статей (идёт и в ночном прогоне)
+    collect --limit 40          то же для 40 самых упоминаемых предметов (обычно 20)
+    collect --dry-run           что будет прочитано — без модели
 
 Граф связей
     graph                       Qwen3 выписывает факты из статей (правила — config/graph-rules.txt)
@@ -40,6 +44,8 @@
     graph --recheck             перепроверить готовые факты новыми правилами кода (без модели)
     graph --confirm             подтвердить факты вопросами по цитате (идёт и после graph)
     graph --names               свести написания одного и того же по смыслу (идёт и после graph)
+    graph --vectors             векторы фактов для поиска по связям (идёт и после graph)
+    graph --types               тип связи и виды концов по цитате (идёт и после graph)
     synonyms                    предложения в словарь синонимов (config/synonyms.yaml)
     facts                       у чего больше всего фактов из статей
     facts "Анабарский щит"      все факты о нём с цитатами, файл CSV для Excel
@@ -48,7 +54,7 @@
     gaps                        где базе не хватает статей → темы .local/topics-graph.yaml
 
 Ночная автоматика
-    schedule                    каждую ночь в 03:00: добыча → загрузка → граф
+    schedule                    каждую ночь в 03:00: добыча → загрузка → граф → выписки
     schedule --at 01:30         то же в другое время
     unschedule                  убрать ночной прогон
     nightly                     сделать ночной прогон прямо сейчас
@@ -60,6 +66,7 @@
     eval --only-search          то же, только поиск — без модели
     eval --only s01,t01         только эти вопросы
     eval --no-graph             то же без графа — сравнить с обычным прогоном, что граф даёт
+    eval --facts                то же с поиском по векторам фактов графа (по умолчанию выключен)
     eval --questions .local/eval-graph.yaml   по вопросам из графа (сделать: questions)
     help                        эта справка
 
@@ -416,9 +423,14 @@ def cmd_graph(opts: argparse.Namespace) -> int:
         return _py("georag.graph.cli", "recheck")
     if opts.names:
         return _py("georag.graph.cli", "names", *(["--redo"] if opts.redo else []))
+    if opts.vectors:
+        return _py("georag.graph.cli", "vectors", *(["--redo"] if opts.redo else []))
     workers = ["--workers", str(opts.workers)] if opts.workers else []
     if not _ensure_llm():
         return 1
+    if opts.types:
+        redo = ["--redo"] if opts.redo else []
+        return _py("georag.graph.cli", "types", "--model", MODEL, *redo, *workers)
     if opts.confirm:
         extra = ["--limit", str(opts.limit)] if opts.limit else []
         return _py("georag.graph.cli", "confirm", "--model", MODEL, *extra, *workers)
@@ -495,6 +507,20 @@ def cmd_ask(opts: argparse.Namespace) -> int:
     )
 
 
+def cmd_collect(opts: argparse.Namespace) -> int:
+    if not _ensure_database():
+        return 1
+    # Векторы здесь нужны на одно имя за предмет — видеокарту оставляем модели.
+    args = ["--model", MODEL, "--device", "cpu"]
+    if opts.limit is not None:
+        args += ["--top", str(opts.limit)]
+    if opts.dry_run:
+        return _py("georag.chat.collect", "--dry-run", *args)
+    if not _ensure_llm():
+        return 1
+    return _py("georag.chat.collect", *args)
+
+
 def cmd_eval(opts: argparse.Namespace) -> int:
     if not _ensure_database():
         return 1
@@ -509,6 +535,8 @@ def cmd_eval(opts: argparse.Namespace) -> int:
         args += ["--questions", opts.questions]
     if opts.no_graph:
         args.append("--no-graph")
+    if opts.facts:
+        args.append("--facts")
     return _py("georag.evaluation", *args)
 
 
@@ -583,7 +611,7 @@ def cmd_test(opts: argparse.Namespace) -> int:
 #  Ночная автоматика
 # --------------------------------------------------------------------------- #
 def cmd_nightly(opts: argparse.Namespace) -> int:
-    """То, что запускает планировщик: добыча → загрузка в базу → граф.
+    """То, что запускает планировщик: добыча → загрузка в базу → граф → выписки.
 
     Всё пишется в .local/logs/run-ДАТА.txt; логи старше месяца удаляются, чтобы папка
     не росла бесконечно. Если модель не поднялась, отбор статей идёт эвристикой —
@@ -665,8 +693,27 @@ def cmd_nightly(opts: argparse.Namespace) -> int:
                     ],
                 )
             )
+            # Выписки по предметам, о которых спрашивали, и самым упоминаемым — с новыми
+            # статьями ночи (chat/collect.py): иначе первый широкий вопрос о предмете ждёт
+            # чтения до 30 статей, 1,5–2 минуты. Не дольше часа; не успел — в следующую ночь.
+            codes.append(
+                step(
+                    "выписки по частым предметам",
+                    [
+                        sys.executable,
+                        "-m",
+                        "georag.chat.collect",
+                        "--model",
+                        MODEL,
+                        "--device",
+                        "cpu",
+                        "--minutes",
+                        "60",
+                    ],
+                )
+            )
         else:
-            say("База не поднялась — загрузка и граф пропущены до следующего раза")
+            say("База не поднялась — загрузка, граф и выписки пропущены до следующего раза")
             codes.append(1)
         say(f"\n=== конец {datetime.now():%Y-%m-%d %H:%M:%S} ===")
 
@@ -694,7 +741,7 @@ def task_xml(python: Path, at: str) -> str:
     return f"""<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
-    <Description>ГеоRAG: ночное пополнение базы знаний — добыча, загрузка, граф</Description>
+    <Description>ГеоRAG: ночное пополнение базы знаний — добыча, загрузка, граф, выписки</Description>
   </RegistrationInfo>
   <Triggers>
     <CalendarTrigger>
@@ -787,6 +834,7 @@ COMMANDS = {
     "verify": cmd_verify,
     "synonyms": cmd_synonyms,
     "ask": cmd_ask,
+    "collect": cmd_collect,
     "eval": cmd_eval,
     "dataset": cmd_dataset,
     "facts": cmd_dataset,
@@ -824,12 +872,16 @@ def parse(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--recheck", action="store_true")
     p.add_argument("--confirm", action="store_true")
     p.add_argument("--names", action="store_true")
+    p.add_argument("--vectors", action="store_true")
+    p.add_argument("--types", action="store_true")
     p.add_argument("--figures", action="store_true")
     p.add_argument("--no-graph", action="store_true")
+    p.add_argument("--facts", action="store_true")
     p.add_argument("--workers", type=int, default=None)
     p.add_argument("--tg", action="store_true")
     p.add_argument("--verbose", action="store_true")
     p.add_argument("--check", action="store_true")
+    p.add_argument("--dry-run", action="store_true")
     p.add_argument("--at", default="03:00")
     p.add_argument("--topics", default="config/topics.yaml")
     p.add_argument("-h", "--help", action="store_true")

@@ -8,18 +8,21 @@ from __future__ import annotations
 
 import re
 from collections.abc import Generator
-from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, replace
 from typing import Any
 
-from ..index.search import cap_per_doc
+from ..index.search import FACT_MIN_SIMILARITY, FACT_SLOTS, cap_per_doc
 from .plan import Plan, clean_queries
 from .search import (
     PART_MIN,
+    SIBLING_DOCS,
     add_neighbors,
     find_sources,
     fragment_key,
     is_close,
     merged_search,
+    same_article,
     source_dict,
 )
 from .settings import Settings
@@ -41,6 +44,12 @@ EXTRA_QUERIES = 3  # новых запросов за круг
 # Новый запрос, почти совпадающий по основам слов с уже сделанным, не ищется:
 # он приносит те же фрагменты, а круг стоит вызова модели.
 REPEAT_OVERLAP = 0.6
+# Заметки (Settings.notes): сколько отобранных сверх TOP_K идут в ответ заметкой — 1–2
+# фразы о том, что во фрагменте сказано по вопросу (около 60 токенов против 700 у
+# фрагмента целиком), и параллельно сколько пачек модель читает одновременно.
+NOTES = 24
+NOTE_CHARS = 400
+JUDGE_PARALLEL = 4
 
 JUDGE_SYSTEM = (
     "Ты отбираешь фрагменты научных статей, из которых можно ответить на вопрос "
@@ -61,8 +70,20 @@ JUDGE_USER = """Вопрос: «{question}»
    терминами предметной области, по-русски или по-английски, не повторяя сделанные
    и не переставляя в них слова: {done}. Всего хватает или искать больше нечего —
    пустой список.
+Сохраняй направление отношения из вопроса: «хлорит замещает минералы» не означает
+«минералы замещают хлорит». Название объекта может находиться в соседнем абзаце.
+{notes}
+Верни JSON: {answer}"""
 
-Верни JSON: {{"подходят": [1, 4], "не_хватает": ["..."], "запросы": ["..."]}}"""
+JUDGE_NOTES = """4. «заметки» — по каждому подходящему кандидату: что в нём сказано по вопросу, 1–2
+   фразы словами фрагмента, с названиями, числами и местом (район, месторождение), без
+   общих слов. Ключ — номер кандидата.
+"""
+ANSWER_PLAIN = '{{"подходят": [1, 4], "не_хватает": ["..."], "запросы": ["..."]}}'
+ANSWER_NOTES = (
+    '{{"подходят": [1, 4], "заметки": {{"1": "...", "4": "..."}}, "не_хватает": ["..."], '
+    '"запросы": ["..."]}}'
+)
 
 
 @dataclass
@@ -78,24 +99,49 @@ class Retrieval:
         return {"rounds": self.rounds, "checked": self.checked, "judged": self.judged}
 
 
+def by_fact(hit: Any) -> bool:
+    """Фрагмент привёл близкий к запросу факт графа (index.search, facts=True)."""
+    return (getattr(hit, "fact_similarity", None) or 0.0) >= FACT_MIN_SIMILARITY
+
+
 def is_candidate(hit: Any) -> bool:
-    """Годится ли в кандидаты: все слова запроса в тексте или похожесть от мягкого порога."""
+    """Годится ли в кандидаты: все слова запроса в тексте, похожесть от мягкого порога
+    или его привёл близкий факт графа."""
     strict = hit.fts_rank is not None and getattr(hit, "fts_strict", True)
-    return strict or (hit.similarity or 0.0) >= LOOSE_SIMILARITY
+    return strict or (hit.similarity or 0.0) >= LOOSE_SIMILARITY or by_fact(hit)
+
+
+def keep_facts(hits: list[Any], limit: int) -> list[Any]:
+    """Первые limit — но до FACT_SLOTS мест фрагментам, которые привели факты. В выдаче
+    каждого запроса они в конце, сверх найденного, и при слиянии запросов уходили за
+    limit."""
+    extra = [h for h in hits[limit:] if by_fact(h)][:FACT_SLOTS]
+    return hits[: limit - len(extra)] + extra
 
 
 def candidates(
-    conn: Any, embedder: Any, queries: list[str], cache: dict[str, Any], limit: int = WIDE
+    conn: Any,
+    embedder: Any,
+    queries: list[str],
+    cache: dict[str, Any],
+    limit: int = WIDE,
+    facts: bool = False,
 ) -> list[Any]:
     """Кандидаты для модели — не больше CANDIDATE_PER_DOC из одной статьи (лишние — в
     конец): одна подробная статья занимала 9 мест из 15, и модели не из чего было
-    выбирать — ответ на составной вопрос шёл по одной статье."""
-    close = [h for h in merged_search(conn, embedder, queries, cache) if is_candidate(h)]
-    return cap_per_doc(close, CANDIDATE_PER_DOC)[:limit]
+    выбирать — ответ на составной вопрос шёл по одной статье. facts — с фрагментами,
+    которые привели факты графа (keep_facts)."""
+    found = merged_search(conn, embedder, queries, cache, facts)
+    close = [h for h in found if is_candidate(h)]
+    return keep_facts(cap_per_doc(close, CANDIDATE_PER_DOC), limit)
 
 
 def judge_prompt(
-    question: str, plan: Plan, batch: list[dict[str, Any]], accepted: list[dict[str, Any]]
+    question: str,
+    plan: Plan,
+    batch: list[dict[str, Any]],
+    accepted: list[dict[str, Any]],
+    notes: bool = False,
 ) -> str:
     parts = ""
     if len(plan.parts) > 1:
@@ -120,7 +166,7 @@ def judge_prompt(
         year = f", {h.year}" if h.year else ""
         lines.append(
             f"[{c['id']}] «{(h.title or h.doc_id)[:100]}»{year}: "
-            f"{' '.join(h.text.split())[:CANDIDATE_CHARS]}"
+            f"{' '.join(h.text.split())[:2000 if plan.narrow else CANDIDATE_CHARS]}"
         )
     shown = "\n\n".join(lines) or "— кандидатов нет: по запросам ничего близкого не нашлось."
     done = ", ".join(f"«{q}»" for q in plan.queries + plan.extra) or "—"
@@ -131,6 +177,8 @@ def judge_prompt(
         candidates=shown,
         n=EXTRA_QUERIES,
         done=done,
+        notes=JUDGE_NOTES if notes else "",
+        answer=(ANSWER_NOTES if notes else ANSWER_PLAIN).format(),
     )
 
 
@@ -146,7 +194,7 @@ def judge_fragments(
     try:
         data = settings.client().chat_json(
             JUDGE_SYSTEM,
-            judge_prompt(question, plan, batch, accepted),
+            judge_prompt(question, plan, batch, accepted, settings.notes),
             temperature=0.1,
             timeout=(10, 180),
         )
@@ -273,25 +321,39 @@ def retrieve(
             new.append(c)
         return new
 
+    facts = settings.fact_search
+    # Узкому вопросу (об одном факте) — прежний набор и без заметок: лишний материал
+    # размывал ответ (вопросы из графа, 15.10.2026).
+    narrow = plan.narrow
+    if settings.notes and narrow:
+        settings = replace(settings, notes=False)
+    wide = settings.wide if settings.notes or narrow else WIDE
+    wide_part = max(WIDE_PART, wide // 2) if settings.notes else WIDE_PART
     multi = len(plan.parts) > 1
     if multi:
         # Все запросы вопроса — одной пачкой, одновременно (search_all): по частям
         # они шли бы по три, а каждая пачка ждала бы предыдущую.
         everything = [q for p in plan.parts for q in (p.queries or [p.question])]
-        merged_search(conn, embedder, everything + list(plan.queries), cache)
+        merged_search(conn, embedder, everything + list(plan.queries), cache, facts)
     # Фрагменты о предмете вопроса из графа — первыми: порога близости у них нет,
     # они найдены не по похожести, а по фактам.
     add(extra or [], None if multi else 1, 1, capped=False)
     if multi:
         for i, part in enumerate(plan.parts, start=1):
-            add(candidates(conn, embedder, part.queries or [part.question], cache, WIDE_PART), i, 1)
-        add(candidates(conn, embedder, plan.queries, cache, WIDE_PART), None, 1)
+            asked = part.queries or [part.question]
+            add(candidates(conn, embedder, asked, cache, wide_part, facts), i, 1)
+        add(candidates(conn, embedder, plan.queries, cache, wide_part, facts), None, 1)
     else:
-        add(candidates(conn, embedder, plan.queries, cache, WIDE), 1, 1)
+        add(candidates(conn, embedder, plan.queries, cache, wide, facts), 1, 1)
     # Ограничение — на весь набор: поиски по частям вопроса складываются, и одна статья
     # набирала 7 мест из 16. Других статей мало — лишние куски той же добирают места.
-    for h, part, rnd in spare[: max(0, WIDE - len(pool))]:
+    for h, part, rnd in spare[: max(0, wide - len(pool))]:
         add([h], part, rnd, capped=False)
+    if narrow:
+        # Вопрос об одном факте: из найденных статей — ещё куски, ближайшие к вопросу.
+        docs = list(dict.fromkeys(c["hit"].doc_id for c in pool))[:SIBLING_DOCS]
+        known = {c["hit"].chunk_id for c in pool}
+        add(same_article(conn, embedder, question, docs, known), 1, 1, capped=False)
 
     fresh: list[dict[str, Any]] = list(pool)
     accepted: list[dict[str, Any]] = []
@@ -302,26 +364,22 @@ def retrieve(
         if len(batches) > 1 and len(batches[-1]) <= JUDGE_SLACK:
             batches[-2:] = [batches[-2] + batches[-1]]  # 12 + 1 — лишний вызов модели
         missing, proposed, silent, answered = [], [], [], False
-        for k, batch in enumerate(batches, start=1):
-            pack = f" (пачка {k} из {len(batches)})" if len(batches) > 1 else ""
-            yield {
-                "type": "status",
-                "text": (
-                    f"модель читает найденное: {len(batch)} " f"фрагментов{pack}…"
-                    if batch
-                    else "в базе ничего близкого — модель подбирает " "другие запросы…"
-                ),
-            }
-            data = judge(question, plan, batch, accepted, settings)
+        for batch, data in (
+            yield from _judge_all(question, plan, batches, accepted, settings, judge)
+        ):
             if data is None:  # модель не ответила на эту пачку
                 silent += batch
                 continue
             answered = True
             checked += len(batch)
             by_id = {c["id"]: c for c in batch}
+            notes = data.get("заметки") if isinstance(data.get("заметки"), dict) else {}
             for i in _ids(data.get("подходят") or data.get("relevant")):
                 if i in by_id and by_id[i] not in accepted:
                     accepted.append(by_id[i])
+                    note = " ".join(str(notes.get(str(i)) or "").split())[:NOTE_CHARS]
+                    if note:
+                        by_id[i]["note"] = note
             missing += [
                 " ".join(str(m).split()) for m in data.get("не_хватает") or [] if str(m).strip()
             ]
@@ -352,7 +410,7 @@ def retrieve(
         plan.extra += queries
         rounds += 1
         yield {"type": "status", "text": "ищу недостающее: " + " · ".join(queries)}
-        fresh = add(candidates(conn, embedder, queries, cache, WIDE), None, rounds)
+        fresh = add(candidates(conn, embedder, queries, cache, wide, facts), None, rounds)
         if not fresh and not missing:
             break
 
@@ -368,9 +426,55 @@ def retrieve(
         if c["round"] > 1:
             s["round"] = c["round"]
         sources.append(s)
+    # Остальное отобранное — заметками: модель ответа видит, что в них сказано, и
+    # ссылается на них тем же номером. Текст фрагмента при источнике — для человека.
+    if settings.notes:
+        rest = [c for c in accepted if c not in chosen and c.get("note")][:NOTES]
+        for c in rest:
+            s = source_dict(len(taken) + len(sources) + 1, c["hit"], c["part"] if multi else None)
+            s.update(kind="заметка", note=c["note"])
+            sources.append(s)
     if conn is not None:
         add_neighbors(conn, sources)
     return Retrieval(sources, rounds=rounds, checked=checked, judged=True)
+
+
+def _judge_all(
+    question: str,
+    plan: Plan,
+    batches: list[list[dict[str, Any]]],
+    accepted: list[dict[str, Any]],
+    settings: Settings,
+    judge: Any,
+) -> Generator[Any, Any, list[tuple[list[dict[str, Any]], Any]]]:
+    """Модель читает пачки кандидатов. С заметками — несколько пачек одновременно
+    (vLLM считает их вместе): пачек втрое больше, а ждать — почти столько же. Без
+    заметок — по одной, и каждая видит отобранное в предыдущих."""
+    total = sum(len(b) for b in batches)
+    if settings.notes and len(batches) > 1:
+        yield {"type": "status", "text": f"модель читает найденное: {total} фрагментов…"}
+        with ThreadPoolExecutor(min(JUDGE_PARALLEL, len(batches))) as pool:
+            done = list(pool.map(lambda b: judge(question, plan, b, accepted, settings), batches))
+        return list(zip(batches, done, strict=True))
+    out = []
+    for k, batch in enumerate(batches, start=1):
+        pack = f" (пачка {k} из {len(batches)})" if len(batches) > 1 else ""
+        yield {
+            "type": "status",
+            "text": (
+                f"модель читает найденное: {len(batch)} фрагментов{pack}…"
+                if batch
+                else "в базе ничего близкого — модель подбирает другие запросы…"
+            ),
+        }
+        data = judge(question, plan, batch, accepted, settings)
+        out.append((batch, data))
+        if data is not None:  # следующая пачка видит отобранное
+            by_id = {c["id"]: c for c in batch}
+            accepted = accepted + [
+                by_id[i] for i in _ids(data.get("подходят") or data.get("relevant")) if i in by_id
+            ]
+    return out
 
 
 def run(gen: Any) -> Any:

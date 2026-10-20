@@ -9,6 +9,11 @@
 * ru_stem / stem_variants — основа слова и вариант с выпавшей гласной;
 * phrase_pattern — шаблон фразы в любой форме: «Анабарский щит» находит
   «Анабарского щита», «рудный узел» — «рудного узла»;
+* keyword_hits — ключевые слова оценки в тексте (evaluation.py; ими же
+  генератор вопросов graph/questions.py проверяет свои ключи);
+* translit / translit_key — имя другим алфавитом («Kular» → «Кулар») и ключ
+  написания, одинаковый у «Koldar», «Колдар» и «Кольдар»: им keyword_hits узнаёт
+  имя собственное, написанное по-русски, по латинскому ключу (и наоборот);
 * split_sentences — текст на предложения, сокращения и инициалы не рвут.
 """
 
@@ -16,6 +21,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from itertools import product
 
 # Окончания, которые снимаются с русского слова. Длинные первыми: «-иями»
 # раньше «-ями», иначе останется лишняя «и».
@@ -131,6 +137,243 @@ def phrase_pattern(phrase: str, min_len: int | None = None) -> re.Pattern[str]:
         n = min_len if min_len is not None else (4 if single and len(w) > 5 else 3)
         parts.append("(?:" + "|".join(re.escape(v) for v in stem_variants(w, n)) + r")[а-яa-z]*")
     return re.compile(r"(?<![а-яa-z0-9])" + r"[\s\-]+".join(parts))
+
+
+# --------------------------------------------------------------------------- #
+#  Ключевые слова оценки
+# --------------------------------------------------------------------------- #
+_ACRONYM = re.compile(r"[A-ZА-ЯЁ0-9\-]{2,6}")
+_SYMBOL = re.compile(r"[A-Z][a-z]?")  # символ элемента: Au, U, Pb
+_EN_WORD = re.compile(r"[a-z]{4,}")
+
+
+def _en_stem(word: str) -> str:
+    """Английское слово без множественного числа — общее начало всех форм:
+    valleys → valley, anomalies и anomaly → anomal, processes → process.
+    На ss, us, is не кончается множественное: gneiss, basis остаются как есть."""
+    if word.endswith("ies") and len(word) >= 7:
+        return word[:-3]
+    if word.endswith(("sses", "xes", "ches", "shes")):
+        return word[:-2]
+    if word.endswith("s") and not word.endswith(("ss", "us", "is")):
+        word = word[:-1]
+    if word.endswith("y") and len(word) >= 5 and word[-2] not in "aeiou":
+        return word[:-1]  # anomaly → anomal: находит и anomalies
+    return word
+
+
+# Основа на две согласные: в начальной форме между ними бывает беглая гласная.
+_CLUSTER = re.compile(rf"[{_CONS}][клнрц]$")
+
+
+def _fleeting_forms(word: str) -> list[str]:
+    """Слово с беглой гласной, вставленной обратно: «пески» → «песок», «сланцы» →
+    «сланец». phrase_pattern выпадение гласной знает («песок» находит «песка»), а
+    обратное — нет: ключ «пески» не находил «песок»."""
+    stem = ru_stem(word)
+    if not re.search(r"[а-я]", word) or len(stem) < 3 or not _CLUSTER.search(stem):
+        return []
+    return [stem[:-1] + vowel + stem[-1] for vowel in "ое"]
+
+
+def keyword_pattern(word: str) -> re.Pattern[str]:
+    """Ключевое слово в любой форме, с начала слова: у русского снимается окончание
+    (и беглая гласная — в обе стороны), у английского — множественное число.
+    Аббревиатура и символ элемента — целиком: ROC не находится в «rock», Au — в
+    «author». Ищется в normalize(текст)."""
+    if _ACRONYM.fullmatch(word) or _SYMBOL.fullmatch(word):
+        return re.compile(rf"(?<!\w){re.escape(normalize(word))}(?!\w)")
+    stems = _EN_WORD.sub(lambda m: _en_stem(m.group()), normalize(word))
+    words = [w for w in re.split(r"[\s\-]+", stems) if w]
+    forms = product(*([w, *_fleeting_forms(w)] for w in words))
+    return re.compile(
+        r"(?<!\w)(?:" + "|".join(phrase_pattern(" ".join(f)).pattern for f in forms) + ")"
+    )
+
+
+def keyword_hits(groups: list[list[str]], text: str) -> tuple[int, list[str]]:
+    """Сколько ключевых мыслей встретилось в тексте и какие — нет. Мысль — группа
+    вариантов («гематит|hematite»): засчитывается любой.
+
+    Имя собственное из одного слова («Kular», «Okhotsk-Koryak») ищется по ключу
+    написания (translit_key) — в любом алфавите и транслитерации: «район Кулар»,
+    «массив Кольдар», — но не как начало составного имени: «Kular» и «Кулар» не находят
+    «Куларо-Нерский». Так же, вдобавок к обычному поиску, — заимствованный термин,
+    если в группе он есть в обоих алфавитах с одним ключом («альюнит|alunite» находит
+    «алюнит»)."""
+    norm = normalize(text)
+    found, missing = 0, []
+    words: list[tuple[str, bool]] | None = None
+    for group in groups:
+        loose = _translit_keys(group)
+        if any(keyword_pattern(w).search(norm) for w in group if not loose.get(w, ([], False))[1]):
+            found += 1
+            continue
+        if loose:
+            words = _text_keys(norm) if words is None else words
+            if any(_sounds_in(parts, words) for parts, _ in loose.values()):
+                found += 1
+                continue
+        missing.append(group[0])
+    return found, missing
+
+
+# --------------------------------------------------------------------------- #
+#  Транслитерация имён: Kular ↔ Кулар
+# --------------------------------------------------------------------------- #
+_CYR = re.compile(r"[а-яё]", re.IGNORECASE)
+_RU_LAT = {
+    "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "e", "ж": "zh",
+    "з": "z", "и": "i", "й": "y", "к": "k", "л": "l", "м": "m", "н": "n", "о": "o",
+    "п": "p", "р": "r", "с": "s", "т": "t", "у": "u", "ф": "f", "х": "kh", "ц": "ts",
+    "ч": "ch", "ш": "sh", "щ": "shch", "ъ": "", "ы": "y", "ь": "", "э": "e", "ю": "yu",
+    "я": "ya",
+}  # fmt: skip
+_TO_LATIN = str.maketrans({**_RU_LAT, **{k.upper(): v.capitalize() for k, v in _RU_LAT.items()}})
+_LAT_PAIRS = {
+    "shch": "щ", "kh": "х", "zh": "ж", "ch": "ч", "sh": "ш", "ts": "ц", "ya": "я", "yu": "ю",
+    "ye": "е", "yo": "йо", "ph": "ф", "th": "т", "ck": "к", "gh": "г", "ou": "у", "qu": "кв",
+    "dj": "дж",
+}  # fmt: skip
+_LAT_ONE = {
+    "a": "а", "b": "б", "c": "к", "d": "д", "e": "е", "f": "ф", "g": "г", "h": "х", "i": "и",
+    "j": "дж", "k": "к", "l": "л", "m": "м", "n": "н", "o": "о", "p": "п", "q": "к", "r": "р",
+    "s": "с", "t": "т", "u": "у", "v": "в", "w": "в", "x": "кс", "z": "з",
+}  # fmt: skip
+_LAT_UNIT = re.compile("|".join(_LAT_PAIRS) + "|.")
+
+
+def _to_cyrillic(word: str) -> str:
+    low, out = word.lower(), []
+    for m in _LAT_UNIT.finditer(low):
+        unit, prev = m.group(), low[m.start() - 1] if m.start() else ""
+        if unit == "ts" and low[m.end() : m.end() + 1] == "k":
+            out.append("тс")  # Okhotsk → Охотск, а не «Охоцк»
+        elif unit == "yo":
+            out.append("ьо" if prev and prev not in "aeiou" else "йо")  # Nyong → Ньонг
+        elif unit in _LAT_PAIRS:
+            out.append(_LAT_PAIRS[unit])
+        elif unit == "y" and prev == "k" and m.end() == len(low):
+            out.append("ий")  # Nezhdaninsky → Нежданинский
+        elif unit == "y":
+            out.append("й" if prev in "aeiou" else "и")  # Aktogay → Актогай
+        elif unit == "e" and not prev:
+            out.append("э")  # Effon → Эффон
+        elif unit == "a" and prev == "i" and m.end() == len(low):
+            out.append("я")  # Bahia → Бахия
+        else:
+            out.append(_LAT_ONE.get(unit, unit))
+    text = "".join(out)
+    return text[:1].upper() + text[1:] if word[:1].isupper() else text
+
+
+def translit(text: str) -> str:
+    """Имя другим алфавитом, по простым правилам: «Kular» → «Кулар», «Isfahan» →
+    «Исфахан», «Кулар» → «Kular». Как пишут по-русски на самом деле, правила не
+    знают («Bahia» — «Бахия», а не «Баия»), поэтому сравнивают имена ключом
+    translit_key, а не этой строкой."""
+    if _CYR.search(text or ""):
+        return (text or "").translate(_TO_LATIN)
+    return re.sub(r"[A-Za-z]+", lambda m: _to_cyrillic(m.group()), text or "")
+
+
+# Ключ написания: что по-разному передают при транслитерации, сводится к одному.
+_KEY_RU = {**_RU_LAT, "ж": "j", "й": "i", "х": "h", "щ": "sh", "ы": "i", "ю": "u", "я": "a"}
+_KEY_FOLDS = (
+    (re.compile(r"shch|sch"), "sh"),
+    (re.compile(r"kh"), "h"),
+    (re.compile(r"dzh|dj|zh"), "j"),
+    (re.compile(r"ph"), "f"),
+    (re.compile(r"th"), "t"),
+    (re.compile(r"gh"), "g"),
+    (re.compile(r"ck"), "k"),
+    (re.compile(r"qu"), "kv"),
+    (re.compile(r"q"), "k"),
+    (re.compile(r"w"), "v"),
+    (re.compile(r"x"), "ks"),
+    (re.compile(r"ou"), "u"),
+    (re.compile(r"c(?!h)"), "k"),
+    (re.compile(r"y(?=[aeou])"), ""),  # Koryak, Коряк → korak
+    (re.compile(r"y"), "i"),
+    (re.compile(r"[^a-z]"), ""),
+    (re.compile(r"(.)\1+"), r"\1"),  # двойные буквы: Kullar, Куллар → kular
+)
+
+
+def translit_key(word: str) -> str:
+    """Ключ написания слова — один у разных транслитераций одного имени: «Kular»,
+    «Кулар» → kular; «Koldar», «Колдар», «Кольдар» → koldar; «Isfahan», «Исфахан» →
+    isfahan; «alunite», «алюнит», «альюнит» → alunit. Мягкий знак, «й/ы/и», «я/ю»
+    против «a/u», «х/kh/h», «дж/j», двойные буквы — не различаются."""
+    low = normalize(word)
+    if _CYR.search(low):
+        low = "".join(_KEY_RU.get(ch, ch) for ch in low)
+    for pattern, repl in _KEY_FOLDS:
+        low = pattern.sub(repl, low)
+    return low
+
+
+def _key_parts(variant: str) -> list[str]:
+    """Ключи написания частей варианта («Okhotsk-Koryak» → ohotsk, korak): у русского
+    слова — без окончания, у английского — без множественного числа и немого «e»
+    (alunite → alunit: по-русски «алунит»)."""
+    parts = []
+    for part in re.split(r"[\s\-]+", normalize(variant)):
+        if _CYR.search(part):
+            part = ru_stem(part)
+        elif part:
+            part = _en_stem(part)
+            if len(part) >= 5 and re.search(r"[^aeiouy]e$", part):
+                part = part[:-1]
+        parts.append(translit_key(part))
+    return parts
+
+
+def _translit_keys(group: list[str]) -> dict[str, tuple[list[str], bool]]:
+    """Варианты группы, которые узнаются по ключу написания, → (ключи частей, имя ли).
+    Это одно слово (можно через дефис) с ключом от пяти букв, и оно — имя собственное
+    (с заглавной, не сокращение) или термин, который в группе есть в обоих алфавитах
+    с одним ключом («альюнит|alunite»). Обычные слова так не сравниваются: «area»
+    нашлась бы в «ареале»; короткие — тоже: ключ «Якут» (akut) нашёлся бы в «acute»."""
+    single = [v for v in group if v.strip() and not re.search(r"\s", v.strip())]
+    keyed = {v: _key_parts(v) for v in single}
+    out: dict[str, tuple[list[str], bool]] = {}
+    for v, parts in keyed.items():
+        if sum(map(len, parts)) < 5 or min(map(len, parts)) < 3:
+            continue
+        proper = v[:1].isupper() and not v.isupper()
+        twin = any(
+            o != v and keyed[o] == parts and bool(_CYR.search(o)) != bool(_CYR.search(v))
+            for o in keyed
+        )
+        if proper or twin:
+            out[v] = (parts, proper)
+    return out
+
+
+_TEXT_WORD = re.compile(r"[a-zа-я0-9]+(?:['’][a-zа-я]+)*")
+
+
+def _text_keys(norm: str) -> list[tuple[str, bool]]:
+    """Слова текста — ключами написания; и идёт ли за словом через дефис другое слово."""
+    return [
+        (translit_key(m.group()), bool(re.match(r"-[a-zа-я]", norm[m.end() : m.end() + 2])))
+        for m in _TEXT_WORD.finditer(norm)
+    ]
+
+
+def _sounds_in(parts: list[str], words: list[tuple[str, bool]]) -> bool:
+    """Есть ли в тексте подряд слова, которые начинаются с этих ключей. Последнее
+    слово — не первая часть составного имени: «Kular» не находит «Куларо-Нерский»."""
+    n = len(parts)
+    for i in range(len(words) - n + 1):
+        if not all(words[i + j][0].startswith(parts[j]) for j in range(n)):
+            continue
+        last, joined = words[i + n - 1]
+        if joined and last[len(parts[-1]) :] in ("", "o", "e"):
+            continue
+        return True
+    return False
 
 
 # --------------------------------------------------------------------------- #

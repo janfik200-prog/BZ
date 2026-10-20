@@ -24,6 +24,19 @@ def is_refusal(start: str) -> bool:
     return _norm(start).startswith(_norm(NO_ANSWER))
 
 
+# Отказ другими словами: «В базе знаний нет информации о металлогении Анабарского щита.»
+# Отказ — только если ответ на этом и кончается (короче REFUSAL_CHARS): длинный ответ с
+# такой первой фразой — частичный ответ (правило 6).
+REFUSAL_CHARS = 240
+
+
+_NOT_IN_BASE = re.compile(r"^в базе знани\w* нет")
+
+
+def says_not_in_base(text: str) -> bool:
+    return bool(_NOT_IN_BASE.match(_norm(text)))
+
+
 def citations(answer: str, count: int) -> tuple[list[int], list[int]]:
     """Какие номера фрагментов в ответе есть и какие из них выдуманы."""
     found: set[int] = set()
@@ -64,9 +77,120 @@ def coverage(answer: str) -> tuple[int, int]:
     return len(cited), len(claims)
 
 
-# Конец предложения вместе со ссылками после точки: «…разломов. [2][3] Далее…».
-_SENTENCE_END = re.compile(r"([.!?…])((?:\s*\[\d+(?:\s*[,;]\s*\d+)*\])*)\s+")
+# Конец предложения вместе со ссылками после точки: «…разломов. [2][3] Далее…». После
+# точки — не строчная буква: «120 млн. лет» — одна фраза, а не две.
+_SENTENCE_END = re.compile(r"([.!?…])((?:\s*\[\d+(?:\s*[,;]\s*\d+)*\])*)\s+(?![a-zа-яё])")
 _BULLET = re.compile(r"^(\s*(?:[-*•]|\d+[.)])\s+)")
+# Следующая фраза держится за убранную. Связка («Например,», «Также») — снимается:
+# фраза верна и без неё. Указание назад («Эти длины волн…», «Таким образом…») — без
+# убранной фразы непонятно, о чём речь, поэтому она остаётся. На ответах оценки
+# 14.10.2026 каждый третий раздел начинался с «Например,» или «Эти…» — первая,
+# обобщающая фраза раздела уходила как фраза без ссылки.
+_CONNECTIVE = re.compile(
+    r"^(?:(?:Например|В частности|Кроме того|При этом|Так|Помимо этого),\s*|Также\s+)"
+)
+_BACK_REF = re.compile(
+    r"^(?:Эт(?:и|о|а|от|им|ой|их|ого)|Так(?:ие|ой|ая|ое|им\s+образом)|Они|Их|Он|Она|"
+    r"Там|Здесь|Данн\w+)\b"
+)
+
+
+def _lead(text: str) -> str:
+    """Фраза без связки в начале — с большой буквы."""
+    rest = _CONNECTIVE.sub("", text, count=1)
+    return rest[:1].upper() + rest[1:] if rest != text else text
+
+
+_REPEAT_MIN = 30  # строки короче не сравниваются: «- пирит [1]» повторять можно
+# Почти тот же абзац: модель пишет раздел ещё раз, выбросив пару слов («глубинных
+# корово-мантийных разломов» → «глубинных разломов»; вопрос r02, 14.10.2026). Длинная
+# строка без единого нового слова против уже сказанной — повтор. Пункты списка по
+# одному шаблону («кварцевые жилы содержат пирит», «… антимонит») — нет: слово новое.
+_NEAR_MIN = 80
+_WORDS = re.compile(r"\w+")
+
+
+def _plain(line: str) -> str:
+    """Строка для сравнения: без ссылок, разметки, маркера пункта и регистра."""
+    text = _BULLET.sub("", CITE_MARK.sub("", line))
+    return " ".join(re.sub(r"[*_#«»\"']", "", text).lower().split()).strip(" .;,…")
+
+
+def drop_repeats(answer: str) -> str:
+    """Ответ без строк, дословно повторяющих уже сказанное (ссылки и разметка не в счёт).
+
+    Модель иногда зацикливается и пишет те же разделы ещё раз (вопросы о связях
+    14.10.2026: «кварцевые жилы», «золото» — по два одинаковых раздела в конце).
+    Заголовок, под которым после этого ничего не осталось, уберёт drop_uncited."""
+    seen: set[str] = set()
+    long_lines: list[set[str]] = []
+    sentences: set[str] = set()
+    out = []
+    for line in answer.split("\n"):
+        plain = _plain(line)
+        if len(plain) >= _REPEAT_MIN and not _HEADING.fullmatch(line):
+            if plain in seen:
+                continue
+            words = set(_WORDS.findall(plain))
+            if len(plain) >= _NEAR_MIN and any(words <= other for other in long_lines):
+                continue
+            seen.add(plain)
+            if len(plain) >= _NEAR_MIN:
+                long_lines.append(words)
+            line = _drop_seen_sentences(_drop_list_repeats(line), sentences)
+            if not _plain(line):
+                continue
+        out.append(line)
+    return "\n".join(out)
+
+
+# Пункт перечня внутри строки: «эпидотом [7][9], кальцитом [10], …».
+_LIST_ITEM = re.compile(r"[^,;]+(?:[,;]|$)")
+
+
+def _drop_list_repeats(line: str) -> str:
+    """Строка-перечень без повторов пунктов: модель, перечисляя минералы, зацикливалась и
+    писала тот же кусок перечня трижды (хлорит, 15.10.2026). Пункт сравнивается без ссылок и
+    разметки; первый остаётся, повторы уходят. Короткие строки и строки не-перечни — как были."""
+    items = _LIST_ITEM.findall(line)
+    if len(items) < 6:
+        return line
+    seen: set[str] = set()
+    kept = []
+    for item in items:
+        key = _plain(item).strip(" ,;.")
+        if key and key in seen:
+            continue
+        seen.add(key)
+        kept.append(item)
+    if len(kept) == len(items):
+        return line
+    text = "".join(kept).rstrip(" ,;")
+    return text if text.endswith((".", "!", "?", "…")) else text + "."
+
+
+def _drop_seen_sentences(line: str, seen: set[str]) -> str:
+    """Строка без фраз, уже сказанных в ответе: «Это также отмечено в составе жильных
+    минералов [2].» в шести пунктах подряд (вопрос r11, 14.10.2026)."""
+    bullet = _BULLET.match(line)
+    prefix = bullet.group(1) if bullet else ""
+    parts = _split_sentences(line[len(prefix) :])
+    kept = []
+    for part in parts:
+        plain = _plain(part)
+        if len(plain) >= _REPEAT_MIN:
+            if plain in seen:
+                continue
+            seen.add(plain)
+        kept.append(part)
+    return prefix + " ".join(kept) if len(kept) < len(parts) else line
+
+
+def _split_sentences(body: str) -> list[str]:
+    return [
+        p.strip()
+        for p in _SENTENCE_END.sub(lambda m: m.group(1) + m.group(2) + "\0", body).split("\0")
+    ]
 
 
 def drop_uncited(answer: str) -> tuple[str, list[str]]:
@@ -76,7 +200,9 @@ def drop_uncited(answer: str) -> tuple[str, list[str]]:
     ручная проверка 190 утверждений (.local/logs/quality-20261005) нашла 9 % фраз без
     ссылки — общие слова модели, а не статьи. Здесь они убираются: утверждение
     (как в coverage) длиннее 40 знаков, без номера фрагмента и не о самих
-    фрагментах. Заголовок, под которым ничего не осталось, уходит тоже.
+    фрагментах. Заголовок, под которым ничего не осталось, уходит тоже. Обрывков не
+    остаётся: связка в начале следующей фразы снимается, а фраза, на которую следующая
+    ссылается («Эти…»), остаётся (_CONNECTIVE, _BACK_REF).
     Возвращает (новый текст, убранные фразы)."""
     removed: list[str] = []
     lines: list[str] = []
@@ -87,20 +213,34 @@ def drop_uncited(answer: str) -> tuple[str, list[str]]:
         bullet = _BULLET.match(line)
         prefix = bullet.group(1) if bullet else ""
         body = line[len(prefix) :]
-        parts = _SENTENCE_END.sub(lambda m: m.group(1) + m.group(2) + "\0", body).split("\0")
-        kept = []
+        parts = _split_sentences(body)
+        drop = []
         for part in parts:
             bare = _CITE.sub("", part).strip()
             lead_in = bare.endswith(":")  # «используют следующие методы:» — подводка к списку
-            if (
+            drop.append(
                 len(bare) > 40
                 and not lead_in
                 and not _CITE.search(part)
                 and not _ABOUT_SOURCES.search(part)
-            ):
-                removed.append(part.strip())
-            else:
-                kept.append(part.strip())
+            )
+        kept: list[str] = []
+        for i, part in enumerate(parts):
+            after = parts[i + 1] if i + 1 < len(parts) and not drop[i + 1] else ""
+            if drop[i] and _BACK_REF.match(after):
+                drop[i] = False  # без неё следующая фраза непонятна
+            if drop[i]:
+                removed.append(part)
+                if after:
+                    parts[i + 1] = _lead(after)
+                continue
+            bare = _CITE.sub("", part).strip(" .;,")
+            # Хвост убранной фразы, разрезанной на сокращении («…120 млн. лет [2].»),
+            # и строка из одних ссылок («[3]. [7].») — не фразы.
+            tail = i > 0 and drop[i - 1] and bare[:1].islower() and len(bare) < 20
+            if not bare or tail:
+                continue
+            kept.append(part)
         rest = " ".join(p for p in kept if p)
         if rest:
             lines.append(prefix + rest)

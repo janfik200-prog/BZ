@@ -38,6 +38,9 @@ PLAN_USER = """Вопрос пользователя: «{question}»
 6. «по_теме» — true, если вопрос о геологии, полезных ископаемых, геофизике,
    геохимии, дистанционном зондировании Земли или методах их изучения; false —
    если о другом (кулинария, спорт, программирование…).
+7. Сохраняй направление связи. «Какие минералы замещает хлорит?» — хлорит
+   замещает другие минералы, а не другие минералы замещают хлорит. Не обращай
+   эту связь в частях, переводе, запросах и вопросе целиком.
 
 Верни JSON: {{"вопрос_целиком": "...", "части": [{{"вопрос": "...", "запросы": ["...", "..."]}}], \
 "предмет": null, "всё": false, "по_теме": true}}"""
@@ -66,6 +69,35 @@ _RELATIONS = re.compile(
 )
 
 
+# Узкий вопрос — об одном факте: «Какая свита содержит месторождение Polaris…?», «Где
+# изучали…?». Модель дробила такие на 2–3 части, в части писала «в базе нет ответа», и
+# факт тонул (12 из 40 вопросов из графа, 15.10.2026; из них 4 провалены). Узкий вопрос
+# не дробится, и лишнего материала (заметок, широкого набора) ему не дают.
+_NARROW_START = re.compile(
+    r"^\s*(?:(?:в|на|к|с|из|по|при|для|от|до|о|об)\s+)?"
+    r"(?:как(?:ой|ая|ое|ого|ому|ую|ом|им)|где|когда|кто|сколько|чем|откуда|куда)\b",
+    re.IGNORECASE,
+)
+_MANY_ASKS = re.compile(
+    r"\b(?:и|а также|а)\s+(?:как|какие|каки[ехм]|чем|где|когда|почему|что|сколько)\b|"
+    r"сравни|различ|отлича|\bрол[ьи]\b|значени|механизм|особенност|закономерност",
+    re.IGNORECASE,
+)
+_PLURAL_FACT = re.compile(
+    r"^\s*каки[ех]\s+.{0,90}\b(?:замеща|содерж|вмеща|слага|образу)[\w-]*\b", re.IGNORECASE
+)
+
+
+def is_narrow(question: str) -> bool:
+    """Вопрос об одном факте: «Какой/Какая/Где/Когда…», один вопрос, без «и как…»."""
+    text = " ".join((question or "").split())
+    return (
+        bool(_NARROW_START.match(text) or _PLURAL_FACT.match(text))
+        and text.count("?") <= 1
+        and not _MANY_ASKS.search(text)
+    )
+
+
 def about_links(question: str) -> bool:
     """Вопрос о связях предмета — его ведёт граф (см. _RELATIONS)."""
     return bool(_RELATIONS.search(question))
@@ -92,6 +124,7 @@ class Plan:
     missing: list[str] = field(default_factory=list)  # чего не хватало, по словам модели
     standalone: str = ""  # вопрос, понятный без разговора (вдогонку — с предметом)
     on_topic: bool = True  # о геологии ли вопрос, по словам модели
+    narrow: bool = False  # вопрос об одном факте (is_narrow): одна часть, без заметок
 
     @property
     def queries(self) -> list[str]:
@@ -176,6 +209,13 @@ def parse_plan(data: Any, question: str, settings: Settings) -> Plan:
     if not parts and data.get("queries"):  # старый вид ответа: только запросы
         parts = [Part(question, clean_queries(data["queries"], settings.queries))]
     parts = parts[: max(1, settings.parts)] or [Part(question, [])]
+    narrow = is_narrow(question)
+    if narrow and len(parts) > 1:
+        # Части узкого вопроса — одна часть с их запросами вперемешку.
+        merged: list[str] = []
+        for group in zip(*(p.queries for p in parts), strict=False):
+            merged += [q for q in group if q not in merged]
+        parts = [Part(question, merged[: settings.queries + 1])]
     subject = data.get("предмет") or data.get("территория") or data.get("subject")
     subject = " ".join(str(subject).split()) if isinstance(subject, str) else None
     if subject and subject.lower() in {"null", "none", "нет"}:
@@ -186,7 +226,14 @@ def parse_plan(data: Any, question: str, settings: Settings) -> Plan:
     standalone = " ".join(str(data.get("вопрос_целиком") or data.get("standalone") or "").split())
     topic = data.get("по_теме", data.get("on_topic", True))
     on_topic = not (topic is False or str(topic).lower() in {"false", "нет", "0"})
-    return Plan(parts, subject or None, collect, standalone=standalone[:300], on_topic=on_topic)
+    return Plan(
+        parts,
+        subject or None,
+        collect,
+        standalone=standalone[:300],
+        on_topic=on_topic,
+        narrow=narrow and not collect,
+    )
 
 
 def plan_question(question: str, history: list[dict[str, Any]], settings: Settings) -> Plan:
@@ -223,6 +270,7 @@ def make_plan(
         plan = Plan([Part(question, clean_queries(raw, 99))], collect=collect)
     if not plan.parts:
         plan.parts = [Part(question, [])]
+    plan.narrow = (plan.narrow or is_narrow(question)) and not plan.collect
     if not plan.main:
         if plan.standalone:
             # Модель переписала вопрос так, чтобы он был понятен без разговора.

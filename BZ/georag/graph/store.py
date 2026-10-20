@@ -191,12 +191,21 @@ def all_facts(
 
     Факт, проверенный вопросами (confirm.py) и подтверждённый меньше чем min_votes
     проверками из 4, в граф не идёт, но в базе остаётся. Непроверенный — идёт.
-    after/upto — только факты с номером в (after, upto]: дописать новые к графу."""
+    after/upto — только факты с номером в (after, upto]: дописать новые к графу.
+
+    Тип связи и виды концов (kinds.py) — если их уже поставили: факт, которому тип
+    поставлен как «не о геологии» (typed_at есть, rel_type нет), в граф не идёт. Колонок
+    типа может ещё не быть (база до 14.10.2026) — тогда граф как раньше, по словам статьи."""
+    typed = (
+        "f.rel_type, f.rel_flip, f.src_kind, f.dst_kind, f.typed_at"
+        if has_types(conn)
+        else "NULL, NULL, NULL, NULL, NULL"
+    )
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT f.id, f.chunk_id, f.doc_id, f.src, f.relation, f.dst, f.quote,
-                   d.title, d.year, d.url, d.doi, f.votes
+                   d.title, d.year, d.url, d.doi, f.votes, {typed}
             FROM facts f JOIN documents d ON d.doc_id = f.doc_id
             WHERE (f.votes IS NULL OR f.votes >= %s) AND f.id > %s
                   AND (%s::bigint IS NULL OR f.id <= %s)
@@ -218,9 +227,29 @@ def all_facts(
                 "url": r[9] or "",
                 "doi": r[10],
                 "votes": r[11] if len(r) > 11 else None,
+                "rel_type": r[12] if len(r) > 12 else None,
+                "rel_flip": bool(r[13]) if len(r) > 13 else False,
+                "src_kind": r[14] if len(r) > 14 else None,
+                "dst_kind": r[15] if len(r) > 15 else None,
             }
             for r in cur.fetchall()
+            if not (len(r) > 16 and r[16] is not None and r[12] is None)
         ]
+
+
+def has_types(conn: Any) -> bool:
+    """Есть ли у фактов колонки типа (kinds.py) — их добавляет graph types. У заглушки
+    в проверках — нет."""
+    from ..index.db import is_real
+
+    if not is_real(conn):
+        return False
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name = 'facts' AND column_name = 'typed_at'"
+        )
+        return cur.fetchone() is not None
 
 
 def summary(conn: Any) -> dict[str, Any]:

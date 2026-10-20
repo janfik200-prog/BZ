@@ -9,6 +9,9 @@
     python -m georag.graph.cli synonyms          предложения в словарь синонимов
     python -m georag.graph.cli names             автосинонимы: новые имена — к известным (идёт и после build)
     python -m georag.graph.cli names --redo      автосинонимы заново, по всем именам
+    python -m georag.graph.cli vectors           векторы фактов для поиска (идёт и после build)
+    python -m georag.graph.cli types             тип связи и виды концов по цитате (идёт и после build)
+    python -m georag.graph.cli types --redo      типы заново, у всех подтверждённых фактов
     python -m georag.graph.cli questions         вопросы оценки из фактов (.local/eval-graph.yaml)
     python -m georag.graph.cli gaps              темы для добычи по пробелам (.local/topics-graph.yaml)
 
@@ -28,7 +31,7 @@ from typing import Any
 from ..common import add_db_args, add_embedder_args, add_llm_args
 from ..index import db
 from ..paths import LOCAL, ROOT
-from . import api, autosyn, confirm, facts, store
+from . import api, autosyn, confirm, facts, kinds, store, vectors
 from .synonyms import PROPOSALS_PATH, SynonymsError, judge_pairs, load, proposals_text, suggest
 
 # Сколько запросов держать у модели одновременно. vLLM считает их одной пачкой:
@@ -112,7 +115,9 @@ def _build(conn: Any, args: Any) -> int:
     )
     if not stats["stopped"]:
         _confirm(conn, args)
+        _types(conn, args)
         _names(conn, args)
+        _vectors(conn, args)
     print(
         "Что нашла модель и где ошибалась: python georag.py graph --new\n"
         "Свести разные написания одного и того же: python georag.py synonyms"
@@ -120,10 +125,56 @@ def _build(conn: Any, args: Any) -> int:
     return 2 if stats["stopped"] else 0
 
 
-def _names(conn: Any, args: Any) -> int:
-    """Автосинонимы: новые имена графа сводятся к уже известным (autosyn.py)."""
+def _types(conn: Any, args: Any) -> int:
+    """Тип связи и виды концов у подтверждённых фактов (kinds.py)."""
+    kinds.init(conn)
+    left = len(kinds.todo(conn)) if not args.redo else None
+    if left == 0:
+        print("Типы у всех подтверждённых фактов уже есть.")
+        return 0
+    print(
+        "Ставлю тип связи и виды концов по цитате: связь — из списка, факт не о геологии "
+        "(рисунок, расчёт, свойство) в граф не идёт." + (" Всё заново." if args.redo else "")
+    )
+    stats = kinds.run(conn, _llm(args), limit=args.limit, workers=args.workers, redo=args.redo)
+    print(
+        f"Фактов с типом: {stats['typed']}; не в граф: {stats['dropped']}"
+        + (
+            f" ({', '.join(f'{k} — {v}' for k, v in stats['notes'].items())})"
+            if stats["notes"]
+            else ""
+        )
+        + (f". Модель не ответила: {stats['errors']} раз." if stats["errors"] else ".")
+    )
+    return 0
+
+
+def _embedder(args: Any) -> Any:
+    """BGE-M3 — один на команду: им сводятся имена и считаются векторы фактов."""
     from ..index.embed import build_embedder
 
+    if getattr(args, "embedder", None) is None:
+        args.embedder = build_embedder(device=args.device)
+    return args.embedder
+
+
+def _vectors(conn: Any, args: Any) -> int:
+    """Векторы подтверждённых фактов — для поиска по связям (vectors.py)."""
+    print(
+        "Считаю векторы подтверждённых фактов: по ним поиск находит фрагменты через связи"
+        + (" — всё заново." if args.redo else ".")
+    )
+    stats = vectors.update(conn, _embedder(args), args.redo)
+    print(
+        f"Фактов с векторами: {stats['facts']}; посчитано новых: {stats['new']}"
+        + (f"; убрано: {stats['removed']}" if stats["removed"] else "")
+        + "."
+    )
+    return 0
+
+
+def _names(conn: Any, args: Any) -> int:
+    """Автосинонимы: новые имена графа сводятся к уже известным (autosyn.py)."""
     try:
         syn = load(args.synonyms)
     except SynonymsError as exc:
@@ -133,7 +184,7 @@ def _names(conn: Any, args: Any) -> int:
         "Свожу написания одного и того же: имя сравнивается с уже известными по смыслу "
         f"(похожесть от {autosyn.AUTO})" + (" — всё заново." if args.redo else ".")
     )
-    stats = autosyn.update(conn, build_embedder(device=args.device), syn, args.redo)
+    stats = autosyn.update(conn, _embedder(args), syn, args.redo)
     print(
         f"Новых имён: {stats['new']}; сведено к известным: {stats['merged']}"
         + (
@@ -270,7 +321,7 @@ def _questions(conn: Any, syn: Any, args: Any) -> int:
     print(
         f"Составляю вопросы из фактов графа ({'Qwen3 переформулирует' if llm else 'по шаблону'})…"
     )
-    items = questions.build(g, llm, limit=args.limit or 30)
+    items = questions.build(g, llm, limit=args.limit or questions.LIMIT)
     out = Path(args.out_questions)
     out.write_text(questions.to_yaml(items), encoding="utf-8")
     docs = len({d for item in items for d in item["статьи"]})
@@ -321,6 +372,8 @@ def main(argv: list[str] | None = None) -> int:
             "confirm",
             "recheck",
             "names",
+            "vectors",
+            "types",
             "report",
             "dataset",
             "synonyms",
@@ -375,12 +428,17 @@ def main(argv: list[str] | None = None) -> int:
             if args.command == "build":
                 return _build(conn, args)
             if args.command == "confirm":
-                return _confirm(conn, args)
+                # Подтверждённых стало больше — им нужны тип и векторы для поиска.
+                return _confirm(conn, args) or _types(conn, args) or _vectors(conn, args)
             if args.command == "recheck":
                 facts.recheck(conn)
                 return 0
             if args.command == "names":
                 return _names(conn, args)
+            if args.command == "vectors":
+                return _vectors(conn, args)
+            if args.command == "types":
+                return _types(conn, args)
             if args.command == "report":
                 return _report(conn, syn)
             if args.command == "dataset":

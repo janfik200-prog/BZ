@@ -52,13 +52,24 @@ from __future__ import annotations
 
 import time
 from collections.abc import Generator, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
+from ..index import db
 from ..llm import LLM, LLM_HOST, LLMError
-from .checks import NO_ANSWER, citations, coverage, drop_uncited, is_refusal
+from .checks import (
+    NO_ANSWER,
+    REFUSAL_CHARS,
+    citations,
+    coverage,
+    drop_repeats,
+    drop_uncited,
+    is_refusal,
+    says_not_in_base,
+)
+from .collect import collect, rest_of_summary
 from .conflicts import find_conflicts
-from .dataset import collect_dataset, dataset_sources, graph_candidates
+from .dataset import collect_dataset, dataset_sources, graph_candidates, question_subject
 from .messages import build_messages, fit_budget, general_messages
 from .plan import Plan, is_follow_up, make_plan, plan_question
 from .retrieval import MAX_ROUNDS, Retrieval, judge_fragments, retrieve
@@ -132,12 +143,22 @@ def prepare(
     yield {"type": "status", "text": "разбираю вопрос…"}
     plan = make_plan(question, history, settings, planner)
 
-    # «Собрать всё» о предмете вопроса — из датасета; поиск только добавляет.
+    # «Собрать всё» о предмете вопроса: сначала — по всем статьям, где он упомянут
+    # (collect.py), нет его в статьях — из датасета графа; поиск только добавляет.
     data = None
-    if plan.collect and datasets is not None:
+    base: list[dict[str, Any]] = []
+    if plan.collect and settings.collect and db.is_real(conn):
+        subject = question_subject(conn, plan.subject, question)
+        if subject:
+            gathered = yield from collect(
+                conn, embedder, settings.client(), subject, question=question
+            )
+            if gathered is not None:
+                base, data = gathered.sources, gathered.info()
+    if not base and plan.collect and datasets is not None:
         yield {"type": "status", "text": "собираю факты из графа…"}
         data = datasets(conn, plan.subject, question)
-    base = dataset_sources(data) if data else []
+        base = dataset_sources(data) if data else []
 
     # Вопрос о названном предмете — фрагменты о нём из графа в кандидаты.
     extra: list[Any] = []
@@ -157,8 +178,11 @@ def prepare(
     limit = max(settings.top_k - (len(base) - 1), 3) if base else None
     # Вопрос не о геологии — один круг: проверить, что в базе правда пусто, и всё.
     rounds = MAX_ROUNDS if plan.on_topic else 1
+    # После сбора по статьям поиск добавляет несколько фрагментов целиком, без заметок:
+    # выписки по статьям уже есть, окно модели не резиновое.
+    searching = replace(settings, notes=False) if data and "collected" in data else settings
     found = yield from retrieve(
-        conn, embedder, question, plan, settings, judge, base, limit, rounds, extra
+        conn, embedder, question, plan, searching, judge, base, limit, rounds, extra
     )
     return Prepared(plan, base + found.sources, found, data, len(extra))
 
@@ -214,60 +238,18 @@ def answer(
         info["conflicts"] = clashes
         sources, turns = fit_budget(question, sources, history, settings, plan, clashes)
         yield {"type": "status", "text": "пишу ответ по найденному…"}
-        stream = _clean(
-            llm(build_messages(question, sources, turns, settings.model, plan, clashes), settings)
-        )
-        try:
-            # Первые слова держатся, пока не ясно, не отказ ли это: если модель
-            # прочла фрагменты и ответа в них нет, статьи не показываются вовсе.
-            head, finished = "", False
-            for part in stream:
-                if "done" in part:
-                    tokens, finished = part["done"], True
-                    break
-                head += part["text"]
-                if len(head.strip()) >= len(NO_ANSWER) + 10:
-                    break
-            if head.strip() and not is_refusal(head):
-                yield {"type": "sources", "sources": sources, **info}
-                text = head
-                if head:
-                    yield {"type": "token", "text": head}
-                if not finished:
-                    for part in stream:
-                        if "done" in part:
-                            tokens = part["done"]
-                            break
-                        text += part["text"]
-                        yield {"type": "token", "text": part["text"]}
-                # Фразы без ссылки на фрагмент — не из статей: ответ заменяется
-                # очищенным, убранное показывается отдельно.
-                cleaned, removed = drop_uncited(text)
-                if removed and cleaned:
-                    text = cleaned
-                    yield {"type": "revised", "text": text, "removed": removed}
-                else:
-                    removed = []
-                used, unknown = citations(text, len(sources))
-                cited, claims = coverage(text)
-                yield {
-                    "type": "done",
-                    "mode": "база",
-                    "used": used,
-                    "unknown": unknown,
-                    "coverage": [cited, claims],
-                    "removed": len(removed),
-                    "model": settings.model,
-                    "seconds": round(time.monotonic() - started, 1),
-                    "tokens": tokens,
-                    **info,
-                }
+        # Отказ при фрагментах, которые модель-отборщик признала подходящими, — второй
+        # заход с напоминанием правила 6 (insist). На s01 модель с одним и тем же набором
+        # из 6 фрагментов отказывалась 3 раза из 3, хотя ответ в них есть (14.10.2026).
+        retries = (False, True) if prepared.retrieval.judged else (False,)
+        for insist in retries:
+            if insist:
+                yield {"type": "status", "text": "перечитываю найденное…"}
+            done = yield from _answer_from(
+                llm, question, sources, turns, plan, clashes, settings, info, started, insist
+            )
+            if done:
                 return
-        except LLMError as exc:
-            yield {"type": "error", "error": str(exc)}
-            return
-        finally:
-            stream.close()
 
     if not plan.on_topic and not settings.general_off_topic:
         # Не о геологии и в базе пусто — короткий отказ, без ответа из общих знаний.
@@ -310,6 +292,86 @@ def answer(
         "tokens": tokens,
         **info,
     }
+
+
+def _answer_from(
+    llm: Any,
+    question: str,
+    sources: list[dict[str, Any]],
+    turns: list[dict[str, Any]],
+    plan: Plan,
+    clashes: list[dict[str, Any]],
+    settings: Settings,
+    info: dict[str, Any],
+    started: float,
+    insist: bool = False,
+) -> Generator[dict[str, Any], None, bool]:
+    """Ответ по фрагментам событиями. True — ответ дан (или ошибка сервера модели),
+    False — модель отказалась: «в базе знаний нет ответа»."""
+    messages = build_messages(question, sources, turns, settings.model, plan, clashes, insist)
+    stream = _clean(llm(messages, settings))
+    tokens = None
+    try:
+        # Первые слова держатся, пока не ясно, не отказ ли это: если модель
+        # прочла фрагменты и ответа в них нет, статьи не показываются вовсе.
+        # «В базе знаний нет информации о …» — отказ, если ответ на этом и кончается.
+        head, finished = "", False
+        for part in stream:
+            if "done" in part:
+                tokens, finished = part["done"], True
+                break
+            head += part["text"]
+            short = says_not_in_base(head) and len(head) < REFUSAL_CHARS
+            if len(head.strip()) >= len(NO_ANSWER) + 10 and not short:
+                break
+        if not head.strip() or is_refusal(head) or (finished and says_not_in_base(head)):
+            return False
+        yield {"type": "sources", "sources": sources, **info}
+        text = head
+        yield {"type": "token", "text": head}
+        if not finished:
+            for part in stream:
+                if "done" in part:
+                    tokens = part["done"]
+                    break
+                text += part["text"]
+                yield {"type": "token", "text": part["text"]}
+        # Фразы без ссылки на фрагмент — не из статей, повторы — зацикливание:
+        # ответ заменяется очищенным, убранное показывается отдельно.
+        unique = drop_repeats(text)
+        cleaned, removed = drop_uncited(unique)
+        rest = rest_of_summary(cleaned, sources)
+        if rest:
+            cleaned = f"{cleaned.rstrip()}\n\n{rest}".strip()
+        used, unknown = citations(cleaned, len(sources))
+        if not used:
+            # Уже показанный поток нужно стереть перед повтором или ответом без базы.
+            yield {"type": "revised", "text": "", "removed": removed}
+            return False
+        if cleaned != text:
+            text = cleaned
+            yield {"type": "revised", "text": text, "removed": removed}
+        used, unknown = citations(text, len(sources))
+        cited, claims = coverage(text)
+        yield {
+            "type": "done",
+            "mode": "база",
+            "used": used,
+            "unknown": unknown,
+            "coverage": [cited, claims],
+            "removed": len(removed),
+            "model": settings.model,
+            "seconds": round(time.monotonic() - started, 1),
+            "tokens": tokens,
+            **({"insisted": True} if insist else {}),
+            **info,
+        }
+        return True
+    except LLMError as exc:
+        yield {"type": "error", "error": str(exc)}
+        return True
+    finally:
+        stream.close()
 
 
 def _clean(parts: Any) -> Generator[dict[str, Any], None, None]:

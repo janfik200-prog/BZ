@@ -19,13 +19,32 @@
 грубая — она не скажет, верен ли ответ по существу. Зато она одинаковая от
 прогона к прогону, и по ней видно, что изменение сделало лучше или хуже:
 отчёт сравнивается с прошлым прогоном.
+
+**Ключевые слова.** Строка в «ключевые» — одна мысль, варианты через «|», и
+засчитывается любой: «гематит|hematite» — ответ по-русски, статья по-английски.
+Слово ищется в любой форме и с начала слова: у русского снимается окончание
+(«кварцевые жилы» находит «кварцевыми жилами»), у английского — множественное
+число («valleys» находит «valley», «anomalies» — «anomaly»). Аббревиатура и
+символ элемента — только целым словом: ROC не находится в «rock», Au — в «author».
+Перевода нет, но имя собственное одним словом узнаётся и другим алфавитом или
+другой транслитерацией («Kular» находит «район Кулар», «Koldar» — «массив Кольдар»;
+text.translit_key) — кроме начала составного имени («Куларо-Нерский»). Обычное слово —
+только как написано: русское написание термина дают вариантом.
+
+**Узкий вопрос** — «кратко: да» в файле вопросов (так помечает свои вопросы
+graph/questions.py): спрашивается один факт, и верный ответ может быть одной
+фразой («рутил [1]»). Порог длины MIN_CHARS для него не действует — вместо него
+ответ должен сослаться хотя бы на один фрагмент. Без пометки вопрос обзорный, и
+ответ в одну фразу — отписка.
+
+**Номер из вопроса.** «[13]» в самом вопросе («согласно источнику [13]») ответ
+может повторить; это не ссылка на выдуманный фрагмент и ошибкой не считается.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 import time
 from dataclasses import dataclass, field
@@ -34,12 +53,13 @@ from pathlib import Path
 from typing import Any
 
 from .chat import answer as chat
+from .chat.checks import citations
 from .chat.dataset import collect_dataset, graph_candidates
 from .chat.plan import plan_question
 from .chat.retrieval import judge_fragments, run
 from .chat.settings import Settings
 from .paths import CONFIG, LOGS
-from .text import normalize, phrase_pattern
+from .text import keyword_hits
 
 DEFAULT_QUESTIONS = CONFIG / "eval-questions.yaml"
 DEFAULT_LOGS = LOGS
@@ -50,7 +70,7 @@ NOT_IN_BASE = "без базы"
 # с запасом, а отписка — нет. Менять — здесь.
 MIN_KEYWORDS = 0.5  # доля ключевых мыслей, найденных в тексте
 MIN_COVERAGE = 0.6  # доля утверждений ответа со ссылкой
-MIN_CHARS = 150  # ответ по базе — не одна фраза
+MIN_CHARS = 150  # ответ по базе — не одна фраза (кроме узких вопросов, «кратко: да»)
 MIN_DOCS = 0.5  # доля нужных статей (поле «статьи»), найденных поиском
 
 
@@ -70,6 +90,13 @@ class Question:
     # Какие статьи поиск обязан найти (doc_id, как в базе). Ключевые слова говорят
     # только, что в найденном есть нужные слова; статьи — что найдено именно то.
     docs: list[str] = field(default_factory=list)
+    # Узкий вопрос об одном факте («кратко: да»): короткий ответ — не отписка.
+    short: bool = False
+
+
+def _yes(value: Any) -> bool:
+    """«да» в файле вопросов: да, yes, true (YAML сам читает true как True)."""
+    return value is True or str(value or "").strip().lower() in {"да", "yes", "true"}
 
 
 def load_questions(path: Path | str = DEFAULT_QUESTIONS) -> list[Question]:
@@ -113,34 +140,14 @@ def load_questions(path: Path | str = DEFAULT_QUESTIONS) -> list[Question]:
                     for d in (docs if isinstance(docs, list) else [docs])
                     if str(d).strip()
                 ],
+                _yes(item.get("кратко")),
             )
         )
     return out
 
 
-# --------------------------------------------------------------------------- #
-#  Ключевые слова
-# --------------------------------------------------------------------------- #
-_ACRONYM = re.compile(r"[A-ZА-ЯЁ0-9\-]{2,6}")
-
-
-def _pattern(word: str) -> re.Pattern[str]:
-    """Слово в любой форме, с начала слова. Аббревиатура — целиком: ROC не rock."""
-    if _ACRONYM.fullmatch(word):
-        return re.compile(rf"(?<!\w){re.escape(normalize(word))}(?!\w)")
-    return re.compile(r"(?<!\w)" + phrase_pattern(word).pattern)
-
-
-def keyword_hits(groups: list[list[str]], text: str) -> tuple[int, list[str]]:
-    """Сколько ключевых мыслей встретилось в тексте и какие — нет."""
-    norm = normalize(text)
-    found, missing = 0, []
-    for group in groups:
-        if any(_pattern(word).search(norm) for word in group):
-            found += 1
-        else:
-            missing.append(group[0])
-    return found, missing
+# Ключевые слова ищет text.keyword_hits (правила — «Ключевые слова» вверху): тем же
+# сопоставлением генератор вопросов (graph/questions.py) проверяет свои ключи.
 
 
 def share(found: int, total: int) -> float | None:
@@ -175,6 +182,7 @@ def check_search(q: Question, sources: list[dict[str, Any]]) -> dict[str, Any]:
         "sources": [
             {
                 "n": s["n"],
+                "chunk_id": s.get("chunk_id"),  # нашёлся ли фрагмент с фактом (поле «фрагмент»)
                 "title": s.get("title", "")[:90],
                 "year": s.get("year"),
                 "similarity": s.get("similarity"),
@@ -186,9 +194,12 @@ def check_search(q: Question, sources: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def check_answer(q: Question, events: list[dict[str, Any]]) -> dict[str, Any]:
-    text = "".join(e["text"] for e in events if e["type"] == "token")
-    # Ответ, из которого убраны фразы без ссылки, приходит целиком событием revised.
-    text = next((e["text"] for e in events if e["type"] == "revised"), text)
+    text = ""
+    for event in events:
+        if event["type"] in ("revised", "general"):
+            text = event.get("text", "") if event["type"] == "revised" else ""
+        elif event["type"] == "token":
+            text += event["text"]
     done = next((e for e in events if e["type"] == "done"), {})
     error = next((e["error"] for e in events if e["type"] == "error"), None)
     mode = done.get("mode")
@@ -196,6 +207,9 @@ def check_answer(q: Question, events: list[dict[str, Any]]) -> dict[str, Any]:
     found, missing = keyword_hits(q.keywords, text)
     recall = share(found, len(q.keywords))
     coverage = share(cited, claims)
+    # Номер «[n]» из самого вопроса ответ повторяет — это не выдуманный фрагмент.
+    asked = set(citations(q.text, 0)[1])
+    unknown = [n for n in done.get("unknown", []) if n not in asked]
     problems = []
     if error:
         problems.append(f"ошибка: {error}")
@@ -203,12 +217,14 @@ def check_answer(q: Question, events: list[dict[str, Any]]) -> dict[str, Any]:
         if mode != chat_mode(IN_BASE):
             problems.append("ответил без базы, хотя должен был по статьям")
         else:
-            if len(text) < MIN_CHARS:
+            if not done.get("used"):
+                problems.append("нет ссылки на фрагмент")
+            if not q.short and len(text) < MIN_CHARS:
                 problems.append(f"короткий ответ: {len(text)} знаков")
             if coverage is not None and coverage < MIN_COVERAGE:
                 problems.append(f"мало ссылок: {cited} из {claims} утверждений")
-            if done.get("unknown"):
-                problems.append(f"ссылки на несуществующие фрагменты {done['unknown']}")
+            if unknown:
+                problems.append(f"ссылки на несуществующие фрагменты {unknown}")
             if recall is not None and recall < MIN_KEYWORDS:
                 problems.append("в ответе нет ключевого: " + ", ".join(missing))
     elif mode != chat_mode(NOT_IN_BASE):
@@ -217,7 +233,7 @@ def check_answer(q: Question, events: list[dict[str, Any]]) -> dict[str, Any]:
         "mode": mode,
         "chars": len(text),
         "used": done.get("used", []),
-        "unknown": done.get("unknown", []),
+        "unknown": unknown,
         "coverage": coverage,
         "claims": [cited, claims],
         "keywords": recall,
@@ -491,6 +507,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="без графа: ни датасетов «что известно о…», ни фрагментов о предмете из графа",
     )
+    parser.add_argument(
+        "--facts",
+        action="store_true",
+        help="с поиском по векторам фактов графа (фрагменты, которые привели факты)",
+    )
     parser.add_argument("--logs", type=Path, default=DEFAULT_LOGS)
     add_db_args(parser)
     add_embedder_args(parser)
@@ -509,7 +530,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Нет вопросов с id {', '.join(sorted(wanted))}", file=sys.stderr)
             return 1
 
-    settings = Settings(model=args.model, host=args.llm_host)
+    settings = Settings(model=args.model, host=args.llm_host, fact_search=args.facts)
     status = chat.llm_status(settings.host, settings.model)
     with_answer = not args.only_search
     if with_answer and not status["ok"]:
@@ -559,6 +580,8 @@ def main(argv: list[str] | None = None) -> int:
         "model": settings.model,
         "with_answer": with_answer,
         "planner": status["ok"],
+        "graph": not args.no_graph,
+        "facts": settings.fact_search,
     }
     md = report(results, summary, previous, meta)
     (args.logs / f"eval-{when}.md").write_text(md, encoding="utf-8")

@@ -12,6 +12,12 @@ RRF (Reciprocal Rank Fusion) складывает не оценки, а мест
 Оценки двух поисков несопоставимы (косинус против ts_rank), а места —
 сопоставимы. k = 60 — значение из исходной статьи Cormack et al.; оно гасит
 вклад хвоста, но не даёт первому месту одного списка задавить всё остальное.
+
+Третий поиск (facts=True) — по векторам фактов графа (graph/vectors.py): факт
+«от — связь — к» с цитатой — одно утверждение, и вопрос ровно о нём находит его
+ближе, чем фрагмент в 2000 знаков, где оно растворено. Близкий факт приводит свой
+фрагмент — сверх найденного, до FACT_SLOTS мест. С двумя другими поисками по местам
+он не сливается: так он перемешивал их порядок, и выдача становилась хуже.
 """
 
 from __future__ import annotations
@@ -38,9 +44,10 @@ class Hit:
     url: str = ""
     authors: list[str] = field(default_factory=list)
     score: float = 0.0
-    found_by: str = ""  # вектор | текст | оба
+    found_by: str = ""  # вектор | текст | оба, и «+ связь» — нашёлся и через факт
     vec_rank: int | None = None
     fts_rank: int | None = None
+    fact_rank: int | None = None
     # Нашёлся ли по словам «строго» — все слова запроса есть в тексте. Мягкий
     # поиск (хотя бы часть слов) сам по себе ничего не доказывает.
     fts_strict: bool = False
@@ -48,6 +55,10 @@ class Hit:
     # даёт примерно 0.6 и выше, случайный сосед — около 0.3-0.45. По ней и
     # отсекается «ближайшее, но не по делу».
     similarity: float | None = None
+    # Факт графа, который привёл фрагмент (лучший из его фактов), и его близость к
+    # запросу.
+    fact: str = ""
+    fact_similarity: float | None = None
 
     def citation(self) -> str:
         pages = (
@@ -233,6 +244,72 @@ def _to_hit(row: tuple[Any, ...]) -> Hit:
     )
 
 
+# Поиск по фактам (2026-10-14, .local/logs/facts-ab-20261014; поиск по тексту вопроса,
+# первые 12 фрагментов). Слить его с двумя другими по местам (RRF) — хуже: на 29
+# вопросах оценки ключевого 0,90 → 0,88, на 30 вопросах из графа нужных статей
+# +1/−3. Отдать до двух мест фрагментам, которые привёл близкий факт, — ключевого
+# 0,90 → 0,90 и 0,73 → 0,87, нужных статей +3/−0. Близость лучшего факта у вопросов
+# не по теме — до 0,46, у вопросов по базе — в середине 0,61.
+FACT_MIN_SIMILARITY = 0.6  # близость факта к запросу, с которой он приводит фрагмент
+FACT_SLOTS = 2  # сколько мест сверх найденного у фрагментов, которые привели факты
+
+
+def fact_search(
+    conn: Any, vector: list[float], limit: int, year_from: Any = None, source: Any = None
+) -> list[tuple[int, float, str]]:
+    """Ближайшие факты → их фрагменты: (chunk_id, близость лучшего факта, факт) в
+    порядке близости, по фрагменту — один раз. Таблицы векторов фактов ещё нет
+    (граф не строили) — пусто."""
+    from .db import vector_literal
+
+    clause, params = _filters(year_from, source)
+    join = (
+        "JOIN chunks c ON c.id = v.chunk_id JOIN documents d ON d.doc_id = c.doc_id"
+        if clause
+        else ""
+    )
+    params.update({"q": vector_literal(vector), "limit": limit})
+    try:
+        with _transaction(conn), conn.cursor() as cur:
+            _tune_hnsw(cur, limit, bool(clause))
+            cur.execute(
+                f"""
+                SELECT v.chunk_id, 1 - (v.embedding <=> %(q)s::vector), v.text
+                FROM fact_vectors v {join}
+                WHERE true {clause}
+                ORDER BY v.embedding <=> %(q)s::vector
+                LIMIT %(limit)s
+                """,
+                params,
+            )
+            rows = cur.fetchall()
+    except Exception as exc:
+        if getattr(exc, "sqlstate", None) != "42P01":  # undefined_table — графа нет
+            raise
+        return []
+    found: dict[int, tuple[int, float, str]] = {}
+    for chunk_id, similarity, text in rows:
+        found.setdefault(chunk_id, (chunk_id, float(similarity), text))
+    return list(found.values())
+
+
+def _chunks_by_id(conn: Any, ids: list[int], vector: list[float]) -> list[tuple[Any, ...]]:
+    """Фрагменты, которые нашлись только через факты, — с их собственной близостью."""
+    from .db import vector_literal
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT {SELECT_FIELDS}, 1 - (c.embedding <=> %(q)s::vector)
+            FROM chunks c JOIN documents d ON d.doc_id = c.doc_id
+            WHERE c.id = ANY(%(ids)s)
+            """,
+            {"q": vector_literal(vector), "ids": list(ids)},
+        )
+        rows: list[tuple[Any, ...]] = cur.fetchall()
+        return rows
+
+
 def rrf_merge(ranked_lists: list[list[int]], k: int = RRF_K) -> dict[int, float]:
     """Места в списках → общая оценка. Вход: списки id в порядке релевантности."""
     scores: dict[int, float] = {}
@@ -256,10 +333,13 @@ def hybrid_search(
     require_words: bool = False,
     alternatives: list[str] | None = None,
     vector: list[float] | None = None,
+    facts: bool = False,
 ) -> list[Hit]:
     """alternatives — написания запроса из словаря синонимов (synonyms.synonym_variants):
     идут только в полнотекст, вектор и так понимает перевод. vector — уже посчитанный
-    вектор запроса (search_many считает их пачкой)."""
+    вектор запроса (search_many считает их пачкой). facts — ещё и поиск по векторам
+    фактов графа: в конце выдачи, сверх limit, — до FACT_SLOTS фрагментов, которые
+    привели близкие факты."""
     if vector is None:
         vector = embedder.encode_one(query)
     vec_rows = vector_search(conn, vector, candidates, year_from, source)
@@ -293,13 +373,55 @@ def hybrid_search(
     for chunk_id, score in scores.items():
         hit = hits[chunk_id]
         hit.score = score
-        hit.found_by = (
-            "оба" if hit.vec_rank and hit.fts_rank else ("вектор" if hit.vec_rank else "текст")
-        )
+        hit.found_by = _found_by(hit)
 
     kept = [h for h in hits.values() if _passes(h, min_similarity, require_words)]
     ordered = sorted(kept, key=lambda h: h.score, reverse=True)
-    return cap_per_doc(ordered, max_per_doc)[:limit]
+    found = cap_per_doc(ordered, max_per_doc)[:limit]
+    if facts and not require_words:
+        found += _fact_extras(conn, vector, candidates, year_from, source, hits, found)
+    return found
+
+
+def _fact_extras(
+    conn: Any,
+    vector: list[float],
+    limit: int,
+    year_from: Any,
+    source: Any,
+    hits: dict[int, Hit],
+    found: list[Hit],
+) -> list[Hit]:
+    """Фрагменты, которые привели близкие факты, — до FACT_SLOTS сверх найденного.
+
+    У найденного и так — пометка, какой близкий факт о нём (found_by «+ связь»)."""
+    rows = fact_search(conn, vector, limit, year_from, source)
+    rows = [r for r in rows if r[1] >= FACT_MIN_SIMILARITY]
+    taken = {h.chunk_id for h in found}
+    wanted = [r for r in rows if r[0] not in taken][:FACT_SLOTS]
+    missing = [chunk_id for chunk_id, _, _ in wanted if chunk_id not in hits]
+    for row in _chunks_by_id(conn, missing, vector) if missing else []:
+        hits[row[0]] = _to_hit(row)
+        hits[row[0]].similarity = round(float(row[11]), 4)
+    for position, (chunk_id, similarity, text) in enumerate(rows, start=1):
+        hit = hits.get(chunk_id)
+        if hit is not None:
+            hit.fact_rank = position
+            hit.fact_similarity = round(similarity, 4)
+            hit.fact = text
+            hit.found_by = _found_by(hit)
+    return [hits[chunk_id] for chunk_id, _, _ in wanted if chunk_id in hits]
+
+
+def _found_by(hit: Hit) -> str:
+    """Кто нашёл: вектор, текст, оба — и «+ связь», если ещё и через факт графа."""
+    if hit.vec_rank and hit.fts_rank:
+        base = "оба"
+    elif hit.vec_rank or hit.fts_rank:
+        base = "вектор" if hit.vec_rank else "текст"
+    else:
+        return "связь"
+    return f"{base} + связь" if hit.fact_rank else base
 
 
 def _passes(hit: Hit, min_similarity: float, require_words: bool) -> bool:

@@ -24,6 +24,7 @@ from typing import Any
 
 from ..text import name_key, normalize
 from . import autosyn, store
+from .kinds import HEDGE
 from .synonyms import PART_OF, Synonyms
 
 ENTITY = "сущность"
@@ -152,10 +153,19 @@ class Graph:
         for r in rows:
             self.max_id = max(self.max_id, int(r.get("id") or 0))
             src_raw, dst_raw = r["src"], r["dst"]
-            # «щит включает зону» — это «зона входит в щит»: факт разворачивается.
-            relation, flip = syn.relation_dir(r["relation"])
+            src_kind, dst_kind = r.get("src_kind") or "", r.get("dst_kind") or ""
+            if r.get("rel_type"):
+                # Тип связи из списка (kinds.py) — вместо слов статьи; предположение
+                # остаётся предположением.
+                relation, flip = r["rel_type"], bool(r.get("rel_flip"))
+                if str(r["relation"]).startswith(HEDGE + " "):
+                    relation = f"{HEDGE} {relation}"
+            else:
+                # «щит включает зону» — это «зона входит в щит»: факт разворачивается.
+                relation, flip = syn.relation_dir(r["relation"])
             if flip:
                 src_raw, dst_raw = dst_raw, src_raw
+                src_kind, dst_kind = dst_kind, src_kind
             src, dst = self.canonical(src_raw), self.canonical(dst_raw)
             if src == dst:
                 continue
@@ -181,7 +191,7 @@ class Graph:
                         link if (x.src, x.relation, x.dst) == key else x for x in self.touching[end]
                     ]
             link.facts.append(r)
-            for name, raw in ((src, src_raw), (dst, dst_raw)):
+            for name, raw, kind in ((src, src_raw, src_kind), (dst, dst_raw, dst_kind)):
                 e = self.entities.get(name)
                 if e is None:
                     e = self.entities[name] = {
@@ -189,6 +199,7 @@ class Graph:
                         "facts": 0,
                         "docs": set(),
                         "spellings": set(),
+                        "kinds": Counter(),
                         "in_dictionary": name in syn.groups,
                     }
                     self._mine("entities", name)
@@ -198,8 +209,11 @@ class Graph:
                         **e,
                         "docs": set(e["docs"]),
                         "spellings": set(e["spellings"]),
+                        "kinds": Counter(e.get("kinds") or ()),
                     }
                 e["facts"] += 1
+                if kind:
+                    e["kinds"][kind] += 1
                 e["docs"].add(r["doc_id"])
                 if normalize(raw) != normalize(name):
                     e["spellings"].add(raw)
@@ -220,6 +234,11 @@ class Graph:
                     index[int(f["chunk_id"])].append((link, f))
             self._by_chunk = index
         return self._by_chunk
+
+    def kind(self, name: str) -> str:
+        """Вид сущности (kinds.KINDS) — какой ей чаще ставили; пусто — без типов."""
+        kinds = (self.entities.get(name) or {}).get("kinds")
+        return str(kinds.most_common(1)[0][0]) if kinds else ""
 
     def canonical(self, raw: str) -> str:
         return self.syn.name(raw) or self.display.get(name_key(raw)) or raw
@@ -288,17 +307,25 @@ _CACHE: dict[str, Any] = {}
 _CACHE_LOCK = threading.Lock()
 
 
+def _typed(conn: Any) -> str:
+    """Сколько фактов с типом (kinds.py) — в отпечаток; колонок ещё нет — ноль."""
+    return "count(typed_at)" if store.has_types(conn) else "0"
+
+
 def _stamp(conn: Any) -> Any:
-    """Отпечаток фактов: сколько их, последний номер и подтверждения. Только у настоящей базы."""
+    """Отпечаток фактов: сколько их, последний номер, подтверждения и типы. Только у
+    настоящей базы."""
     try:
         import psycopg
     except ImportError:
         return None
     if not isinstance(conn, psycopg.Connection):
         return None
+    typed = _typed(conn)
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT count(*), coalesce(max(id), 0), count(votes), coalesce(sum(votes), 0) FROM facts"
+            "SELECT count(*), coalesce(max(id), 0), count(votes), coalesce(sum(votes), 0), "
+            f"{typed} FROM facts"
         )
         row = cur.fetchone()
         return tuple(row) if row else None
@@ -308,16 +335,17 @@ def _only_added(conn: Any, old: tuple[Any, ...]) -> bool:
     """Прежние факты (номер ≤ прежнего последнего) не тронуты — только дописаны новые.
 
     Отпечаток прежних фактов сверяется заново: сколько их, сколько проверено и сумма
-    подтверждений. Удаление, перепроверка или подтверждение старого факта его меняют —
-    тогда граф собирается с нуля."""
-    count, last, checked, total = old
+    подтверждений и типов. Удаление, перепроверка, подтверждение или тип старого факта
+    его меняют — тогда граф собирается с нуля."""
+    count, last, checked, total, typed = old
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT count(*), count(votes), coalesce(sum(votes), 0) FROM facts WHERE id <= %s",
+            "SELECT count(*), count(votes), coalesce(sum(votes), 0), "
+            f"{_typed(conn)} FROM facts WHERE id <= %s",
             (last,),
         )
         row = cur.fetchone()
-    return bool(row) and tuple(row) == (count, checked, total)
+    return bool(row) and tuple(row) == (count, checked, total, typed)
 
 
 def graph(conn: Any, syn: Synonyms) -> Graph:
@@ -366,6 +394,7 @@ def network_response(conn: Any, syn: Synonyms, with_articles: bool = True) -> di
                 "documents": len(e["docs"]),
                 "spellings": sorted(e["spellings"])[:12],
                 "in_dictionary": e["in_dictionary"],
+                "category": g.kind(e["name"]),  # минерал, порода, процесс… (kinds.py)
             }
         )
     for link in g.links.values():
@@ -488,6 +517,7 @@ def dataset(conn: Any, syn: Synonyms, name: str, g: Graph | None = None) -> dict
                 "direction": direction,
                 "relation": link.relation,
                 "other": other,
+                "kind": g.kind(other),
                 "documents": link.documents,
                 "fragments": len(link.facts),
                 "quotes": link.quotes(),

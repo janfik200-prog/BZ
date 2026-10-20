@@ -12,7 +12,7 @@ from dataclasses import replace
 from typing import Any
 
 from ..index import db
-from ..index.search import RRF_K, hybrid_search
+from ..index.search import FACT_MIN_SIMILARITY, RRF_K, hybrid_search
 from .plan import Part, Plan
 from .settings import Settings
 
@@ -95,28 +95,138 @@ def source_dict(n: int, hit: Any, part: Any = None) -> dict[str, Any]:
     }
 
 
-def search_all(conn: Any, embedder: Any, queries: list[str]) -> list[list[Any]]:
+def search_all(
+    conn: Any, embedder: Any, queries: list[str], facts: bool = False
+) -> list[list[Any]]:
     """Несколько запросов разом. Векторы запросов — одной пачкой (12 запросов: 36 мс
     против 172 по одному), поиски в базе — одновременно в нескольких соединениях
     (70 мс против 240): на вопрос из нескольких частей это около 0,35 с.
-    Заглушки в проверках — по одному, как раньше."""
+    Заглушки в проверках — по одному, как раньше. facts — ещё и поиск по фактам
+    графа (index.search: фрагменты, которые привели близкие факты); только в
+    настоящей базе."""
+    more: dict[str, Any] = {"facts": True} if facts and db.is_real(conn) else {}
     if len(queries) < 2 or not db.is_real(conn) or not hasattr(embedder, "encode"):
-        return [hybrid_search(conn, embedder, q, limit=CANDIDATES, max_per_doc=0) for q in queries]
+        return [
+            hybrid_search(conn, embedder, q, limit=CANDIDATES, max_per_doc=0, **more)
+            for q in queries
+        ]
     vectors = embedder.encode(queries)
 
     def one(pair: tuple[str, Any]) -> list[Any]:
         query, vector = pair
         with db.sibling(conn) as other:
             return hybrid_search(
-                other, embedder, query, limit=CANDIDATES, max_per_doc=0, vector=vector
+                other, embedder, query, limit=CANDIDATES, max_per_doc=0, vector=vector, **more
             )
 
     with ThreadPoolExecutor(min(SEARCH_WORKERS, len(queries))) as pool:
         return list(pool.map(one, zip(queries, vectors, strict=True)))
 
 
+# Статья найдена, а фрагмент с ответом — нет: из 17 проваленных вопросов об одном факте
+# (вопросы из графа, 15.10.2026) у 8 статья была среди найденного, а нужного куска не было.
+# Тогда из найденных статей берутся ещё по SIBLINGS кусков, ближайших к вопросу.
+SIBLINGS = 2
+SIBLING_DOCS = 6
+
+# Внутри статьи название объекта часто есть лишь в начале раздела. Здесь нужны
+# слова самого факта: «замещает хлорит», а не повтор названия месторождения.
+_ARTICLE_STOP = {
+    "какой", "какая", "какие", "каких", "каким", "каког", "какую", "каком", "каков",
+    "ответ", "кратк", "подро", "рудоп", "место", "район", "участ", "минер", "стать",
+    "сведе", "извес", "найди", "покаж", "переч", "собер",
+}
+
+
+def article_query(question: str) -> str:
+    """Термины факта без имён территории и общих слов вопроса."""
+    from .dataset import proper_stems
+
+    names = proper_stems(question)
+    words = re.findall(r"[^\W\d_][\w-]*", question.lower())
+    terms = [w for w in words if len(w) >= 4 and w[:5] not in _ARTICLE_STOP | names]
+    return " ".join(dict.fromkeys(terms)) or question
+
+
+def same_article(
+    conn: Any, embedder: Any, question: str, docs: list[str], known: set[int]
+) -> list[Any]:
+    """Дополнительные куски найденных статей: по словам факта и по вектору.
+
+    По два результата каждого способа из статьи; известные куски не повторяются.
+    Предыдущий кусок даёт местный контекст, который не обязан повторяться в факте.
+    """
+    if not docs or not db.is_real(conn):
+        return []
+    from ..index.db import vector_literal
+    from ..index.search import SELECT_FIELDS, _to_hit, build_tsquery
+
+    literal = vector_literal(embedder.encode_one(question))
+    params = {
+        "q": literal, "docs": docs, "known": list(known), "n": SIBLINGS,
+        "terms": build_tsquery(article_query(question), any_word=True),
+    }
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT * FROM (
+                SELECT {SELECT_FIELDS},
+                       ts_rank_cd(c.tsv, to_tsquery('russian', %(terms)s)) AS score,
+                       row_number() OVER (
+                           PARTITION BY c.doc_id
+                           ORDER BY ts_rank_cd(c.tsv, to_tsquery('russian', %(terms)s)) DESC, c.id
+                       ) AS place
+                FROM chunks c JOIN documents d ON d.doc_id = c.doc_id
+                WHERE c.doc_id = ANY(%(docs)s) AND NOT (c.id = ANY(%(known)s))
+                  AND c.tsv @@ to_tsquery('russian', %(terms)s)
+            ) ranked WHERE place <= %(n)s ORDER BY place, score DESC
+            """,
+            params,
+        )
+        lexical = cur.fetchall()
+        cur.execute(
+            f"""
+            SELECT * FROM (
+                SELECT {SELECT_FIELDS}, 1 - (c.embedding <=> %(q)s::vector) AS score,
+                       row_number() OVER (
+                           PARTITION BY c.doc_id ORDER BY c.embedding <=> %(q)s::vector
+                       ) AS place
+                FROM chunks c JOIN documents d ON d.doc_id = c.doc_id
+                WHERE c.doc_id = ANY(%(docs)s) AND NOT (c.id = ANY(%(known)s))
+            ) ranked WHERE place <= %(n)s
+            """,
+            params,
+        )
+        rows = cur.fetchall()
+    hits = []
+    seen = set(known)
+    for row in lexical + rows:
+        if row[0] in seen:
+            continue
+        seen.add(row[0])
+        hit = _to_hit(row)
+        if row in rows:
+            hit.similarity = round(float(row[11]), 4)
+        hit.found_by = "та же статья"
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT text,pages FROM chunks WHERE doc_id=%s AND ord=%s",
+                (hit.doc_id, hit.ord - 1),
+            )
+            previous = cur.fetchone()
+        if previous:
+            hit.text = " ".join(previous[0].split())[-600:] + "\n" + hit.text
+            hit.pages = sorted(set(list(previous[1] or []) + hit.pages))
+        hits.append(hit)
+    return hits
+
+
 def merged_search(
-    conn: Any, embedder: Any, queries: list[str], cache: dict[str, Any] | None = None
+    conn: Any,
+    embedder: Any,
+    queries: list[str],
+    cache: dict[str, Any] | None = None,
+    facts: bool = False,
 ) -> list[Any]:
     """Все запросы → одна выдача. Сливается по местам в выдачах (RRF), как
     вектор и слова внутри одного поиска: фрагмент, найденный несколькими
@@ -126,7 +236,7 @@ def merged_search(
     hits: dict[int, Any] = {}
     scores: dict[int, float] = {}
     todo = [q for q in dict.fromkeys(queries) if cache is None or q not in cache]
-    fresh = dict(zip(todo, search_all(conn, embedder, todo), strict=True))
+    fresh = dict(zip(todo, search_all(conn, embedder, todo, facts), strict=True))
     if cache is not None:
         cache.update(fresh)
     for query in queries:
@@ -143,6 +253,10 @@ def merged_search(
             if hit.fts_rank is not None and known.fts_rank is None:
                 known.fts_rank = hit.fts_rank
             known.fts_strict = known.fts_strict or hit.fts_strict
+            if (hit.fact_similarity or 0) > (known.fact_similarity or 0):
+                known.fact_similarity, known.fact = hit.fact_similarity, hit.fact
+                if "связь" not in known.found_by:
+                    known.found_by = f"{known.found_by} + связь" if known.found_by else "связь"
     ordered = sorted(hits.values(), key=lambda h: scores[h.chunk_id], reverse=True)
     for hit in ordered:
         hit.score = scores[hit.chunk_id]
@@ -150,9 +264,14 @@ def merged_search(
 
 
 def is_close(hit: Any) -> bool:
-    """Близок ли фрагмент: все слова запроса в тексте или похожесть от порога."""
+    """Близок ли фрагмент: все слова запроса в тексте, похожесть от порога или его
+    привёл близкий факт графа (выписан из этого фрагмента, подтверждён вопросами)."""
     strict = hit.fts_rank is not None and getattr(hit, "fts_strict", True)
-    return strict or (hit.similarity or 0.0) >= MIN_SIMILARITY
+    return (
+        strict
+        or (hit.similarity or 0.0) >= MIN_SIMILARITY
+        or (getattr(hit, "fact_similarity", None) or 0.0) >= FACT_MIN_SIMILARITY
+    )
 
 
 def fragment_key(item: Any) -> tuple[Any, ...]:
@@ -203,13 +322,15 @@ def find_sources(
         quota = max(PART_MIN, (top_k - 2) // len(parts))
         for i, part in enumerate(parts, start=1):
             got = 0
-            for hit in merged_search(conn, embedder, part.queries or [part.question], cache):
+            asked = part.queries or [part.question]
+            for hit in merged_search(conn, embedder, asked, cache, settings.fact_search):
                 if got >= quota or len(chosen) >= top_k:
                     break
                 if is_close(hit) and take(hit, i):
                     got += 1
             part.found = got
-    ranked = [h for h in merged_search(conn, embedder, plan.queries, cache) if is_close(h)]
+    merged = merged_search(conn, embedder, plan.queries, cache, settings.fact_search)
+    ranked = [h for h in merged if is_close(h)]
     for hit in ranked:
         if len(chosen) >= top_k:
             break
@@ -242,7 +363,7 @@ def add_neighbors(conn: Any, sources: list[dict[str, Any]]) -> None:
     Key = tuple[str, int] | None
     plan: list[tuple[dict[str, Any], Key, Key, bool]] = []
     for s in sources:
-        if s.get("kind") == "датасет":
+        if s.get("kind") in ("датасет", "заметка"):
             continue
         text = s["text"]
         prev = (s["doc_id"], s["ord"] - 1) if starts_mid_thought(text) else None

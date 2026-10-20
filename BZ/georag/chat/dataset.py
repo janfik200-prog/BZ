@@ -16,6 +16,7 @@ DATASET_EVIDENCE = 5
 # выписал факты о нём, идут модели в кандидаты вместе с найденным поиском.
 GRAPH_CANDIDATES = 6
 DATASET_ITEMS = 40  # сколько фактов (×2) попадает в сводку
+GROUP_ITEMS = 15  # сколько «с чем» в одной строке сводки (тип связи)
 
 
 def _synonyms() -> Any:
@@ -58,6 +59,82 @@ def resolve_entity(g: Any, hint: str | None, question: str) -> str | None:
     return max(hits, key=len) if hits else None
 
 
+def question_subject(conn: Any, hint: str | None, question: str) -> str | None:
+    """О чём вопрос: сущность графа (по подсказке модели или по тексту вопроса), иначе
+    сама подсказка; None — не узнать."""
+    try:
+        from ..graph import api
+
+        name = resolve_entity(api.graph(conn, _synonyms()), hint, question)
+    except Exception:  # noqa: BLE001 — графа нет: только подсказка модели
+        try:
+            conn.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        name = None
+    # Названо имя собственное («Билляхская зона разломов»), а граф знает только общее
+    # («зоны разломов»): сбор читал 30 статей о разломах вообще и выдавал их за ответ о
+    # Билляхской зоне (оценка 15.10.2026). Найденное должно содержать это имя.
+    return named(name, hint, question) or hint or named(subject_in(question), None, question)
+
+
+# «С какими породами связаны мигматиты?» — предмет после глагола связи. Модель при разборе
+# предмет почти не называет (оставляет null из образца), а граф знает только «migmatites»:
+# сбор не включался, ответ строился из 4 статей из 23 (замер 15.10.2026).
+_LINK_VERB = re.compile(
+    r"\b(?:связан\w*|ассоцииру\w*|сопровожда\w*|сопутству\w*|сочета\w*|сопряж\w*|"
+    r"контролиру\w*)\s+(?:(?:с|со)\s+)?(?P<subject>[^?!.,;:()«»\"]+)",
+    re.IGNORECASE,
+)
+_SUBJECT_END = re.compile(
+    r"\s(?:в|во|на|по|при|для|у|из|от|среди|вблизи|около|и|или|если|когда)\s", re.IGNORECASE
+)
+
+
+def subject_in(question: str) -> str | None:
+    """Предмет вопроса о связях — по тексту, без модели: «С чем связана аргиллизация?» →
+    «аргиллизация»; не узнать (другой вопрос, длинная фраза) — None."""
+    match = _LINK_VERB.search(question or "")
+    # «Как связаны разломы и оруденение?» — о связи двух, не об одном предмете.
+    if not match or re.match(r"\s*как\s+связ", question, re.IGNORECASE):
+        return None
+    subject = _SUBJECT_END.split(f" {match['subject'].strip()} ")[0].strip()
+    words = subject.split()
+    if not 1 <= len(words) <= 4 or len(subject) < 4 or subject.lower().startswith(("чем", "как")):
+        return None
+    return subject
+
+
+def named(name: str | None, hint: str | None, question: str) -> str | None:
+    """Сущность графа — если в ней есть имя собственное из подсказки или вопроса; иначе
+    None: «Билляхская зона разломов» — не «зоны разломов» (граф знает только общее)."""
+    need = proper_stems(hint or question)
+    if name and need and not need <= {w.lower()[:5] for w in _WORDS.findall(name)}:
+        return None
+    return name
+
+
+_WORDS = re.compile(r"[^\W\d_][\w-]*")
+# Прилагательное от имени собственного: «Билляхской», «шахтаминский» (а «геологический» — нет).
+_PROPER_ADJ = re.compile(r"(?<!че)(?:ск|цк)(?:ий|ая|ое|ие|ой|ого|ую|ом|их|ым|ими)$")
+
+
+def proper_stems(text: str) -> set[str]:
+    """Основы имён собственных в тексте: слово с большой буквы не в начале или
+    прилагательное от имени («Билляхской зоне» → {«билля»})."""
+    out = set()
+    previous_end = 0
+    for i, match in enumerate(_WORDS.finditer(text or "")):
+        word = match.group()
+        sentence_start = i == 0 or bool(re.search(r"[.!?\n]", text[previous_end : match.start()]))
+        previous_end = match.end()
+        if len(word) < 4:
+            continue
+        if (not sentence_start and word[0].isupper()) or _PROPER_ADJ.search(word.lower()):
+            out.add(word.lower()[:5])
+    return out
+
+
 def collect_dataset(conn: Any, hint: str | None, question: str) -> dict[str, Any] | None:
     """Датасет для вопроса «собрать всё»: факты о сущности и фрагменты к главным.
     None — сущность не узнана, фактов нет (граф не строили) или про неё ничего нет."""
@@ -68,7 +145,7 @@ def collect_dataset(conn: Any, hint: str | None, question: str) -> dict[str, Any
     try:
         syn = _synonyms()
         g = api.graph(conn, syn)
-        name = resolve_entity(g, hint, question)
+        name = named(resolve_entity(g, hint, question), hint, question)
         if not name:
             return None
         data = api.dataset(conn, syn, name, g)
@@ -108,7 +185,7 @@ def graph_candidates(conn: Any, hint: str | None, question: str) -> list[Any]:
     try:
         syn = _synonyms()
         g = api.graph(conn, syn)
-        name = resolve_entity(g, hint, question)
+        name = named(resolve_entity(g, hint, question), hint, question)
         if not name:
             return []
         ids: list[int] = []
@@ -175,17 +252,50 @@ def dataset_summary(data: dict[str, Any]) -> str:
         + " — выписаны моделью из статей базы и проверены по цитатам, а не найдены "
         f"поиском; {scope}. Статей: {data['documents']}."
     ]
-    for row in data["facts"][: DATASET_ITEMS * 2]:
+    lines += _grouped(data["facts"][: DATASET_ITEMS * 2])
+    more = len(data["facts"]) - DATASET_ITEMS * 2
+    if more > 0:
+        lines.append(f"- и ещё {more}")
+    return "\n".join(lines)
+
+
+def _grouped(rows: list[dict[str, Any]]) -> list[str]:
+    """Строки сводки: по типу связи — «золото ассоциирует с: пирит (5 статей), …».
+
+    Связи по типам (graph/kinds.py) идут строкой на тип, от самой весомой; факты без
+    типа (граф до 14.10.2026, ещё не размеченные) — по одному, словами статьи."""
+    from ..graph.kinds import HEDGE, TITLES
+
+    groups: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    plain: list[dict[str, Any]] = []
+    for row in rows:
+        base = row["relation"].removeprefix(HEDGE + " ")
+        if base in TITLES:
+            # «ассоциирует с» в обе стороны — одно и то же: одной строкой.
+            direction = "→" if TITLES[base][0] == TITLES[base][1] else row["direction"]
+            groups.setdefault((row["about"], base, direction), []).append(row)
+        else:
+            plain.append(row)
+    lines = []
+    weight = {key: sum(r["documents"] for r in items) for key, items in groups.items()}
+    for (about, base, direction), items in sorted(groups.items(), key=lambda kv: -weight[kv[0]]):
+        title = TITLES[base][0 if direction == "→" else 1]
+        named = ", ".join(
+            f"{r['other']}"
+            + (" — предположительно" if r["relation"].startswith(HEDGE) else "")
+            + f" ({_count(r['documents'])})"
+            for r in items[:GROUP_ITEMS]
+        )
+        rest = f" и ещё {len(items) - GROUP_ITEMS}" if len(items) > GROUP_ITEMS else ""
+        lines.append(f"- {about} {title}: {named}{rest}")
+    for row in plain:
         fact = (
             f"{row['about']} — {row['relation']} — {row['other']}"
             if row["direction"] == "→"
             else f"{row['other']} — {row['relation']} — {row['about']}"
         )
         lines.append(f"- {fact} ({_count(row['documents'])})")
-    more = len(data["facts"]) - DATASET_ITEMS * 2
-    if more > 0:
-        lines.append(f"- и ещё {more}")
-    return "\n".join(lines)
+    return lines
 
 
 def dataset_sources(data: dict[str, Any], start: int = 1) -> list[dict[str, Any]]:
