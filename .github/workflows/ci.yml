@@ -1,0 +1,31 @@
+# Проверки на каждый коммит и пул-реквест: tests/ (unittest и pytest) без базы, модели и
+# видеокарты. Тяжёлых docling и torch здесь нет — проверки, которым они нужны,
+# пропускаются сами (pytest.importorskip). На своей машине: python -m pytest tests.
+name: Проверки
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Зависимости
+        run: python -m pip install -r requirements-dev.txt pyyaml requests "psycopg[binary,pool]" "pymupdf4llm>=1.26,<2" pillow numpy
+      - name: pytest
+        run: python -m pytest tests -q -rs

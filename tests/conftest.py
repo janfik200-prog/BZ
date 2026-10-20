@@ -8,3 +8,11 @@ HERE = Path(__file__).resolve().parent
 for path in (HERE.parent, HERE):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
+
+import pytest  # noqa: E402 — фикстуры только для pytest
+
+
+@pytest.fixture
+def data() -> Path:
+    """Эталонные PDF (tests/data, пересоздаёт tests/data/make_pdfs.py)."""
+    return HERE / "data"
