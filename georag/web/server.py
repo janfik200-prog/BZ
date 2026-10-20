@@ -38,6 +38,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, quote, urlparse
 
+from .. import turns
 from ..chat import answer as chat
 from ..chat.settings import Settings
 from ..common import add_db_args, add_embedder_args, add_llm_args
@@ -187,8 +188,19 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
         events = None
+
+        def queued(place: int) -> None:
+            # Раз в пару секунд, пока ждёт: страница видит место, а ушедший со страницы
+            # (запись падает) снимается с очереди.
+            text = f"модель отвечает другим — вы в очереди, перед вами {place}…"
+            line = {"type": "status", "text": text}
+            self.wfile.write((json.dumps(line, ensure_ascii=False) + "\n").encode("utf-8"))
+            self.wfile.flush()
+
         try:
-            with db.connect(State.dsn) as conn:
+            # Очередь ответов — общая с Телеграм-ботом (turns.py); соединение с базой —
+            # только когда очередь подошла: ждущие не занимают пул.
+            with turns.turn(on_wait=queued), db.connect(State.dsn) as conn:
                 db.autocommit(conn)  # ответ пишется минутами — без открытой транзакции
                 events = chat.answer(
                     conn, State.embedder, str(payload.get("question") or ""), history, settings

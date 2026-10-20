@@ -31,7 +31,8 @@
 перечитывается на каждом сообщении, перезапускать бота после правки не нужно.
 
 Модель пишет до MAX_PARALLEL ответов сразу (по умолчанию 4, переменная
-GEORAG_PARALLEL): кто спросил сверх этого, получает «в очереди» с местом и ждёт. Вторая копия бота на том же компьютере не
+GEORAG_PARALLEL): кто спросил сверх этого, получает «в очереди» с местом и ждёт.
+Очередь общая со страницей (georag/turns.py, web --tg). Вторая копия бота на том же компьютере не
 запускается: две копии забирают одни и те же сообщения, и на один /start
 приходило по десять ответов.
 
@@ -50,6 +51,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .. import turns
 from ..paths import LOCAL
 from . import ui
 from .ui import (  # noqa: F401 — для внешних
@@ -79,9 +81,10 @@ OPEN_ACCESS = {
     "all",
     "everyone",
 }  # строка в .local/telegram_users.txt: открыт всем
-# Ответов модели одновременно. vLLM считает одновременные запросы одной пачкой;
-# сверх этого числа вопросы ждут здесь, и человек видит своё место в очереди.
-MAX_PARALLEL = max(1, int(os.environ.get("GEORAG_PARALLEL", "4")))
+# Ответов модели одновременно — общая очередь процесса со страницей (turns.py). vLLM
+# считает одновременные запросы одной пачкой; сверх этого числа вопросы ждут, и
+# человек видит своё место в очереди.
+MAX_PARALLEL = turns.MAX_PARALLEL
 MAX_SESSIONS = 300  # разговоров в памяти; старые забываются
 MAX_TERRITORIES = 400  # сущностей в разговоре (для кнопок картинки связей)
 DENIED_EVERY = 600  # как часто чужому напоминать его id, с
@@ -320,9 +323,8 @@ class Bot:
         self.offset: int | None = None
         self.background = False  # в run() — ответы модели в отдельном потоке
         self.workers: dict[int, threading.Thread] = {}
-        self.slots = threading.BoundedSemaphore(MAX_PARALLEL)  # ответов одновременно
+        self.slots = turns.SHARED  # места у модели — общие со страницей (web --tg)
         self.lock = threading.Lock()
-        self.waiting = 0  # сколько ответов ждут очереди
         self.denied: dict[int, float] = {}  # чужой → когда последний раз отвечали
         self.seen: list[int] = []  # последние update_id: не брать дважды
 
@@ -595,33 +597,38 @@ class Bot:
             session.busy = False
 
     def _wait_turn(self, chat_id: int) -> None:
-        """Все места у модели заняты (MAX_PARALLEL) — вопрос ждёт, человеку видно место в очереди."""
+        """Все места у модели заняты (MAX_PARALLEL) — вопрос ждёт по порядку прихода,
+        человеку видно место в очереди; место сдвинулось — сообщение поправляется."""
         if self.slots.acquire(blocking=False):
             return
-        with self.lock:
-            self.waiting += 1
-            place = self.waiting
-        try:
-            note = None
+        note: dict[str, Any] | None = None
+        shown = 0
+
+        def text(place: int) -> str:
+            return (
+                f"<i>Модель сейчас отвечает другим — вы в очереди, "
+                f"перед вами {place}. Ответ начнётся сам.</i>"
+            )
+
+        def waiting(place: int) -> None:
+            nonlocal note, shown
+            if place == shown:
+                return
             try:
-                note = self.tg.send(
-                    chat_id,
-                    f"<i>Модель сейчас отвечает другим — вы в очереди, "
-                    f"перед вами {place}. Ответ начнётся сам.</i>",
-                )
+                if note is None:
+                    note = self.tg.send(chat_id, text(place))
+                else:
+                    self.tg.edit(chat_id, note["message_id"], text(place))
+                shown = place
             except TelegramError:
                 pass
-            self.slots.acquire()
-            if note:
-                try:
-                    self.tg.edit(
-                        chat_id, note["message_id"], "<i>Очередь подошла — отвечаю ниже.</i>"
-                    )
-                except TelegramError:
-                    pass
-        finally:
-            with self.lock:
-                self.waiting -= 1
+
+        self.slots.acquire(on_wait=waiting)
+        if note:
+            try:
+                self.tg.edit(chat_id, note["message_id"], "<i>Очередь подошла — отвечаю ниже.</i>")
+            except TelegramError:
+                pass
 
     def answer(
         self, chat_id: int, session: Session, text: str, history: list[dict[str, Any]] | None = None
