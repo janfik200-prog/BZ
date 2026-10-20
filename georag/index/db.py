@@ -88,11 +88,65 @@ def vector_literal(values: Any) -> str:
     return "[" + ",".join(f"{float(v):.7g}" for v in values) + "]"
 
 
+def _pool_size() -> int:
+    raw = os.environ.get("GEORAG_DB_POOL", "").strip()
+    return int(raw) if raw.isdigit() else 10
+
+
+# Пул соединений — один на процесс и адрес базы: страница, Телеграм-бот и прочие входы
+# в одном процессе (web --tg) берут соединения из него, а не открывают новое на каждый
+# запрос (около 30 мс). Размер — переменная GEORAG_DB_POOL; 1 — без пула.
+POOL_SIZE = _pool_size()
+POOL_WAIT = 30  # с: сколько ждать свободного соединения, прежде чем сказать об ошибке
+_POOLS: dict[str, Any] = {}
+_POOLS_LOCK = threading.Lock()
+
+
+def _reset(conn: Any) -> None:
+    """Соединение вернулось в пул — к обычному виду: чат-бот включает autocommit."""
+    conn.autocommit = False
+
+
+def pool(dsn: str) -> Any:
+    """Пул для этого адреса; нет psycopg_pool или пул выключен — None."""
+    if POOL_SIZE <= 1:
+        return None
+    try:
+        from psycopg_pool import ConnectionPool
+    except ImportError:
+        return None
+    with _POOLS_LOCK:
+        found = _POOLS.get(dsn)
+        if found is None:
+            import atexit
+
+            found = ConnectionPool(
+                dsn,
+                min_size=1,
+                max_size=POOL_SIZE,
+                timeout=POOL_WAIT,
+                reset=_reset,
+                name="georag",
+                open=True,
+            )
+            atexit.register(found.close)  # на выходе — закрыть соединения, без предупреждений
+            _POOLS[dsn] = found
+        return found
+
+
 @contextmanager
 def connect(dsn: str | None = None) -> Iterator[Any]:
+    """Соединение с базой: без ошибки — изменения сохраняются, с ошибкой — откатываются.
+    Из пула, если он есть (pool), иначе — новое на время блока."""
+    dsn = dsn or dsn_from_env()
+    shared = pool(dsn)
+    if shared is not None:
+        with shared.connection() as conn:  # сохраняет или откатывает сам, как и ниже
+            yield conn
+        return
     import psycopg
 
-    conn = psycopg.connect(dsn or dsn_from_env())
+    conn = psycopg.connect(dsn)
     try:
         yield conn
         conn.commit()

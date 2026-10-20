@@ -23,7 +23,8 @@ transformers>=4.44,<5.21      # токенайзер BGE-M3 (должен сов
 # --- база знаний ---
 sentence-transformers>=3.0    # эмбеддинги BGE-M3 (1024 измерения, мультиязычная)
 numpy>=1.24                   # сравнение векторов (graph/synonyms.py)
-psycopg[binary]>=3.1          # PostgreSQL; binary — чтобы на Windows не собирать из исходников
+psycopg[binary,pool]>=3.1     # PostgreSQL; binary — чтобы на Windows не собирать из исходников;
+                              # pool — пул соединений (index/db.py): страница и бот делят его
 
 # --- добыча ---
 requests>=2.31                # поиск в источниках и получение статей в память
