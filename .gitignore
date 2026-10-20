@@ -3,8 +3,34 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Только для этой машины — в репозиторий не идёт: разобранные статьи, логи, ключи
 # и токены (OpenAlex, Телеграм), файлы, которые пересоздают команды questions, gaps,
 # synonyms. Где что — georag/paths.py.
 .local/
+
+# Секреты вне .local — если кто-то положит .env в корень
+.env
+*.env
+
+# Редакторы и система
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Сборка, покрытие, журналы
+build/
+dist/
+*.egg-info/
+.coverage
+htmlcov/
+*.log
+.ipynb_checkpoints/
+
+# Статьи в репозиторий не кладутся — только эталонные PDF проверок
+*.pdf
+!tests/data/*.pdf
