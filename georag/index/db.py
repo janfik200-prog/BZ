@@ -239,40 +239,89 @@ def upsert_document(conn: Any, record: dict[str, Any]) -> None:
         )
 
 
+def chunk_print(text: str) -> str:
+    """Отпечаток текста фрагмента: пробелы и пометка формул $$…$$ — не изменение текста."""
+    return " ".join((text or "").replace("$$", "").split())
+
+
+def match_chunks(
+    old: list[tuple[int, int, str]], rows: list[dict[str, Any]]
+) -> list[tuple[int | None, bool]]:
+    """Новые фрагменты статьи → прежние (id, ord, текст): на каждый новый — id прежнего
+    фрагмента, чью строку он займёт, и тот ли у него текст.
+
+    Сначала — по тексту: фрагмент с тем же текстом остаётся тем же фрагментом, куда бы
+    он ни сдвинулся (новый абзац в начале статьи сдвигает номера всех остальных). Из
+    одинаковых текстов — ближайший по номеру. Не нашёлся по тексту — прежний фрагмент на
+    том же месте, если его не забрал никто (текст поправлен: id тот же, факты — заново).
+    Иначе — новый фрагмент."""
+    by_print: dict[str, list[tuple[int, int]]] = {}
+    by_ord: dict[int, int] = {}
+    for chunk_id, ord_, text in old:
+        by_print.setdefault(chunk_print(text), []).append((ord_, chunk_id))
+        by_ord[ord_] = chunk_id
+    used: set[int] = set()
+    plan: list[tuple[int | None, bool]] = [(None, False)] * len(rows)
+    for i, row in enumerate(rows):
+        free = [(o, c) for o, c in by_print.get(chunk_print(row["text"]), []) if c not in used]
+        if free:
+            _, chunk_id = min(free, key=lambda oc: (abs(oc[0] - int(row["ord"])), oc[0]))
+            used.add(chunk_id)
+            plan[i] = (chunk_id, True)
+    for i, row in enumerate(rows):
+        same_place = by_ord.get(int(row["ord"]))
+        if plan[i][0] is None and same_place is not None and same_place not in used:
+            used.add(same_place)
+            plan[i] = (same_place, False)
+    return plan
+
+
 def replace_chunks(conn: Any, doc_id: str, rows: list[dict[str, Any]]) -> int:
     """Чанки документа пишутся целиком: переиндексация не должна плодить дубли.
 
-    Строки обновляются на месте по (doc_id, ord), а не удаляются и вставляются
-    заново: так у фрагмента остаётся прежний id, и факты графа, которые на него
-    ссылаются, не пропадают каскадом. Раньше `ingest --force` молча стирал весь
-    граф, и модели приходилось проходить все статьи заново. Факты стираются только
-    у фрагментов, чей текст поменялся, — их модель пройдёт заново сама.
+    Прежние строки обновляются на месте, а не удаляются и вставляются заново: так у
+    фрагмента остаётся прежний id, и факты графа, которые на него ссылаются, не
+    пропадают каскадом. Раньше `ingest --force` молча стирал весь граф. Какой новый
+    фрагмент займёт какую строку — по тексту (match_chunks): новый разбор статьи (другая
+    версия docling, другая нарезка) сдвигает номера, и сравнение по номеру стирало факты
+    всей статьи. Факты стираются только у фрагментов, чей текст правда поменялся, — их
+    модель пройдёт заново сама; фрагменты, которых больше нет, уходят со своими фактами.
     """
     with conn.cursor() as cur:
         cur.execute("SELECT ord, id, text FROM chunks WHERE doc_id = %s", (doc_id,))
-        old = {r[0]: (r[1], r[2]) for r in cur.fetchall() or []}
+        old = [(int(r[1]), int(r[0]), str(r[2] or "")) for r in cur.fetchall() or []]
+        plan = match_chunks(old, rows)
+        if old:
+            # Номера освобождаются: (doc_id, ord) уникален, а фрагменты меняются местами.
+            cur.execute("UPDATE chunks SET ord = -1 - ord WHERE doc_id = %s", (doc_id,))
         changed = []
-        for row in rows:
+        for row, (chunk_id, same) in zip(rows, plan, strict=True):
+            if chunk_id is None:
+                cur.execute(
+                    """
+                    INSERT INTO chunks (doc_id, ord, text, headings, pages, n_tokens,
+                                        has_table, embedding)
+                    VALUES (%(doc_id)s, %(ord)s, %(text)s, %(headings)s, %(pages)s,
+                            %(n_tokens)s, %(has_table)s, %(embedding)s::vector)
+                    """,
+                    row,
+                )
+                continue
             cur.execute(
                 """
-                INSERT INTO chunks (doc_id, ord, text, headings, pages, n_tokens,
-                                    has_table, embedding)
-                VALUES (%(doc_id)s, %(ord)s, %(text)s, %(headings)s, %(pages)s,
-                        %(n_tokens)s, %(has_table)s, %(embedding)s::vector)
-                ON CONFLICT (doc_id, ord) DO UPDATE SET
-                    text = EXCLUDED.text, headings = EXCLUDED.headings,
-                    pages = EXCLUDED.pages, n_tokens = EXCLUDED.n_tokens,
-                    has_table = EXCLUDED.has_table, embedding = EXCLUDED.embedding
+                UPDATE chunks SET ord = %(ord)s, text = %(text)s, headings = %(headings)s,
+                    pages = %(pages)s, n_tokens = %(n_tokens)s, has_table = %(has_table)s,
+                    embedding = %(embedding)s::vector
+                WHERE id = %(chunk_id)s
                 """,
-                row,
+                {**row, "chunk_id": chunk_id},
             )
-            before = old.get(row["ord"])
-            if before and before[1] != row["text"]:
-                changed.append(before[0])
-        cur.execute(
-            "DELETE FROM chunks WHERE doc_id = %s AND NOT (ord = ANY(%s))",
-            (doc_id, [row["ord"] for row in rows]),
-        )
+            if not same:
+                changed.append(chunk_id)
+        kept = {chunk_id for chunk_id, _ in plan if chunk_id is not None}
+        gone = [chunk_id for chunk_id, _, _ in old if chunk_id not in kept]
+        if gone:
+            cur.execute("DELETE FROM chunks WHERE id = ANY(%s)", (gone,))
         if changed:
             cur.execute("SELECT to_regclass('facts') IS NOT NULL")
             found = cur.fetchone()
