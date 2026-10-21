@@ -89,12 +89,17 @@
   .badge.text { color: var(--gpu); }
   .legend { font-size: 13px; color: var(--muted); }
 
-  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--rule); }
+  /* Вкладки — в одну строку; не влезли (телефон) — ряд листается вбок, а не переносит
+     «Чат-бот» и «Граф связей» по слову на строку. */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--rule);
+          overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
   .tab {
     font: inherit; font-weight: 500; cursor: pointer; color: var(--muted);
     background: none; border: none; border-bottom: 2px solid transparent;
-    padding: 8px 14px; border-radius: 0;
+    padding: 8px 14px; border-radius: 0; white-space: nowrap; flex: none;
   }
+  @media (max-width: 420px) { .tab { padding: 8px 10px; } }
   .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--gpu); }
   .tab:hover { color: var(--ink); opacity: 1; }
   [hidden] { display: none !important; }
