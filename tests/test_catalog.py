@@ -76,10 +76,10 @@ def test_parse_cleans_model_output() -> None:
     )
     assert q is not None
     assert q.stems == ["Sentinel-1", "радар", "France"]
-    assert q.topic == "про Sentinel-1" and (q.year_from, q.year_to) == (2020, 2023)
+    assert q.topic == "Sentinel-1" and (q.year_from, q.year_to) == (2020, 2023)
     q = catalog.parse(
         {
-            "тема": "статьи Иваситы",
+            "тема": "статьи Иваситы о золоте",
             "основы": ["ивасита", "Iwasita", "работы Иваситы", "Ивасита, gold"],
             "автор": "Iwasita",
         }
@@ -191,3 +191,35 @@ def yield_from(gen: Any) -> Any:
             next(gen)
     except StopIteration as stop:
         return stop.value
+
+
+@pytest.mark.parametrize(
+    ("author", "match", "miss"),
+    [
+        ("Хашим", "Mazlan Hashim", "Ivan Petrov"),  # модель написала автора кириллицей
+        ("Ивасита", "Kenji Iwashita", "Mazlan Hashim"),
+        ("Iwasita", "Kenji Iwashita", "Ivan Petrov"),
+    ],
+)
+def test_author_pattern_any_script(author: str, match: str, miss: str) -> None:
+    import re
+
+    rx = re.compile(catalog.author_pattern(author).replace(r"\m", r"\b"), re.IGNORECASE)
+    assert rx.search(match) and not rx.search(miss)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        # Живая проверка 21.10.2026: «научные работы» оставалось основой «научные».
+        {
+            "тема": "работы Иваситы",
+            "основы": ["работы", "статьи", "научные работы"],
+            "автор": "Ивасита",
+        },
+        {"тема": "статьи за 2020 год", "основы": ["2020", "статьи"], "год_от": 2020},
+    ],
+)
+def test_topic_only_author_or_years_has_no_stems(data: dict[str, Any]) -> None:
+    q = catalog.parse(data)
+    assert q is not None and q.stems == [] and q.topic == ""

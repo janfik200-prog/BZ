@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -46,9 +47,15 @@ def _year(value: Any) -> int | None:
 
 
 # Слова о самих статьях, а не о теме: модель клала в основы «… статьи», «работы …»,
-# «… articles» — с ними подстрока не находится нигде.
+# «научные работы», «… articles» — с ними подстрока не находится нигде.
 _NOT_TOPIC = re.compile(
-    r"\b(?:стать[яиейюёам]*|работ[аыуе]?|публикаци\w*|articles?|papers?|publications?)\b",
+    r"\b(?:стать[яиейюёам]*|работ[аыуе]?|публикаци\w*|научн\w*|articles?|papers?|"
+    r"publications?)\b",
+    re.IGNORECASE,
+)
+# Предлоги по краям темы, оставшиеся после чистки: «статьи за 2020 год» — «за».
+_EDGE_PREP = re.compile(
+    r"^(?:(?:о|об|обо|про|за|по|в|во|на|с|со|и|для|у)\s+)+|(?:\s+(?:о|об|про|за|по|в|на|с|и|для|у))+$",
     re.IGNORECASE,
 )
 # Годы и диапазоны («2020», «2020-2023», «2020–2023 гг.») — это фильтр, а не тема.
@@ -76,11 +83,56 @@ def _author_key(author: str) -> str:
     return name[: max(4, len(name) - 3)]
 
 
+# Фамилия кириллицей — варианты латинского написания по буквам: модель, которой велено
+# писать автора латиницей, на «Какие статьи Хашима есть в базе?» оба раза вернула «Хашим»,
+# и нашлось 0 статей вместо 11 у Mazlan Hashim (живая проверка 21.10.2026).
+_CYR_LATIN = {
+    "а": "a",
+    "б": "b",
+    "в": "[vw]",
+    "г": "(?:g|h)",
+    "д": "d",
+    "е": "(?:e|ye)",
+    "ё": "(?:yo|e)",
+    "ж": "(?:zh|j|z)",
+    "з": "z",
+    "и": "[iy]",
+    "й": "[iyj]?",
+    "к": "(?:k|c|q)",
+    "л": "l",
+    "м": "m",
+    "н": "n",
+    "о": "o",
+    "п": "p",
+    "р": "r",
+    "с": "(?:s|sh|c)",  # японское «си» — shi: Ивасита — Iwashita
+    "т": "t",
+    "у": "(?:u|ou)",
+    "ф": "(?:f|ph)",
+    "х": "(?:kh|h|x)",
+    "ц": "(?:ts|tz|c|z)",
+    "ч": "(?:ch|tch|c)",
+    "ш": "(?:sh|sch|s)",
+    "щ": "(?:shch|sch|sh)",
+    "ъ": "",
+    "ы": "[yi]",
+    "ь": "",
+    "э": "e",
+    "ю": "(?:yu|iu|ju|u)",
+    "я": "(?:ya|ia|ja|a)",
+}
+
+
 def author_pattern(author: str) -> str:
     """Регулярное выражение Postgres на фамилию: начало слова, начало фамилии, v и w —
-    одно («Ivasita» и «Iwasita» модели — «Iwashita» в базе)."""
-    key = re.escape(_author_key(author))
-    return r"\m" + re.sub(r"[vVwW]", "[vw]", key)
+    одно («Ivasita» и «Iwasita» модели — «Iwashita» в базе); кириллица — варианты
+    латиницы по буквам («Хашим» — «Hashim», «Khashim»). Кириллица — фамилией целиком:
+    варианты букв уже покрывают хвост транслитерации, а начало «Хаши» задевало и
+    «Hasibuan»."""
+    name = _surname(author)
+    if re.search("[а-яё]", name, re.IGNORECASE):
+        return r"\m" + "".join(_CYR_LATIN.get(ch, re.escape(ch)) for ch in name.lower())
+    return r"\m" + re.sub(r"[vVwW]", "[vw]", re.escape(_author_key(author)))
 
 
 _TRANSLIT = str.maketrans("абвгдеёжзийклмнопрстуфхцыэ", "abvgdeejziiklmnoprstufhcye")
@@ -105,7 +157,13 @@ def parse(data: Any) -> CatalogQuery | None:
     author = " ".join(str(data.get("автор") or "").split())[:80]
     if author.lower() in {"null", "none", "нет"}:
         author = ""
+    topic = _EDGE_PREP.sub("", _clean_stem(data.get("тема") or ""))[:120]
+    topic = "" if len(topic) < MIN_STEM or (author and _looks_like_name(topic, author)) else topic
     stems: list[str] = []
+    # Тема названа, а после чистки от неё ничего не осталось («работы Иваситы») — вопрос
+    # только об авторе или годах: основы модели («научные работы») — не тема.
+    if data.get("тема") and not topic:
+        items = []
     # «France, French, Франц» — строкой, а не списком: разбить.
     for piece in (p for item in items for p in re.split(r"[,;]", str(item))):
         s = _clean_stem(piece)
@@ -115,7 +173,7 @@ def parse(data: Any) -> CatalogQuery | None:
             stems.append(s)
     return CatalogQuery(
         stems=stems[:MAX_STEMS],
-        topic=_clean_stem(data.get("тема") or "")[:120],
+        topic=topic,
         year_from=_year(data.get("год_от")),
         year_to=_year(data.get("год_до")),
         author=author,
@@ -197,8 +255,9 @@ def describe(query: CatalogQuery, found: list[dict[str, Any]]) -> tuple[str, str
     if query.author:
         # Как фамилия записана в самих статьях (модель пишет «Iwasita», в базе — «Iwashita»).
         rx = re.compile(author_pattern(query.author).replace(r"\m", r"\b"), re.IGNORECASE)
-        names = [a for doc in found for a in doc["authors"] if rx.search(a)]
-        what.append(f"с автором «{names[0] if names else query.author}»")
+        names = Counter(a for doc in found for a in doc["authors"] if rx.search(a))
+        written = names.most_common(1)[0][0] if names else query.author
+        what.append(f"с автором «{written}»")
     if query.year_from or query.year_to:
         if query.year_from and query.year_to and query.year_from != query.year_to:
             what.append(f"за {query.year_from}–{query.year_to} годы")
