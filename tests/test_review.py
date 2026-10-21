@@ -4,8 +4,10 @@
 
 from __future__ import annotations
 
+import json
 import threading
 import time
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -56,8 +58,6 @@ def test_queue_survives_network_error(broken: str) -> None:
 def test_static_rejects_foreign_paths_before_disk(monkeypatch: pytest.MonkeyPatch) -> None:
     """Путь с корнем (сетевая папка «//сервер/…») и «..» отсекаются до resolve(): на Windows
     resolve() такого пути — уже вход на чужой сервер, а ссылку даст любая страница."""
-    from pathlib import Path
-
     from georag.web import server
 
     touched: list[str] = []
@@ -78,3 +78,33 @@ def test_static_rejects_foreign_paths_before_disk(monkeypatch: pytest.MonkeyPatc
     assert not [p for p in touched if "evil" in p or "server.py" in p]
     handler._static("katex/katex.min.js")  # своё — как раньше
     assert sent[-1] == (200, "text/javascript; charset=utf-8")
+
+
+# --------------------------------------------------------------------------- #
+#  Формулы (index/formulas.py)
+# --------------------------------------------------------------------------- #
+RHO = r"\rho = \rho_0 (1 - \varphi) \quad (1)"
+GRAV = r"\Delta g = \frac{4}{3} \pi G \Delta\rho R^{3} / h^{2} \quad (2)"
+
+
+def test_formula_rows_without_nul(tmp_path: Path) -> None:
+    """Нулевой символ из PDF в разметке docling не доходит до таблицы formulas: Postgres
+    его не принимает, и загрузка всей статьи падала (у фрагментов его снимает _clean)."""
+    from fakedb import FakeConn, returning_ids
+
+    from georag.index import formulas
+
+    doc = {
+        "texts": [
+            {"label": "text", "text": "Плотность\x00 пород выражается через пористость:"},
+            {"label": "formula", "text": RHO + "\x00", "orig": "ρ = ρ0 (1 − φ)\x00 (1)"},
+            {"label": "text", "text": "где ρ0\x00 — плотность скелета."},
+        ]
+    }
+    (tmp_path / "d1.docling.json").write_text(json.dumps(doc), encoding="utf-8")
+    items = formulas.prepare("d1", tmp_path)
+    assert [f["number"] for f in items] == ["1"]
+    conn = FakeConn(answer=returning_ids(chunks=[]))
+    formulas.store(conn, "d1", items, {}, [[0.1]])
+    [row] = conn.queries("INSERT INTO formulas")
+    assert not [v for v in row if isinstance(v, str) and "\x00" in v]

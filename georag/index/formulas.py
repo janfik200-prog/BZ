@@ -52,6 +52,12 @@ def _page(item: dict[str, Any]) -> int | None:
     return int(page) if isinstance(page, int) else None
 
 
+def _text(value: Any) -> str:
+    """Текст из разметки без нулевого символа из PDF: Postgres не принимает его в тексте,
+    и запись формул роняла загрузку всей статьи (как _clean в ingest.py у фрагментов)."""
+    return str(value or "").replace("\x00", "")
+
+
 def _near(texts: list[dict[str, Any]], start: int, step: int) -> str:
     """Текст соседних абзацев (не формул) — до CONTEXT_CHARS, в сторону step."""
     out: list[str] = []
@@ -59,7 +65,7 @@ def _near(texts: list[dict[str, Any]], start: int, step: int) -> str:
     while 0 <= i < len(texts) and sum(len(t) for t in out) < CONTEXT_CHARS:
         item = texts[i]
         if item.get("label") in TEXT_LABELS and item.get("text"):
-            out.append(" ".join(str(item["text"]).split()))
+            out.append(" ".join(_text(item["text"]).split()))
         i += step
     joined = " ".join(out if step > 0 else reversed(out))
     return joined[:CONTEXT_CHARS] if step > 0 else joined[-CONTEXT_CHARS:]
@@ -79,8 +85,8 @@ def extract(doc_id: str, articles: Path = ARTICLES) -> list[dict[str, Any]]:
     for i, item in enumerate(texts):
         if item.get("label") != "formula" or not item.get("text"):
             continue
-        latex = str(item["text"]).strip()
-        orig = " ".join(str(item.get("orig") or "").split())
+        latex = _text(item["text"]).strip()
+        orig = " ".join(_text(item.get("orig")).split())
         number = _NUMBER.search(latex) or _ORIG_NUMBER.search(orig)
         prov = (item.get("prov") or [{}])[0]
         out.append(
