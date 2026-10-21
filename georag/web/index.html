@@ -1849,6 +1849,7 @@ async function ask(question) {
     foot.className = "bot-foot";
     const bits = [`${done.model} · ${String(done.seconds).replace(".", ",")} с`];
     if (done.mode === "без базы" && !done.off_topic && !done.not_found) bits.push("ответ модели, не из базы знаний");
+    if (done.mode === "каталог") bits.push("счёт и список — по всей базе, собраны кодом, без модели");
     if (done.rounds > 1) bits.push(`поиск в ${done.rounds} круга`);
     const [cited, claims] = done.coverage || [0, 0];
     if (claims) bits.push(`ссылка на фрагмент — у ${cited} из ${claims} утверждений`);

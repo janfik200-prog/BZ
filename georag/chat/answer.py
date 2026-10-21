@@ -17,10 +17,13 @@
 5. **«Собрать всё»** («что известно об Анабарском щите») — из графа: все факты
    о предмете вопроса и о том, что в него входит, выписанные моделью из всех
    статей, с цитатами; поиск только добавляет.
-6. **Ответ.** Модель отвечает ТОЛЬКО по отобранным фрагментам, после каждого
+6. **Каталог.** Вопрос о самом наборе статей («сколько статей про…», «перечисли статьи
+   автора…», «статьи за 2020 год») — не по 8 фрагментам, а по всей базе, по названиям и
+   тексту (catalog.py); ответ — число и список — собирает код, режим «каталог».
+7. **Ответ.** Модель отвечает ТОЛЬКО по отобранным фрагментам, после каждого
    утверждения — номер фрагмента [1]. Длина — по просьбе в самом вопросе:
    «подробно», «кратко», «перечисли» — так и отвечает; настроек нет.
-7. **Не нашлось** — статьи не показываются: бот говорит, что в базе такого нет.
+8. **Не нашлось** — статьи не показываются: бот говорит, что в базе такого нет.
    Ответ из общих знаний модели, с пометкой, — только если он включён
    (Settings.general_knowledge, GEORAG_GENERAL=1).
 
@@ -52,7 +55,7 @@
                                                             (support.py); rescued — фраз,
                                                             получивших ссылку по числам,
                                                             recited — переставленных ссылок
-    {"type": "done", "mode": "база"|"без базы", "used": [1, 3], "unknown": [],
+    {"type": "done", "mode": "база"|"без базы"|"каталог", "used": [1, 3], "unknown": [],
      "coverage": [5, 6], "removed": 2, "unsupported": 1, "recited": 0,
      "support_seconds": с, "rounds": …, …}
     {"type": "error", "error": "…"}
@@ -67,6 +70,7 @@ from typing import Any
 
 from ..index import db
 from ..llm import LLM, LLM_HOST, LLMError
+from .catalog import CatalogQuery
 from .checks import (
     NO_ANSWER,
     REFUSAL_CHARS,
@@ -135,6 +139,7 @@ class Prepared:
     retrieval: Retrieval
     dataset: dict[str, Any] | None = None
     graph: int = 0  # сколько кандидатов дал граф (вопрос о названном предмете)
+    catalog: list[dict[str, Any]] | None = None  # каталожный вопрос: найденные статьи
 
     def info(self) -> dict[str, Any]:
         plan = self.plan
@@ -151,6 +156,13 @@ class Prepared:
         }
 
 
+def catalog_articles(conn: Any, query: CatalogQuery) -> list[dict[str, Any]]:
+    """Статьи по каталожному вопросу (catalog.find); заглушка базы в проверках — пусто."""
+    from .catalog import find
+
+    return find(conn, query) if db.is_real(conn) else []
+
+
 def prepare(
     conn: Any,
     embedder: Any,
@@ -161,10 +173,18 @@ def prepare(
     judge: Any = judge_fragments,
     datasets: Any = collect_dataset,
     graph_hits: Any = graph_candidates,
+    catalog: Any = catalog_articles,
 ) -> Generator[Any, Any, Any]:
-    """Разбор вопроса и поиск с моделью. Генератор событий status; в конце — Prepared."""
+    """Разбор вопроса и поиск с моделью. Генератор событий status; в конце — Prepared.
+    catalog(conn, CatalogQuery) — статьи по каталожному вопросу (catalog_articles)."""
     yield {"type": "status", "text": "разбираю вопрос…"}
     plan = make_plan(question, history, settings, planner)
+
+    # Вопрос о самом наборе статей («сколько статей про…», «перечисли статьи…») — по всей
+    # базе, по названиям и тексту (catalog.py), а не по 8 фрагментам; через retrieve не идёт.
+    if plan.catalog is not None and catalog is not None:
+        yield {"type": "status", "text": "считаю статьи базы…"}
+        return Prepared(plan, [], Retrieval([], judged=False), catalog=catalog(conn, plan.catalog))
 
     # «Собрать всё» о предмете вопроса: сначала — по всем статьям, где он упомянут
     # (collect.py), нет его в статьях — из датасета графа; поиск только добавляет.
@@ -247,6 +267,9 @@ def answer(
             conn, embedder, question, history, settings, planner, judge, datasets
         )
     sources, plan, info = prepared.sources, prepared.plan, prepared.info()
+    if prepared.catalog is not None:
+        yield from _catalog_answer(prepared, settings, started, info)
+        return
 
     # Разговор модели нужен только для вопроса вдогонку. В самостоятельном
     # вопросе прошлый ответ — помеха: на живом прогоне в ответ о Персияновском
@@ -343,6 +366,30 @@ def answer(
         "model": settings.model,
         "seconds": round(time.monotonic() - started, 1),
         "tokens": tokens,
+        **info,
+    }
+
+
+def _catalog_answer(
+    prepared: Prepared, settings: Settings, started: float, info: dict[str, Any]
+) -> Generator[dict[str, Any], None, None]:
+    """Ответ на каталожный вопрос: число, как считалось, список статей. Пишет код."""
+    from .catalog import describe
+
+    found = prepared.catalog or []
+    query = prepared.plan.catalog
+    head, listing = describe(query, found)
+    yield {"type": "token", "text": f"{head}\n\n{listing}" if listing else head}
+    yield {
+        "type": "done",
+        "mode": "каталог",
+        "catalog": {"count": len(found)},
+        "used": [],
+        "unknown": [],
+        "coverage": [0, 0],
+        "model": settings.model,
+        "seconds": round(time.monotonic() - started, 1),
+        "tokens": None,
         **info,
     }
 

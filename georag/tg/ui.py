@@ -273,6 +273,8 @@ def answer_text(
         )
     if done.get("mode") == "без базы" and not done.get("off_topic") and not done.get("not_found"):
         foot.append("ответ модели, не из базы знаний")
+    if done.get("mode") == "каталог":
+        foot.append("счёт и список — по всей базе, собраны кодом, без модели")
     if done.get("model"):
         foot.append(f"{done['model']}, {done.get('seconds')} с")
     if foot:
