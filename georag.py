@@ -230,25 +230,92 @@ def _docker(*args: str, quiet: bool = False) -> subprocess.CompletedProcess[str]
         return None
 
 
-def _ensure_database() -> bool:
-    """Поднять базу, если она не запущена. Ложь — если Docker недоступен."""
-    state = _docker("ps", "--format", "{{.State}}", quiet=True)
-    if state is None:
-        return False
-    if state.returncode != 0:
+# Пользователь и база — из docker-compose.yml (POSTGRES_USER, POSTGRES_DB). pg_isready
+# под другим именем засорял бы журнал базы строками «role … does not exist».
+DB_USER = "georag"
+
+
+def _db_state() -> tuple[str, str] | None:
+    """Контейнер базы и его healthcheck: ("running", "healthy"), ("running", "starting"),
+    ("exited", ""); ("", "") — контейнера нет. None — Docker недоступен (об этом уже
+    сказано)."""
+    done = _docker("ps", "--all", "--format", "{{.State}} {{.Health}}", "db", quiet=True)
+    if done is None:
+        return None
+    if done.returncode != 0:
         print(
             "Docker не отвечает. Запустите Docker Desktop и дождитесь, "
             "пока значок кита перестанет мигать.",
             file=sys.stderr,
         )
+        return None
+    words = (done.stdout or "").split()
+    return (words[0] if words else "", words[1] if len(words) > 1 else "")
+
+
+def _pg_isready() -> bool:
+    """Принимает ли база подключения: pg_isready внутри контейнера, как в healthcheck.
+    По TCP (-h 127.0.0.1): при первом запуске образ создаёт базу на временном сервере,
+    который слушает только сокет, — без -h «готова» прозвучало бы раньше времени."""
+    check = ["pg_isready", "-q", "-h", "127.0.0.1", "-U", DB_USER, "-d", DB_USER]
+    done = _docker("exec", "-T", "db", *check, quiet=True)
+    return done is not None and done.returncode == 0
+
+
+def _wait_database(limit: float = 60) -> bool:
+    """Дождаться, пока база примет подключения: опрос раз в секунду, не дольше limit
+    секунд. Только docker CLI и стандартная библиотека: start идёт и без .venv.
+
+    Готова — когда healthcheck контейнера говорит healthy. Пока он молчит (первая его
+    проверка — через 10 с после старта) или если его нет, спрашиваем pg_isready сами.
+    Контейнер остановился (exited, dead) — до предела не ждём."""
+    started = time.monotonic()
+    told = False
+    while True:
+        db = _db_state()
+        if db is None:
+            return False
+        state, health = db
+        if state == "running" and (health == "healthy" or _pg_isready()):
+            if told:
+                print(f"База готова ({time.monotonic() - started:.0f} с).")
+            return True
+        if not state:
+            print("Контейнера базы нет. Поднять: python georag.py start", file=sys.stderr)
+            return False
+        if state in ("exited", "dead"):
+            print(
+                f"База остановилась ({state}). Причина — в журнале: docker logs georag-db",
+                file=sys.stderr,
+            )
+            return False
+        if time.monotonic() - started >= limit:
+            print(
+                f"База не ответила за {limit:.0f} с. Причина — в журнале: docker logs "
+                "georag-db; если база ещё запускается, повторите команду через минуту.",
+                file=sys.stderr,
+            )
+            return False
+        if not told:
+            print("Жду, пока база будет готова…", flush=True)
+            told = True
+        time.sleep(1)
+
+
+def _ensure_database() -> bool:
+    """Поднять базу, если она не запущена, и дождаться, пока она примет подключения.
+    Ложь — если Docker недоступен или база не поднялась."""
+    db = _db_state()
+    if db is None:
         return False
-    if "running" not in (state.stdout or ""):
+    if db == ("running", "healthy"):
+        return True
+    if db[0] not in ("running", "restarting"):
         print("База не запущена. Поднимаю...")
         up = _docker("up", "-d")
         if up is None or up.returncode != 0:
             return False
-        time.sleep(5)
-    return True
+    return _wait_database()
 
 
 def _llm_up(timeout: int = 5) -> bool:
@@ -314,9 +381,11 @@ def cmd_start(opts: argparse.Namespace) -> int:
     up = _docker("--profile", "llm", "up", "-d")
     if up is None or up.returncode != 0:
         return 1
-    print("\nЖду, пока база и модель будут готовы...")
-    time.sleep(5)
+    print()
+    ready = _wait_database()
     _docker("--profile", "llm", "ps")
+    if not ready:
+        return 1
     return 0 if _ensure_llm() else 1
 
 
