@@ -37,6 +37,7 @@ LOOSE_SIMILARITY = 0.35  # мягкий порог для кандидатов: 
 # около 2000 знаков, и по первым 450 нужное отбрасывалось, если суть дальше.
 JUDGE_MAX = 12
 CANDIDATE_PER_DOC = 3  # кандидатов из одной статьи в наборе (пока есть другие)
+TRANSLATED = 6  # кандидатов по вопросу в переводе (plan.translated) сверх основных
 JUDGE_SLACK = 4  # короткий хвост пачки читается вместе с предыдущей
 CANDIDATE_CHARS = 1000
 MAX_ROUNDS = 3  # кругов поиска самое большее
@@ -354,6 +355,12 @@ def retrieve(
         docs = list(dict.fromkeys(c["hit"].doc_id for c in pool))[:SIBLING_DOCS]
         known = {c["hit"].chunk_id for c in pool}
         add(same_article(conn, embedder, question, docs, known), 1, 1, capped=False)
+    # Вопрос в переводе на языки статей базы (plan.translated) — своя небольшая добавка,
+    # после основных и после добора кусков той же статьи: нужное на китайском или японском
+    # приходит, а мест основной выдачи не занимает (иначе выпадала аннотация с ответом).
+    if plan.translated:
+        translated = candidates(conn, embedder, plan.translated, cache, TRANSLATED, facts)
+        add(translated, None if multi else 1, 1)
 
     fresh: list[dict[str, Any]] = list(pool)
     accepted: list[dict[str, Any]] = []

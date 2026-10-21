@@ -144,7 +144,7 @@ class Prepared:
     def info(self) -> dict[str, Any]:
         plan = self.plan
         return {
-            "queries": plan.queries + plan.extra,
+            "queries": plan.queries + plan.translated + plan.extra,
             "standalone": plan.standalone,
             "graph": self.graph,
             "parts": plan.describe() if len(plan.parts) > 1 else [],

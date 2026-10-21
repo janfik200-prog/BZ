@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
 from typing import Any
@@ -55,6 +56,26 @@ PLAN_USER = """Вопрос пользователя: «{question}»
 
 Верни JSON: {{"вопрос_целиком": "...", "части": [{{"вопрос": "...", "запросы": ["...", "..."]}}], \
 "предмет": null, "всё": false, "по_теме": true, "каталог": null}}"""
+
+# Статьи на языках, до которых русский и английский запрос не дотягивается: в AgentKB
+# китайская статья об Илийском бассейне по вектору русского вопроса шла ниже случайных
+# английских статей (сходство 0,56), а по вопросу по-китайски стояла первой (0,72;
+# 20.10.2026). Языки — переменная GEORAG_TRANSLATE («по-китайски,по-японски»); пусто —
+# правила нет вовсе. Модель путала японский с корейским и переводила вопрос целиком.
+TRANSLATE_RULE = """
+9. «перевод» — суть вопроса коротким поисковым запросом (ключевые термины, 4–15
+   иероглифов или 2–6 слов, НЕ весь вопрос целиком) на каждом из языков по порядку:
+   {languages}. В базе есть статьи на них, и запрос по-русски или по-английски их не
+   находит. Названия мест и терминов — так, как их пишут на этом языке. Пиши именно на
+   этих языках: японский — не корейский, корейского, если его нет в списке, не пиши.
+В JSON добавь: "перевод": ["...", "..."] — по запросу на каждый язык, в том же порядке."""
+
+
+def translate_languages() -> list[str]:
+    """Языки перевода вопроса из GEORAG_TRANSLATE, через запятую; пусто — никаких."""
+    raw = os.environ.get("GEORAG_TRANSLATE", "")
+    return [x.strip() for x in raw.split(",") if x.strip()]
+
 
 # Вопрос «собрать всё» — на случай, когда модель вопрос не разобрала.
 _COLLECT = re.compile(
@@ -138,6 +159,10 @@ class Plan:
     narrow: bool = False  # вопрос об одном факте (is_narrow): одна часть, без заметок
     # Вопрос о самом наборе статей («сколько статей про…») — что посчитать (catalog.py).
     catalog: Any = None
+    # Вопрос на языках GEORAG_TRANSLATE. Ищется отдельно и даёт немного кандидатов сверху
+    # (retrieval.TRANSLATED): в общем списке запросов в AgentKB китайский запрос со словом
+    # «DRASTIC» притягивал таблицы и вытеснял аннотацию с ответом.
+    translated: list[str] = field(default_factory=list)
 
     @property
     def queries(self) -> list[str]:
@@ -245,6 +270,9 @@ def parse_plan(data: Any, question: str, settings: Settings) -> Plan:
     # вопросом не о геологии, а о статьях, и бот отказывал (AgentKB, 20.10.2026). Не по
     # теме — поиск по базе просто найдёт 0.
     catalog = parse_catalog(data.get("каталог") or data.get("catalog"))
+    translated = data.get("перевод") or data.get("translated")
+    if isinstance(translated, str):
+        translated = [translated]
     return Plan(
         parts,
         subject or None,
@@ -253,6 +281,7 @@ def parse_plan(data: Any, question: str, settings: Settings) -> Plan:
         on_topic=on_topic or catalog is not None,
         narrow=narrow and not collect,
         catalog=catalog,
+        translated=clean_queries(translated if isinstance(translated, list) else [], 4),
     )
 
 
@@ -266,6 +295,9 @@ def plan_question(question: str, history: list[dict[str, Any]], settings: Settin
     user = PLAN_USER.format(
         question=question.strip(), context=context, n=settings.queries, parts=max(1, settings.parts)
     )
+    languages = translate_languages()
+    if languages:
+        user += TRANSLATE_RULE.format(languages=", ".join(languages))
     try:
         data = settings.client().chat_json(PLAN_SYSTEM, user, temperature=0.2, timeout=(10, 90))
     except Exception:  # noqa: BLE001 — без разбора поиск всё равно пойдёт
