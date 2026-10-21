@@ -89,6 +89,9 @@ def main(argv: list[str] | None = None) -> int:
                 if not args.acquired.exists():
                     print(f"Папки {args.acquired} нет — сначала добыча", file=sys.stderr)
                     return 1
+                # Таблицы новых версий (formulas, formula_refs) — до загрузки: база, созданная
+                # init раньше, их не знает, и загрузка падала бы целиком (ночная — тоже).
+                db.init_db(conn, with_hnsw=False)
                 print(f"Векторы считает BGE-M3 на {args.device}")
                 report = ingest_dir(conn, embedder, args.acquired, force=args.force)
                 print(
