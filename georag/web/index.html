@@ -1745,7 +1745,7 @@ async function ask(question) {
   const ctrl = new AbortController();
   chat.abort = ctrl;
   let text = "", sources = [], queries = [], general = null, done = null, error = null, info = {};
-  let removed = [];
+  let removed = [], unsupported = [];
   try {
     const resp = await fetch("/api/chat", {
       method: "POST",
@@ -1784,9 +1784,11 @@ async function ask(question) {
           text += ev.text;
           answer.innerHTML = renderAnswer(text, sources.length);
         } else if (ev.type === "revised") {
-          // Фразы без ссылки на фрагмент убраны: ответ показывается заново.
+          // Фразы без ссылки на фрагмент и утверждения, которых не подтверждают их
+          // фрагменты, убраны: ответ показывается заново.
           text = ev.text;
           removed = ev.removed || [];
+          unsupported = ev.unsupported || [];
           answer.innerHTML = renderAnswer(text, sources.length);
         } else if (ev.type === "done") {
           done = ev;
@@ -1813,15 +1815,21 @@ async function ask(question) {
     bot.append(renderGraphLinks(bot, sources, used));
     bot.append(renderSources(sources, used, queries, info));
   }
-  if (removed.length) {
-    // Что убрано из ответа: фразы модели без ссылки на фрагмент статьи.
+  // Что убрано из ответа: фразы модели без ссылки на фрагмент статьи и утверждения,
+  // которых не подтверждают фрагменты, на которые они ссылаются (support.py).
+  const dropped = [
+    [removed, `Фраз без ссылки на фрагмент убрано: ${removed.length} — это слова модели, а не статей`],
+    [unsupported, `Утверждений, которых не подтверждают их фрагменты, убрано: ${unsupported.length}`],
+  ];
+  for (const [items, title] of dropped) {
+    if (!items.length) continue;
     const d = document.createElement("details");
     d.className = "removed";
     const sum = document.createElement("summary");
-    sum.textContent = `Фраз без ссылки на фрагмент убрано: ${removed.length} — это слова модели, а не статей`;
+    sum.textContent = title;
     d.append(sum);
     const ul = document.createElement("ul");
-    for (const r of removed) {
+    for (const r of items) {
       const li = document.createElement("li");
       li.textContent = r;
       ul.append(li);

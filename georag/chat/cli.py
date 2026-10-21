@@ -98,6 +98,14 @@ def main(argv: list[str] | None = None) -> int:
                     print("\n\nУбрано как фразы без ссылки на фрагмент (слова модели, не статей):")
                     for phrase in event["removed"]:
                         print(f"  − {phrase}")
+                if event.get("unsupported"):
+                    print("\n\nУбрано как утверждения, которых не подтверждают их фрагменты:")
+                    for phrase in event["unsupported"]:
+                        print(f"  − {phrase}")
+                if event.get("recited"):
+                    print(
+                        f"\nСсылок переставлено на фрагмент с теми же числами: {event['recited']}"
+                    )
             elif event["type"] == "error":
                 print(f"\nОшибка: {event['error']}", file=sys.stderr)
                 code = 1

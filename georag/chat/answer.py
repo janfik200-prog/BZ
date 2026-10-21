@@ -30,7 +30,8 @@
 Здесь — всё вместе; части — в своих модулях: settings (настройки), plan (разбор
 вопроса), search (поиск по порогу), retrieval (поиск с моделью), dataset (граф:
 «собрать всё» и вопросы о связях), messages (задание модели), conflicts
-(расхождения между статьями), checks (проверка ответа: ссылки, отказ).
+(расхождения между статьями), checks (проверка ответа: ссылки, отказ), support
+(подтверждает ли фрагмент утверждение со ссылкой на него).
 
 Ответ идёт потоком — событиями:
 
@@ -45,10 +46,15 @@
                                                             not_found: true — о геологии, но
                                                             общие знания выключены: тоже отказ)
     {"type": "token", "text": "…"}                          кусок ответа, много раз
-    {"type": "revised", "text": "…", "removed": […]}       ответ целиком без фраз без
-                                                            ссылки на фрагмент (drop_uncited)
+    {"type": "revised", "text": "…", "removed": […],       ответ целиком без фраз без
+     "unsupported": […], "rescued": N, "recited": N}         ссылки (drop_uncited) и без
+                                                            неподтверждённых фрагментом
+                                                            (support.py); rescued — фраз,
+                                                            получивших ссылку по числам,
+                                                            recited — переставленных ссылок
     {"type": "done", "mode": "база"|"без базы", "used": [1, 3], "unknown": [],
-     "coverage": [5, 6], "removed": 2, "rounds": …, …}
+     "coverage": [5, 6], "removed": 2, "unsupported": 1, "recited": 0,
+     "support_seconds": с, "rounds": …, …}
     {"type": "error", "error": "…"}
 """
 
@@ -65,6 +71,7 @@ from .checks import (
     NO_ANSWER,
     REFUSAL_CHARS,
     citations,
+    cite_by_numbers,
     coverage,
     drop_repeats,
     drop_uncited,
@@ -79,6 +86,7 @@ from .messages import build_messages, fit_budget, general_messages
 from .plan import Plan, is_follow_up, make_plan, plan_question
 from .retrieval import MAX_ROUNDS, Retrieval, judge_fragments, retrieve
 from .settings import MODEL, Settings
+from .support import check_support, seen
 
 NOT_IN_BASE = (
     "По вашему запросу в базе знаний такой информации нет. Ниже — ответ модели "
@@ -214,6 +222,7 @@ def answer(
     datasets: Any = collect_dataset,
     prepared: Prepared | None = None,
     conflicts: Any = find_conflicts,
+    support: Any = check_support,
 ) -> Generator[dict[str, Any], None, None]:
     """Ответ на вопрос событиями (см. начало файла).
 
@@ -222,7 +231,9 @@ def answer(
     (conn, предмет, вопрос) — датасет или None. prepared — уже найденное
     (оценка ищет один раз и для проверки поиска, и для ответа). conflicts
     (вопрос, фрагменты, настройки) → расхождения между статьями (find_conflicts);
-    с подменённой моделью ответа настоящая сверка не идёт — она спросила бы модель."""
+    с подменённой моделью ответа настоящая сверка не идёт — она спросила бы модель.
+    support (вопрос, ответ, фрагменты, настройки) → (ответ, убранные, переставлено ссылок)
+    — сверка ссылок с текстом фрагментов (check_support); то же правило подмены."""
     settings = settings or Settings()
     history = history or []
     question = (question or "").strip()
@@ -261,7 +272,17 @@ def answer(
             if insist:
                 yield {"type": "status", "text": "перечитываю найденное…"}
             done = yield from _answer_from(
-                llm, question, sources, turns, plan, clashes, settings, info, started, insist
+                llm,
+                question,
+                sources,
+                turns,
+                plan,
+                clashes,
+                settings,
+                info,
+                started,
+                insist,
+                support,
             )
             if done:
                 return
@@ -337,6 +358,7 @@ def _answer_from(
     info: dict[str, Any],
     started: float,
     insist: bool = False,
+    support: Any = check_support,
 ) -> Generator[dict[str, Any], None, bool]:
     """Ответ по фрагментам событиями. True — ответ дан (или ошибка сервера модели),
     False — модель отказалась: «в базе знаний нет ответа»."""
@@ -371,9 +393,25 @@ def _answer_from(
                 if any(mark in part["text"] for mark in ".!?…") and is_looping(text):
                     break  # дальше — те же фразы по кругу; поток закроет finally
         # Фразы без ссылки на фрагмент — не из статей, повторы — зацикливание:
-        # ответ заменяется очищенным, убранное показывается отдельно.
-        unique = drop_repeats(text)
+        # ответ заменяется очищенным, убранное показывается отдельно. Фраза без ссылки,
+        # все числа которой есть в одном фрагменте, получает ссылку на него и остаётся.
+        unique, rescued = cite_by_numbers(drop_repeats(text), sources, seen)
         cleaned, removed = drop_uncited(unique)
+        # Подтверждает ли фрагмент утверждение со ссылкой на него (support.py) — до хвоста
+        # «Ещё в статьях базы»: его пишет код, а не модель.
+        unsupported: list[str] = []
+        recited = 0
+        support_seconds = None
+        real = support is not check_support or llm is stream_llm
+        if cleaned and support is not None and settings.check_support and real:
+            yield {"type": "status", "text": "проверяю, что ссылки подтверждают сказанное…"}
+            since = time.monotonic()
+            checked, unsupported, recited = support(question, cleaned, sources, settings)
+            support_seconds = round(time.monotonic() - since, 1)
+            if checked and citations(checked, len(sources))[0]:
+                cleaned = checked
+            else:  # сверка убрала бы всё — ответ остаётся как был
+                unsupported, recited = [], 0
         rest = rest_of_summary(cleaned, sources)
         if rest:
             cleaned = f"{cleaned.rstrip()}\n\n{rest}".strip()
@@ -384,7 +422,14 @@ def _answer_from(
             return False
         if cleaned != text:
             text = cleaned
-            yield {"type": "revised", "text": text, "removed": removed}
+            yield {
+                "type": "revised",
+                "text": text,
+                "removed": removed,
+                "unsupported": unsupported,
+                "rescued": len(rescued),
+                "recited": recited,
+            }
         used, unknown = citations(text, len(sources))
         cited, claims = coverage(text)
         yield {
@@ -394,6 +439,9 @@ def _answer_from(
             "unknown": unknown,
             "coverage": [cited, claims],
             "removed": len(removed),
+            "unsupported": len(unsupported),
+            "recited": recited,
+            "support_seconds": support_seconds,
             "model": settings.model,
             "seconds": round(time.monotonic() - started, 1),
             "tokens": tokens,

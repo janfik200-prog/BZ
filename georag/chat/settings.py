@@ -42,6 +42,8 @@ class Settings:
     general_knowledge: bool = field(default_factory=lambda: env_flag("GEORAG_GENERAL"))
     # Сверять, не расходятся ли статьи (find_conflicts): около 4 с на ответ.
     check_conflicts: bool = True
+    # Сверять утверждения ответа с их фрагментами (support.py): неподтверждённое — вон.
+    check_support: bool = True
     # Искать и по векторам фактов графа: фрагменты, которые привели близкие факты,
     # получают до двух мест среди кандидатов (index.search.FACT_SLOTS). Выключено:
     # поиск это чуть улучшает, ответы — нет (сравнение 14.10.2026 — в УСТРОЙСТВО.md,

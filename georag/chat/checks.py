@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
+from typing import Any
 
 NO_ANSWER = "В базе знаний нет ответа"  # начало фразы-отказа из правила 3
 
@@ -299,3 +301,110 @@ def drop_uncited(answer: str) -> tuple[str, list[str]]:
             continue
         out.append(line)
     return "\n".join(out).strip(), removed
+
+
+def cited_numbers(part: str) -> list[int]:
+    """Номера фрагментов, на которые ссылается кусок ответа, по порядку и без повторов."""
+    out: list[int] = []
+    for group in _CITE.findall(part):
+        for n in re.split(r"[,;]", group):
+            if n.strip().isdigit() and int(n) not in out:
+                out.append(int(n))
+    return out
+
+
+def about_sources(part: str) -> bool:
+    """Фраза о самих фрагментах, а не о геологии («во фрагментах нет…»)."""
+    return bool(_ABOUT_SOURCES.search(part))
+
+
+def is_claim(part: str) -> bool:
+    """Утверждение — как у drop_uncited: длиннее 40 знаков без ссылок, не подводка к
+    списку («используют следующие методы:») и не фраза о самих фрагментах без ссылки."""
+    bare = _CITE.sub("", part).strip()
+    if len(bare) <= 40 or bare.endswith(":"):
+        return False
+    return bool(_CITE.search(part)) or not about_sources(part)
+
+
+def rewrite(answer: str, change: Callable[[str], str | None]) -> str:
+    """Ответ, в котором каждое предложение (и пункт списка) прошло через change: строка —
+    новый вид, None — убрать. Разбор — тот же, что у drop_uncited: формулы и заголовки не
+    трогаются, связка в начале фразы после убранной снимается (_CONNECTIVE), заголовок, под
+    которым ничего не осталось, уходит. Так режут ответ cite_by_numbers и сверка ссылок
+    (support.py)."""
+    lines: list[str] = []
+    source = answer.split("\n")
+    for line, formula in zip(source, _formula_lines(source), strict=True):
+        if formula or not line.strip() or _HEADING.fullmatch(line):
+            lines.append(line)
+            continue
+        bullet = _BULLET.match(line)
+        prefix = bullet.group(1) if bullet else ""
+        kept: list[str] = []
+        dropped = False
+        for part in _split_sentences(line[len(prefix) :]):
+            new = change(part)
+            if new is None:
+                dropped = True
+                continue
+            kept.append(_lead(new) if dropped else new)
+            dropped = False
+        rest = " ".join(p for p in kept if p)
+        if rest:
+            lines.append(prefix + rest)
+    out: list[str] = []
+    for i, line in enumerate(lines):
+        if line.strip() and _HEADING.fullmatch(line):
+            after = next((x for x in lines[i + 1 :] if x.strip()), "")
+            if not after or _HEADING.fullmatch(after):
+                continue
+        if not line.strip() and (not out or not out[-1].strip()):
+            continue
+        out.append(line)
+    return "\n".join(out).strip()
+
+
+# Число в тексте: 1.660, 5343,33 (5343.33), 50–500 (две штуки), 1:50 000 (50000). Значимое —
+# из двух цифр и больше или с дробью: одиночные 1–9 есть почти в любом фрагменте.
+_GROUP_SPACE = "[   ]"  # пробел, неразрывный и узкий неразрывный между разрядами
+_NUMBER = re.compile(rf"\d{{1,3}}(?:{_GROUP_SPACE}\d{{3}})+(?![.,]?\d)|\d+(?:[.,]\d+)?")
+
+
+def numbers(text: str) -> set[str]:
+    """Значимые числа текста в одном виде: без пробелов в разрядах, с точкой в дроби.
+    Номера ссылок [n] — не числа текста."""
+    out = set()
+    for raw in _NUMBER.findall(_CITE.sub(" ", text)):
+        value = re.sub(_GROUP_SPACE, "", raw).replace(",", ".")
+        if len(value.replace(".", "")) >= 2:
+            out.add(value)
+    return out
+
+
+def cite_by_numbers(
+    answer: str, sources: list[dict[str, Any]], seen: Callable[[dict[str, Any]], str] | None = None
+) -> tuple[str, list[str]]:
+    """Утверждению без ссылки, все значимые числа которого есть в одном фрагменте, —
+    ссылка на этот фрагмент, а не вычёркивание: верная цифра («Максимальная концентрация
+    радона в точке TTN-07 составила 5343,33 Бк/м³») уходила как фраза без ссылки, а в
+    ответе оставалось «конкретные значения не указаны» (AgentKB, 20.10.2026).
+    seen(источник) — текст фрагмента, каким его видела модель; по умолчанию — text.
+    Возвращает (текст, получившие ссылку фразы)."""
+    show = seen or (lambda s: str(s.get("text") or ""))
+    known = [(s["n"], numbers(show(s))) for s in sources]
+    cited: list[str] = []
+
+    def change(part: str) -> str:
+        if not is_claim(part) or _CITE.search(part):
+            return part
+        need = numbers(part)
+        match = next((n for n, have in known if need and need <= have), None)
+        if match is None:
+            return part
+        cited.append(part)
+        end = re.search(r"[.!?…]$", part)
+        return (part[:-1] + f" [{match}]" + part[-1]) if end else f"{part} [{match}]"
+
+    text = rewrite(answer, change)
+    return (text, cited) if cited else (answer, cited)
