@@ -159,3 +159,14 @@ def test_describe_sentence_before_without_double_dot() -> None:
 
     item = {"number": "1", "latex": RHO, "before": "Модель простая. Так считают плотность."}
     assert formulas.describe(item) == "Формула (1): ρ = ρ_0 (1 − φ). Так считают плотность."
+
+
+def test_named_reference_whole_word_and_number() -> None:
+    """«сформулированы 3 гипотезы» — не ссылка на формулу (3), «уравнения 2015 года» — не
+    на формулу (201); настоящие ссылки — как были."""
+    from georag.index import formulas
+
+    numbers = {"3", "20", "201"}
+    assert formulas.references("Были сформулированы 3 гипотезы.", numbers) == set()
+    assert formulas.references("Система уравнения 2015 года.", numbers) == set()
+    assert formulas.references("Из формулы 3 и уравнения (20) следует", numbers) == {"3", "20"}
