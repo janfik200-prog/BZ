@@ -283,3 +283,25 @@ def test_numbers_in_several_fragments_give_no_citation() -> None:
     ]
     answer = "Визуальный осмотр результатов применяется для оценки точности (Jordan, Schott 2005)."
     assert cite_by_numbers(answer, sources) == (answer, [])
+
+
+def test_english_thousands_separator() -> None:
+    """«1:500,000» — пятьсот тысяч: ссылка на такой фрагмент не переставляется."""
+    assert "500000" in numbers("a 1:500,000-scale film-base map")
+    assert numbers("1,500,000 m") == {"1500000"}
+    assert numbers("1,660") == {"1660", "1.660"}  # неоднозначно — оба прочтения
+    assert numbers("0,125 и 5343,33") == {"0.125", "5343.33"}
+    by_n = {
+        1: {"n": 1, "title": "A", "text": "100 м — масштаб 1: 500 000."},
+        2: {"n": 2, "title": "B", "text": "Lineaments were transferred to a 1:500,000-scale map."},
+    }
+    assert support._recite("В Техасе использовался масштаб карт 1:500 000 [2].", by_n) is None
+
+
+def test_partly_right_citation_stays() -> None:
+    by_n = {
+        4: {"n": 4, "title": "A", "text": "Карты масштаба от 1:100000, 1:150000 и мельче."},
+        6: {"n": 6, "title": "B", "text": "15 m — 1:150,000; 30 m — 1:300,000; 60, 120 m."},
+    }
+    claim = "Снимки с разрешением 30 м (масштаб 1:150 000) и 60–120 м (1:300 000) [4]."
+    assert support._recite(claim, by_n) is None

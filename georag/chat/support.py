@@ -104,7 +104,10 @@ def _recite(claim: str, by_n: dict[int, dict[str, Any]]) -> str | None:
         return None
     cited = [n for n in cited_numbers(claim) if n in by_n]
     have = set().union(*(numbers(seen_numbers(by_n[n])) for n in cited)) if cited else set()
-    if need <= have:
+    # Хоть одно отличительное число в процитированном фрагменте есть — ссылка верна хотя бы
+    # отчасти: «30 м (масштаб 1:150 000) и 60–120 м [4]» уходило с фрагмента, где 1:150 000
+    # есть, на тот, где 30 м — это 1:300 000 (живая проверка 21.10.2026).
+    if need <= have or _distinctive(need) & have:
         return None
     others = [n for n, s in by_n.items() if n not in cited and need <= numbers(seen_numbers(s))]
     if len(others) != 1:  # ни одного или несколько — не угадывать
