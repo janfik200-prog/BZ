@@ -622,14 +622,16 @@ class Bot:
                 else:
                     self.tg.edit(chat_id, note["message_id"], text(place))
                 shown = place
-            except TelegramError:
+            except Exception:  # noqa: BLE001 — и сеть (requests): иначе вопрос снят с очереди
                 pass
 
         self.slots.acquire(on_wait=waiting)
         if note:
+            # Место уже занято, а отдаёт его _answer_safe, только если отсюда вернулись:
+            # ошибка сети здесь навсегда забирала место у страницы и бота.
             try:
                 self.tg.edit(chat_id, note["message_id"], "<i>Очередь подошла — отвечаю ниже.</i>")
-            except TelegramError:
+            except Exception:  # noqa: BLE001
                 pass
 
     def answer(
