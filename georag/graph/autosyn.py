@@ -67,6 +67,8 @@ _OPPOSITE = re.compile(
 _WORD = re.compile(r"[^\W\d_]+")
 # «northeastern» — «northeast», «northern» — «north»: сторона света целиком, без хвоста.
 _SIDE_TAIL = re.compile(r"(?:ern|erly|wards?|ly)$")
+# Греческая буква в ключе имени (строчная: name_key сводит регистр и «µ» к «μ»).
+_GREEK = re.compile(r"[α-ω]")
 
 
 def _marks(name: str) -> list[tuple[str, str]]:
@@ -93,11 +95,14 @@ def _proper(name: str) -> set[str]:
 def guard(a: str, b: str) -> str | None:
     """Почему эти два похожих имени нельзя слить без человека — или None.
 
-    Разные числа (образец JCBN50 и JCBN45, разлом 318° и 337°), разные стороны и
-    степени (восточное — западное), разные собственные имена («Монголо-Охотского» и
-    «Кураминского» пояса)."""
+    Разные числа (образец JCBN50 и JCBN45, разлом 318° и 337°), разные греческие буквы
+    («β-кварц» и «α-кварц» — разные минералы, а векторы у них почти одни), разные
+    стороны и степени (восточное — западное), разные собственные имена
+    («Монголо-Охотского» и «Кураминского» пояса)."""
     if sorted(re.findall(r"\d+", a)) != sorted(re.findall(r"\d+", b)):
         return "разные числа"
+    if sorted(_GREEK.findall(name_key(a))) != sorted(_GREEK.findall(name_key(b))):
+        return "разные греческие буквы"
     if _marks(a) != _marks(b):
         return "разные стороны или степени"
     pa, pb = _proper(a), _proper(b)

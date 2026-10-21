@@ -10,7 +10,7 @@ python -m pytest tests/test_names.py — без базы и модели."""
 
 import unittest
 
-from georag.graph import facts
+from georag.graph import autosyn, facts
 from georag.graph.api import Graph
 from georag.graph.synonyms import Synonyms
 from georag.text import mentions, name_key
@@ -114,3 +114,16 @@ class GraphTests(unittest.TestCase):
         self.assertEqual(graph.entities["β-кварц"]["facts"], 2)  # «β-кварца» — она же
         self.assertEqual(graph.resolve("α-кварца"), "α-кварц")
         self.assertEqual(graph.resolve("β-кварцем"), "β-кварц")
+
+
+class AutosynGuardTests(unittest.TestCase):
+    def test_greek_letters_stop_merge(self):
+        """Векторы «β-кварц» и «α-кварц» почти одни — сливать без человека нельзя."""
+        for a, b in [("β-кварц", "α-кварц"), ("α-кварц", "кварц"), ("β-quartz", "α-quartz")]:
+            with self.subTest(a=a, b=b):
+                self.assertEqual(autosyn.guard(a, b), "разные греческие буквы")
+
+    def test_same_letters_pass(self):
+        self.assertIsNone(autosyn.guard("β-кварц", "Β-кварц"))
+        self.assertIsNone(autosyn.guard("β-кварц", "β кварц"))
+        self.assertIsNone(autosyn.guard("Landsat8 OLI", "Landsat-8 OLI"))
