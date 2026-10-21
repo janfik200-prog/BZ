@@ -55,6 +55,12 @@ def citations(answer: str, count: int) -> tuple[list[int], list[int]]:
 _HEADING = re.compile(r"(?m)^\s*(?:#{1,6}\s+[^\n]*|\*\*[^*\n]+\*\*:?|__[^_\n]+__:?)\s*$")
 
 
+# Строка — одна формула ($$…$$, можно со знаком препинания после); блок — формула
+# отдельными строками, в том числе на несколько строк.
+_FORMULA_LINE = re.compile(r"\s*\$\$[^\n]*?\$\$\s*[.,;:]?\s*")
+_FORMULA_BLOCK = re.compile(r"(?m)^\s*\$\$[\s\S]*?\$\$\s*[.,;:]?\s*$")
+
+
 def coverage(answer: str) -> tuple[int, int]:
     """Сколько утверждений ответа подкреплены ссылкой: (со ссылкой, всего).
 
@@ -64,6 +70,7 @@ def coverage(answer: str) -> tuple[int, int]:
     после точки — она относится к предыдущему предложению.
     """
     text = _HEADING.sub("", answer)  # заголовок раздела — не утверждение
+    text = _FORMULA_BLOCK.sub("\n", text)  # формула отдельной строкой — тоже
     text = re.sub(r"(?m)^\s*(?:[-*•]|\d+[.)])\s+", "", text)
     text = re.sub(r"([.!?…])\s*((?:\[\d+(?:\s*[,;]\s*\d+)*\]\s*)+)", r" \2\1", text)
     parts = re.split(r"(?<=[.!?…])\s+|\n+", text)
@@ -221,7 +228,16 @@ def drop_uncited(answer: str) -> tuple[str, list[str]]:
     Возвращает (новый текст, убранные фразы)."""
     removed: list[str] = []
     lines: list[str] = []
+    in_formula = False
     for line in answer.split("\n"):
+        # Формула отдельной строкой ($$…$$, правило 8) — не утверждение: ссылка на
+        # фрагмент стоит во фразе перед ней. Формула на несколько строк — тоже.
+        opens = line.strip().startswith("$$") and line.count("$$") % 2 == 1
+        if in_formula or opens or _FORMULA_LINE.fullmatch(line):
+            if line.count("$$") % 2:
+                in_formula = not in_formula
+            lines.append(line)
+            continue
         if not line.strip() or _HEADING.fullmatch(line):
             lines.append(line)
             continue
