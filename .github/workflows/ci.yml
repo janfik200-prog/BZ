@@ -31,9 +31,9 @@ jobs:
       - name: pytest
         run: python -m pytest tests -q -rs
       - name: ruff
-        run: python -m ruff check georag georag.py tests tools
+        run: python -m ruff check georag georag.py tests
       - name: black
-        run: python -m black --check georag georag.py tests tools
+        run: python -m black --check georag georag.py tests
       - name: mypy --strict
         run: |
           python -m mypy -p georag

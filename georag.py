@@ -619,9 +619,9 @@ def cmd_lint(opts: argparse.Namespace) -> int:
     """ruff, black --check и mypy --strict.
     Пакет georag и файл georag.py проверяются mypy отдельно: у них одно имя."""
     # Проверки кода лежат в .local (исключена в pyproject) — их файлы передаются явно;
-    # tests/ и tools/ из репозитория — тоже (mypy их не проверяет: проверки без типов).
+    # tests/ из репозитория — тоже (mypy его не проверяет: проверки без типов).
     tests = [str(p) for p in sorted(TESTS_DIR.rglob("*.py"))]
-    tests += [d for d in ("tests", "tools") if (ROOT / d).is_dir()]
+    tests += ["tests"] if (ROOT / "tests").is_dir() else []
     steps = [
         ("ruff", ["-m", "ruff", "check", "georag", "georag.py", *tests]),
         ("black", ["-m", "black", "--check", "georag", "georag.py", *tests]),
