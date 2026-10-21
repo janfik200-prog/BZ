@@ -73,6 +73,27 @@ def garbage_ratio(text: str) -> float:
     return round(1 - allowed / total + cid_hits / total, 4)
 
 
+# Иероглифы внутри латинских слов в статье на латинице — битый шрифт: «e紅白quake»,
+# «My町田1低». Знаков таких мало (2–3 %), и доля мусора их не видит. В японской и
+# китайской статье латинский термин слитно с иероглифами — норма («TM画像», «Ali和»):
+# там иероглифов больше десятой доли букв, и проверка такой текст не трогает.
+_CJK = "぀-ヿ㐀-䶿一-鿿가-힯"  # кана, ханьцзы, хангыль
+_CJK_RE = re.compile(f"[{_CJK}]")
+_LATIN_RE = re.compile("[A-Za-z]")
+_WORD_RE = re.compile(f"[A-Za-z{_CJK}]+")
+CJK_TEXT = 0.10  # иероглифов больше этой доли букв — текст на CJK, проверка не нужна
+
+
+def stray_cjk(text: str) -> float:
+    """Доля латинских слов с иероглифами внутри; у текста на CJK — 0."""
+    han = len(_CJK_RE.findall(text))
+    if not han or han > CJK_TEXT * (han + len(_LATIN_RE.findall(text))):
+        return 0.0
+    latin = [w for w in _WORD_RE.findall(text) if _LATIN_RE.search(w)]
+    mixed = sum(1 for w in latin if _CJK_RE.search(w))
+    return round(mixed / max(len(latin), 1), 4)
+
+
 def thin_pages(parsed: ParsedDoc, min_chars: int) -> list[int]:
     """Страницы, с которых почти ничего не извлеклось."""
     return [p for p, t in sorted(parsed.pages_text.items()) if len(t.strip()) < min_chars // 2]
@@ -114,6 +135,14 @@ def _text_checks(report: ValidationReport, parsed: ParsedDoc, settings: Settings
         ratio <= settings.max_garbage_ratio,
         critical=True,
         detail=f"доля мусорных символов {ratio:.1%} (порог {settings.max_garbage_ratio:.0%})",
+    )
+
+    stray = stray_cjk(text)
+    report.add(
+        "no_stray_cjk",
+        stray <= settings.max_stray_cjk,
+        critical=True,
+        detail=f"слов с иероглифами внутри латиницы {stray:.1%} (порог {settings.max_stray_cjk:.0%})",
     )
 
     # --- 3. Патологические повторы ------------------------------------------
