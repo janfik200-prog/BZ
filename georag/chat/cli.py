@@ -119,7 +119,7 @@ def main(argv: list[str] | None = None) -> int:
                 cited, claims = event.get("coverage") or (0, 0)
                 if claims:
                     print(f"\nСсылка на фрагмент — у {cited} из {claims} утверждений.")
-                if event.get("mode") == "без базы":
+                if event.get("mode") == "без базы" and not event.get("not_found"):
                     print("[Ответ модели из общих знаний — не из базы знаний]")
                 if event.get("model"):
                     print(f"{event['model']}, {event['seconds']} с")

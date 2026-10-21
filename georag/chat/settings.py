@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import os
+from dataclasses import dataclass, field
 
 from ..llm import DEFAULT_MODEL, LLM, LLM_HOST, NUM_CTX
 
@@ -15,6 +16,11 @@ TOP_K = 8
 PER_DOC = 3
 QUERIES = 3  # сколько поисковых запросов на часть вопроса
 PARTS = 3  # на сколько частей самое большее делится вопрос
+
+
+def env_flag(name: str) -> bool:
+    """Переключатель из окружения: 1, true, yes, да — включено; пусто и прочее — выключено."""
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "да")
 
 
 @dataclass
@@ -30,6 +36,10 @@ class Settings:
     parts: int = PARTS  # на сколько частей самое большее делить вопрос
     # Вопрос не по теме и в базе пусто: False — короткий отказ, True — ответ из общих знаний.
     general_off_topic: bool = False
+    # Вопрос по теме, а в базе пусто: False — отказ «в базе нет», True — ответ из общих
+    # знаний модели с пометкой (GEORAG_GENERAL=1). Выключено: в AgentKB на «сколько статей
+    # про Марокко» такой ответ сочинил геологию Марокко — с пометкой, но вредно.
+    general_knowledge: bool = field(default_factory=lambda: env_flag("GEORAG_GENERAL"))
     # Сверять, не расходятся ли статьи (find_conflicts): около 4 с на ответ.
     check_conflicts: bool = True
     # Искать и по векторам фактов графа: фрагменты, которые привели близкие факты,

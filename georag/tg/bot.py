@@ -710,6 +710,7 @@ class Bot:
             "info": info,
             "used": done.get("used"),
             "mode": done.get("mode"),
+            "not_found": done.get("not_found"),
             "model": done.get("model"),
             "seconds": done.get("seconds"),
         }

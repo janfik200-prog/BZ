@@ -49,7 +49,7 @@ HELP = f"""<b>База знаний ГеоRAG</b>
 
 Нужно подробно, кратко, списком — так и напишите в вопросе: «подробно расскажи…», «кратко: …». Вопрос вдогонку («а по ASTER?») бот понимает — помнит разговор; «{MENU_NEW}» начинает заново.
 
-Под ответом: номер — фрагмент целиком; «Как искал» — какие были запросы и что модель отобрала. Пока бот пишет, его можно остановить. Если в базе такого нет, бот так и скажет и ответит из общих знаний — с пометкой.
+Под ответом: номер — фрагмент целиком; «Как искал» — какие были запросы и что модель отобрала. Пока бот пишет, его можно остановить. Если в базе такого нет, бот так и скажет.
 
 Кнопки внизу:
 <b>{MENU_SEARCH}</b> — найти фрагменты статей (обычный поиск, без модели)
@@ -227,6 +227,8 @@ def how_text(record: dict[str, Any]) -> str:
                 else ""
             )
         )
+    elif record.get("not_found"):
+        lines.append("Близкого в базе не нашлось; ответ из общих знаний модели выключен.")
     elif record.get("mode") == "без базы":
         lines.append("Близкого в базе не нашлось — ответ из общих знаний модели.")
     if record.get("seconds") is not None:
@@ -243,7 +245,7 @@ def answer_text(
         parts.append(f"<b>{esc(general)}</b>\n")
     if answer.strip():
         parts.append(answer_html(answer))
-    elif not done.get("off_topic"):  # вопрос не по теме — отказ уже написан выше
+    elif not done.get("off_topic") and not done.get("not_found"):  # отказ уже написан выше
         parts.append("<i>(пусто)</i>")
     if done.get("stopped"):
         parts.append("\n<i>— остановлено</i>")
@@ -265,7 +267,7 @@ def answer_text(
         foot.append(f"ссылки на несуществующие фрагменты: {done['unknown']}")
     if done.get("removed"):
         foot.append(f"убрано фраз без ссылки на фрагмент: {done['removed']}")
-    if done.get("mode") == "без базы" and not done.get("off_topic"):
+    if done.get("mode") == "без базы" and not done.get("off_topic") and not done.get("not_found"):
         foot.append("ответ модели, не из базы знаний")
     if done.get("model"):
         foot.append(f"{done['model']}, {done.get('seconds')} с")
