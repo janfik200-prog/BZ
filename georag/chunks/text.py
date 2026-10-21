@@ -53,7 +53,7 @@ def _chunker(model_id: str, max_tokens: int) -> Any:
         tokenizer = HuggingFaceTokenizer(tokenizer=hf_tokenizer, max_tokens=max_tokens)
         chunker = HybridChunker(tokenizer=tokenizer, merge_peers=True)
     except ImportError:  # pragma: no cover — старый API
-        chunker = HybridChunker(  # type: ignore[call-arg]
+        chunker = HybridChunker(  # type: ignore[call-arg, unused-ignore]  # без docling (CI) — не нужен
             tokenizer=hf_tokenizer, max_tokens=max_tokens, merge_peers=True
         )
 

@@ -543,8 +543,10 @@ def cmd_eval(opts: argparse.Namespace) -> int:
 def cmd_lint(opts: argparse.Namespace) -> int:
     """ruff, black --check и mypy --strict.
     Пакет georag и файл georag.py проверяются mypy отдельно: у них одно имя."""
-    # Проверки кода лежат в .local (исключена в pyproject) — их файлы передаются явно.
+    # Проверки кода лежат в .local (исключена в pyproject) — их файлы передаются явно;
+    # tests/ и tools/ из репозитория — тоже (mypy их не проверяет: проверки без типов).
     tests = [str(p) for p in sorted(TESTS_DIR.rglob("*.py"))]
+    tests += [d for d in ("tests", "tools") if (ROOT / d).is_dir()]
     steps = [
         ("ruff", ["-m", "ruff", "check", "georag", "georag.py", *tests]),
         ("black", ["-m", "black", "--check", "georag", "georag.py", *tests]),
@@ -889,7 +891,8 @@ def parse(argv: list[str]) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
-    if sys.version_info < (3, 12):
+    # Сам файл запускают и старым Python — ему нужно понятное сообщение, а не ошибка разбора.
+    if sys.version_info < (3, 12):  # noqa: UP036
         print(
             f"Нужен Python 3.12 или новее, а запущен {sys.version.split()[0]} — ЗАПУСК.md, раздел 1.",
             file=sys.stderr,

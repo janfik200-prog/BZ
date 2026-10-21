@@ -36,7 +36,7 @@ try:
         AcceleratorOptions,
     )
 except ImportError:  # pragma: no cover - старая раскладка модулей
-    from docling.datamodel.pipeline_options import (  # type: ignore[attr-defined]
+    from docling.datamodel.pipeline_options import (  # type: ignore[attr-defined, unused-ignore]
         AcceleratorDevice,
         AcceleratorOptions,
     )

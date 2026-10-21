@@ -74,4 +74,3 @@ class FakeConn:
     def queries(self, prefix: str) -> list[Any]:
         """Параметры записанных запросов, которые начинаются с prefix."""
         return [params for sql, params in self.log if sql.startswith(prefix)]
-
