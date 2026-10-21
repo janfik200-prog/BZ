@@ -37,7 +37,7 @@ import re
 import sys
 import time
 from collections import Counter, defaultdict
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from typing import Any
@@ -244,32 +244,12 @@ def aliases(conn: Any, embedder: Any, llm: Any, subject: str) -> list[str]:
         row = cur.fetchone()
     if row:
         return list(dict.fromkeys([subject, *row[0]]))
-    try:
-        from ..graph import synonyms
-
-        syn = synonyms.load()
-        canon = syn.name(subject) or subject
-        names += [canon, *syn.groups.get(canon, [])]
-    except Exception:  # noqa: BLE001 — словаря нет: обойдёмся без него
-        pass
+    names += _dictionary_names(subject)
     names += _graph_neighbours(conn, embedder, subject)
-    answered = False
-    try:
-        answer = llm.chat_json(
-            SYSTEM, ALIAS_PROMPT.format(subject=subject), temperature=0, max_tokens=200
-        )
-        # От модели — только английские названия: русские «варианты» она сочиняет
-        # («хлоритовая порода» для «хлорит»), русские написания даёт словарь.
-        names += [
-            v
-            for v in (_clean(x, 60) for x in (answer or {}).get("варианты") or [])
-            if v and not _CYRILLIC.search(v)
-        ]
-        answered = True
-    except Exception:  # noqa: BLE001 — модель молчит: без английского названия
-        pass
+    english = _english_names(llm, subject)
+    names += english or []
     out = [n for n in dict.fromkeys(names) if 3 <= len(n) <= 60 and len(n.split()) <= 5]
-    if not answered:  # без английского названия статьи на английском не найдутся — не храним
+    if english is None:  # без английского названия статьи на английском не найдутся — не храним
         return out
     with conn.cursor() as cur:
         cur.execute(
@@ -279,6 +259,35 @@ def aliases(conn: Any, embedder: Any, llm: Any, subject: str) -> list[str]:
         )
     conn.commit()
     return out
+
+
+def _dictionary_names(subject: str) -> list[str]:
+    """Название предмета в словаре синонимов и его написания; словаря нет — пусто."""
+    try:
+        from ..graph import synonyms
+
+        syn = synonyms.load()
+        canon = syn.name(subject) or subject
+        return [canon, *syn.groups.get(canon, [])]
+    except Exception:  # noqa: BLE001 — словаря нет: обойдёмся без него
+        return []
+
+
+def _english_names(llm: Any, subject: str) -> list[str] | None:
+    """Английские названия предмета от модели; None — модель не ответила."""
+    try:
+        answer = llm.chat_json(
+            SYSTEM, ALIAS_PROMPT.format(subject=subject), temperature=0, max_tokens=200
+        )
+        # От модели — только английские названия: русские «варианты» она сочиняет
+        # («хлоритовая порода» для «хлорит»), русские написания даёт словарь.
+        return [
+            v
+            for v in (_clean(x, 60) for x in (answer or {}).get("варианты") or [])
+            if v and not _CYRILLIC.search(v)
+        ]
+    except Exception:  # noqa: BLE001 — модель молчит: без английского названия
+        return None
 
 
 def _graph_neighbours(conn: Any, embedder: Any, subject: str) -> list[str]:
@@ -309,14 +318,19 @@ def _graph_neighbours(conn: Any, embedder: Any, subject: str) -> list[str]:
     ]
 
 
-def mentioning(conn: Any, names: list[str]) -> list[dict[str, Any]]:
-    """Фрагменты, где упомянут предмет (любое из названий), со статьёй и рангом."""
+def _names_tsquery(names: list[str]) -> str:
+    """Запрос полнотекста «любое из названий»; пусто — ни одно название в запрос не годится."""
     from ..index.search import build_tsquery
 
     parts = [p for p in (build_tsquery(n) for n in names) if p.strip()]
-    if not parts:
+    return " | ".join(f"({p})" for p in parts)
+
+
+def mentioning(conn: Any, names: list[str]) -> list[dict[str, Any]]:
+    """Фрагменты, где упомянут предмет (любое из названий), со статьёй и рангом."""
+    query = _names_tsquery(names)
+    if not query:
         return []
-    query = " | ".join(f"({p})" for p in parts)
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -397,39 +411,52 @@ def check_items(
     его названия: модель пишет «хлорит — ассоциирует с», забыв, с чем); сколько отброшено."""
     texts = {c["chunk_id"]: c["text"] for c in chunks}
     own = {name_key(n) for n in names or []}
-    items = (answer or {}).get("пункты") if isinstance(answer, dict) else None
+    items = answer.get("пункты") if isinstance(answer, dict) else None
     kept, dropped = [], 0
     for item in items if isinstance(items, list) else []:
-        if not isinstance(item, dict):
+        checked = _checked_item(item, texts, own, names)
+        if checked is None:
             dropped += 1
-            continue
-        what = _clean(item.get("с_чем") or item.get("что"), 60)
-        quote = _clean(item.get("цитата"), 300)
-        number = "".join(ch for ch in str(item.get("фрагмент") or "") if ch.isdigit())
-        chunk_id = int(number) if number and int(number) in texts else None
-        where = [chunk_id] if chunk_id else list(texts)
-        found = next((cid for cid in where if quote and locate_quote(quote, texts[cid])), None)
-        if not what or found is None or name_key(what) in own:
-            dropped += 1
-            continue
-        if names and not _near_subject(quote, texts[found], names):
-            dropped += 1
-            continue
-        if not _quoted_entity(what, quote):
-            dropped += 1
-            continue
-        kind = _clean(item.get("вид"), 20).lower()
-        kept.append(
-            {
-                "что": what,
-                "вид": kind if kind in KINDS else "другое",
-                "как": _clean(item.get("как"), 40),
-                "где": _clean(item.get("где"), 80),
-                "цитата": quote,
-                "фрагмент": found,
-            }
-        )
+        else:
+            kept.append(checked)
     return kept, dropped
+
+
+def _checked_item(
+    item: Any, texts: dict[int, str], own: set[str], names: list[str] | None
+) -> dict[str, Any] | None:
+    """Пункт выписки в нашем виде — или None, если он не прошёл проверку: нет названия,
+    цитаты нет во фрагменте, пункт о самом предмете (own — ключи его названий), предмет
+    не упомянут рядом с цитатой, название не подтверждено цитатой."""
+    if not isinstance(item, dict):
+        return None
+    what = _clean(item.get("с_чем") or item.get("что"), 60)
+    quote = _clean(item.get("цитата"), 300)
+    found = _quote_chunk(quote, item.get("фрагмент"), texts)
+    if not what or found is None or name_key(what) in own:
+        return None
+    if names and not _near_subject(quote, texts[found], names):
+        return None
+    if not _quoted_entity(what, quote):
+        return None
+    kind = _clean(item.get("вид"), 20).lower()
+    return {
+        "что": what,
+        "вид": kind if kind in KINDS else "другое",
+        "как": _clean(item.get("как"), 40),
+        "где": _clean(item.get("где"), 80),
+        "цитата": quote,
+        "фрагмент": found,
+    }
+
+
+def _quote_chunk(quote: str, fragment: Any, texts: dict[int, str]) -> int | None:
+    """Фрагмент, где есть цитата: названный моделью (если он из этой статьи), иначе любой
+    из фрагментов статьи; None — цитаты нет ни в одном."""
+    number = "".join(ch for ch in str(fragment or "") if ch.isdigit())
+    chunk_id = int(number) if number and int(number) in texts else None
+    where = [chunk_id] if chunk_id else list(texts)
+    return next((cid for cid in where if quote and locate_quote(quote, texts[cid])), None)
 
 
 def _quoted_entity(what: str, quote: str) -> bool:
@@ -626,124 +653,196 @@ def collect(
     # О чём спрашивают (минералы, породы…) — от этого задание на выписку и ключ кэша.
     if wanted is None:
         wanted = facet(question, subject)
-    key = f"{name_key(subject)}{'|' + ','.join(sorted(wanted)) if wanted else ''}@{MAP_VERSION}"
+    key = _notes_key(subject, wanted)
     if question:
         _remember(conn, subject, wanted)
+    notes, todo = _split_cached(articles, _cached_notes(conn, key))
+    result.cached = len(notes)
+    if todo:
+        yield _status(f"читаю статьи о «{subject}»: {len(todo)} из {len(articles)}…")
+    read, result.dropped = yield from _read_articles(conn, llm, key, subject, names, wanted, todo)
+    notes.update(read)
+    result.read = len(notes)
+    # Спросили о минералах — в сводке и выписках только минералы (если их хватает):
+    # иначе модель отвечала списком вперемешку с процессами, методами и районами.
+    fitting = _of_kinds(notes, wanted) if wanted else None
+    if fitting is not None:
+        notes, result.facet = fitting, sorted(wanted)
+    sources = _note_sources(articles, notes, start)
+    if not sources:
+        return None
+    result.items = sum(map(len, notes.values()))
+    groups = _summary_groups(sources, notes)
+    result.sources = [_summary_source(subject, groups, len(sources), start), *sources]
+    result.seconds = time.monotonic() - started
+    return result
+
+
+def _status(text: str) -> dict[str, Any]:
+    return {"type": "status", "text": text}
+
+
+def _notes_key(subject: str, wanted: set[str]) -> str:
+    """Ключ выписок в кэше (collect_notes): предмет, виды пунктов прицельной выписки и
+    версия заданий (MAP_VERSION)."""
+    kinds = "|" + ",".join(sorted(wanted)) if wanted else ""
+    return f"{name_key(subject)}{kinds}@{MAP_VERSION}"
+
+
+def _cached_notes(conn: Any, key: str) -> dict[str, tuple[list[int], Any]]:
+    """Выписки прошлых вопросов: статья → (прочитанные фрагменты, пункты)."""
     with conn.cursor() as cur:
         cur.execute("SELECT doc_id, chunks, items FROM collect_notes WHERE subject = %s", (key,))
-        cached = {r[0]: (list(r[1]), r[2]) for r in cur.fetchall()}
+        return {r[0]: (list(r[1]), r[2]) for r in cur.fetchall()}
+
+
+def _split_cached(
+    articles: list[list[dict[str, Any]]], cached: dict[str, tuple[list[int], Any]]
+) -> tuple[dict[str, list[dict[str, Any]]], list[list[dict[str, Any]]]]:
+    """Готовые выписки статей (статья → пункты) и статьи, которые надо прочитать."""
     notes: dict[str, list[dict[str, Any]]] = {}
     todo = []
     for chunks in articles:
         doc = chunks[0]["doc_id"]
-        ids = [c["chunk_id"] for c in chunks]
-        fresh = isinstance(cached.get(doc, (0, 0))[1], list) and all(
-            "вид" in i for i in cached.get(doc, (0, []))[1]
-        )
+        read_chunks, items = cached.get(doc, ([], None))
         # Готовая выписка годится, если прочитаны все нужные фрагменты (или больше —
         # заготовленная заранее глубокая).
-        if doc in cached and set(ids) <= set(cached[doc][0]) and fresh:
-            notes[doc] = cached[doc][1] if isinstance(cached[doc][1], list) else []
-            result.cached += 1
+        if _is_fresh(items) and {c["chunk_id"] for c in chunks} <= set(read_chunks):
+            notes[doc] = items
         else:
             todo.append(chunks)
-    if todo:
-        yield {
-            "type": "status",
-            "text": f"читаю статьи о «{subject}»: {len(todo)} из {len(articles)}…",
-        }
+    return notes, todo
 
-    def read(chunks: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], Any]:
-        prompt = map_prompt(subject, names, chunks, wanted)
-        try:
-            answer = llm.chat_json(
-                SYSTEM, prompt, temperature=0, max_tokens=MAP_TOKENS * (len(chunks) + 1)
-            )
-            return chunks, answer
-        except json.JSONDecodeError as exc:  # ответ оборвался на потолке длины
-            return chunks, salvage(exc.doc)
-        except Exception:  # noqa: BLE001 — модель не ответила по статье
-            return chunks, None
 
+def _is_fresh(items: Any) -> bool:
+    """Выписка нынешнего вида: список пунктов, у каждого есть «вид»."""
+    return isinstance(items, list) and all("вид" in i for i in items)
+
+
+def _read_articles(
+    conn: Any,
+    llm: Any,
+    key: str,
+    subject: str,
+    names: list[str],
+    wanted: set[str],
+    todo: list[list[dict[str, Any]]],
+) -> Generator[dict[str, Any], None, tuple[dict[str, list[dict[str, Any]]], int]]:
+    """Выписки по статьям todo — моделью, WORKERS одновременно. Каждая проверяется по
+    цитатам (check_items) и сразу пишется в кэш; каждые 8 статей — событие status.
+    Итог — выписки (статья → пункты, в порядке готовности) и сколько пунктов отброшено."""
+    notes: dict[str, list[dict[str, Any]]] = {}
+    dropped = 0
     with ThreadPoolExecutor(WORKERS) as pool:
-        futures = [pool.submit(read, chunks) for chunks in todo]
+        futures = {
+            pool.submit(_read_article, llm, subject, names, chunks, wanted): chunks
+            for chunks in todo
+        }
         for done, future in enumerate(as_completed(futures), start=1):
-            chunks, answer = future.result()
+            answer = future.result()
             if answer is None:
                 continue
-            items, dropped = check_items(answer, chunks, names)
-            result.dropped += dropped
+            chunks = futures[future]
+            items, lost = check_items(answer, chunks, names)
+            dropped += lost
             doc = chunks[0]["doc_id"]
             notes[doc] = items
-            with conn.cursor() as cur:
-                cur.execute(
-                    "INSERT INTO collect_notes (subject, doc_id, chunks, items) VALUES (%s, %s, %s, %s) "
-                    "ON CONFLICT (subject, doc_id) DO UPDATE SET chunks = EXCLUDED.chunks, "
-                    "items = EXCLUDED.items, made_at = now()",
-                    (
-                        key,
-                        doc,
-                        [c["chunk_id"] for c in chunks],
-                        json.dumps(items, ensure_ascii=False),
-                    ),
-                )
-            conn.commit()
+            _save_note(conn, key, doc, chunks, items)
             if done % 8 == 0 and done < len(todo):
-                yield {
-                    "type": "status",
-                    "text": f"прочитано статей о «{subject}»: {done} из {len(todo)}…",
-                }
-    result.read = len(notes)
-    # Спросили о минералах — в сводке и выписках только минералы (если их хватает):
-    # иначе модель отвечала списком вперемешку с процессами, методами и районами.
-    if wanted:
-        fitting = {d: [i for i in its if i.get("вид") in wanted] for d, its in notes.items()}
-        if sum(map(len, fitting.values())) >= FACET_MIN:
-            notes = fitting
-            result.facet = sorted(wanted)
+                yield _status(f"прочитано статей о «{subject}»: {done} из {len(todo)}…")
+    return notes, dropped
 
-    # Источники: статья с выпиской — заметкой; номера — по порядку статей.
-    sources: list[dict[str, Any]] = []
-    number_of: dict[str, int] = {}
-    for chunks in articles:
-        doc = chunks[0]["doc_id"]
-        items = notes.get(doc) or []
-        if not items:
-            continue
-        first = chunks[0]
-        n = start + 1 + len(sources)
-        number_of[doc] = n
-        note = "; ".join(
-            f"{i['что']} — {i['как']}" + (f" ({i['где']})" if i["где"] else "")
-            for i in items[:ITEMS_PER_ARTICLE]
+
+def _read_article(
+    llm: Any, subject: str, names: list[str], chunks: list[dict[str, Any]], wanted: set[str]
+) -> Any:
+    """Ответ модели — выписка по статье; оборванный ответ — что из него спасено (salvage);
+    None — модель не ответила."""
+    prompt = map_prompt(subject, names, chunks, wanted)
+    try:
+        return llm.chat_json(
+            SYSTEM, prompt, temperature=0, max_tokens=MAP_TOKENS * (len(chunks) + 1)
         )
-        sources.append(
-            {
-                "n": n,
-                "doc_id": doc,
-                "chunk_id": first["chunk_id"],
-                "ord": first["ord"],
-                "title": first["title"],
-                "year": first["year"],
-                "journal": first["journal"],
-                "authors": first["authors"],
-                "pages": first["pages"],
-                "headings": first["headings"][-2:],
-                "url": first["url"],
-                "text": " ".join(first["text"].split()),
-                "similarity": None,
-                "found_by": "сбор",
-                "part": None,
-                "kind": "заметка",
-                "note": note,
-            }
-        )
-        result.items += len(items)
-    if not sources:
+    except json.JSONDecodeError as exc:  # ответ оборвался на потолке длины
+        return salvage(exc.doc)
+    except Exception:  # noqa: BLE001 — модель не ответила по статье
         return None
+
+
+def _save_note(
+    conn: Any, key: str, doc: str, chunks: list[dict[str, Any]], items: list[dict[str, Any]]
+) -> None:
+    """Выписка статьи — в кэш, с номерами прочитанных фрагментов."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO collect_notes (subject, doc_id, chunks, items) VALUES (%s, %s, %s, %s) "
+            "ON CONFLICT (subject, doc_id) DO UPDATE SET chunks = EXCLUDED.chunks, "
+            "items = EXCLUDED.items, made_at = now()",
+            (key, doc, [c["chunk_id"] for c in chunks], json.dumps(items, ensure_ascii=False)),
+        )
+    conn.commit()
+
+
+def _of_kinds(
+    notes: dict[str, list[dict[str, Any]]], wanted: set[str]
+) -> dict[str, list[dict[str, Any]]] | None:
+    """Выписки только с пунктами нужных видов; None — таких меньше FACET_MIN."""
+    fitting = {d: [i for i in its if i.get("вид") in wanted] for d, its in notes.items()}
+    return fitting if sum(map(len, fitting.values())) >= FACET_MIN else None
+
+
+def _note_sources(
+    articles: list[list[dict[str, Any]]], notes: dict[str, list[dict[str, Any]]], start: int
+) -> list[dict[str, Any]]:
+    """Источники: статья с выпиской — заметкой; номера — по порядку статей, после сводки
+    (у неё номер start)."""
+    sources: list[dict[str, Any]] = []
+    for chunks in articles:
+        items = notes.get(chunks[0]["doc_id"]) or []
+        if items:
+            sources.append(_note_source(chunks, items, start + 1 + len(sources)))
+    return sources
+
+
+def _note_source(
+    chunks: list[dict[str, Any]], items: list[dict[str, Any]], n: int
+) -> dict[str, Any]:
+    """Статья источником номер n: её лучший фрагмент и заметка — пункты выписки строкой."""
+    first = chunks[0]
+    note = "; ".join(
+        f"{i['что']} — {i['как']}" + (f" ({i['где']})" if i["где"] else "")
+        for i in items[:ITEMS_PER_ARTICLE]
+    )
+    return {
+        "n": n,
+        "doc_id": first["doc_id"],
+        "chunk_id": first["chunk_id"],
+        "ord": first["ord"],
+        "title": first["title"],
+        "year": first["year"],
+        "journal": first["journal"],
+        "authors": first["authors"],
+        "pages": first["pages"],
+        "headings": first["headings"][-2:],
+        "url": first["url"],
+        "text": " ".join(first["text"].split()),
+        "similarity": None,
+        "found_by": "сбор",
+        "part": None,
+        "kind": "заметка",
+        "note": note,
+    }
+
+
+def _summary_groups(
+    sources: list[dict[str, Any]], notes: dict[str, list[dict[str, Any]]]
+) -> list[dict[str, Any]]:
+    """Пункты выписок, сведённые по написанию (spelling_key): названия, связи, где и номера
+    статей-источников; чем в большем числе статей, тем раньше."""
     groups: dict[str, dict[str, Any]] = {}
-    for doc, n in number_of.items():
-        for item in notes[doc]:
+    for source in sources:
+        n = source["n"]
+        for item in notes[source["doc_id"]]:
             g = groups.setdefault(
                 spelling_key(item["что"]) or item["что"].lower(),
                 {"names": Counter(), "как": Counter(), "где": set(), "sources": []},
@@ -759,7 +858,14 @@ def collect(
         # Есть русское написание из статей базы — им (не переводом модели), иначе как в цитате.
         russian = [n for n, _ in g["names"].most_common() if _CYRILLIC.search(n)]
         g["name"] = russian[0] if russian else g["names"].most_common(1)[0][0]
-    summary = {
+    return ordered
+
+
+def _summary_source(
+    subject: str, groups: list[dict[str, Any]], articles: int, start: int
+) -> dict[str, Any]:
+    """Сводка источником номер start: текст для модели (summary_text) и группы для кода."""
+    return {
         "n": start,
         "subject": subject,
         "doc_id": f"сводка:{subject}",
@@ -771,20 +877,17 @@ def collect(
         "pages": [],
         "headings": [],
         "url": "",
-        "text": summary_text(subject, ordered, len(sources)),
+        "text": summary_text(subject, groups, articles),
         # Для кода, не для модели: что упомянуто в скольких статьях (rest_of_summary).
         "groups": [
             {"name": g["name"], "names": list(g["names"]), "sources": list(g["sources"])}
-            for g in ordered
+            for g in groups
         ],
         "similarity": None,
         "found_by": "сбор",
         "part": None,
         "kind": "сводка",
     }
-    result.sources = [summary, *sources]
-    result.seconds = time.monotonic() - started
-    return result
 
 
 def _remember(conn: Any, subject: str, wanted: set[str]) -> None:
@@ -815,12 +918,9 @@ _METHOD = re.compile(
 
 def _documents(conn: Any, names: list[str]) -> int:
     """Во скольких статьях упомянут предмет (любое из названий) — по полнотексту."""
-    from ..index.search import build_tsquery
-
-    parts = [p for p in (build_tsquery(n) for n in names) if p.strip()]
-    if not parts:
+    query = _names_tsquery(names)
+    if not query:
         return 0
-    query = " | ".join(f"({p})" for p in parts)
     with conn.cursor() as cur:
         cur.execute(
             "SELECT count(DISTINCT doc_id) FROM chunks WHERE tsv @@ to_tsquery('russian', %s)",
@@ -867,24 +967,10 @@ def warm(
     новые статьи), затем top самых упоминаемых предметов с каждым видом из facets.
     Время вышло — остальное в следующий раз."""
     init(conn)
-    todo: list[tuple[str, set[str]]] = []
-    with conn.cursor() as cur:
-        cur.execute("SELECT name, facet FROM collect_asked ORDER BY times DESC, asked_at DESC")
-        todo += [(name, set(f.split(",")) - {""}) for name, f in cur.fetchall()]
-    if top:
-        todo += [
-            (name, set(f.split(",")) - {""})
-            for name, _, method in frequent(conn, top)
-            for f in (("",) if method else facets)
-        ]
+    todo = _warm_todo(conn, top, facets)
     stats = Counter(subjects=0, read=0, cached=0, items=0, skipped=0, empty=0)
     deadline = time.monotonic() + minutes * 60
-    seen: set[tuple[str, tuple[str, ...]]] = set()
-    for name, wanted in todo:
-        mark = (name_key(name), tuple(sorted(wanted)))
-        if mark in seen:
-            continue
-        seen.add(mark)
+    for name, wanted in _once(todo):
         label = name + (f" — {', '.join(sorted(wanted))}" if wanted else "")
         if dry_run:
             log(f"  {label}")
@@ -893,13 +979,7 @@ def warm(
         if time.monotonic() > deadline:
             stats["skipped"] += 1
             continue
-        events = collect(conn, embedder, llm, name, wanted=wanted, per=DEEP_CHUNKS)
-        while True:
-            try:
-                next(events)
-            except StopIteration as stop:
-                result = stop.value
-                break
+        result = _outcome(collect(conn, embedder, llm, name, wanted=wanted, per=DEEP_CHUNKS))
         stats["subjects"] += 1
         if result is None:
             stats["empty"] += 1
@@ -914,6 +994,46 @@ def warm(
             f"пунктов {result.items}, {result.seconds:.0f} с"
         )
     return dict(stats)
+
+
+def _warm_todo(conn: Any, top: int, facets: tuple[str, ...]) -> list[tuple[str, set[str]]]:
+    """Что заготовить — предмет и виды пунктов: сперва о чём спрашивали (чаще — раньше),
+    затем top самых упоминаемых предметов с каждым видом из facets (метод — только общая)."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT name, facet FROM collect_asked ORDER BY times DESC, asked_at DESC")
+        todo = [(name, _facet_kinds(f)) for name, f in cur.fetchall()]
+    if top:
+        todo += [
+            (name, _facet_kinds(f))
+            for name, _, method in frequent(conn, top)
+            for f in (("",) if method else facets)
+        ]
+    return todo
+
+
+def _facet_kinds(text: str) -> set[str]:
+    """Виды пунктов из строки через запятую (как в collect_asked); пустая — все виды."""
+    return set(text.split(",")) - {""}
+
+
+def _once(todo: list[tuple[str, set[str]]]) -> Iterator[tuple[str, set[str]]]:
+    """Предметы без повторов: тот же предмет (по name_key) с теми же видами — один раз."""
+    seen: set[tuple[str, tuple[str, ...]]] = set()
+    for name, wanted in todo:
+        mark = (name_key(name), tuple(sorted(wanted)))
+        if mark not in seen:
+            seen.add(mark)
+            yield name, wanted
+
+
+def _outcome(events: Generator[dict[str, Any], None, Collected | None]) -> Collected | None:
+    """Итог сбора по предмету без его событий: генератор — до конца."""
+    while True:
+        try:
+            next(events)
+        except StopIteration as stop:
+            result: Collected | None = stop.value
+            return result
 
 
 def main(argv: list[str] | None = None) -> int:
