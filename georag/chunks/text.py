@@ -31,15 +31,14 @@ def _tokenizer(model_id: str) -> Any:
 
     Загрузка занимает 1,5–2,5 с, а нарезка самой статьи — доли секунды: раньше
     токенайзер грузился заново на каждую статью, и это было 80% времени нарезки.
-    Сначала берём скачанный с диска: иначе каждая загрузка спрашивает Hugging Face,
-    не вышла ли новая версия, — лишняя секунда и зависимость от сети.
+    Сначала берём скачанный с диска (index.embed.offline_first): иначе каждая загрузка
+    спрашивает Hugging Face, не вышла ли новая версия, — лишняя секунда и зависимость от сети.
     """
     from transformers import AutoTokenizer
 
-    try:
-        return AutoTokenizer.from_pretrained(model_id, local_files_only=True)
-    except (OSError, ValueError):  # ещё не скачан — качаем
-        return AutoTokenizer.from_pretrained(model_id)
+    from ..index.embed import offline_first
+
+    return offline_first(lambda: AutoTokenizer.from_pretrained(model_id))
 
 
 @lru_cache(maxsize=4)
