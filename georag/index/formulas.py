@@ -234,11 +234,16 @@ def references(text: str, numbers: set[str]) -> set[str]:
 
 
 def latex_pattern(latex: str) -> re.Pattern[str] | None:
-    """Где LaTeX формулы стоит в тексте фрагмента: те же знаки, пробелы — любые."""
+    """Где LaTeX формулы стоит в тексте фрагмента: те же знаки, пробелы — любые. Формула,
+    которая начинается или кончается буквой или цифрой («T», «a = b»), — не часть слова:
+    иначе «The» становилось «$$T$$he»."""
     tokens = (latex or "").split()
     if not tokens:
         return None
-    return re.compile(r"\${0,2}" + r"\s*".join(re.escape(t) for t in tokens) + r"\${0,2}")
+    head = r"(?<!\w)" if re.match(r"\w", tokens[0]) else ""
+    tail = r"(?!\w)" if re.search(r"\w$", tokens[-1]) else ""
+    body = r"\s*".join(re.escape(t) for t in tokens)
+    return re.compile(head + r"\${0,2}" + body + r"\${0,2}" + tail)
 
 
 def mark_formulas(

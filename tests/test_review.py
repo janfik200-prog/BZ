@@ -170,3 +170,15 @@ def test_named_reference_whole_word_and_number() -> None:
     assert formulas.references("Были сформулированы 3 гипотезы.", numbers) == set()
     assert formulas.references("Система уравнения 2015 года.", numbers) == set()
     assert formulas.references("Из формулы 3 и уравнения (20) следует", numbers) == {"3", "20"}
+
+
+def test_short_formula_not_marked_inside_word() -> None:
+    """Короткая формула («T», «a = b») помечается там, где стоит сама, а не внутри слова."""
+    from georag.index import formulas
+
+    t = {"index": 1, "latex": "T"}
+    ab = {"index": 2, "latex": "a = b"}
+    assert formulas.mark_formulas("The theory of T.", [t]) == ("The theory of $$T$$.", [1])
+    assert formulas.mark_formulas("data = big; a = b", [ab]) == ("data = big; $$a = b$$", [2])
+    marked = "Температура:\n$$T$$\nи далее"
+    assert formulas.mark_formulas(marked, [t]) == (marked, [1])  # уже помеченное — как было
