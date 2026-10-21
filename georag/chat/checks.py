@@ -55,10 +55,24 @@ def citations(answer: str, count: int) -> tuple[list[int], list[int]]:
 _HEADING = re.compile(r"(?m)^\s*(?:#{1,6}\s+[^\n]*|\*\*[^*\n]+\*\*:?|__[^_\n]+__:?)\s*$")
 
 
-# Строка — одна формула ($$…$$, можно со знаком препинания после); блок — формула
-# отдельными строками, в том числе на несколько строк.
+# Строка — одна формула ($$…$$, можно со знаком препинания после).
 _FORMULA_LINE = re.compile(r"\s*\$\$[^\n]*?\$\$\s*[.,;:]?\s*")
-_FORMULA_BLOCK = re.compile(r"(?m)^\s*\$\$[\s\S]*?\$\$\s*[.,;:]?\s*$")
+
+
+def _formula_lines(lines: list[str]) -> list[bool]:
+    """Какие строки ответа — формула (правило 8): строка из одной формулы и формула на
+    несколько строк — от строки, где $$ открылась, до строки, где закрылась. Пара $$
+    считается по всем строкам: открыться формула может и в конце строки текста («по
+    формуле (2) [3]: $$»). Раньше такая строка шла как текст — тело формулы считалось
+    утверждением без ссылки, а весь ответ после неё — формулой, без проверки."""
+    flags: list[bool] = []
+    inside = False
+    for line in lines:
+        odd = line.count("$$") % 2 == 1
+        flags.append(inside or odd or bool(_FORMULA_LINE.fullmatch(line)))
+        if odd:
+            inside = not inside
+    return flags
 
 
 def coverage(answer: str) -> tuple[int, int]:
@@ -69,8 +83,10 @@ def coverage(answer: str) -> tuple[int, int]:
     это не факт из статьи, ссылка к ним не нужна. Ссылка может стоять и сразу
     после точки — она относится к предыдущему предложению.
     """
-    text = _HEADING.sub("", answer)  # заголовок раздела — не утверждение
-    text = _FORMULA_BLOCK.sub("\n", text)  # формула отдельной строкой — тоже
+    lines = answer.split("\n")
+    # Формула — не утверждение (ссылка — во фразе перед ней), заголовок раздела — тоже.
+    text = "\n".join("" if f else s for s, f in zip(lines, _formula_lines(lines), strict=True))
+    text = _HEADING.sub("", text)
     text = re.sub(r"(?m)^\s*(?:[-*•]|\d+[.)])\s+", "", text)
     text = re.sub(r"([.!?…])\s*((?:\[\d+(?:\s*[,;]\s*\d+)*\]\s*)+)", r" \2\1", text)
     parts = re.split(r"(?<=[.!?…])\s+|\n+", text)
@@ -228,14 +244,11 @@ def drop_uncited(answer: str) -> tuple[str, list[str]]:
     Возвращает (новый текст, убранные фразы)."""
     removed: list[str] = []
     lines: list[str] = []
-    in_formula = False
-    for line in answer.split("\n"):
-        # Формула отдельной строкой ($$…$$, правило 8) — не утверждение: ссылка на
-        # фрагмент стоит во фразе перед ней. Формула на несколько строк — тоже.
-        opens = line.strip().startswith("$$") and line.count("$$") % 2 == 1
-        if in_formula or opens or _FORMULA_LINE.fullmatch(line):
-            if line.count("$$") % 2:
-                in_formula = not in_formula
+    source = answer.split("\n")
+    for line, formula in zip(source, _formula_lines(source), strict=True):
+        # Формула ($$…$$, правило 8) — не утверждение: ссылка на фрагмент стоит во фразе
+        # перед ней. Формула на несколько строк — тоже (_formula_lines).
+        if formula:
             lines.append(line)
             continue
         if not line.strip() or _HEADING.fullmatch(line):

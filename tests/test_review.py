@@ -108,3 +108,38 @@ def test_formula_rows_without_nul(tmp_path: Path) -> None:
     formulas.store(conn, "d1", items, {}, [[0.1]])
     [row] = conn.queries("INSERT INTO formulas")
     assert not [v for v in row if isinstance(v, str) and "\x00" in v]
+
+
+# --------------------------------------------------------------------------- #
+#  Формулы в проверке ответа (chat/checks.py)
+# --------------------------------------------------------------------------- #
+LOOSE = "А это — общие слова модели без всякой ссылки на статью."
+
+
+def test_formula_opened_at_line_end() -> None:
+    """«по формуле (2) [3]: $$» — формула открылась в конце строки текста (так в примере
+    правила 8). Тело формулы — не утверждение без ссылки, а фраза без ссылки после
+    формулы — по-прежнему убирается."""
+    from georag.chat.checks import coverage, drop_uncited
+
+    answer = (
+        f"По формуле (2) из статьи [3]: $$\n{GRAV}\n$$\n"
+        f"где Δg — аномалия силы тяжести над рудным телом [3].\n{LOOSE}"
+    )
+    kept, removed = drop_uncited(answer)
+    assert GRAV in kept and removed == [LOOSE]
+    assert coverage(answer) == (1, 2)  # «где Δg — …» со ссылкой и LOOSE без неё
+
+
+def test_coverage_does_not_swallow_text_between_formulas() -> None:
+    """Формула в начале строки с текстом после неё — не блок: строки до следующей
+    формулы не пропадают из подсчёта утверждений."""
+    from georag.chat.checks import coverage
+
+    answer = (
+        "$$x$$ — плотность пород, она растёт с глубиной залегания и давлением [1].\n"
+        "Вторая длинная фраза без всякой ссылки, просто общие слова модели здесь.\n"
+        "Третья длинная фраза без всякой ссылки, тоже общие слова модели и только.\n"
+        "$$y = x$$\n"
+    )
+    assert coverage(answer) == (1, 3)
