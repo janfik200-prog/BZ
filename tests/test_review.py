@@ -143,3 +143,11 @@ def test_coverage_does_not_swallow_text_between_formulas() -> None:
         "$$y = x$$\n"
     )
     assert coverage(answer) == (1, 3)
+
+
+def test_plain_latex_arrows() -> None:
+    r"""\rightarrow и \leftarrow — стрелки, а не «arrow»: \right и \left срезали начало."""
+    from georag.index import formulas
+
+    assert formulas.plain_latex(r"a \rightarrow b \leftarrow c") == "a → b ← c"
+    assert formulas.plain_latex(r"\left( x \right)") == "( x )"

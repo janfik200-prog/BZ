@@ -180,7 +180,8 @@ def plain_latex(latex: str) -> str:
     """LaTeX → строка знаками: \\frac{a}{b} → (a)/(b), \\rho → ρ, ^{2} → ^2. Не точная
     отрисовка, а то, что читается моделью векторов и человеком в описании."""
     text = re.sub(r"\\quad\s*\(\d{1,3}\)\s*$", "", latex or "")  # номер — отдельно
-    text = re.sub(r"\\left|\\right|\\[,;:!]|\\quad|\\qquad|~", " ", text)
+    # \left и \right — только сами по себе: \leftarrow и \rightarrow — стрелки (SYMBOLS).
+    text = re.sub(r"\\(?:left|right)(?![A-Za-z])|\\[,;:!]|\\quad|\\qquad|~", " ", text)
     for _ in range(4):  # изнутри наружу: индексы и степени, потом дроби и корни вокруг них
         text = _WRAP.sub(r"\1", text)
         text = re.sub(r"\^\{([^{}]*)\}", r"^\1", text)
