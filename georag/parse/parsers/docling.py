@@ -108,6 +108,34 @@ _FORMULA_MODELS = (
 )
 
 
+def formulas_problem(
+    settings: Settings, models: tuple[tuple[str, str], ...] = _FORMULA_MODELS
+) -> str | None:
+    """Почему формулы не разобрать как задано; None — всё в порядке или формулы выключены.
+
+    Разбор идёт в отдельном процессе (parsers/worker.py), и там модель формул, которой
+    нет (docling сменил устройство), давала только предупреждение: статьи разбирались
+    дальше с формулами медленнее и с мусором, и это было не заметно. Поэтому добыча и
+    разбор проверяют модель до начала и останавливаются (как в AgentKB) — а выключить
+    формулы можно ключом --no-formulas."""
+    import importlib
+
+    if not settings.formulas:
+        return None
+    for module, name in models:
+        try:
+            getattr(importlib.import_module(module), name)
+            return None
+        except (ImportError, AttributeError):
+            continue
+    found = ", ".join(name for _, name in models)
+    return (
+        f"модель формул docling не найдена ({found}) — формулы вышли бы медленнее и с "
+        "мусором. Поставьте docling из requirements.txt или разбирайте без формул: "
+        "ключ --no-formulas"
+    )
+
+
 def _set_formula_model(
     factor: float, batch: int, models: tuple[tuple[str, str], ...] = _FORMULA_MODELS
 ) -> bool:

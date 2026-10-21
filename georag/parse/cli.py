@@ -35,6 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--timeout", type=int, default=None, help="жёсткий таймаут на документ, сек")
     p.add_argument("--limit", type=int, default=None, help="обработать только первые N файлов")
     p.add_argument("--no-chunks", action="store_true", help="только парсинг и валидация")
+    p.add_argument("--no-formulas", action="store_true", help="без распознавания формул")
     return p
 
 
@@ -58,6 +59,8 @@ def settings_from_args(args: argparse.Namespace) -> Settings:
         s.max_tokens = args.max_tokens
     if args.timeout:
         s.doc_timeout_sec = args.timeout
+    if args.no_formulas:
+        s.formulas = False
     return s
 
 
@@ -72,6 +75,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if not pdfs:
         print(f"Не нашёл PDF в {target}", file=sys.stderr)
+        return 1
+    from .parsers.docling import formulas_problem
+
+    problem = formulas_problem(settings)
+    if problem:
+        print(f"Разбор не начат: {problem}", file=sys.stderr)
         return 1
 
     print(f"Документов: {len(pdfs)} | устройство: {settings.device}")

@@ -29,6 +29,9 @@
     tg --check                  бот молчит? проверить токен, доступ, кто писал
     serve                       то же без браузера (только адреса /api)
     search "запрос"             найти фрагменты статей в терминале
+    formula ID                  формулы статьи: LaTeX, словами, какие фрагменты на них ссылаются
+    formula ID 2                одна формула — с номером (2) в статье
+    formula --find "…"          формулы по смыслу («как плотность зависит от пористости»)
     ask "вопрос"                спросить чат-бота в терминале (нужна модель)
                                 (хотите подробно или кратко — так и напишите в вопросе)
     collect                     выписки по частым предметам заранее: широкий вопрос о них
@@ -77,6 +80,7 @@
     --no-llm          не спрашивать модель, отбирать эвристикой (add, all)
     --force           обработать заново даже то, что уже было (add, all, ingest)
     --figures         описать рисунки статей моделью со зрением (add, all; нужна qwen3.5:9b)
+    --no-formulas     разбирать без распознавания формул (add, all): быстрее, формулы — картинками
 
 Окружение .venv запускатель находит сам: запускать можно обычным `python`,
 нужные библиотеки всё равно возьмутся из .venv проекта.
@@ -301,6 +305,8 @@ def _acquire(opts: argparse.Namespace, topic_args: list[str]) -> int:
         args.append("--force")
     if opts.figures:
         args.append("--figures")
+    if opts.no_formulas:
+        args.append("--no-formulas")
     return _py("georag.acquire.cli", *args)
 
 
@@ -877,6 +883,7 @@ def parse(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--vectors", action="store_true")
     p.add_argument("--types", action="store_true")
     p.add_argument("--figures", action="store_true")
+    p.add_argument("--no-formulas", action="store_true")
     p.add_argument("--no-graph", action="store_true")
     p.add_argument("--facts", action="store_true")
     p.add_argument("--workers", type=int, default=None)
@@ -898,7 +905,14 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 1
-    opts = parse(sys.argv[1:] if argv is None else argv)
+    argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0].lower() == "formula":
+        # У команды свои ключи (doc_id, номер, --find, --json) — передаются как есть.
+        _need_venv()
+        if not _ensure_database():
+            return 1
+        return _py("georag.index.formulas", *argv[1:])
+    opts = parse(argv)
     if opts.help:
         opts.command = "help"
     command = COMMANDS.get(opts.command.lower())

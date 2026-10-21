@@ -50,3 +50,21 @@ def test_not_a_number_after_letter() -> None:
 
 def test_empty() -> None:
     assert tidy_formula("", "") == ""
+
+
+def test_formula_model_checked_before_parsing() -> None:
+    """Модели формул docling нет — добыча и разбор не начинаются (а не портят формулы
+    молча в процессе разбора); формулы выключены ключом --no-formulas — проверки нет."""
+    import pytest
+
+    pytest.importorskip("docling")
+    from georag.parse.config import Settings
+    from georag.parse.parsers.docling import formulas_problem
+
+    settings = Settings()
+    assert formulas_problem(settings) is None  # docling из requirements.txt — модель есть
+    gone = (("georag.нет_такого_модуля", "CodeFormulaVlmModel"),)
+    problem = formulas_problem(settings, gone)
+    assert problem and "--no-formulas" in problem
+    settings.formulas = False
+    assert formulas_problem(settings, gone) is None

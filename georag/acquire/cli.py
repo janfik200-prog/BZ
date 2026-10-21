@@ -170,7 +170,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="разбор таблиц: accurate точнее, fast заметно быстрее",
     )
     p.add_argument("--max-tokens", type=int, default=None, help="размер чанка в токенах")
+    p.add_argument(
+        "--no-formulas",
+        action="store_true",
+        help="без распознавания формул (быстрее; формулы останутся картинками)",
+    )
     return p
+
+
+def _formulas_ready(settings: Settings, args: argparse.Namespace) -> bool:
+    """Формулы: выключить по ключу; включены — модель формул docling на месте, иначе
+    добыча не начинается (parse/parsers/docling.py, formulas_problem)."""
+    if args.no_formulas:
+        settings.formulas = False
+    if args.dry_run:
+        return True
+    from ..parse.parsers.docling import formulas_problem
+
+    problem = formulas_problem(settings)
+    if problem:
+        print(f"Разбор не начат: {problem}", file=sys.stderr)
+        return False
+    return True
 
 
 def _print_report(report: Any, show_table: bool = True) -> None:
@@ -227,6 +248,8 @@ def _by_doi(args: Any) -> int:
     if args.device:
         settings.device = args.device
     settings.figures = args.figures
+    if not _formulas_ready(settings, args):
+        return 1
     cfg = AcquireConfig(
         out_dir=args.out,
         force=args.force,
@@ -278,6 +301,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.tables:
         settings.table_mode = args.tables
     settings.figures = args.figures
+    if not _formulas_ready(settings, args):
+        return 1
 
     cfg = AcquireConfig(
         sources_path=args.sources,
