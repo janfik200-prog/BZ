@@ -182,3 +182,26 @@ def test_short_formula_not_marked_inside_word() -> None:
     assert formulas.mark_formulas("data = big; a = b", [ab]) == ("data = big; $$a = b$$", [2])
     marked = "Температура:\n$$T$$\nи далее"
     assert formulas.mark_formulas(marked, [t]) == (marked, [1])  # уже помеченное — как было
+
+
+# --------------------------------------------------------------------------- #
+#  Очередь ответов (turns.py)
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize(("raw", "size"), [("", 4), ("четыре", 4), (" 2 ", 2), ("0", 1)])
+def test_parallel_from_env(raw: str, size: int) -> None:
+    """GEORAG_PARALLEL не число (пустое в .env) — 4 по умолчанию, а не ValueError при
+    импорте, с которым не запускались ни страница, ни бот."""
+    import os
+    import subprocess
+    import sys
+
+    root = Path(__file__).resolve().parent.parent
+    proc = subprocess.run(
+        [sys.executable, "-c", "import georag.turns as t; print(t.MAX_PARALLEL)"],
+        cwd=root,
+        env={**os.environ, "GEORAG_PARALLEL": raw},
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout.strip() == str(size)

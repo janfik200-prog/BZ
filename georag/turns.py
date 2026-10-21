@@ -23,7 +23,10 @@ from contextlib import AbstractContextManager, contextmanager
 
 # Ответов сразу: GEORAG_PARALLEL, по умолчанию 4 (docs/КОМАНДЫ.md, «Несколько
 # пользователей»). Память модели сверх этого бережёт бюджет токенов в llm.py.
-MAX_PARALLEL = max(1, int(os.environ.get("GEORAG_PARALLEL", "4")))
+# Не число (пустое «GEORAG_PARALLEL=» в .env) — по умолчанию, а не падение страницы и бота
+# при импорте; так же читаются GEORAG_DB_POOL (index/db.py) и GEORAG_KV_TOKENS (llm.py).
+_PARALLEL_RAW = os.environ.get("GEORAG_PARALLEL", "").strip()
+MAX_PARALLEL = max(1, int(_PARALLEL_RAW) if _PARALLEL_RAW.lstrip("-").isdigit() else 4)
 POLL = 2.0  # с: как часто ждущему напоминать его место (и проверять, не ушёл ли он)
 
 
