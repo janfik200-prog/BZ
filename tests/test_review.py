@@ -151,3 +151,11 @@ def test_plain_latex_arrows() -> None:
 
     assert formulas.plain_latex(r"a \rightarrow b \leftarrow c") == "a → b ← c"
     assert formulas.plain_latex(r"\left( x \right)") == "( x )"
+
+
+def test_describe_sentence_before_without_double_dot() -> None:
+    """Фраза перед формулой уже кончается точкой — в описании нет «..»."""
+    from georag.index import formulas
+
+    item = {"number": "1", "latex": RHO, "before": "Модель простая. Так считают плотность."}
+    assert formulas.describe(item) == "Формула (1): ρ = ρ_0 (1 − φ). Так считают плотность."

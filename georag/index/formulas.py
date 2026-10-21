@@ -203,7 +203,8 @@ def describe(item: dict[str, Any]) -> str:
     parts = [f"Формула{number}: {plain_latex(item.get('latex', ''))}."]
     before = _SENTENCE_END.split(str(item.get("before") or "").strip())
     if before and before[-1]:
-        parts.append(before[-1].rstrip(":").strip() + ".")
+        lead = before[-1].rstrip(":").strip()  # законченная фраза — без второй точки
+        parts.append(lead if lead.endswith((".", "!", "?", "…")) else lead + ".")
     after = str(item.get("after") or "").strip()
     if _DEFINES.match(after):
         parts.append(" ".join(_SENTENCE_END.split(after)[:2]))
