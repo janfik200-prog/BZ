@@ -1484,7 +1484,11 @@ function renderSources(sources, used, queries, info) {
     q.textContent = text;
     box.append(q);
   };
-  if (info.dataset) {
+  if (info.collected) {
+    line(`Собрано по статьям о «${info.dataset}»: модель прочла статьи, где он упомянут, — ` +
+      `выписки из ${info.collected.read} статей из ${info.collected.articles}, ` +
+      "а не только то, что нашёл поиск.");
+  } else if (info.dataset) {
     line(`Собрано из фактов графа о «${info.dataset}»: всё, что о нём выписано из статей базы, ` +
       "а не только то, что нашёл поиск.");
   }
@@ -1709,7 +1713,8 @@ async function ask(question) {
           sources = ev.sources;
           queries = ev.queries || [];
           info = { parts: ev.parts || [], extra: ev.extra || [], missing: ev.missing || [],
-                   dataset: ev.dataset || null, rounds: ev.rounds || 1, checked: ev.checked || 0,
+                   dataset: ev.dataset || null, collected: ev.collected || null,
+                   rounds: ev.rounds || 1, checked: ev.checked || 0,
                    graph: ev.graph || 0,
                    judged: ev.judged !== false };
         } else if (ev.type === "general") {

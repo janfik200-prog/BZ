@@ -44,7 +44,14 @@ def main(argv: list[str] | None = None) -> int:
                 print(event["text"], file=sys.stderr)
             elif event["type"] == "sources":
                 sources = event["sources"]
-                if event.get("dataset"):
+                if event.get("collected"):
+                    got = event["collected"]
+                    print(
+                        f"Собрано по статьям о «{event['dataset']}»: выписки из {got['read']} "
+                        f"статей из {got['articles']}, где он упомянут",
+                        file=sys.stderr,
+                    )
+                elif event.get("dataset"):
                     print(
                         f"Собрано из фактов графа о «{event['dataset']}» — по всем статьям базы",
                         file=sys.stderr,
@@ -82,10 +89,15 @@ def main(argv: list[str] | None = None) -> int:
             elif event["type"] == "token":
                 print(event["text"], end="", flush=True)
             elif event["type"] == "revised":
-                # В терминале напечатанное не стереть — показываем, что убрано.
-                print("\n\nУбрано как фразы без ссылки на фрагмент (слова модели, не статей):")
-                for phrase in event["removed"]:
-                    print(f"  − {phrase}")
+                # В терминале напечатанное не стереть — показываем, что убрано и что
+                # дописал код (хвост сбора «Ещё в статьях базы»).
+                tail = event["text"].rpartition("**Ещё в статьях базы**")
+                if tail[1]:
+                    print(f"\n\n{tail[1]}{tail[2]}", end="")
+                if event["removed"]:
+                    print("\n\nУбрано как фразы без ссылки на фрагмент (слова модели, не статей):")
+                    for phrase in event["removed"]:
+                        print(f"  − {phrase}")
             elif event["type"] == "error":
                 print(f"\nОшибка: {event['error']}", file=sys.stderr)
                 code = 1

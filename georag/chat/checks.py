@@ -186,6 +186,21 @@ def _drop_seen_sentences(line: str, seen: set[str]) -> str:
     return prefix + " ".join(kept) if len(kept) < len(parts) else line
 
 
+_LOOP_MIN = 60  # фраза короче может повториться и законно
+
+
+def is_looping(text: str) -> bool:
+    """Модель пошла по кругу: последняя законченная фраза уже была в ответе дословно
+    (ссылки и разметка не в счёт). Ответ о хлорите — 21 разная фраза, повторенная до
+    8 раз: 26 тысяч знаков и 147 с (21.10.2026); drop_repeats убирал повторы, но время
+    уже было потрачено."""
+    parts = _split_sentences(text)
+    if len(parts) < 3:
+        return False
+    last = _plain(parts[-2])  # parts[-1] — ещё не дописана
+    return len(last) >= _LOOP_MIN and any(_plain(p) == last for p in parts[:-2])
+
+
 def _split_sentences(body: str) -> list[str]:
     return [
         p.strip()

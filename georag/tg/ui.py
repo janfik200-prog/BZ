@@ -157,7 +157,13 @@ def source_line(s: dict[str, Any]) -> str:
 def search_notes(info: dict[str, Any]) -> str:
     """Как искалось: датасет, части вопроса, отбор моделью, новые круги — строками."""
     notes = []
-    if info.get("dataset"):
+    if info.get("collected"):
+        got = info["collected"]
+        notes.append(
+            f"собрано по статьям о «{info['dataset']}»: выписки из {got['read']} статей "
+            f"из {got['articles']}, где он упомянут"
+        )
+    elif info.get("dataset"):
         notes.append(f"собрано из фактов графа о «{info['dataset']}» — по всем статьям базы")
     if info.get("graph"):
         notes.append(f"из графа связей — фрагментов о предмете вопроса: {info['graph']}")

@@ -36,6 +36,7 @@
     {"type": "status", "text": "…"}                         что сейчас делается
     {"type": "sources", "queries": […], "sources": […],     на что опирается ответ
      "parts": […], "extra": […], "missing": […], "dataset": "…"|None,
+     "collected": {"articles": N, "read": N, …}|None,     (сбор по статьям, collect.py)
      "rounds": 1–3, "checked": N, "judged": true|false}
     {"type": "general", "queries": […], "text": "…", …}     в базе нет — ответ без неё
                                                             (off_topic: true — вопрос не о
@@ -64,6 +65,7 @@ from .checks import (
     coverage,
     drop_repeats,
     drop_uncited,
+    is_looping,
     is_refusal,
     says_not_in_base,
 )
@@ -124,6 +126,7 @@ class Prepared:
             "extra": plan.extra,
             "missing": plan.missing,
             "dataset": self.dataset["name"] if self.dataset else None,
+            "collected": (self.dataset or {}).get("collected"),
             **self.retrieval.info(),
         }
 
@@ -336,6 +339,8 @@ def _answer_from(
                     break
                 text += part["text"]
                 yield {"type": "token", "text": part["text"]}
+                if any(mark in part["text"] for mark in ".!?…") and is_looping(text):
+                    break  # дальше — те же фразы по кругу; поток закроет finally
         # Фразы без ссылки на фрагмент — не из статей, повторы — зацикливание:
         # ответ заменяется очищенным, убранное показывается отдельно.
         unique = drop_repeats(text)

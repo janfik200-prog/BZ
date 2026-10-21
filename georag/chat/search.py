@@ -135,7 +135,7 @@ _ARTICLE_STOP = {
     "какой", "какая", "какие", "каких", "каким", "каког", "какую", "каком", "каков",
     "ответ", "кратк", "подро", "рудоп", "место", "район", "участ", "минер", "стать",
     "сведе", "извес", "найди", "покаж", "переч", "собер",
-}
+}  # fmt: skip
 
 
 def article_query(question: str) -> str:
@@ -163,7 +163,10 @@ def same_article(
 
     literal = vector_literal(embedder.encode_one(question))
     params = {
-        "q": literal, "docs": docs, "known": list(known), "n": SIBLINGS,
+        "q": literal,
+        "docs": docs,
+        "known": list(known),
+        "n": SIBLINGS,
         "terms": build_tsquery(article_query(question), any_word=True),
     }
     with conn.cursor() as cur:

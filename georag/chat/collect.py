@@ -488,6 +488,50 @@ def _near_subject(quote: str, text: str, names: list[str]) -> bool:
     return any((need := _stems(n) - _GENERIC_STEMS) and need <= have for n in names)
 
 
+# Ключ написания: выписка оставляет название на языке цитаты (epidote в английской статье,
+# эпидот — в русской), и сводка считала их разными пунктами, а хвост «Ещё в статьях базы»
+# повторял по-английски то, что ответ уже назвал по-русски. Ключ — латиницей, с правилами
+# названий минералов (-ite = -ит, c перед e/i = ц, h = г = х), без двойных букв и конечных
+# гласных. На парах «calcite — кальцит»: 29 из 35 (не сходятся galena — галенит, pyrrhotite
+# — пирротин, gypsum — гипс…); среди 1269 названий из выписок склеено 49 групп, все —
+# написания одного и того же (гранат и гранит — разные), 21.10.2026.
+_RU_LATIN = str.maketrans(
+    {
+        "а": "a", "б": "b", "в": "v", "г": "h", "д": "d", "е": "e", "ж": "zh", "з": "z",
+        "и": "i", "й": "i", "к": "k", "л": "l", "м": "m", "н": "n", "о": "o", "п": "p",
+        "р": "r", "с": "s", "т": "t", "у": "u", "ф": "f", "х": "h", "ц": "ts", "ч": "ch",
+        "ш": "sh", "щ": "sh", "ъ": "", "ы": "i", "ь": "", "э": "e", "ю": "u", "я": "a",
+    }
+)  # fmt: skip
+
+
+def spelling_key(name: str) -> str:
+    """Один ключ у английского и русского написания: «epidote», «эпидотом» → epidot."""
+    words = []
+    for word in name_key(name).split():
+        word = word.replace("ё", "е")
+        if _CYRILLIC.search(word):
+            word = word.translate(_RU_LATIN)
+        else:
+            for a, b in (("ph", "f"), ("th", "t"), ("ch", "h"), ("qu", "kv"), ("oe", "e")):
+                word = word.replace(a, b)
+            word = word.replace("tz", "ts").replace("x", "ks").replace("w", "v")
+            word = re.sub(r"c(?=[eiy])", "ts", word).replace("c", "k")
+        word = re.sub(r"(.)\1+", r"\1", word.replace("g", "h").replace("y", "i"))
+        words.append(re.sub(r"(?<=.)[aeiou]+$", "", word))
+    return " ".join(words)
+
+
+def _said_keys(text: str) -> set[str]:
+    """Ключи написания слов текста и пар, троек слов подряд — что ответ уже назвал."""
+    words = _STEM_WORD.findall(text.lower())
+    return {
+        spelling_key(" ".join(words[i : i + n]))
+        for n in (1, 2, 3)
+        for i in range(len(words) - n + 1)
+    }
+
+
 def summary_text(subject: str, groups: list[dict[str, Any]], articles: int) -> str:
     """Сводка — указатель: что упомянуто в скольких статьях и в каких (номера источников).
 
@@ -535,13 +579,15 @@ def rest_of_summary(answer: str, sources: list[dict[str, Any]]) -> str:
     if summary is None:
         return ""
     said = answer.lower().replace("ё", "е")
+    said_keys = _said_keys(said)
     available = {s["n"] for s in sources if s.get("kind") != "сводка"}
     rest, single = [], 0
     for g in summary.get("groups") or []:
         refs = [n for n in g["sources"] if n in available]
         if not refs:
             continue
-        if mentions(g["name"], said):
+        spellings = g.get("names") or [g["name"]]
+        if any(mentions(n, said) or spelling_key(n) in said_keys for n in spellings):
             continue
         if len(refs) == 1:
             if single >= REST_SINGLE:
@@ -699,7 +745,7 @@ def collect(
     for doc, n in number_of.items():
         for item in notes[doc]:
             g = groups.setdefault(
-                name_key(item["что"]) or item["что"].lower(),
+                spelling_key(item["что"]) or item["что"].lower(),
                 {"names": Counter(), "как": Counter(), "где": set(), "sources": []},
             )
             g["names"][item["что"]] += 1
@@ -710,7 +756,9 @@ def collect(
                 g["sources"].append(n)
     ordered = sorted(groups.values(), key=lambda g: -len(g["sources"]))
     for g in ordered:
-        g["name"] = g["names"].most_common(1)[0][0]
+        # Есть русское написание из статей базы — им (не переводом модели), иначе как в цитате.
+        russian = [n for n, _ in g["names"].most_common() if _CYRILLIC.search(n)]
+        g["name"] = russian[0] if russian else g["names"].most_common(1)[0][0]
     summary = {
         "n": start,
         "subject": subject,
@@ -725,7 +773,10 @@ def collect(
         "url": "",
         "text": summary_text(subject, ordered, len(sources)),
         # Для кода, не для модели: что упомянуто в скольких статьях (rest_of_summary).
-        "groups": [{"name": g["name"], "sources": list(g["sources"])} for g in ordered],
+        "groups": [
+            {"name": g["name"], "names": list(g["names"]), "sources": list(g["sources"])}
+            for g in ordered
+        ],
         "similarity": None,
         "found_by": "сбор",
         "part": None,
