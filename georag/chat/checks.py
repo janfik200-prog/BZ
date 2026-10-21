@@ -399,9 +399,12 @@ def cite_by_numbers(
         if not is_claim(part) or _CITE.search(part):
             return part
         need = numbers(part)
-        match = next((n for n, have in known if need and need <= have), None)
-        if match is None:
+        # Ровно один фрагмент: год «2005» стоит в нескольких, и фраза получала ссылку не
+        # на тот, где сказано (живая проверка 21.10.2026).
+        matches = [n for n, have in known if need and need <= have]
+        if len(matches) != 1:
             return part
+        match = matches[0]
         cited.append(part)
         end = re.search(r"[.!?…]$", part)
         return (part[:-1] + f" [{match}]" + part[-1]) if end else f"{part} [{match}]"

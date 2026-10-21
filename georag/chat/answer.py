@@ -90,7 +90,7 @@ from .messages import build_messages, fit_budget, general_messages
 from .plan import Plan, is_follow_up, make_plan, plan_question
 from .retrieval import MAX_ROUNDS, Retrieval, judge_fragments, retrieve
 from .settings import MODEL, Settings
-from .support import check_support, seen
+from .support import check_support, seen_numbers
 
 NOT_IN_BASE = (
     "По вашему запросу в базе знаний такой информации нет. Ниже — ответ модели "
@@ -442,7 +442,7 @@ def _answer_from(
         # Фразы без ссылки на фрагмент — не из статей, повторы — зацикливание:
         # ответ заменяется очищенным, убранное показывается отдельно. Фраза без ссылки,
         # все числа которой есть в одном фрагменте, получает ссылку на него и остаётся.
-        unique, rescued = cite_by_numbers(drop_repeats(text), sources, seen)
+        unique, rescued = cite_by_numbers(drop_repeats(text), sources, seen_numbers)
         cleaned, removed = drop_uncited(unique)
         # Подтверждает ли фрагмент утверждение со ссылкой на него (support.py) — до хвоста
         # «Ещё в статьях базы»: его пишет код, а не модель.

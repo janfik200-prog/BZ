@@ -61,6 +61,26 @@ def seen(source: dict[str, Any]) -> str:
     return fragment_block(source)
 
 
+_LITERATURE = re.compile(r"\(лит\. [^)]*\)")
+
+
+def seen_numbers(source: dict[str, Any]) -> str:
+    """Фрагмент, каким его видела модель, без ссылок на литературу «(лит. 10-12)»: их
+    номера — не числа статьи. На живой проверке (21.10.2026) «разрешение 10 м» получало
+    ссылку на фрагмент, где 10 было только номером в «(лит. 10-12)»."""
+    return _LITERATURE.sub(" ", seen(source))
+
+
+def _distinctive(values: set[str]) -> set[str]:
+    """Числа, по которым можно узнать фрагмент: с дробью или от трёх цифр, кроме годов.
+    Двузначное целое («30 м») стоит почти в каждом втором фрагменте о снимках, год —
+    в каждой ссылке на литературу."""
+    return {v for v in values if "." in v or (len(v) >= 3 and not _YEAR.fullmatch(v))}
+
+
+_YEAR = re.compile(r"1[89]\d\d|20\d\d")
+
+
 def _claims(answer: str) -> list[str]:
     found: list[str] = []
 
@@ -76,17 +96,20 @@ def _claims(answer: str) -> list[str]:
 
 
 def _recite(claim: str, by_n: dict[int, dict[str, Any]]) -> str | None:
-    """Числа утверждения не в его фрагментах, а все — в одном другом: ссылка на тот."""
+    """Числа утверждения не в его фрагментах, а все — в одном другом: ссылка на тот.
+    Среди них должно быть отличительное (_distinctive): на живой проверке 21.10.2026
+    «SRTM… до 30 метров [7]» уходило с верного фрагмента на чужой, где тоже было «30 м»."""
     need = numbers(claim)
-    if not need:
+    if not _distinctive(need):
         return None
     cited = [n for n in cited_numbers(claim) if n in by_n]
-    have = set().union(*(numbers(seen(by_n[n])) for n in cited)) if cited else set()
+    have = set().union(*(numbers(seen_numbers(by_n[n])) for n in cited)) if cited else set()
     if need <= have:
         return None
-    other = next((n for n, s in by_n.items() if n not in cited and need <= numbers(seen(s))), None)
-    if other is None:
+    others = [n for n, s in by_n.items() if n not in cited and need <= numbers(seen_numbers(s))]
+    if len(others) != 1:  # ни одного или несколько — не угадывать
         return None
+    other = others[0]
     end = re.search(r"[.!?…]$", claim.rstrip())
     return CITE_MARK.sub("", claim).rstrip(" .!?…") + f" [{other}]" + (end.group() if end else "")
 

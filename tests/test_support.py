@@ -247,3 +247,39 @@ def test_answer_kept_when_check_is_off_or_removes_all() -> None:
         got = answer_events(check, settings)
         assert not [e for e in got if e["type"] == "revised"]
         assert got[-1]["unsupported"] == 0
+
+
+def test_recite_needs_distinctive_number_and_skips_literature(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Живая проверка 21.10.2026: двузначное «30 м» и номер «(лит. 10-12)» уводили ссылку
+    с верного фрагмента на чужой."""
+    sources = [
+        {
+            "n": 1,
+            "title": "SRTM",
+            "doc_id": "a",
+            "text": "SRTM DEM has a relatively high resolution.",
+        },
+        {"n": 2, "title": "Landsat", "doc_id": "b", "text": "Images of 15, 30, 60 m were used."},
+        {"n": 3, "title": "Maps", "doc_id": "c", "text": "Scale 1:100000 maps [10-12] were built."},
+    ]
+    client = Client(lambda c: YES)
+    monkeypatch.setattr(Settings, "client", lambda self: client)
+    for claim in (
+        "SRTM имеет высокое пространственное разрешение (до 30 метров) [1].",
+        "Используются снимки с разрешением 10 м (масштаб 1:100 000) [1].",
+    ):
+        text, removed, recited = support.check_support("?", claim, sources, Settings())
+        assert text == claim and recited == 0
+
+
+def test_numbers_in_several_fragments_give_no_citation() -> None:
+    """Живая проверка 21.10.2026: «2005» стоял в двух фрагментах, фраза получала ссылку
+    не на тот, где сказано."""
+    sources = [
+        {"n": 1, "text": "Subjectivity is unavoidable (Gomez and Kavzoglu 2005)."},
+        {"n": 2, "text": "Assessment is based on visual examination (Jordan and Schott 2005)."},
+    ]
+    answer = "Визуальный осмотр результатов применяется для оценки точности (Jordan, Schott 2005)."
+    assert cite_by_numbers(answer, sources) == (answer, [])
