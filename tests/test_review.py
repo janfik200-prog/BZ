@@ -48,3 +48,33 @@ def test_queue_survives_network_error(broken: str) -> None:
     worker.join(5)
     assert answered == ["вопрос"]
     assert bot.slots.acquire(blocking=False)  # место вернулось в очередь
+
+
+# --------------------------------------------------------------------------- #
+#  Раздача KaTeX (web/server.py, _static)
+# --------------------------------------------------------------------------- #
+def test_static_rejects_foreign_paths_before_disk(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Путь с корнем (сетевая папка «//сервер/…») и «..» отсекаются до resolve(): на Windows
+    resolve() такого пути — уже вход на чужой сервер, а ссылку даст любая страница."""
+    from pathlib import Path
+
+    from georag.web import server
+
+    touched: list[str] = []
+    real = Path.resolve
+
+    def spy(self: Path, strict: bool = False) -> Path:
+        touched.append(str(self))
+        return self if "evil" in str(self) else real(self, strict)  # и без правки — не в сеть
+
+    monkeypatch.setattr(Path, "resolve", spy)
+    sent: list[tuple[int, str]] = []
+    handler = server.Handler.__new__(server.Handler)
+    handler._send = lambda code, body, kind: sent.append((code, kind))  # type: ignore[method-assign]
+    handler._json = lambda payload, code=200: sent.append((code, "json"))  # type: ignore[method-assign]
+    handler._static("//evil.example/share/x.js")
+    handler._static("katex/../../server.py")
+    assert sent == [(404, "json"), (404, "json")]
+    assert not [p for p in touched if "evil" in p or "server.py" in p]
+    handler._static("katex/katex.min.js")  # своё — как раньше
+    assert sent[-1] == (200, "text/javascript; charset=utf-8")

@@ -124,7 +124,15 @@ class Handler(BaseHTTPRequestHandler):
         )
 
     def _static(self, rel: str) -> None:
-        """Файл из web/static — только изнутри неё и только известных типов."""
+        """Файл из web/static — только изнутри неё и только известных типов.
+
+        Путь с корнем («//сервер/папка/x.js», «C:/…») и с «..» отсекается до resolve():
+        resolve() идёт на диск, а на Windows путь к сетевой папке — это вход на чужой сервер
+        с учётной записью Windows (SMB) по ссылке с любой страницы в браузере."""
+        asked = Path(rel)
+        if asked.anchor or ".." in asked.parts:
+            self._json({"error": "нет такого файла"}, 404)
+            return
         path = (STATIC / rel).resolve()
         kind = STATIC_TYPES.get(path.suffix.lower())
         if kind is None or STATIC.resolve() not in path.parents or not path.is_file():
