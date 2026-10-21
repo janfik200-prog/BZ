@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -48,12 +49,25 @@ def load_golden(doc: Path | str, settings: Settings) -> dict[str, Any] | None:
         raise ValueError(f"битый эталон {candidate}: {exc}") from exc
 
 
+# Буквы и цифры любого письма — не мусор: статьи бывают на китайском, японском,
+# вьетнамском, тайском, грузинском, и с одним ru/en-набором такая статья давала 30–90 %
+# «мусора» и не грузилась (в AgentKB, 19.10.2026: 77 статей из 650). Мусор — то, что
+# даёт битый шрифт: (cid:NN), знак замены, символы личного пользования, управляющие, значки.
+_MOJIBAKE_RE = re.compile(r"[ÃÐÑ][-¿]")  # русский UTF-8, прочитанный как Latin-1
+
+
+def _sane(ch: str) -> bool:
+    if _ALLOWED_RE.match(ch):
+        return True
+    return unicodedata.category(ch)[0] in "LMNP"  # буквы, диакритика, цифры, пунктуация
+
+
 def garbage_ratio(text: str) -> float:
     if not text:
         return 1.0
     cid_hits = len(_CID_RE.findall(text))
     cleaned = _CID_RE.sub("", text)
-    allowed = len(_ALLOWED_RE.findall(cleaned))
+    allowed = sum(map(_sane, cleaned)) - 2 * len(_MOJIBAKE_RE.findall(cleaned))
     total = max(len(cleaned), 1)
     # каждый (cid:NN) считаем как один «мусорный» символ сверху
     return round(1 - allowed / total + cid_hits / total, 4)
