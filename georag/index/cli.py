@@ -116,6 +116,7 @@ def main(argv: list[str] | None = None) -> int:
                         if report.forgotten
                         else ""
                     )
+                    + (f"; формул записано {report.formulas}" if report.formulas else "")
                 )
                 for error in report.errors:
                     print(f"  ! {error}")

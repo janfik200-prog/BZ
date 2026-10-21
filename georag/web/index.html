@@ -236,7 +236,11 @@
   table.dataset .part { font-weight: 600; color: var(--muted); }
   @media (max-width: 640px) { table.dataset td.src { display: none; } }
   .kind { font-size: 12px; color: var(--muted); }
+  .katex-display { margin: 0.4em 0; overflow-x: auto; overflow-y: hidden; }
 </style>
+<!-- Формулы $$…$$ — KaTeX 0.16.11, копия в web/static (MIT): без интернета тоже. -->
+<link rel="stylesheet" href="/static/katex/katex.min.css">
+<script defer src="/static/katex/katex.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -398,6 +402,49 @@ function plural(n, one, few, many) {
   return `${n} ${word}`;
 }
 const articles = (n) => plural(n, "статья", "статьи", "статей");
+
+// -- формулы ------------------------------------------------------------------- //
+// Формулы во фрагментах лежат между $$…$$ (index/formulas.py) — и в ответе модели тоже
+// (правило 8). Наблюдатель за страницей рисует их KaTeX'ом, где бы текст ни появился:
+// ответ, пока пишется, источники, поиск, статьи. Пара $$ не закрыта — пока текст (ответ
+// ещё идёт). LaTeX формулы — во всплывающей подсказке: его можно скопировать.
+const MATH = /\$\$([\s\S]+?)\$\$/g;
+function mathify(root) {
+  if (!window.katex || !root) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) => n.nodeValue.includes("$$") && !n.parentElement.closest(".katex, textarea, input")
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
+  });
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const node of nodes) {
+    const text = node.nodeValue;
+    MATH.lastIndex = 0;
+    if (!MATH.test(text)) continue;
+    MATH.lastIndex = 0;
+    const frag = document.createDocumentFragment();
+    let last = 0, m;
+    while ((m = MATH.exec(text))) {
+      frag.append(text.slice(last, m.index));
+      const span = document.createElement("span");
+      try {
+        katex.render(m[1], span, { throwOnError: false, displayMode: true });
+      } catch (e) { span.textContent = m[0]; }
+      span.title = m[1];
+      frag.append(span);
+      last = m.index + m[0].length;
+    }
+    frag.append(text.slice(last));
+    node.replaceWith(frag);
+  }
+}
+let mathQueued = false;
+new MutationObserver(() => {
+  if (mathQueued) return;
+  mathQueued = true;
+  requestAnimationFrame(() => { mathQueued = false; mathify(document.body); });
+}).observe(document.body, { childList: true, subtree: true, characterData: true });
+window.addEventListener("load", () => mathify(document.body));
 const fragmentsN = (n) => plural(n, "фрагмент", "фрагмента", "фрагментов");
 const inArticles = (n) => `в ${n} ` + ((n % 10 === 1 && n % 100 !== 11) ? "статье" : "статьях");
 const BADGE = { "вектор": "vector", "текст": "text", "оба": "both" };
@@ -1406,8 +1453,11 @@ function escapeHtml(s) {
 
 // Ответ модели → HTML: абзацы, списки, **жирный**, номера фрагментов [n] — кнопками.
 // Текст сначала экранируется целиком: из ответа модели в страницу не попадёт разметка.
+// Формула $$…$$ — одной строкой (на несколько строк её разорвали бы <br>), и внутри неё
+// ни жирного, ни кнопок: «\sqrt[3]{x}» — не ссылка на фрагмент 3. Рисует её mathify.
 function renderAnswer(text, count) {
-  const lines = escapeHtml(text).split("\n");
+  const joined = text.replace(/\$\$([\s\S]*?)\$\$/g, (m, f) => "$$" + f.replace(/\s*\n\s*/g, " ") + "$$");
+  const lines = escapeHtml(joined).split("\n");
   let html = "", list = null, para = [];
   const flushPara = () => { if (para.length) { html += "<p>" + para.join("<br>") + "</p>"; para = []; } };
   const closeList = () => { if (list) { html += `</${list}>`; list = null; } };
@@ -1428,13 +1478,14 @@ function renderAnswer(text, count) {
     para.push(line);
   }
   flushPara(); closeList();
-  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  return html.replace(/\[(\d+(?:\s*[,;]\s*\d+)*)\]/g, (m, group) => group.split(/[,;]/).map((x) => {
-    const n = Number(x.trim());
-    const ok = n >= 1 && n <= count;
-    return `<span class="cite${ok ? "" : " bad"}" data-n="${n}" ` +
-      `title="${ok ? "фрагмент " + n : "такого фрагмента модели не давали"}">${n}</span>`;
-  }).join(""));
+  return html.split(/(\$\$[\s\S]*?\$\$)/).map((part, i) => i % 2 ? part : part
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\[(\d+(?:\s*[,;]\s*\d+)*)\]/g, (m, group) => group.split(/[,;]/).map((x) => {
+      const n = Number(x.trim());
+      const ok = n >= 1 && n <= count;
+      return `<span class="cite${ok ? "" : " bad"}" data-n="${n}" ` +
+        `title="${ok ? "фрагмент " + n : "такого фрагмента модели не давали"}">${n}</span>`;
+    }).join(""))).join("");
 }
 
 function sourceWhere(s) {

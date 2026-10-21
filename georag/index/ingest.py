@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from . import db, noise
+from . import db, formulas, noise
 
 # Список литературы — это чужие названия и ссылки, а не содержание статьи.
 # В поиске такие чанки выглядят убедительно (там все нужные слова!), но читать
@@ -72,6 +72,7 @@ class IngestReport:
     noise_trimmed: int = 0  # фрагменты, из которых вырезан служебный текст
     duplicates: int = 0
     forgotten: int = 0
+    formulas: int = 0  # формул записано (index/formulas.py)
     errors: list[str] = field(default_factory=list)
 
 
@@ -181,10 +182,15 @@ def ingest_dir(
         if not kept:
             report.empty += 1
             continue
-        if not force and known.get(doc_id) == len(kept):
+        # Формулы статьи (index/formulas.py): статья с формулами, которых в базе ещё нет
+        # (загружена до таблицы формул), загружается заново — с пометкой и описаниями.
+        found = formulas.prepare(doc_id, acquired_dir)
+        fresh = bool(found) and not formulas.has_rows(conn, doc_id)
+        if not force and not fresh and known.get(doc_id) == len(kept):
             report.skipped += 1
             continue
         chunks = kept
+        where = formulas.mark_chunks(chunks, found)
 
         meta.setdefault("doc_id", doc_id)
         texts = [embed_text(meta, c) for c in chunks]
@@ -193,6 +199,8 @@ def ingest_dir(
             vectors = embedder.encode(texts, progress=verbose)
             db.upsert_document(conn, _document_row(meta))
             written = db.replace_chunks(conn, doc_id, _chunk_rows(doc_id, chunks, vectors))
+            described = embedder.encode([f["description"] for f in found]) if found else []
+            report.formulas += formulas.store(conn, doc_id, found, where, described)
             conn.commit()
         except Exception as exc:  # noqa: BLE001 — одна статья не должна ронять загрузку
             conn.rollback()

@@ -524,6 +524,8 @@ class Bot:
             else:
                 self.open_item(chat_id, session, nums[0], lst, nums[1])
             return None
+        if action == "fm":  # формула фрагмента — картинкой
+            return self.send_formula(chat_id, nums[0]) if nums else STALE
         if action == "art":  # «Вся статья» у фрагмента
             doc_id = session.lists.get(nums[0], {}).get("doc_id") if nums else None
             if not doc_id:
@@ -755,11 +757,40 @@ class Bot:
         if with_article and doc_id and src.get("kind") != "датасет":
             ref = session.remember(session.lists, {"kind": "ref", "doc_id": doc_id, "items": []})
             article = f"art:{ref}"
+        chunk_id = src.get("chunk_id")
+        found = self._formulas_in([chunk_id]).get(chunk_id, []) if chunk_id else []
+        markup = ui.fragment_keyboard(src, article, found)
         pieces = split(ui.fragment_text(src))
         for i, piece in enumerate(pieces):
-            self.tg.send(
-                chat_id, piece, ui.fragment_keyboard(src, article) if i == len(pieces) - 1 else None
-            )
+            self.tg.send(chat_id, piece, markup if i == len(pieces) - 1 else None)
+
+    # -- формулы (index/formulas.py) ------------------------------------------ #
+    def _formulas_in(self, chunk_ids: list[Any]) -> dict[int, list[dict[str, Any]]]:
+        """Формулы, стоящие во фрагментах; база не ответила — нет (фрагмент покажем и так)."""
+        from ..index import db, formulas
+
+        try:
+            with db.connect(self.dsn) as conn:
+                return formulas.in_chunks(conn, chunk_ids)
+        except Exception:  # noqa: BLE001 — без кнопок формул фрагмент всё равно дойдёт
+            return {}
+
+    def send_formula(self, chat_id: int, formula_id: int) -> str | None:
+        """Формула картинкой (LaTeX, нарисованный matplotlib) с подписью; не нарисовалась
+        — LaTeX текстом."""
+        from ..index import db, formulas
+
+        with db.connect(self.dsn) as conn:
+            item = formulas.by_id(conn, formula_id)
+        if item is None:
+            return STALE
+        png = formulas.render_png(str(item.get("latex") or ""))
+        caption = ui.formula_caption(item)
+        if png is None:
+            self.tg.send(chat_id, caption)
+        else:
+            self.tg.photo(chat_id, png, caption)
+        return None
 
     # -- поиск и статьи ----------------------------------------------------- #
     def _list(self, chat_id: int, session: Session, lst: dict[str, Any], extra: Any = None) -> None:

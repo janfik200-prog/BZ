@@ -39,6 +39,7 @@ MENU = {
 
 PAGE = {"search": 5, "articles": 8, "chunks": 6}  # сколько пунктов на странице
 FRAGMENT_BUTTONS = 12  # кнопок фрагментов под ответом
+FORMULA_BUTTONS = 6  # кнопок формул под фрагментом
 PER_ROW = 6
 DATASET_BUTTONS = 30
 
@@ -101,10 +102,20 @@ def esc(text: Any) -> str:
     return html.escape(str(text or ""), quote=False)
 
 
+# Формула $$…$$ (index/formulas.py, правило 8): Телеграм LaTeX не рисует — в тексте она
+# моноширинным, картинкой — по кнопке «Формула (N)» под фрагментом.
+_FORMULA = re.compile(r"\$\$([\s\S]+?)\$\$")
+
+
+def formulas_html(escaped: str) -> str:
+    """$$…$$ в уже экранированном тексте → <code>…</code>, в одну строку."""
+    return _FORMULA.sub(lambda m: "<code>" + " ".join(m.group(1).split()) + "</code>", escaped)
+
+
 def answer_html(text: str) -> str:
-    """Ответ модели → HTML Телеграма: жирное, заголовки, пункты списков."""
+    """Ответ модели → HTML Телеграма: жирное, заголовки, пункты списков, формулы."""
     out = []
-    for line in esc(text).split("\n"):
+    for line in formulas_html(esc(text)).split("\n"):
         stripped = line.strip()
         heading = re.match(r"^#{1,4}\s+(.*)", stripped)
         if heading:
@@ -308,19 +319,35 @@ def fragment_text(src: dict[str, Any]) -> str:
         f"{head}\n"
         + note
         + (f"<i>{esc(path)}</i>\n" if path else "")
-        + f"\n{esc(src.get('text', ''))}"
+        + f"\n{formulas_html(esc(src.get('text', '')))}"
     )
 
 
 def fragment_keyboard(
-    src: dict[str, Any], article_data: str | None = None
+    src: dict[str, Any],
+    article_data: str | None = None,
+    formulas: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
+    """Под фрагментом: статья у издателя, вся статья и формулы фрагмента — картинкой."""
     row = []
     if is_link(src.get("url")):
         row.append(url_button("Статья у издателя", src["url"]))
     if article_data:
         row.append(button("Вся статья", article_data))
-    return inline([row])
+    marks = [
+        button(f"Формула ({f['number']})" if f.get("number") else f"Формула {i}", f"fm:{f['id']}")
+        for i, f in enumerate((formulas or [])[:FORMULA_BUTTONS], start=1)
+    ]
+    return inline([row, marks[:3], marks[3:]])
+
+
+def formula_caption(item: dict[str, Any]) -> str:
+    """Подпись к картинке формулы: номер, статья, страница и сам LaTeX (до 1024 знаков)."""
+    number = f" ({esc(item['number'])})" if item.get("number") else ""
+    page = f", с. {item['page']}" if item.get("page") else ""
+    title = esc(str(item.get("title") or item.get("doc_id") or "")[:120])
+    latex = esc(str(item.get("latex") or "")[:700])
+    return f"<b>Формула{number}</b> — {title}{page}\n<code>{latex}</code>"
 
 
 # --------------------------------------------------------------------------- #

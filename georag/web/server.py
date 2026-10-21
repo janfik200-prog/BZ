@@ -52,6 +52,13 @@ from ..index.embed import build_embedder
 from ..index.search import hybrid_search
 
 PAGE = Path(__file__).with_name("index.html")
+# Формулы $$…$$ рисует KaTeX 0.16.11 — копией в web/static (MIT): без интернета тоже.
+STATIC = Path(__file__).with_name("static")
+STATIC_TYPES = {
+    ".js": "text/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".woff2": "font/woff2",
+}
 
 
 class State:
@@ -116,6 +123,15 @@ class Handler(BaseHTTPRequestHandler):
             "application/json; charset=utf-8",
         )
 
+    def _static(self, rel: str) -> None:
+        """Файл из web/static — только изнутри неё и только известных типов."""
+        path = (STATIC / rel).resolve()
+        kind = STATIC_TYPES.get(path.suffix.lower())
+        if kind is None or STATIC.resolve() not in path.parents or not path.is_file():
+            self._json({"error": "нет такого файла"}, 404)
+            return
+        self._send(200, path.read_bytes(), kind)
+
     def do_GET(self) -> None:  # noqa: N802 — имя задано базовым классом
         route = urlparse(self.path)
         query = parse_qs(route.query)
@@ -123,6 +139,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if route.path == "/":
                 self._send(200, PAGE.read_bytes(), "text/html; charset=utf-8")
+            elif route.path.startswith("/static/"):
+                self._static(route.path[len("/static/") :])
             elif route.path == "/api/stats":
                 self._json(self._stats())
             elif route.path == "/api/search":

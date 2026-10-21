@@ -68,6 +68,34 @@ CREATE TABLE IF NOT EXISTS chunks (
 
 CREATE INDEX IF NOT EXISTS chunks_tsv_idx ON chunks USING gin (tsv);
 CREATE INDEX IF NOT EXISTS chunks_doc_idx ON chunks (doc_id);
+
+-- Формулы статей (index/formulas.py): из разметки docling при загрузке. idx — по порядку
+-- в статье, number — её «(N)»; chunk_id — фрагмент, где она стоит; description — она
+-- словами с контекстом, по нему вектор (поиск формулы по смыслу).
+CREATE TABLE IF NOT EXISTS formulas (
+    id          bigserial PRIMARY KEY,
+    doc_id      text NOT NULL REFERENCES documents(doc_id) ON DELETE CASCADE,
+    idx         int  NOT NULL,
+    number      text,
+    latex       text NOT NULL,
+    pdf_text    text NOT NULL DEFAULT '',
+    page        int,
+    bbox        jsonb,
+    before      text NOT NULL DEFAULT '',
+    after       text NOT NULL DEFAULT '',
+    description text NOT NULL DEFAULT '',
+    chunk_id    bigint REFERENCES chunks(id) ON DELETE SET NULL,
+    embedding   vector(%(dim)s),
+    UNIQUE (doc_id, idx)
+);
+CREATE INDEX IF NOT EXISTS formulas_number_idx ON formulas (doc_id, number);
+
+-- Ссылки на формулы из текста: «из формулы (55)», «уравнение 3», «(2)».
+CREATE TABLE IF NOT EXISTS formula_refs (
+    chunk_id    bigint NOT NULL REFERENCES chunks(id) ON DELETE CASCADE,
+    formula_id  bigint NOT NULL REFERENCES formulas(id) ON DELETE CASCADE,
+    PRIMARY KEY (chunk_id, formula_id)
+);
 """
 
 # HNSW строится отдельно: на пустой таблице он бесполезен, а на больших данных

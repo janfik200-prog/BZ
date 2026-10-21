@@ -74,3 +74,20 @@ class FakeConn:
     def queries(self, prefix: str) -> list[Any]:
         """Параметры записанных запросов, которые начинаются с prefix."""
         return [params for sql, params in self.log if sql.startswith(prefix)]
+
+
+def returning_ids(start: int = 100, **tables: list[Any]) -> Answer:
+    """Ответ для записи объектов: INSERT … RETURNING id — новые id с start+1; запрос
+    FROM <таблица> — строки из tables (chunks=[…]); остальное — пусто."""
+    counter = [start]
+
+    def answer(sql: str, params: Any) -> list[Any]:
+        if "RETURNING id" in sql:
+            counter[0] += 1
+            return [(counter[0],)]
+        for table, rows in tables.items():
+            if f"FROM {table}" in sql:
+                return rows
+        return []
+
+    return answer

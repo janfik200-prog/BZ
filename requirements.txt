@@ -16,6 +16,7 @@ docling-core[chunking]>=2.94.1,<2.103   # HybridChunker и токенайзер�
 pymupdf4llm>=1.26,<2          # запасной парсер; 2.0 — пустой пакет без кода
 pymupdf>=1.26,<2              # PDF напрямую (зонд, текстовый слой); ставит и pymupdf4llm
 pillow>=10.0                  # рисунки статей (chunks/figures.py, tg/picture.py)
+matplotlib>=3.8,<4            # формула картинкой в Телеграме (index/formulas.py)
 
 # --- чанкинг / токенайзер ---
 transformers>=4.44,<5.21      # токенайзер BGE-M3 (должен совпадать с моделью эмбеддинга)
