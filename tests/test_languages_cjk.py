@@ -85,5 +85,29 @@ def test_translation_rule_only_when_languages_set(monkeypatch: pytest.MonkeyPatc
         planmod.plan_question("Вопрос?", [], Settings())
     without, with_langs = asked
     assert "«перевод»" not in without and '"перевод"' not in without
-    assert "по-китайски, по-японски" in with_langs and '"перевод"' in with_langs
+    assert (
+        "по-китайски (" in with_langs and "по-японски (" in with_langs and '"перевод"' in with_langs
+    )
     assert "НЕ весь вопрос" in with_langs and "корейск" in with_langs
+
+
+def test_broken_translations_dropped() -> None:
+    """Живая проверка 21.10.2026: корейский вместо японского и русский вместо перевода."""
+    got = ["盆地 航磁", "盆地 空中磁気", "투라수 지역 광맥", "ДЗЗ прогнозирование молибдена"]
+    langs = ["по-китайски", "по-японски"]
+    assert planmod.keep_translations(got, langs) == ["盆地 航磁", "盆地 空中磁気"]
+    assert "투라수 지역 광맥" in planmod.keep_translations(got, [*langs, "по-корейски"])
+
+
+def test_rule_names_scripts(monkeypatch: pytest.MonkeyPatch) -> None:
+    asked: list[str] = []
+
+    class Client:
+        def chat_json(self, system: str, user: str, **kw: Any) -> dict[str, Any]:
+            asked.append(user)
+            return {}
+
+    monkeypatch.setattr(Settings, "client", lambda self: Client())
+    monkeypatch.setenv("GEORAG_TRANSLATE", "по-китайски,по-японски")
+    planmod.plan_question("Вопрос?", [], Settings())
+    assert "по-китайски (упрощёнными иероглифами" in asked[0] and "кандзи и кана" in asked[0]

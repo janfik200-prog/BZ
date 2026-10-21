@@ -67,7 +67,8 @@ TRANSLATE_RULE = """
    иероглифов или 2–6 слов, НЕ весь вопрос целиком) на каждом из языков по порядку:
    {languages}. В базе есть статьи на них, и запрос по-русски или по-английски их не
    находит. Названия мест и терминов — так, как их пишут на этом языке. Пиши именно на
-   этих языках: японский — не корейский, корейского, если его нет в списке, не пиши.
+   этих языках: японский — не корейский, корейского, если его нет в списке, не пиши;
+   ни одного русского слова в переводе.
 В JSON добавь: "перевод": ["...", "..."] — по запросу на каждый язык, в том же порядке."""
 
 
@@ -75,6 +76,32 @@ def translate_languages() -> list[str]:
     """Языки перевода вопроса из GEORAG_TRANSLATE, через запятую; пусто — никаких."""
     raw = os.environ.get("GEORAG_TRANSLATE", "")
     return [x.strip() for x in raw.split(",") if x.strip()]
+
+
+# Письменность языка — в правило рядом с названием: с одним «по-китайски, по-японски»
+# модель на живой проверке (21.10.2026) писала в китайское место японский, в японское —
+# корейский, а иногда оставляла запрос по-русски.
+_SCRIPTS = {
+    "кита": "упрощёнными иероглифами, без японской каны",
+    "япон": "по-японски: кандзи и кана, не хангыль",
+    "корей": "хангылем",
+}
+
+
+def _with_script(language: str) -> str:
+    hint = next((v for k, v in _SCRIPTS.items() if k in language.lower()), "")
+    return f"{language} ({hint})" if hint else language
+
+
+_CYRILLIC = re.compile("[а-яё]", re.IGNORECASE)
+_HANGUL = re.compile("[가-힯ᄀ-ᇿ]")
+
+
+def keep_translations(values: list[str], languages: list[str]) -> list[str]:
+    """Переводы без явного брака: с кириллицей — не перевод; хангыль, когда корейского
+    в списке нет, — модель перепутала японский с корейским (живая проверка 21.10.2026)."""
+    korean = any("корей" in x.lower() for x in languages)
+    return [q for q in values if not _CYRILLIC.search(q) and (korean or not _HANGUL.search(q))]
 
 
 # Вопрос «собрать всё» — на случай, когда модель вопрос не разобрала.
@@ -281,7 +308,10 @@ def parse_plan(data: Any, question: str, settings: Settings) -> Plan:
         on_topic=on_topic or catalog is not None,
         narrow=narrow and not collect,
         catalog=catalog,
-        translated=clean_queries(translated if isinstance(translated, list) else [], 4),
+        translated=keep_translations(
+            clean_queries(translated if isinstance(translated, list) else [], 4),
+            translate_languages(),
+        ),
     )
 
 
@@ -297,7 +327,7 @@ def plan_question(question: str, history: list[dict[str, Any]], settings: Settin
     )
     languages = translate_languages()
     if languages:
-        user += TRANSLATE_RULE.format(languages=", ".join(languages))
+        user += TRANSLATE_RULE.format(languages=", ".join(map(_with_script, languages)))
     try:
         data = settings.client().chat_json(PLAN_SYSTEM, user, temperature=0.2, timeout=(10, 90))
     except Exception:  # noqa: BLE001 — без разбора поиск всё равно пойдёт
