@@ -13,7 +13,8 @@
 Для страницы:
 
     GET  /api/stats                    сколько статей и фрагментов
-    GET  /api/search?q=...             гибридный поиск
+    GET  /api/health                   чем отвечает база: версия, модель, объём
+    GET  /api/search?q=...             гибридный поиск; &doc_id=... — только в этой статье
     GET  /api/documents                список статей
     GET  /api/document?doc_id=...      разбор статьи по фрагментам
     GET  /api/chat/status              жив ли сервер модели и та ли на нём модель
@@ -33,6 +34,7 @@ import argparse
 import json
 import sys
 import traceback
+from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -102,6 +104,24 @@ def _hit_to_dict(hit: Any) -> dict[str, Any]:
     }
 
 
+def _version() -> str:
+    """Короткий номер коммита — чем отвечала база. Нет git — пустая строка."""
+    import subprocess
+
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=Path(__file__).resolve().parents[2],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=True,
+        )
+        return out.stdout.strip()
+    except Exception:  # noqa: BLE001 — версия не критична, адрес должен ответить
+        return ""
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "georag"
 
@@ -151,6 +171,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._static(route.path[len("/static/") :])
             elif route.path == "/api/stats":
                 self._json(self._stats())
+            elif route.path == "/api/health":
+                self._json(self._health())
             elif route.path == "/api/search":
                 self._json(self._search(query))
             elif route.path == "/api/documents":
@@ -323,6 +345,23 @@ class Handler(BaseHTTPRequestHandler):
             "year_to": hi,
         }
 
+    def _health(self) -> dict[str, Any]:
+        """Чем именно отвечала база знаний: версия кода, модель векторов, объём и
+        состояние графа. Нужно другой базе: цитата, уехавшая в паспорт признака,
+        должна помнить, по какой разметке она получена."""
+        with db.connect(State.dsn) as conn:
+            info = db.stats(conn)
+            facts = graph.summary(conn)
+        return {
+            "documents": info["documents"],
+            "chunks": info["chunks"],
+            "embedded": info["embedded"],
+            "facts": facts,
+            "embed_model": getattr(State.embedder, "model_id", ""),
+            "version": _version(),
+            "checked_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        }
+
     def _search(self, query: dict[str, Any]) -> dict[str, Any]:
         text = (query.get("q") or [""])[0].strip()
         if not text:
@@ -355,6 +394,7 @@ class Handler(BaseHTTPRequestHandler):
                 min_similarity=fraction("min_similarity"),
                 require_words=(query.get("require_words") or [""])[0] == "1",
                 alternatives=also,
+                doc_id=(query.get("doc_id") or [""])[0] or None,
             )
         return {"query": text, "also": also, "hits": [_hit_to_dict(h) for h in hits]}
 

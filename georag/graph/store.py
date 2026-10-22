@@ -205,8 +205,9 @@ def all_facts(
         cur.execute(
             f"""
             SELECT f.id, f.chunk_id, f.doc_id, f.src, f.relation, f.dst, f.quote,
-                   d.title, d.year, d.url, d.doi, f.votes, {typed}
+                   d.title, d.year, d.url, d.doi, f.votes, {typed}, c.pages
             FROM facts f JOIN documents d ON d.doc_id = f.doc_id
+                         JOIN chunks c ON c.id = f.chunk_id
             WHERE (f.votes IS NULL OR f.votes >= %s) AND f.id > %s
                   AND (%s::bigint IS NULL OR f.id <= %s)
             ORDER BY f.id
@@ -231,6 +232,8 @@ def all_facts(
                 "rel_flip": bool(r[13]) if len(r) > 13 else False,
                 "src_kind": r[14] if len(r) > 14 else None,
                 "dst_kind": r[15] if len(r) > 15 else None,
+                # Страницы фрагмента — последней колонкой: номера колонок выше не сдвигаются.
+                "pages": list(r[17]) if len(r) > 17 and r[17] else [],
             }
             for r in cur.fetchall()
             if not (len(r) > 16 and r[16] is not None and r[12] is None)

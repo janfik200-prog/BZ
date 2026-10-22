@@ -79,6 +79,8 @@ def _quote(f: dict[str, Any]) -> dict[str, Any]:
         "year": f["year"],
         "url": f["url"] or (f"https://doi.org/{f['doi']}" if f.get("doi") else ""),
         "chunk_id": f["chunk_id"],
+        "pages": f.get("pages") or [],
+        "doi": f.get("doi") or "",
     }
 
 
