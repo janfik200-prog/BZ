@@ -1509,6 +1509,10 @@ function renderNotInBase(ev) {
     // Вопрос не о геологии: ответа из общих знаний нет, только отказ.
     head.textContent = "Вопрос не по теме базы знаний.";
     line.textContent = "Бот отвечает только по рудной геологии и смежным наукам о Земле.";
+  } else if (ev.not_found && ev.article) {
+    // Вопрос о названной статье: искалось только в ней.
+    head.textContent = `В статье «${ev.article}» об этом ничего не нашлось.`;
+    line.textContent = "Искал только во фрагментах этой статьи, другие статьи базы не смотрел.";
   } else if (ev.not_found) {
     // Ответ из общих знаний выключен (GEORAG_GENERAL): только отказ и что искалось.
     head.textContent = "По вашему запросу в базе знаний такой информации нет.";
@@ -1550,6 +1554,9 @@ function renderSources(sources, used, queries, info) {
   } else if (info.dataset) {
     line(`Собрано из фактов графа о «${info.dataset}»: всё, что о нём выписано из статей базы, ` +
       "а не только то, что нашёл поиск.");
+  }
+  if (info.article) {
+    line(`Вопрос о статье «${info.article}»: искал только в её фрагментах.`);
   }
   if (info.graph) {
     line(`Из графа связей — ${plural(info.graph, "фрагмент", "фрагмента", "фрагментов")} о предмете ` +
@@ -1774,7 +1781,7 @@ async function ask(question) {
           info = { parts: ev.parts || [], extra: ev.extra || [], missing: ev.missing || [],
                    dataset: ev.dataset || null, collected: ev.collected || null,
                    rounds: ev.rounds || 1, checked: ev.checked || 0,
-                   graph: ev.graph || 0,
+                   graph: ev.graph || 0, article: ev.article || null,
                    judged: ev.judged !== false };
         } else if (ev.type === "general") {
           general = ev;

@@ -127,12 +127,13 @@ def candidates(
     cache: dict[str, Any],
     limit: int = WIDE,
     facts: bool = False,
+    doc: str | None = None,
 ) -> list[Any]:
     """Кандидаты для модели — не больше CANDIDATE_PER_DOC из одной статьи (лишние — в
     конец): одна подробная статья занимала 9 мест из 15, и модели не из чего было
     выбирать — ответ на составной вопрос шёл по одной статье. facts — с фрагментами,
-    которые привели факты графа (keep_facts)."""
-    found = merged_search(conn, embedder, queries, cache, facts)
+    которые привели факты графа (keep_facts). doc — только из этой статьи (Plan.article)."""
+    found = merged_search(conn, embedder, queries, cache, facts, doc)
     close = [h for h in found if is_candidate(h)]
     return keep_facts(cap_per_doc(close, CANDIDATE_PER_DOC), limit)
 
@@ -308,7 +309,10 @@ def retrieve(
 
     spare: list[tuple[Any, ...]] = []  # сверх CANDIDATE_PER_DOC из статьи — если других мало
 
-    def add(hits: Any, part: Any, rnd: Any, capped: bool = True) -> list[dict[str, Any]]:
+    # Вопрос о названной статье — все кандидаты из неё: ограничение на статью не ставится.
+    doc = plan.article
+
+    def add(hits: Any, part: Any, rnd: Any, capped: bool = doc is None) -> list[dict[str, Any]]:
         new = []
         for h in hits:
             if fragment_key(h) in seen:
@@ -335,17 +339,17 @@ def retrieve(
         # Все запросы вопроса — одной пачкой, одновременно (search_all): по частям
         # они шли бы по три, а каждая пачка ждала бы предыдущую.
         everything = [q for p in plan.parts for q in (p.queries or [p.question])]
-        merged_search(conn, embedder, everything + list(plan.queries), cache, facts)
+        merged_search(conn, embedder, everything + list(plan.queries), cache, facts, doc)
     # Фрагменты о предмете вопроса из графа — первыми: порога близости у них нет,
     # они найдены не по похожести, а по фактам.
     add(extra or [], None if multi else 1, 1, capped=False)
     if multi:
         for i, part in enumerate(plan.parts, start=1):
             asked = part.queries or [part.question]
-            add(candidates(conn, embedder, asked, cache, wide_part, facts), i, 1)
-        add(candidates(conn, embedder, plan.queries, cache, wide_part, facts), None, 1)
+            add(candidates(conn, embedder, asked, cache, wide_part, facts, doc), i, 1)
+        add(candidates(conn, embedder, plan.queries, cache, wide_part, facts, doc), None, 1)
     else:
-        add(candidates(conn, embedder, plan.queries, cache, wide, facts), 1, 1)
+        add(candidates(conn, embedder, plan.queries, cache, wide, facts, doc), 1, 1)
     # Ограничение — на весь набор: поиски по частям вопроса складываются, и одна статья
     # набирала 7 мест из 16. Других статей мало — лишние куски той же добирают места.
     for h, part, rnd in spare[: max(0, wide - len(pool))]:
@@ -359,7 +363,7 @@ def retrieve(
     # после основных и после добора кусков той же статьи: нужное на китайском или японском
     # приходит, а мест основной выдачи не занимает (иначе выпадала аннотация с ответом).
     if plan.translated:
-        translated = candidates(conn, embedder, plan.translated, cache, TRANSLATED, facts)
+        translated = candidates(conn, embedder, plan.translated, cache, TRANSLATED, facts, doc)
         add(translated, None if multi else 1, 1)
 
     fresh: list[dict[str, Any]] = list(pool)
@@ -417,7 +421,7 @@ def retrieve(
         plan.extra += queries
         rounds += 1
         yield {"type": "status", "text": "ищу недостающее: " + " · ".join(queries)}
-        fresh = add(candidates(conn, embedder, queries, cache, wide, facts), None, rounds)
+        fresh = add(candidates(conn, embedder, queries, cache, wide, facts, doc), None, rounds)
         if not fresh and not missing:
             break
 

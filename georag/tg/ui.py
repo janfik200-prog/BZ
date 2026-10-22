@@ -176,6 +176,8 @@ def search_notes(info: dict[str, Any]) -> str:
         )
     elif info.get("dataset"):
         notes.append(f"собрано из фактов графа о «{info['dataset']}» — по всем статьям базы")
+    if info.get("article"):
+        notes.append(f"вопрос о статье «{info['article']}» — искал только в её фрагментах")
     if info.get("graph"):
         notes.append(f"из графа связей — фрагментов о предмете вопроса: {info['graph']}")
     if info.get("parts"):
@@ -227,6 +229,8 @@ def how_text(record: dict[str, Any]) -> str:
                 else ""
             )
         )
+    elif record.get("not_found") and info.get("article"):
+        lines.append("В этой статье близкого не нашлось; другие статьи базы не смотрел.")
     elif record.get("not_found"):
         lines.append("Близкого в базе не нашлось; ответ из общих знаний модели выключен.")
     elif record.get("mode") == "без базы":

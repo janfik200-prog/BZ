@@ -76,7 +76,10 @@ SELECT_FIELDS = """
 """
 
 
-def _filters(year_from: int | None, source: str | None) -> tuple[str, dict[str, Any]]:
+def _filters(
+    year_from: int | None, source: str | None, doc_id: str | None = None
+) -> tuple[str, dict[str, Any]]:
+    """doc_id — только фрагменты одной статьи (вопрос о названной статье, chat/article.py)."""
     where: list[str] = []
     params: dict[str, Any] = {}
     if year_from:
@@ -85,6 +88,9 @@ def _filters(year_from: int | None, source: str | None) -> tuple[str, dict[str, 
     if source:
         where.append("d.source = %(source)s")
         params["source"] = source
+    if doc_id:
+        where.append("c.doc_id = %(doc_id)s")
+        params["doc_id"] = doc_id
     return (" AND " + " AND ".join(where) if where else ""), params
 
 
@@ -120,11 +126,16 @@ def _transaction(conn: Any) -> Any:
 
 
 def vector_search(
-    conn: Any, vector: list[float], limit: int, year_from: Any = None, source: Any = None
+    conn: Any,
+    vector: list[float],
+    limit: int,
+    year_from: Any = None,
+    source: Any = None,
+    doc_id: Any = None,
 ) -> list[tuple[Any, ...]]:
     from .db import vector_literal
 
-    clause, params = _filters(year_from, source)
+    clause, params = _filters(year_from, source, doc_id)
     params.update({"q": vector_literal(vector), "limit": limit})
     with _transaction(conn), conn.cursor() as cur:
         _tune_hnsw(cur, limit, bool(clause))
@@ -232,10 +243,11 @@ def text_search(
     source: Any = None,
     any_word: bool = False,
     alternatives: list[str] | None = None,
+    doc_id: Any = None,
 ) -> list[tuple[Any, ...]]:
     """alternatives — тот же запрос с другими написаниями из словаря синонимов:
     находится фрагмент, где есть все слова хотя бы одного из вариантов."""
-    clause, params = _filters(year_from, source)
+    clause, params = _filters(year_from, source, doc_id)
     if _is_web_syntax(query) and not any_word:
         tsq, q = TSQUERY_WEB, query
     else:
@@ -292,14 +304,19 @@ FACT_SLOTS = 2  # сколько мест сверх найденного у ф�
 
 
 def fact_search(
-    conn: Any, vector: list[float], limit: int, year_from: Any = None, source: Any = None
+    conn: Any,
+    vector: list[float],
+    limit: int,
+    year_from: Any = None,
+    source: Any = None,
+    doc_id: Any = None,
 ) -> list[tuple[int, float, str]]:
     """Ближайшие факты → их фрагменты: (chunk_id, близость лучшего факта, факт) в
     порядке близости, по фрагменту — один раз. Таблицы векторов фактов ещё нет
     (граф не строили) — пусто."""
     from .db import vector_literal
 
-    clause, params = _filters(year_from, source)
+    clause, params = _filters(year_from, source, doc_id)
     join = (
         "JOIN chunks c ON c.id = v.chunk_id JOIN documents d ON d.doc_id = c.doc_id"
         if clause
@@ -371,23 +388,33 @@ def hybrid_search(
     alternatives: list[str] | None = None,
     vector: list[float] | None = None,
     facts: bool = False,
+    doc_id: str | None = None,
 ) -> list[Hit]:
     """alternatives — написания запроса из словаря синонимов (synonyms.synonym_variants):
     идут только в полнотекст, вектор и так понимает перевод. vector — уже посчитанный
     вектор запроса (search_many считает их пачкой). facts — ещё и поиск по векторам
     фактов графа: в конце выдачи, сверх limit, — до FACT_SLOTS фрагментов, которые
-    привели близкие факты."""
+    привели близкие факты. doc_id — искать только во фрагментах этой статьи."""
     if vector is None:
         vector = embedder.encode_one(query)
-    vec_rows = vector_search(conn, vector, candidates, year_from, source)
-    fts_rows = text_search(conn, query, candidates, year_from, source, alternatives=alternatives)
+    vec_rows = vector_search(conn, vector, candidates, year_from, source, doc_id)
+    fts_rows = text_search(
+        conn, query, candidates, year_from, source, alternatives=alternatives, doc_id=doc_id
+    )
     strict = True
     # Полнотекст требует все слова сразу, и длинный вопрос словами целиком
     # почти никогда не находится. Тогда — мягкий заход: хотя бы часть слов.
     # Такое совпадение само по себе не доказательство, его проверяет порог близости.
     if not fts_rows and len(_WORD.findall(query)) >= 3:
         fts_rows = text_search(
-            conn, query, candidates, year_from, source, any_word=True, alternatives=alternatives
+            conn,
+            query,
+            candidates,
+            year_from,
+            source,
+            any_word=True,
+            alternatives=alternatives,
+            doc_id=doc_id,
         )
         strict = False
 
@@ -416,7 +443,7 @@ def hybrid_search(
     ordered = sorted(kept, key=lambda h: h.score, reverse=True)
     found = cap_per_doc(ordered, max_per_doc)[:limit]
     if facts and not require_words:
-        found += _fact_extras(conn, vector, candidates, year_from, source, hits, found)
+        found += _fact_extras(conn, vector, candidates, year_from, source, hits, found, doc_id)
     return found
 
 
@@ -428,11 +455,12 @@ def _fact_extras(
     source: Any,
     hits: dict[int, Hit],
     found: list[Hit],
+    doc_id: Any = None,
 ) -> list[Hit]:
     """Фрагменты, которые привели близкие факты, — до FACT_SLOTS сверх найденного.
 
     У найденного и так — пометка, какой близкий факт о нём (found_by «+ связь»)."""
-    rows = fact_search(conn, vector, limit, year_from, source)
+    rows = fact_search(conn, vector, limit, year_from, source, doc_id)
     rows = [r for r in rows if r[1] >= FACT_MIN_SIMILARITY]
     taken = {h.chunk_id for h in found}
     wanted = [r for r in rows if r[0] not in taken][:FACT_SLOTS]

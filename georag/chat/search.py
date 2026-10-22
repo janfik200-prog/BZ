@@ -96,15 +96,17 @@ def source_dict(n: int, hit: Any, part: Any = None) -> dict[str, Any]:
 
 
 def search_all(
-    conn: Any, embedder: Any, queries: list[str], facts: bool = False
+    conn: Any, embedder: Any, queries: list[str], facts: bool = False, doc: str | None = None
 ) -> list[list[Any]]:
     """Несколько запросов разом. Векторы запросов — одной пачкой (12 запросов: 36 мс
     против 172 по одному), поиски в базе — одновременно в нескольких соединениях
     (70 мс против 240): на вопрос из нескольких частей это около 0,35 с.
     Заглушки в проверках — по одному, как раньше. facts — ещё и поиск по фактам
     графа (index.search: фрагменты, которые привели близкие факты); только в
-    настоящей базе."""
+    настоящей базе. doc — только во фрагментах этой статьи (Plan.article)."""
     more: dict[str, Any] = {"facts": True} if facts and db.is_real(conn) else {}
+    if doc:
+        more["doc_id"] = doc
     if len(queries) < 2 or not db.is_real(conn) or not hasattr(embedder, "encode"):
         return [
             hybrid_search(conn, embedder, q, limit=CANDIDATES, max_per_doc=0, **more)
@@ -230,6 +232,7 @@ def merged_search(
     queries: list[str],
     cache: dict[str, Any] | None = None,
     facts: bool = False,
+    doc: str | None = None,
 ) -> list[Any]:
     """Все запросы → одна выдача. Сливается по местам в выдачах (RRF), как
     вектор и слова внутри одного поиска: фрагмент, найденный несколькими
@@ -239,7 +242,7 @@ def merged_search(
     hits: dict[int, Any] = {}
     scores: dict[int, float] = {}
     todo = [q for q in dict.fromkeys(queries) if cache is None or q not in cache]
-    fresh = dict(zip(todo, search_all(conn, embedder, todo, facts), strict=True))
+    fresh = dict(zip(todo, search_all(conn, embedder, todo, facts, doc), strict=True))
     if cache is not None:
         cache.update(fresh)
     for query in queries:
@@ -326,13 +329,15 @@ def find_sources(
         for i, part in enumerate(parts, start=1):
             got = 0
             asked = part.queries or [part.question]
-            for hit in merged_search(conn, embedder, asked, cache, settings.fact_search):
+            for hit in merged_search(
+                conn, embedder, asked, cache, settings.fact_search, plan.article
+            ):
                 if got >= quota or len(chosen) >= top_k:
                     break
                 if is_close(hit) and take(hit, i):
                     got += 1
             part.found = got
-    merged = merged_search(conn, embedder, plan.queries, cache, settings.fact_search)
+    merged = merged_search(conn, embedder, plan.queries, cache, settings.fact_search, plan.article)
     ranked = [h for h in merged if is_close(h)]
     for hit in ranked:
         if len(chosen) >= top_k:

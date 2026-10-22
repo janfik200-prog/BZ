@@ -20,10 +20,13 @@
 6. **Каталог.** Вопрос о самом наборе статей («сколько статей про…», «перечисли статьи
    автора…», «статьи за 2020 год») — не по 8 фрагментам, а по всей базе, по названиям и
    тексту (catalog.py); ответ — число и список — собирает код, режим «каталог».
-7. **Ответ.** Модель отвечает ТОЛЬКО по отобранным фрагментам, после каждого
+7. **Статья.** В вопросе название статьи базы («… используется ли X в этой статье?») —
+   название из вопроса убирается, а ищется только во фрагментах этой статьи (article.py).
+   Не нашлось — так и сказано: в этой статье об этом нет.
+8. **Ответ.** Модель отвечает ТОЛЬКО по отобранным фрагментам, после каждого
    утверждения — номер фрагмента [1]. Длина — по просьбе в самом вопросе:
    «подробно», «кратко», «перечисли» — так и отвечает; настроек нет.
-8. **Не нашлось** — статьи не показываются: бот говорит, что в базе такого нет.
+9. **Не нашлось** — статьи не показываются: бот говорит, что в базе такого нет.
    Ответ из общих знаний модели, с пометкой, — только если он включён
    (Settings.general_knowledge, GEORAG_GENERAL=1).
 
@@ -70,6 +73,7 @@ from typing import Any
 
 from ..index import db
 from ..llm import LLM, LLM_HOST, LLMError
+from .article import NamedArticle, in_article, named_article
 from .catalog import CatalogQuery
 from .checks import (
     NO_ANSWER,
@@ -113,6 +117,12 @@ NOT_FOUND = (
     "выключен. Можно спросить иначе: другими словами, с терминами по-английски."
 )
 
+# Вопрос о названной статье, а в её фрагментах ответа нет: так и сказать — без ответа из
+# общих знаний (он был бы не о статье) и без «в базе нет» (искалась одна статья).
+NOT_IN_ARTICLE = (
+    "В статье «{title}» об этом ничего не нашлось. Искал только во фрагментах этой статьи."
+)
+
 
 # --------------------------------------------------------------------------- #
 #  Модель
@@ -140,6 +150,7 @@ class Prepared:
     dataset: dict[str, Any] | None = None
     graph: int = 0  # сколько кандидатов дал граф (вопрос о названном предмете)
     catalog: list[dict[str, Any]] | None = None  # каталожный вопрос: найденные статьи
+    article: NamedArticle | None = None  # вопрос о названной статье: поиск только в ней
 
     def info(self) -> dict[str, Any]:
         plan = self.plan
@@ -152,6 +163,7 @@ class Prepared:
             "missing": plan.missing,
             "dataset": self.dataset["name"] if self.dataset else None,
             "collected": (self.dataset or {}).get("collected"),
+            "article": self.article.title if self.article else None,
             **self.retrieval.info(),
         }
 
@@ -174,11 +186,17 @@ def prepare(
     datasets: Any = collect_dataset,
     graph_hits: Any = graph_candidates,
     catalog: Any = catalog_articles,
+    article: Any = named_article,
 ) -> Generator[Any, Any, Any]:
     """Разбор вопроса и поиск с моделью. Генератор событий status; в конце — Prepared.
-    catalog(conn, CatalogQuery) — статьи по каталожному вопросу (catalog_articles)."""
+    catalog(conn, CatalogQuery) — статьи по каталожному вопросу (catalog_articles).
+    article(conn, вопрос, разговор) — статья, названная в вопросе (named_article)."""
     yield {"type": "status", "text": "разбираю вопрос…"}
-    plan = make_plan(question, history, settings, planner)
+    # Название статьи — не часть вопроса: разбирается остальное, ищется в самой статье.
+    named = article(conn, question, history) if article is not None else None
+    plan = make_plan(named.rest if named else question, history, settings, planner)
+    if named:
+        in_article(plan, named)
 
     # Вопрос о самом наборе статей («сколько статей про…», «перечисли статьи…») — по всей
     # базе, по названиям и тексту (catalog.py), а не по 8 фрагментам; через retrieve не идёт.
@@ -210,12 +228,13 @@ def prepare(
         if extra:
             yield {"type": "status", "text": f"беру из графа фрагменты о «{plan.subject}»…"}
 
+    where = f"в статье «{named.title[:80]}»" if named else "в базе"
     yield {
         "type": "status",
         "text": (
-            f"ищу в базе по {len(plan.parts)} частям вопроса…"
+            f"ищу {where} по {len(plan.parts)} частям вопроса…"
             if len(plan.parts) > 1
-            else "ищу в базе…"
+            else f"ищу {where}…"
         ),
     }
     limit = max(settings.top_k - (len(base) - 1), 3) if base else None
@@ -227,7 +246,7 @@ def prepare(
     found = yield from retrieve(
         conn, embedder, question, plan, searching, judge, base, limit, rounds, extra
     )
-    return Prepared(plan, base + found.sources, found, data, len(extra))
+    return Prepared(plan, base + found.sources, found, data, len(extra), article=named)
 
 
 def answer(
@@ -309,6 +328,23 @@ def answer(
             )
             if done:
                 return
+
+    if prepared.article is not None:
+        text = NOT_IN_ARTICLE.format(title=prepared.article.title)
+        yield {"type": "general", "text": text, "not_found": True, **info}
+        yield {
+            "type": "done",
+            "mode": "без базы",
+            "used": [],
+            "unknown": [],
+            "coverage": [0, 0],
+            "model": settings.model,
+            "seconds": round(time.monotonic() - started, 1),
+            "tokens": None,
+            "not_found": True,
+            **info,
+        }
+        return
 
     if not plan.on_topic and not settings.general_off_topic:
         # Не о геологии и в базе пусто — короткий отказ, без ответа из общих знаний.

@@ -42,7 +42,9 @@ def test_translations_searched_as_small_extra(monkeypatch: pytest.MonkeyPatch) -
     zh = Hit(99, "zh-doc", 1, "盆地 1∶5万 高精度航磁测量", title="盆地", similarity=0.72)
     en = Hit(1, "en-doc", 1, "Aeromagnetic survey at 1:50 000.", title="Survey", similarity=0.6)
 
-    def candidates(conn: Any, emb: Any, queries: list[str], cache: Any, limit: int, facts: bool):
+    def candidates(
+        conn: Any, emb: Any, queries: list[str], cache: Any, limit: int, facts: bool, doc: Any
+    ) -> list[Any]:
         asked.append((list(queries), limit))
         return [zh] if queries == plan.translated else [en]
 
