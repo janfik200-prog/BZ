@@ -309,22 +309,64 @@ def for_answer(
     sources: list[dict[str, Any]],
     used: list[int] | None,
     limit: int = FIGURES_IN_ANSWER,
+    question: str = "",
+    embedder: Any = None,
 ) -> list[dict[str, Any]]:
     """Рисунки фрагментов, на которые сослался ответ ([n] из used; не сослался ни на один
-    — ни одного): по порядку ссылок, у каждого — n фрагмента ответа (source)."""
+    — ни одного), у каждого — n фрагмента ответа (source).
+
+    Фрагмент ссылается и на рисунки о другом: абзац о магматизме — на карту магнитного
+    поля. Поэтому (замер 22.10.2026, 18 вопросов, 30 рисунков-кандидатов):
+
+    1. сначала рисунки, чья подпись стоит в самом фрагменте, по порядку ссылок, потом те,
+       на которые фрагмент только ссылается;
+    2. из одной статьи — не больше PER_DOC: одна статья занимала все 4 места;
+    3. с вопросом и embedder — только рисунки, чья подпись близка к вопросу
+       (MIN_SIMILARITY): подходящие — от 0,44 (схема порфировых месторождений 0,61,
+       карта ореолов золота 0,56), мимо — ниже (магнитные карты в вопросе о порфировой
+       меди 0,29–0,43, возраст по цирконам в вопросе о РЗЭ 0,33). Векторы не
+       посчитались — без этого шага."""
     chosen = set(used or [])
     cited = [s for s in sources if s.get("chunk_id") and s.get("n") in chosen]
     if not cited:
         return []
     by_chunk = in_chunks(conn, [int(s["chunk_id"]) for s in cited])
-    out: list[dict[str, Any]] = []
-    seen: set[int] = set()
+    own: list[dict[str, Any]] = []
+    referenced: list[dict[str, Any]] = []
     for src in cited:
         for item in by_chunk.get(int(src["chunk_id"]), []):
-            if item["id"] in seen or len(out) >= limit:
-                continue
-            seen.add(item["id"])
-            out.append({**item, "source": src["n"]})
+            mine = item.get("chunk_id") == src["chunk_id"]
+            (own if mine else referenced).append({**item, "source": src["n"]})
+    candidates: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    per_doc: dict[str, int] = {}
+    for item in own + referenced:
+        if item["id"] in seen or per_doc.get(item["doc_id"], 0) >= PER_DOC:
+            continue
+        seen.add(item["id"])
+        per_doc[item["doc_id"]] = per_doc.get(item["doc_id"], 0) + 1
+        candidates.append(item)
+    if question and embedder is not None and candidates:
+        candidates = _close_to(question, candidates, embedder)
+    return candidates[:limit]
+
+
+PER_DOC = 2  # рисунков одной статьи под ответом
+MIN_SIMILARITY = 0.44  # близость подписи к вопросу (BGE-M3, косинус) — см. for_answer
+
+
+def _close_to(question: str, items: list[dict[str, Any]], embedder: Any) -> list[dict[str, Any]]:
+    """Рисунки, чья подпись близка к вопросу, — в прежнем порядке; у каждого — similarity."""
+    try:
+        vectors = embedder.encode([question] + [str(i.get("caption") or "") for i in items])
+    except Exception:  # noqa: BLE001 — не посчиталось: рисунки без отбора
+        return items
+    asked = vectors[0]
+    out = []
+    for item, vector in zip(items, vectors[1:], strict=True):
+        similarity = sum(a * b for a, b in zip(asked, vector, strict=True))
+        if similarity >= MIN_SIMILARITY:
+            out.append({**item, "similarity": round(float(similarity), 3)})
     return out
 
 

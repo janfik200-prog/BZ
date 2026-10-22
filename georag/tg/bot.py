@@ -794,7 +794,12 @@ class Bot:
         try:
             with db.connect(self.dsn) as conn:
                 chosen = figures.for_answer(
-                    conn, record.get("sources") or [], record.get("used"), ui.FIGURES_IN_ANSWER
+                    conn,
+                    record.get("sources") or [],
+                    record.get("used"),
+                    ui.FIGURES_IN_ANSWER,
+                    question=str(record.get("question") or ""),
+                    embedder=self.embedder,
                 )
         except Exception:  # noqa: BLE001 — нет таблицы рисунков или база не ответила
             return

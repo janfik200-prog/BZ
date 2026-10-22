@@ -134,3 +134,31 @@ def test_page_shows_figures_after_answer() -> None:
     page = PAGE.read_text(encoding="utf-8")
     assert 'ev.type === "figures"' in page and "function renderFigures" in page
     assert "bot.append(renderFigures(figures))" in page
+
+
+class Embedder:
+    """Векторы по словам: вопрос о порфировой меди близок к подписи о ней, а не к карте."""
+
+    def encode(self, texts: list[str]) -> list[list[float]]:
+        return [
+            [1.0, 0.0] if "порфир" in t or "porphyry" in t.lower() else [0.0, 1.0] for t in texts
+        ]
+
+
+def test_own_first_per_doc_and_close_to_question() -> None:
+    def fig(figure_id: int, doc: str, own: int, link: int, caption: str) -> tuple[Any, ...]:
+        return (figure_id, doc, figure_id, str(figure_id), "f.jpg", 1, None, caption,
+                400, 300, own, "T", 2024, link)  # fmt: skip
+
+    rows = [
+        fig(1, "a", 900, 501, "Magnetic map"),  # фрагмент [1] на него только ссылается
+        fig(2, "a", 501, 501, "Porphyry copper setting"),  # подпись в самом фрагменте [1]
+        fig(3, "a", 902, 501, "Porphyry section"),
+        fig(4, "b", 502, 502, "Porphyry Cu model"),
+    ]
+    conn = FakeConn(rows=rows)
+    sources = [{"n": 1, "chunk_id": 501}, {"n": 2, "chunk_id": 502}]
+    plain = figures.for_answer(conn, sources, [1, 2])
+    assert [f["id"] for f in plain] == [2, 4, 1]  # свои — вперёд; из статьи a — два
+    close = figures.for_answer(conn, sources, [1, 2], question="порфир", embedder=Embedder())
+    assert [f["id"] for f in close] == [2, 4]  # магнитная карта к вопросу не близка

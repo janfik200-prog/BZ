@@ -241,7 +241,10 @@ class Handler(BaseHTTPRequestHandler):
                     self.wfile.flush()
                     if event.get("type") == "done" and sources:
                         # Рисунки фрагментов, на которые сослался ответ, — после него.
-                        extra = answer_figures(conn, sources, event.get("used"))
+                        asked = str(payload.get("question") or "")
+                        extra = answer_figures(
+                            conn, sources, event.get("used"), asked, State.embedder
+                        )
                         if extra:
                             line = {"type": "figures", "figures": extra}
                             self.wfile.write((json.dumps(line, ensure_ascii=False) + "\n").encode())
@@ -356,13 +359,21 @@ class Handler(BaseHTTPRequestHandler):
         return {"query": text, "also": also, "hits": [_hit_to_dict(h) for h in hits]}
 
 
-def answer_figures(conn: Any, sources: list[dict[str, Any]], used: Any) -> list[dict[str, Any]]:
-    """Рисунки фрагментов ответа — для страницы: адрес картинки, подпись, к какому [n].
-    Не вышло (таблицы рисунков ещё нет) — без рисунков: ответ уже дошёл."""
+def answer_figures(
+    conn: Any,
+    sources: list[dict[str, Any]],
+    used: Any,
+    question: str = "",
+    embedder: Any = None,
+) -> list[dict[str, Any]]:
+    """Рисунки фрагментов ответа — для страницы: адрес картинки, подпись, к какому [n];
+    с вопросом и embedder — только близкие к вопросу (figures.for_answer). Не вышло
+    (таблицы рисунков ещё нет) — без рисунков: ответ уже дошёл."""
     from ..index import figures
 
     try:
-        chosen = figures.for_answer(conn, sources, used if isinstance(used, list) else [])
+        cited = used if isinstance(used, list) else []
+        chosen = figures.for_answer(conn, sources, cited, question=question, embedder=embedder)
     except Exception:  # noqa: BLE001
         traceback.print_exc()
         try:
