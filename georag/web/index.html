@@ -150,6 +150,13 @@
   }
   .cite:hover { border-color: var(--gpu); }
   .cite.bad { color: var(--muted); text-decoration: line-through; cursor: default; }
+  /* Рисунки фрагментов, на которые сослался ответ (index/figures.py) — под ответом. */
+  .figures { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; }
+  .figures figure { margin: 0; flex: 1 1 220px; max-width: 360px; min-width: 0; }
+  .figures img { width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 6px;
+                 background: #fff; }
+  .figures figcaption { font-size: 13px; color: var(--muted); margin-top: 4px; overflow: hidden;
+                        display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
   .sources { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--rule); padding-top: 10px; }
   .sources .sub { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
   .src { font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
@@ -1531,6 +1538,30 @@ function renderNotInBase(ev) {
   return box;
 }
 
+// Рисунки под ответом: картинка, «Рис. 3 к [2], с. 9. Подпись»; нажать — целиком.
+function renderFigures(figures) {
+  const box = document.createElement("div");
+  box.className = "figures";
+  for (const f of figures) {
+    const fig = document.createElement("figure");
+    const link = document.createElement("a");
+    link.href = f.url;
+    link.target = "_blank";
+    link.rel = "noopener";
+    const img = document.createElement("img");
+    img.src = f.url;
+    img.loading = "lazy";
+    img.alt = f.caption || "рисунок";
+    link.append(img);
+    const cap = document.createElement("figcaption");
+    cap.textContent = f.line;
+    cap.title = f.title;
+    fig.append(link, cap);
+    box.append(fig);
+  }
+  return box;
+}
+
 function renderSources(sources, used, queries, info) {
   info = info || {};
   const box = document.createElement("div");
@@ -1752,7 +1783,7 @@ async function ask(question) {
   const ctrl = new AbortController();
   chat.abort = ctrl;
   let text = "", sources = [], queries = [], general = null, done = null, error = null, info = {};
-  let removed = [], unsupported = [];
+  let removed = [], unsupported = [], figures = [];
   try {
     const resp = await fetch("/api/chat", {
       method: "POST",
@@ -1799,6 +1830,8 @@ async function ask(question) {
           answer.innerHTML = renderAnswer(text, sources.length);
         } else if (ev.type === "done") {
           done = ev;
+        } else if (ev.type === "figures") {
+          figures = ev.figures || [];  // рисунки процитированных фрагментов — после ответа
         } else if (ev.type === "error") {
           error = ev.error;
         }
@@ -1818,6 +1851,7 @@ async function ask(question) {
     if (/модел/i.test(error)) loadBotStatus();  // сервер модели молчит — обновить строку состояния
   }
   const used = done ? done.used : [];
+  if (figures.length && !general) bot.append(renderFigures(figures));
   if (sources.length && !general) {
     bot.append(renderGraphLinks(bot, sources, used));
     bot.append(renderSources(sources, used, queries, info));

@@ -183,7 +183,7 @@ def _process(
     findings.append(orchestrator.chunks(chunk_problem))
 
     if write_outputs:
-        _write_outputs(parsed, report, chunks, settings, status)
+        _write_outputs(parsed, report, chunks, settings, status, inp.path or inp.data)
 
     result = DocResult(
         doc_id=parsed.doc_id,
@@ -339,7 +339,9 @@ def _write_outputs(
     chunks: list[Chunk],
     settings: Settings,
     status: str,
+    pdf: Path | bytes | None = None,
 ) -> None:
+    """pdf — сам документ: из него вырезаются рисунки (index/figures.py), пока он есть."""
     out = settings.out_dir
     out.mkdir(parents=True, exist_ok=True)
     stem = parsed.doc_id
@@ -347,6 +349,10 @@ def _write_outputs(
     (out / f"{stem}.md").write_text(parsed.text, encoding="utf-8")
 
     payload = {**parsed.summary(), "final_status": status, "validation": report.to_dict()}
+    if parsed.docling_doc and pdf is not None:
+        from ..index.figures import save as save_figures
+
+        payload["figures"] = save_figures(parsed.docling_doc, pdf, stem, out)
     (out / f"{stem}.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
     )

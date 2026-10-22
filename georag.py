@@ -32,6 +32,7 @@
     formula ID                  формулы статьи: LaTeX, словами, какие фрагменты на них ссылаются
     formula ID 2                одна формула — с номером (2) в статье
     formula --find "…"          формулы по смыслу («как плотность зависит от пористости»)
+    figures --pdf ПАПКА         рисунки разобранных статей — вырезать из PDF и записать в базу
     ask "вопрос"                спросить чат-бота в терминале (нужна модель)
                                 (хотите подробно или кратко — так и напишите в вопросе)
     collect                     выписки по частым предметам заранее: широкий вопрос о них
@@ -981,6 +982,12 @@ def main(argv: list[str] | None = None) -> int:
         if not _ensure_database():
             return 1
         return _py("georag.index.formulas", *argv[1:])
+    if argv and argv[0].lower() == "figures":
+        # Свои ключи (doc_id, --pdf, --redo) — как у formula, передаются как есть.
+        _need_venv()
+        if not _ensure_database():
+            return 1
+        return _py("georag.index.figures", *argv[1:])
     opts = parse(argv)
     if opts.help:
         opts.command = "help"

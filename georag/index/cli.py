@@ -89,7 +89,7 @@ def main(argv: list[str] | None = None) -> int:
                 if not args.acquired.exists():
                     print(f"Папки {args.acquired} нет — сначала добыча", file=sys.stderr)
                     return 1
-                # Таблицы новых версий (formulas, formula_refs) — до загрузки: база, созданная
+                # Таблицы новых версий (formulas, figures и ссылки на них) — до загрузки: база, созданная
                 # init раньше, их не знает, и загрузка падала бы целиком (ночная — тоже).
                 db.init_db(conn, with_hnsw=False)
                 print(f"Векторы считает BGE-M3 на {args.device}")
@@ -120,6 +120,7 @@ def main(argv: list[str] | None = None) -> int:
                         else ""
                     )
                     + (f"; формул записано {report.formulas}" if report.formulas else "")
+                    + (f"; рисунков записано {report.figures}" if report.figures else "")
                 )
                 for error in report.errors:
                     print(f"  ! {error}")

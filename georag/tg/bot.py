@@ -212,15 +212,21 @@ class Telegram:
                 raise
 
     def photo(
-        self, chat_id: int, png: bytes, caption: str = "", markup: dict[str, Any] | None = None
+        self,
+        chat_id: int,
+        png: bytes,
+        caption: str = "",
+        markup: dict[str, Any] | None = None,
+        kind: str = "png",
     ) -> Any:
+        """Картинка с подписью; kind — png (граф, формула) или jpeg (рисунок статьи)."""
         return self.call(
             "sendPhoto",
             chat_id=chat_id,
             caption=caption,
             parse_mode="HTML",
             reply_markup=markup,
-            files={"photo": ("graph.png", png, "image/png")},
+            files={"photo": (f"picture.{kind}", png, f"image/{kind}")},
         )
 
     def edit_photo(
@@ -727,6 +733,7 @@ class Bot:
                 raise
             # Разметка не разобралась — тот же ответ без неё, чтобы он всё равно дошёл.
             self._deliver(chat_id, mid, [ui.plain(p) for p in pieces], markup)
+        self.answer_figures(chat_id, record)
 
     def _deliver(self, chat_id: int, mid: int, pieces: list[str], markup: Any) -> None:
         """Первый кусок — правкой сообщения «работаю», остальные — новыми; кнопки — у последнего."""
@@ -777,6 +784,28 @@ class Bot:
                 return formulas.in_chunks(conn, chunk_ids)
         except Exception:  # noqa: BLE001 — без кнопок формул фрагмент всё равно дойдёт
             return {}
+
+    # -- рисунки (index/figures.py) ------------------------------------------- #
+    def answer_figures(self, chat_id: int, record: dict[str, Any]) -> None:
+        """Рисунки фрагментов, на которые сослался ответ, — фото после ответа, не больше
+        ui.FIGURES_IN_ANSWER. Не вышло — без них: ответ уже дошёл."""
+        from ..index import db, figures
+
+        try:
+            with db.connect(self.dsn) as conn:
+                chosen = figures.for_answer(
+                    conn, record.get("sources") or [], record.get("used"), ui.FIGURES_IN_ANSWER
+                )
+        except Exception:  # noqa: BLE001 — нет таблицы рисунков или база не ответила
+            return
+        for item in chosen:
+            path = figures.file_of(item)
+            if path is None:
+                continue
+            try:
+                self.tg.photo(chat_id, path.read_bytes(), ui.figure_caption(item), kind="jpeg")
+            except Exception as exc:  # noqa: BLE001 — рисунок не дошёл: ответ уже есть
+                self.log(f"рисунок {item['id']}: {type(exc).__name__}: {exc}")
 
     def send_formula(self, chat_id: int, formula_id: int) -> str | None:
         """Формула картинкой (LaTeX, нарисованный matplotlib) с подписью; не нарисовалась

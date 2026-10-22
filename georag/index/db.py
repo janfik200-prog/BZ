@@ -96,6 +96,31 @@ CREATE TABLE IF NOT EXISTS formula_refs (
     formula_id  bigint NOT NULL REFERENCES formulas(id) ON DELETE CASCADE,
     PRIMARY KEY (chunk_id, formula_id)
 );
+
+-- Рисунки статей (index/figures.py): картинка — файл в папке статей (file), вырезанный из
+-- PDF по рамке из разметки docling; n — по порядку, label — номер по подписи («Рис. 3»);
+-- chunk_id — фрагмент с подписью.
+CREATE TABLE IF NOT EXISTS figures (
+    id          bigserial PRIMARY KEY,
+    doc_id      text NOT NULL REFERENCES documents(doc_id) ON DELETE CASCADE,
+    n           int  NOT NULL,
+    label       text,
+    file        text NOT NULL DEFAULT '',
+    page        int,
+    bbox        jsonb,
+    caption     text NOT NULL DEFAULT '',
+    width       int,
+    height      int,
+    chunk_id    bigint REFERENCES chunks(id) ON DELETE SET NULL,
+    UNIQUE (doc_id, n)
+);
+
+-- Ссылки на рисунки из текста: «рис. 3», «Fig. 4», и фрагмент с подписью рисунка.
+CREATE TABLE IF NOT EXISTS figure_refs (
+    chunk_id    bigint NOT NULL REFERENCES chunks(id) ON DELETE CASCADE,
+    figure_id   bigint NOT NULL REFERENCES figures(id) ON DELETE CASCADE,
+    PRIMARY KEY (chunk_id, figure_id)
+);
 """
 
 # HNSW строится отдельно: на пустой таблице он бесполезен, а на больших данных

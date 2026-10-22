@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from . import db, formulas, noise
+from . import db, figures, formulas, noise
 
 # Список литературы — это чужие названия и ссылки, а не содержание статьи.
 # В поиске такие чанки выглядят убедительно (там все нужные слова!), но читать
@@ -73,6 +73,7 @@ class IngestReport:
     duplicates: int = 0
     forgotten: int = 0
     formulas: int = 0  # формул записано (index/formulas.py)
+    figures: int = 0  # рисунков записано (index/figures.py)
     errors: list[str] = field(default_factory=list)
 
 
@@ -201,6 +202,8 @@ def ingest_dir(
             written = db.replace_chunks(conn, doc_id, _chunk_rows(doc_id, chunks, vectors))
             described = embedder.encode([f["description"] for f in found]) if found else []
             report.formulas += formulas.store(conn, doc_id, found, where, described)
+            # Рисунки — заново вместе с фрагментами: ссылки на них идут к новым фрагментам.
+            report.figures += figures.store(conn, doc_id, meta.get("figures") or [])
             conn.commit()
         except Exception as exc:  # noqa: BLE001 — одна статья не должна ронять загрузку
             conn.rollback()

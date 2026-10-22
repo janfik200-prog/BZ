@@ -174,11 +174,18 @@ def _dedup(candidates: list[Candidate], known: dict[str, dict[str, Any]], force:
     return list(unique.values()), already
 
 
-def _write_doc(out_dir: Path, record: AcquiredRecord, parsed: Any, chunks: Any) -> None:
+def _write_doc(
+    out_dir: Path, record: AcquiredRecord, parsed: Any, chunks: Any, pdf: bytes | None = None
+) -> None:
+    """pdf — скачанная статья: PDF не хранится, рисунки из него вырезаются сейчас."""
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = record.doc_id
 
     payload = record.to_dict()
+    if parsed is not None and parsed.docling_doc and pdf:
+        from ..index.figures import save as save_figures
+
+        payload["figures"] = save_figures(parsed.docling_doc, pdf, stem, out_dir)
     (out_dir / f"{stem}.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -560,7 +567,7 @@ def _acquire_one(
             status, "не прошёл валидацию, нужен человек"
         ),
     )
-    _write_doc(cfg.out_dir, record, None if status == SCANNED else parsed, chunks)
+    _write_doc(cfg.out_dir, record, None if status == SCANNED else parsed, chunks, fetched.data)
     return record
 
 

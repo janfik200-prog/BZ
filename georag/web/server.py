@@ -168,6 +168,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._graph(lambda conn, syn: graph_api.facts_response(conn, syn, ids))
             elif route.path == "/api/chat/status":
                 self._json(chat.llm_status(State.chat_settings.host, State.chat_settings.model))
+            elif route.path == "/api/figure":
+                self._figure((query.get("id") or [""])[0])
             elif route.path == "/api/document":
                 doc_id = (query.get("doc_id") or [""])[0]
                 with db.connect(State.dsn) as conn:
@@ -231,9 +233,19 @@ class Handler(BaseHTTPRequestHandler):
                 events = chat.answer(
                     conn, State.embedder, str(payload.get("question") or ""), history, settings
                 )
+                sources: list[dict[str, Any]] = []
                 for event in events:
+                    if event.get("type") == "sources":
+                        sources = list(event.get("sources") or [])
                     self.wfile.write((json.dumps(event, ensure_ascii=False) + "\n").encode("utf-8"))
                     self.wfile.flush()
+                    if event.get("type") == "done" and sources:
+                        # Рисунки фрагментов, на которые сослался ответ, — после него.
+                        extra = answer_figures(conn, sources, event.get("used"))
+                        if extra:
+                            line = {"type": "figures", "figures": extra}
+                            self.wfile.write((json.dumps(line, ensure_ascii=False) + "\n").encode())
+                            self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError):
             pass  # страницу закрыли или нажали «Стоп» — не страшно
         except Exception as exc:  # noqa: BLE001
@@ -246,6 +258,20 @@ class Handler(BaseHTTPRequestHandler):
         finally:
             if events is not None:
                 events.close()  # закрывает и поток от модели: она перестаёт писать
+
+    def _figure(self, ident: str) -> None:
+        """Картинка рисунка по его id в таблице рисунков (index/figures.py)."""
+        from ..index import figures
+
+        item = None
+        if ident.isdigit():
+            with db.connect(State.dsn) as conn:
+                item = figures.by_id(conn, int(ident))
+        path = figures.file_of(item) if item else None
+        if path is None:
+            self._json({"error": f"рисунка {ident} нет"}, 404)
+            return
+        self._send(200, path.read_bytes(), "image/jpeg")
 
     # -- граф знаний: сеть, датасеты ------------------------------------------ #
     def _graph(self, build: Any) -> None:
@@ -328,6 +354,37 @@ class Handler(BaseHTTPRequestHandler):
                 alternatives=also,
             )
         return {"query": text, "also": also, "hits": [_hit_to_dict(h) for h in hits]}
+
+
+def answer_figures(conn: Any, sources: list[dict[str, Any]], used: Any) -> list[dict[str, Any]]:
+    """Рисунки фрагментов ответа — для страницы: адрес картинки, подпись, к какому [n].
+    Не вышло (таблицы рисунков ещё нет) — без рисунков: ответ уже дошёл."""
+    from ..index import figures
+
+    try:
+        chosen = figures.for_answer(conn, sources, used if isinstance(used, list) else [])
+    except Exception:  # noqa: BLE001
+        traceback.print_exc()
+        try:
+            conn.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        return []
+    return [
+        {
+            "id": f["id"],
+            "source": f["source"],
+            "label": f.get("label"),
+            "n": f["n"],
+            "doc_id": f["doc_id"],
+            "page": f.get("page"),
+            "caption": f.get("caption") or "",
+            "title": f.get("title") or "",
+            "line": figures.caption_line(f),
+            "url": f"/api/figure?id={f['id']}",
+        }
+        for f in chosen
+    ]
 
 
 class Server(ThreadingHTTPServer):

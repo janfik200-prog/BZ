@@ -40,6 +40,7 @@ MENU = {
 PAGE = {"search": 5, "articles": 8, "chunks": 6}  # сколько пунктов на странице
 FRAGMENT_BUTTONS = 12  # кнопок фрагментов под ответом
 FORMULA_BUTTONS = 6  # кнопок формул под фрагментом
+FIGURES_IN_ANSWER = 3  # рисунков фото после ответа: больше — лента из картинок
 PER_ROW = 6
 DATASET_BUTTONS = 30
 
@@ -351,6 +352,14 @@ def fragment_keyboard(
         for i, f in enumerate((formulas or [])[:FORMULA_BUTTONS], start=1)
     ]
     return inline([row, marks[:3], marks[3:]])
+
+
+def figure_caption(item: dict[str, Any]) -> str:
+    """Подпись к фото рисунка: «Рис. 3 к [2], с. 9. Подпись» и статья (до 1024 знаков)."""
+    from ..index.figures import caption_line
+
+    title = esc(str(item.get("title") or item.get("doc_id") or "")[:160])
+    return f"{esc(caption_line(item)[:800])}\n<i>{title}</i>"
 
 
 def formula_caption(item: dict[str, Any]) -> str:
