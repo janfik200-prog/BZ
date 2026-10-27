@@ -4,6 +4,8 @@
     python -m georag.graph.cli build --redo      всё заново (после правки правил); спросит,
                                                  стирать ли граф, без вопроса — --yes
     python -m georag.graph.cli build --limit 30  только 30 фрагментов — проба
+    python -m georag.graph.cli build --no-filter без первого этапа: модели — и дубли, и
+                                                 фрагменты почти без терминов (entities.py)
     python -m georag.graph.cli report            что нашла модель и где ошибалась
     python -m georag.graph.cli dataset           сущности, у которых больше всего фактов
     python -m georag.graph.cli dataset --name "Анабарский щит"   датасет и файл CSV
@@ -32,7 +34,7 @@ from typing import Any
 from ..common import add_db_args, add_embedder_args, add_llm_args
 from ..index import db
 from ..paths import LOCAL, ROOT
-from . import api, autosyn, confirm, facts, kinds, store, vectors
+from . import api, autosyn, confirm, entities, facts, kinds, store, vectors
 from .synonyms import PROPOSALS_PATH, SynonymsError, judge_pairs, load, proposals_text, suggest
 
 # Сколько запросов держать у модели одновременно. vLLM считает их одной пачкой:
@@ -122,19 +124,31 @@ def _build(conn: Any, args: Any) -> int:
         store.clear(conn)
         conn.commit()
         print("Прошлые факты убраны — модель проходит всё заново.")
-    left = len(store.todo(conn))
+    filtering = not args.no_filter
+    left = len(store.todo(conn, retry_skipped=not filtering))
     if not left:
         print(
             "Новых фрагментов нет — модель уже прошла всё "
-            "(заново: python georag.py graph --redo)."
+            "(заново: python georag.py graph --redo; отсеянные до модели — graph --no-filter)."
         )
         return _confirm(conn, args)
     todo = min(left, args.limit) if args.limit else left
+    try:
+        finder = entities.Finder()
+    except (OSError, ValueError) as exc:
+        print(f"Словарь терминов не читается: {exc}", file=sys.stderr)
+        return 1
     print(
         f"Факты выписывает {args.model} по правилам config/graph-rules.txt, каждый проверяет "
         f"код и тут же — вопросы по цитате. Фрагментов: {todo}, одновременно у модели "
         f"{args.workers}. "
-        "Можно прервать Ctrl+C — продолжится с этого места."
+        + (
+            f"До модели: дубли и фрагменты, где терминов меньше {args.min_terms} "
+            "(config/geo-terms.txt), отсеиваются; остальные идут со списком предметов. "
+            if filtering
+            else "Без отсева (--no-filter): модели — всё, со списком предметов. "
+        )
+        + "Можно прервать Ctrl+C — продолжится с этого места."
     )
     stats = facts.run(
         conn,
@@ -143,10 +157,20 @@ def _build(conn: Any, args: Any) -> int:
         rules_path=args.rules,
         workers=args.workers,
         confirm=confirm.fact_votes,
+        finder=finder,
+        filtering=filtering,
+        min_terms=args.min_terms,
     )
+    skipped = stats["duplicates"] + stats["sparse"]
     print(
-        f"\nПройдено фрагментов: {stats['done']} из {stats['todo']}. Фактов принято: "
+        f"\nМодель прошла фрагментов: {stats['done']} из {stats['todo']}. Фактов принято: "
         f"{stats['facts']}; отброшено проверкой: {stats['rejected']}."
+        + (
+            f" Отсеяно до модели: {skipped} (дублей {stats['duplicates']}, мало предметов "
+            f"{stats['sparse']})."
+            if skipped
+            else ""
+        )
         + (f" Модель не ответила: {stats['errors']}." if stats["errors"] else "")
     )
     if not stats["stopped"]:
@@ -240,9 +264,21 @@ def _report(conn: Any, syn: Any) -> int:
         print("Модель ещё не выписывала факты: python georag.py graph (нужна модель).")
         return 0
     print(
-        f"\nМодель прошла фрагментов: {p['passed']} из {p['chunks']}; фактов: {p['facts']}; "
+        f"\nПройдено фрагментов: {p['passed']} из {p['chunks']}; фактов: {p['facts']}; "
         f"отброшено проверкой: {p['rejected']}. Сущностей: {data['entities_total']}."
     )
+    skipped = p.get("skipped") or {}
+    if skipped:
+        print(
+            "Отсеяно до модели (первый этап): "
+            + ", ".join(f"{kind} — {n}" for kind, n in sorted(skipped.items()))
+            + ". Пройти их моделью: python georag.py graph --no-filter"
+        )
+    if data.get("extra_names"):
+        print(
+            "\nМодель назвала сверх списка первого этапа (кандидаты в config/geo-terms.txt): "
+            + ", ".join(f"{name} ({n})" for name, n in data["extra_names"])
+        )
     print(f"\n{'сущность':<46}{'статей':>7}{'фактов':>8}")
     for name, docs, count, known, spellings in data["entities"]:
         mark = "  (словарь)" if known else ""
@@ -433,6 +469,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--redo", action="store_true", help="модель проходит всё заново")
     parser.add_argument("--yes", action="store_true", help="build --redo: стереть граф без вопроса")
+    parser.add_argument(
+        "--no-filter",
+        action="store_true",
+        help="build: не отсеивать дубли и бедные терминами фрагменты, пройти отсеянные",
+    )
+    parser.add_argument(
+        "--min-terms",
+        type=int,
+        default=entities.MIN_TERMS,
+        help="build: сколько терминов geo-terms.txt нужно фрагменту, чтобы идти к модели",
+    )
     parser.add_argument("--limit", type=int, default=None, help="сколько фрагментов пройти")
     parser.add_argument("--rules", default=None, help="другой файл правил для модели")
     parser.add_argument("--synonyms", default=None, help="другой словарь синонимов")

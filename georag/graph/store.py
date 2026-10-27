@@ -50,6 +50,27 @@ CREATE TABLE IF NOT EXISTS facts_pass (
     rejected  text[] NOT NULL DEFAULT '{}',
     done_at   timestamptz NOT NULL DEFAULT now()
 );
+
+-- Первый этап (entities.py, dedup.py): фрагмент отсеян до модели — почему (дубль,
+-- мало предметов); NULL — модель его читала. Язык фрагмента и предметы, которые модель
+-- назвала сверх списка первого этапа (кандидаты в словарь geo-terms.txt).
+ALTER TABLE facts_pass ADD COLUMN IF NOT EXISTS skipped text;
+ALTER TABLE facts_pass ADD COLUMN IF NOT EXISTS lang text;
+ALTER TABLE facts_pass ADD COLUMN IF NOT EXISTS extra_names text[];
+
+-- Отпечатки фрагментов (MinHash, dedup.py): почти-дубль модели не отдаётся. Полосы —
+-- для поиска похожих индексом, подпись — для оценки сходства.
+CREATE TABLE IF NOT EXISTS chunk_minhash (
+    chunk_id  bigint PRIMARY KEY REFERENCES chunks(id) ON DELETE CASCADE,
+    sig       bigint[] NOT NULL
+);
+CREATE TABLE IF NOT EXISTS chunk_bands (
+    chunk_id  bigint NOT NULL REFERENCES chunks(id) ON DELETE CASCADE,
+    band      smallint NOT NULL,
+    hash      bigint NOT NULL,
+    PRIMARY KEY (chunk_id, band)
+);
+CREATE INDEX IF NOT EXISTS chunk_bands_hash ON chunk_bands (band, hash);
 """
 
 
@@ -59,13 +80,16 @@ def init(conn: Any) -> None:
     conn.commit()
 
 
-def todo(conn: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
-    """Фрагменты, которых модель ещё не видела: (chunk_id, doc_id, текст)."""
+def todo(conn: Any, limit: int | None = None, retry_skipped: bool = False) -> list[tuple[Any, ...]]:
+    """Фрагменты, которых модель ещё не видела: (chunk_id, doc_id, текст).
+    retry_skipped — и отсеянные первым этапом (graph --no-filter)."""
+    again = "OR p.skipped IS NOT NULL" if retry_skipped else ""
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT c.id, c.doc_id, c.text FROM chunks c
-            WHERE NOT EXISTS (SELECT 1 FROM facts_pass p WHERE p.chunk_id = c.id)
+            LEFT JOIN facts_pass p ON p.chunk_id = c.id
+            WHERE p.chunk_id IS NULL {again}
             ORDER BY c.doc_id, c.ord
             LIMIT %s
             """,
@@ -73,6 +97,23 @@ def todo(conn: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
         )
         rows: list[tuple[Any, ...]] = cur.fetchall()
         return rows
+
+
+def skip(conn: Any, chunk_id: int, reason: str, lang: str | None = None) -> None:
+    """Фрагмент отсеян до модели (дубль, мало предметов): фактов нет, причина — в skipped.
+    graph --no-filter пройдёт его заново."""
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM facts WHERE chunk_id = %s", (chunk_id,))
+        cur.execute(
+            """
+            INSERT INTO facts_pass (chunk_id, model, facts, rejected, skipped, lang, extra_names)
+            VALUES (%s, NULL, 0, '{}', %s, %s, NULL)
+            ON CONFLICT (chunk_id) DO UPDATE SET model = NULL, facts = 0, rejected = '{}',
+                skipped = EXCLUDED.skipped, lang = EXCLUDED.lang, extra_names = NULL,
+                done_at = now()
+            """,
+            (chunk_id, reason, lang),
+        )
 
 
 def save(
@@ -83,11 +124,14 @@ def save(
     rejected: list[str],
     model: str,
     votes: list[int] | None = None,
+    lang: str | None = None,
+    extra_names: list[str] | None = None,
 ) -> None:
     """Результат модели по фрагменту — целиком вместо прошлого.
 
     votes — подтверждения вопросами по каждому факту, если их уже поставили
-    (facts.run с confirm); иначе пусто, и их потом поставит confirm.run."""
+    (facts.run с confirm); иначе пусто, и их потом поставит confirm.run.
+    lang и extra_names — язык фрагмента и предметы сверх списка первого этапа."""
     marks: list[int | None] = list(votes) if votes is not None else [None] * len(facts)
     with conn.cursor() as cur:
         cur.execute("DELETE FROM facts WHERE chunk_id = %s", (chunk_id,))
@@ -116,11 +160,13 @@ def save(
             )
         cur.execute(
             """
-            INSERT INTO facts_pass (chunk_id, model, facts, rejected) VALUES (%s, %s, %s, %s)
+            INSERT INTO facts_pass (chunk_id, model, facts, rejected, skipped, lang, extra_names)
+            VALUES (%s, %s, %s, %s, NULL, %s, %s)
             ON CONFLICT (chunk_id) DO UPDATE SET model = EXCLUDED.model, facts = EXCLUDED.facts,
-                rejected = EXCLUDED.rejected, done_at = now()
+                rejected = EXCLUDED.rejected, skipped = NULL, lang = EXCLUDED.lang,
+                extra_names = EXCLUDED.extra_names, done_at = now()
             """,
-            (chunk_id, model, len(facts), list(rejected)[:40]),
+            (chunk_id, model, len(facts), list(rejected)[:40], lang, extra_names),
         )
 
 
@@ -178,6 +224,9 @@ def clear(conn: Any) -> None:
     with conn.cursor() as cur:
         cur.execute("DELETE FROM facts")
         cur.execute("DELETE FROM facts_pass")
+        # Отпечатки — тоже: «первый» из дублей определяется порядком нового прохода.
+        cur.execute("DELETE FROM chunk_bands")
+        cur.execute("DELETE FROM chunk_minhash")
 
 
 # Сколько из 4 проверок вопросами (confirm.py) должен пройти факт, чтобы попасть в граф.
@@ -265,13 +314,32 @@ def summary(conn: Any) -> dict[str, Any]:
         passed, facts, rejected, last = cur.fetchone() or (0, 0, 0, None)
         cur.execute("SELECT count(*) FROM chunks")
         chunks = (cur.fetchone() or (0,))[0]
+        # Отсеянные первым этапом тоже «пройдены» (passed): модель их не читала.
+        cur.execute(
+            "SELECT split_part(skipped, ':', 1), count(*) FROM facts_pass "
+            "WHERE skipped IS NOT NULL GROUP BY 1"
+        )
+        skipped = {str(k): int(n) for k, n in cur.fetchall()}
     return {
         "passed": int(passed or 0),
         "facts": int(facts or 0),
         "rejected": int(rejected or 0),
         "chunks": int(chunks or 0),
+        "skipped": skipped,
         "as_of": last.isoformat() if last is not None and hasattr(last, "isoformat") else last,
     }
+
+
+def extra_names(conn: Any, top: int = 15) -> list[tuple[str, int]]:
+    """Предметы, которые модель назвала сверх списка первого этапа, — от самых частых:
+    кандидаты в config/geo-terms.txt."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT name, count(*) FROM facts_pass, unnest(extra_names) AS name "
+            "GROUP BY name ORDER BY 2 DESC, 1 LIMIT %s",
+            (top,),
+        )
+        return [(str(n), int(c)) for n, c in cur.fetchall()]
 
 
 def reason_kind(reason: str) -> str:

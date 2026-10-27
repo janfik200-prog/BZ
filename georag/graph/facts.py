@@ -85,14 +85,38 @@ def sentences(text: str) -> list[str]:
     return split_sentences((text or "")[:FRAGMENT_CHARS])
 
 
-def messages(rules: str, text: str) -> tuple[str, str]:
+def messages(rules: str, text: str, entities: list[str] | None = None) -> tuple[str, str]:
+    """Запрос к модели. entities — предметы, найденные первым этапом (entities.py):
+    модель не ищет их сама, а определяет связи между ними (план графа v2, А4)."""
     numbered = "\n".join(f"[{i}] {s}" for i, s in enumerate(sentences(text), 1))
     system = f"{rules}\n\nОтвечай только JSON, без пояснений."
+    found = (
+        "Предметы, найденные в этом фрагменте: "
+        + "; ".join(f"«{e}»" for e in entities)
+        + ".\nСвязывай прежде всего их. Нужен предмет не из списка — бери его как в "
+        "тексте, это можно.\n\n"
+        if entities
+        else ""
+    )
     user = (
-        f'Фрагмент статьи, предложения пронумерованы:\n"""\n{numbered}\n"""\n\n'
+        f'Фрагмент статьи, предложения пронумерованы:\n"""\n{numbered}\n"""\n\n{found}'
         'Верни JSON: {"факты": [[п, "от", "связь", "к"], ...]}'
     )
     return system, user
+
+
+def extra_names(facts: list[Fact], entities: list[str]) -> list[str]:
+    """Концы фактов, которых нет в списке первого этапа: что словарь (geo-terms.txt) и
+    spaCy не нашли, а модель назвала. Предмет — в списке, если один содержит другой
+    («Персияновский разлом» и «разлом»)."""
+    known = [name_key(e) for e in entities]
+    out: list[str] = []
+    for f in facts:
+        for name, key in ((f.src, f.src_key), (f.dst, f.dst_key)):
+            hit = any(k and (k in key or key in k) for k in known)
+            if key and not hit and name not in out:
+                out.append(name)
+    return out
 
 
 @dataclass(frozen=True)
@@ -421,6 +445,9 @@ def run(
     stop_after_errors: int = 3,
     workers: int = 1,
     confirm: Any = None,
+    finder: Any = None,
+    filtering: bool = True,
+    min_terms: int | None = None,
 ) -> dict[str, Any]:
     """Модель проходит фрагменты, которых ещё не видела. Возобновляемо.
 
@@ -429,37 +456,88 @@ def run(
 
     confirm(llm, факт) → число подтверждений (confirm.fact_votes): факт проверяется
     вопросами сразу, тем же работником, и ложится в базу уже с голосами. Без confirm
-    голоса пустые — их потом ставит confirm.run."""
-    rules = load_rules(rules_path)
-    rows = store.todo(conn, limit=limit)
-    model = getattr(llm, "model", "модель")
-    stats = {"todo": len(rows), "done": 0, "facts": 0, "rejected": 0, "errors": 0, "stopped": False}
+    голоса пустые — их потом ставит confirm.run.
 
-    def work(row: tuple[Any, ...]) -> tuple[Checked, list[int] | None]:
+    finder (entities.Finder) — первый этап до модели (план графа v2): почти-дубль уже
+    пройденного фрагмента (dedup.py) и фрагмент, где терминов меньше min_terms, модели
+    не отдаются (отметка skipped); остальные идут к ней со списком найденных предметов.
+    filtering=False (graph --no-filter) — список предметов есть, но не отсеивается
+    ничего, и отсеянные раньше проходятся заново. Без finder — как раньше: модель
+    ищет всё сама."""
+    from . import dedup
+    from .entities import MIN_TERMS
+
+    need = MIN_TERMS if min_terms is None else min_terms
+    rules = load_rules(rules_path)
+    retry = finder is not None and not filtering
+    rows = store.todo(conn, limit=limit, retry_skipped=retry)
+    model = getattr(llm, "model", "модель")
+    stats: dict[str, Any] = {
+        "todo": len(rows),
+        "done": 0,
+        "facts": 0,
+        "rejected": 0,
+        "errors": 0,
+        "duplicates": 0,
+        "sparse": 0,
+        "stopped": False,
+    }
+
+    def work(row: tuple[Any, ...], found: Any) -> tuple[Checked, list[int] | None]:
         text = row[2] or ""
-        system, user = messages(rules, text)
+        system, user = messages(rules, text, found.entities if found is not None else None)
         checked = check(llm.chat_json(system, user, max_tokens=ANSWER_TOKENS), text)
         votes = [int(confirm(llm, f)) for f in checked.facts] if confirm is not None else None
         return checked, votes
 
     queue = iter(rows)
-    pending: dict[Future[Any], tuple[Any, ...]] = {}
+    pending: dict[Future[Any], tuple[tuple[Any, ...], Any]] = {}
     pool = ThreadPoolExecutor(max(1, workers))
-
-    def submit() -> None:
-        row = next(queue, None)
-        if row is not None:
-            pending[pool.submit(work, row)] = row
-
     errors_in_row = seen = 0
     started = time.monotonic()
+
+    def progress() -> None:
+        if seen % 10 == 0 or seen == len(rows):
+            pace = (time.monotonic() - started) / max(seen, 1)
+            skipped = stats["duplicates"] + stats["sparse"]
+            log(
+                f"  [{seen}/{len(rows)}] фактов {stats['facts']}, отброшено проверкой "
+                f"{stats['rejected']}"
+                + (f", отсеяно до модели {skipped}" if skipped else "")
+                + f" · {pace:.1f} с на фрагмент"
+            )
+
+    def submit() -> None:
+        """Следующий фрагмент — модели; отсеянные первым этапом записываются сразу."""
+        nonlocal seen
+        while (row := next(queue, None)) is not None:
+            chunk_id, _doc_id, text = row
+            found: Any = finder.find(text or "") if finder is not None else None
+            if found is not None and filtering:
+                original = dedup.find_duplicate(conn, chunk_id, text or "")
+                reason = None
+                if original is not None:
+                    reason, kind = f"дубль: фрагмента {original}", "duplicates"
+                elif not found.enough(need):
+                    terms = len({t.lower() for t in found.terms})
+                    reason, kind = f"мало предметов: терминов {terms} из {need}", "sparse"
+                if reason:
+                    store.skip(conn, chunk_id, reason, found.lang)
+                    conn.commit()
+                    stats[kind] += 1
+                    seen += 1
+                    progress()
+                    continue
+            pending[pool.submit(work, row, found)] = (row, found)
+            return
+
     try:
         for _ in range(max(1, workers)):
             submit()
         while pending and not stats["stopped"]:
             finished, _ = wait(pending, return_when=FIRST_COMPLETED)
             for future in finished:
-                chunk_id, doc_id, _text = pending.pop(future)
+                (chunk_id, doc_id, _text), found = pending.pop(future)
                 seen += 1
                 try:
                     checked, votes = future.result()
@@ -478,17 +556,24 @@ def run(
                         break
                     submit()
                     continue
-                store.save(conn, chunk_id, doc_id, checked.facts, checked.rejected, model, votes)
+                store.save(
+                    conn,
+                    chunk_id,
+                    doc_id,
+                    checked.facts,
+                    checked.rejected,
+                    model,
+                    votes,
+                    lang=found.lang if found is not None else None,
+                    extra_names=(
+                        extra_names(checked.facts, found.entities) if found is not None else None
+                    ),
+                )
                 conn.commit()
                 stats["done"] += 1
                 stats["facts"] += len(checked.facts)
                 stats["rejected"] += len(checked.rejected)
-                if seen % 10 == 0 or seen == len(rows):
-                    pace = (time.monotonic() - started) / seen
-                    log(
-                        f"  [{seen}/{len(rows)}] фактов {stats['facts']}, отброшено проверкой "
-                        f"{stats['rejected']} · {pace:.1f} с на фрагмент"
-                    )
+                progress()
                 submit()
     finally:
         # Остановка или Ctrl+C: недоделанные фрагменты не записаны — их пройдёт следующий запуск.

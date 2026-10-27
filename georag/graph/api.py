@@ -617,6 +617,7 @@ def report(conn: Any, syn: Synonyms, top: int = 40) -> dict[str, Any]:
         "entities_total": len(entities),
         "relations": relations.most_common(top),
         "rejected": store.rejected_reasons(conn),
+        "extra_names": store.extra_names(conn),
     }
 
 

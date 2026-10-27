@@ -1,0 +1,435 @@
+# ГЕОЛОГИЧЕСКИЕ ТЕРМИНЫ — ПЕРВЫЙ ЭТАП ГРАФА (graph/entities.py)
+#
+# До модели код ищет во фрагменте предметы: эти термины, имена собственные и места
+# (spaCy). Фрагмент, где не нашлось ни одного, модели не отдаётся — из таких
+# фрагментов она фактов почти не выписывала. Найденное уходит модели списком: она
+# только определяет связи между ними.
+#
+# Один термин в строке, русский или английский. Падеж и число не важны: «кварц»
+# находит «кварца», «кварцем» (но не «кварцевых» — это другое слово, его пишут
+# отдельно); английский — и во множественном числе. Строки с # — комментарии.
+# Правится Блокнотом, сохранять в UTF-8. Действует со следующего запуска graph.
+
+# --- полезные ископаемые и элементы ---
+золото
+серебро
+медь
+молибден
+вольфрам
+олово
+свинец
+цинк
+никель
+кобальт
+хром
+уран
+литий
+тантал
+ниобий
+бериллий
+редкие земли
+редкоземельные элементы
+платина
+платиноиды
+железо
+железная руда
+марганец
+алмазы
+барит
+флюорит
+уголь
+gold
+silver
+copper
+molybdenum
+tungsten
+tin
+lead
+zinc
+nickel
+cobalt
+chromium
+uranium
+lithium
+tantalum
+niobium
+beryllium
+rare earth elements
+REE
+PGE
+platinum
+iron ore
+manganese
+diamond
+barite
+fluorite
+coal
+# символы элементов — совпадают только целым словом и без учёта регистра, поэтому
+# здесь нет As и Co: они совпали бы с английскими «as» и «Co.»
+Au
+Ag
+Cu
+Pb
+Zn
+Mo
+Sn
+Ni
+Bi
+Sb
+Te
+
+# --- минералы ---
+кварц
+пирит
+арсенопирит
+халькопирит
+пирротин
+галенит
+сфалерит
+молибденит
+шеелит
+вольфрамит
+касситерит
+магнетит
+гематит
+лимонит
+гётит
+ильменит
+рутил
+циркон
+монацит
+апатит
+полевой шпат
+плагиоклаз
+калишпат
+слюда
+мусковит
+биотит
+серицит
+хлорит
+эпидот
+кальцит
+доломит
+сидерит
+анкерит
+турмалин
+гранат
+пироксен
+амфибол
+оливин
+серпентин
+тальк
+каолинит
+иллит
+монтмориллонит
+смектит
+алунит
+ярозит
+теллуриды
+сульфиды
+арсениды
+оксиды железа
+quartz
+pyrite
+arsenopyrite
+chalcopyrite
+pyrrhotite
+galena
+sphalerite
+molybdenite
+scheelite
+wolframite
+cassiterite
+magnetite
+hematite
+limonite
+goethite
+ilmenite
+rutile
+zircon
+monazite
+apatite
+feldspar
+plagioclase
+K-feldspar
+mica
+muscovite
+biotite
+sericite
+chlorite
+epidote
+calcite
+dolomite
+siderite
+ankerite
+tourmaline
+garnet
+pyroxene
+amphibole
+olivine
+serpentine
+talc
+kaolinite
+illite
+montmorillonite
+smectite
+alunite
+jarosite
+uraninite
+fuchsite
+pyrophyllite
+уранинит
+фуксит
+пирофиллит
+telluride
+sulfide
+sulphide
+iron oxide
+
+# --- породы ---
+гранит
+гранитоиды
+гранодиорит
+диорит
+габбро
+базальт
+андезит
+дацит
+риолит
+порфир
+диабаз
+долерит
+перидотит
+дунит
+кимберлит
+лампроит
+карбонатит
+пегматит
+аплит
+гнейс
+сланец
+кварцит
+мрамор
+амфиболит
+гранулит
+мигматит
+песчаник
+алевролит
+аргиллит
+конгломерат
+известняк
+туф
+скарн
+грейзен
+березит
+лиственит
+granite
+granitoid
+granodiorite
+diorite
+gabbro
+basalt
+andesite
+dacite
+rhyolite
+porphyry
+diabase
+dolerite
+peridotite
+dunite
+kimberlite
+lamproite
+carbonatite
+pegmatite
+gneiss
+schist
+quartzite
+marble
+amphibolite
+granulite
+migmatite
+sandstone
+siltstone
+mudstone
+shale
+conglomerate
+metaconglomerate
+метаконгломерат
+limestone
+tuff
+skarn
+greisen
+listvenite
+
+# --- структуры и объекты ---
+разлом
+надвиг
+сброс
+сдвиг
+зона разломов
+зона смятия
+зона дробления
+трещиноватость
+линеамент
+кольцевая структура
+складка
+антиклиналь
+синклиналь
+купол
+грабен
+рифт
+интрузия
+массив
+дайка
+шток
+силл
+жила
+кварцевые жилы
+трубка
+щит
+кратон
+платформа
+пояс
+зеленокаменный пояс
+бассейн
+прогиб
+террейн
+блок
+поднятие
+рудный район
+рудный узел
+рудное поле
+месторождение
+рудопроявление
+россыпь
+свита
+серия
+комплекс
+толща
+формация
+fault
+thrust
+shear zone
+fault zone
+fracture
+lineament
+ring structure
+fold
+anticline
+syncline
+dome
+graben
+rift
+intrusion
+pluton
+dyke
+dike
+stock
+sill
+vein
+quartz vein
+pipe
+shield
+craton
+platform
+belt
+greenstone belt
+basin
+trough
+terrane
+block
+uplift
+ore district
+ore cluster
+ore field
+deposit
+occurrence
+prospect
+placer
+formation
+group
+complex
+suite
+
+# --- процессы и изменения ---
+оруденение
+минерализация
+метасоматоз
+гидротермальные изменения
+окварцевание
+серицитизация
+хлоритизация
+аргиллизация
+пропилитизация
+березитизация
+грейзенизация
+скарнирование
+карбонатизация
+альбитизация
+калишпатизация
+метаморфизм
+магматизм
+вулканизм
+выветривание
+кора выветривания
+mineralization
+mineralisation
+metasomatism
+hydrothermal alteration
+alteration
+silicification
+sericitization
+chloritization
+argillic alteration
+phyllic alteration
+propylitic alteration
+potassic alteration
+carbonatization
+albitization
+metamorphism
+magmatism
+volcanism
+weathering
+gossan
+
+# --- методы и данные ---
+дистанционное зондирование
+космические снимки
+Landsat
+Sentinel
+ASTER
+WorldView
+гиперспектральная съёмка
+аэромагнитная съёмка
+гравиразведка
+магниторазведка
+электроразведка
+геохимическая съёмка
+литохимическая съёмка
+шлиховое опробование
+магнитная аномалия
+гравитационная аномалия
+геохимическая аномалия
+метод главных компонент
+линеаментный анализ
+машинное обучение
+random forest
+remote sensing
+satellite images
+hyperspectral
+aeromagnetic survey
+airborne magnetic
+gravity survey
+magnetic anomaly
+gravity anomaly
+geochemical anomaly
+geochemical survey
+stream sediment
+principal component analysis
+PCA
+band ratio
+machine learning
+prospectivity mapping
+mineral prospectivity
+GIS
+DEM

@@ -27,6 +27,11 @@ numpy>=1.24                   # сравнение векторов (graph/synon
 psycopg[binary,pool]>=3.1     # PostgreSQL; binary — чтобы на Windows не собирать из исходников;
                               # pool — пул соединений (index/db.py): страница и бот делят его
 
+# --- граф: первый этап до модели (graph/entities.py) ---
+# Модели языков ставятся отдельно: python -m spacy download en_core_web_sm и
+# ru_core_news_sm (ЗАПУСК.md, «Граф знаний»); без них — только словарь терминов.
+spacy>=3.8,<3.9
+
 # --- добыча ---
 requests>=2.31                # поиск в источниках и получение статей в память
 pyyaml>=6.0                   # каталог источников sources.yaml

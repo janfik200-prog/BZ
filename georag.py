@@ -50,6 +50,8 @@
     graph --limit 30            только 30 фрагментов — проба
     graph --redo                всё заново (после правки правил): весь граф стирается,
                                 поэтому сначала спросит; без вопроса — graph --redo --yes
+    graph --no-filter           без отсева до модели: пройти и дубли, и фрагменты почти
+                                без терминов (config/geo-terms.txt)
     graph --new                 что нашла модель и где ошибалась
     graph --recheck             перепроверить готовые факты новыми правилами кода (без модели)
     graph --confirm             подтвердить факты вопросами по цитате (идёт и после graph)
@@ -593,6 +595,8 @@ def cmd_graph(opts: argparse.Namespace) -> int:
     args = ["build", "--model", MODEL] + (["--redo"] if opts.redo else []) + workers
     if opts.yes:
         args.append("--yes")
+    if opts.no_filter:
+        args.append("--no-filter")
     if opts.limit:
         args += ["--limit", str(opts.limit)]
     return _py("georag.graph.cli", *args)
@@ -831,6 +835,7 @@ def parse(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--questions", default="")
     p.add_argument("--redo", action="store_true")
     p.add_argument("--yes", action="store_true")
+    p.add_argument("--no-filter", action="store_true")
     p.add_argument("--no-check", action="store_true")
     p.add_argument("--all", action="store_true")
     p.add_argument("--new", action="store_true")
