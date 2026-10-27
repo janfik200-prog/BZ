@@ -89,7 +89,13 @@ from .checks import (
 )
 from .collect import collect, rest_of_summary
 from .conflicts import find_conflicts
-from .dataset import collect_dataset, dataset_sources, graph_candidates, question_subject
+from .dataset import (
+    collect_dataset,
+    dataset_sources,
+    graph_candidates,
+    question_subject,
+    subject_in,
+)
 from .messages import build_messages, fit_budget, general_messages
 from .plan import Plan, is_follow_up, make_plan, plan_question
 from .retrieval import MAX_ROUNDS, Retrieval, judge_fragments, retrieve
@@ -208,25 +214,40 @@ def prepare(
     # (collect.py), нет его в статьях — из датасета графа; поиск только добавляет.
     data = None
     base: list[dict[str, Any]] = []
-    if plan.collect and settings.collect and db.is_real(conn):
-        subject = question_subject(conn, plan.subject, question)
-        if subject:
-            gathered = yield from collect(
-                conn, embedder, settings.client(), subject, question=question
-            )
-            if gathered is not None:
-                base, data = gathered.sources, gathered.info()
+    # Предмет — один для сбора и для графа: модель его часто не называет («С какими
+    # минералами связано золото?» — subject null), тогда — по тексту вопроса.
+    subject = plan.subject
+    if (plan.collect or plan.subject) and db.is_real(conn):
+        subject = question_subject(conn, plan.subject, question) or plan.subject
+    if plan.collect and settings.collect and db.is_real(conn) and subject:
+        gathered = yield from collect(conn, embedder, settings.client(), subject, question=question)
+        if gathered is not None:
+            base, data = gathered.sources, gathered.info()
     if not base and plan.collect and datasets is not None:
         yield {"type": "status", "text": "собираю факты из графа…"}
-        data = datasets(conn, plan.subject, question)
+        data = datasets(conn, subject, question)
         base = dataset_sources(data) if data else []
+    collected = bool(data and "collected" in data)
 
-    # Вопрос о названном предмете — фрагменты о нём из графа в кандидаты.
+    # Вопрос о связях («С чем связано золото?»), собранный по статьям, — ещё и сводка
+    # фактов графа со счётом статей: какие связи и в скольких статьях, сбор по 30
+    # статьям этого не считает. Раньше граф брался, только если сбор ничего не дал.
+    graph_facts = 0
+    if collected and subject_in(question) and datasets is not None:
+        facts = datasets(conn, subject, question)
+        if facts:
+            base += dataset_sources(facts, start=len(base) + 1)[:1]
+            graph_facts = 1
+
+    # Вопрос о названном предмете — фрагменты о нём из графа в кандидаты, и при сборе
+    # по статьям тоже (11.31: «Что известно о Персияновском разломе?» — граф молчал).
+    # Ответ из датасета графа фрагменты к фактам уже несёт.
     extra: list[Any] = []
-    if not data and plan.subject and graph_hits is not None and judge is not None:
-        extra = graph_hits(conn, plan.subject, question) or []
+    from_graph = data is not None and not collected
+    if not from_graph and subject and graph_hits is not None and judge is not None:
+        extra = graph_hits(conn, subject, question) or []
         if extra:
-            yield {"type": "status", "text": f"беру из графа фрагменты о «{plan.subject}»…"}
+            yield {"type": "status", "text": f"беру из графа фрагменты о «{subject}»…"}
 
     where = f"в статье «{named.title[:80]}»" if named else "в базе"
     yield {
@@ -246,7 +267,9 @@ def prepare(
     found = yield from retrieve(
         conn, embedder, question, plan, searching, judge, base, limit, rounds, extra
     )
-    return Prepared(plan, base + found.sources, found, data, len(extra), article=named)
+    return Prepared(
+        plan, base + found.sources, found, data, len(extra) + graph_facts, article=named
+    )
 
 
 def answer(

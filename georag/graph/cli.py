@@ -252,9 +252,13 @@ def _report(conn: Any, syn: Any) -> int:
     for relation, count in data["relations"]:
         print(f"  {count:>5}  {relation}")
     if data["rejected"]:
-        print("\nПочему код отбрасывал факты (чаще всего):")
-        for reason, count in data["rejected"]:
+        # Все виды причин — со счётом и примерами: где модель ошибалась и что править
+        # в config/graph-rules.txt. Сумма сходится с «отброшено проверкой» выше.
+        print(f"\nПочему код отбрасывал факты — {p['rejected']}, по видам:")
+        for reason, count, examples in data["rejected"]:
             print(f"  {count:>5}  {reason[:90]}")
+            for example in examples:
+                print(f"           например: {example[:120]}")
     print(
         "\nРазные написания одного и того же сводит config\\synonyms.yaml; предложения "
         "для него: python georag.py synonyms"

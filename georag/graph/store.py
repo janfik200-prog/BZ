@@ -274,14 +274,38 @@ def summary(conn: Any) -> dict[str, Any]:
     }
 
 
-def rejected_reasons(conn: Any) -> Counter[str]:
-    """Почему код отбрасывал ответы модели: причина → сколько раз."""
+def reason_kind(reason: str) -> str:
+    """Вид причины без имён: «в цитате нет «золото»» и «… «разломы»» — одна причина.
+    Иначе первые 12 строк отчёта покрывали треть отказов, а остальное дробилось."""
+    if reason.startswith("в цитате нет"):
+        return "в цитате нет одного из концов"
+    if reason.startswith("нет предложения"):
+        return "нет предложения с таким номером"
+    return reason
+
+
+def rejected_reasons(conn: Any, examples: int = 2) -> list[tuple[str, int, list[str]]]:
+    """Почему код отбрасывал ответы модели: вид причины, сколько раз и примеры
+    («от» — связь — «к» с причиной), от самой частой."""
+    reasons: Counter[str] = Counter()
+    shown: dict[str, list[str]] = {}
     with conn.cursor() as cur:
         cur.execute("SELECT unnest(rejected) FROM facts_pass")
-        reasons: Counter[str] = Counter()
         for (text,) in cur.fetchall():
-            reasons[str(text).rsplit(": ", 1)[-1]] += 1
-    return reasons
+            # «от» — связь — «к»: причина. Двоеточие бывает и в имени («CO3: pH > 7»),
+            # поэтому причина — после закрывающей кавычки «к»; без кавычек — после
+            # последнего двоеточия («ответ: не объект JSON»).
+            head, quoted, tail = str(text).partition("»: ")
+            if quoted:
+                label, reason = head + "»", tail
+            else:
+                label, _, reason = str(text).rpartition(": ")
+            kind = reason_kind(reason)
+            reasons[kind] += 1
+            seen = shown.setdefault(kind, [])
+            if label and len(seen) < examples:
+                seen.append(f"{label}: {reason}" if kind != reason else label)
+    return [(kind, count, shown.get(kind, [])) for kind, count in reasons.most_common()]
 
 
 def fragments(conn: Any, chunk_ids: list[int]) -> dict[int, dict[str, Any]]:

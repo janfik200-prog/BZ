@@ -24,7 +24,9 @@
      работу («Binotto (2015)», «работа [33]»), не положение («южнее разлома»),
      не общее имя без названия («this study», «predictive model», «high
      values»); предлог в начале («в аномалиях Bi») снимается;
-   * связь — от 1 до 6 слов.
+   * связь — от 1 до 6 слов и по-русски, без латиницы («built out from»);
+   * имя — как в статье: в английской цитате имя с русскими словами («rutile из
+     Moeda Formation») переведено наполовину и отбрасывается.
    Что отброшено и почему — сохраняется: `graph --new` показывает, где модель
    ошибалась чаще всего.
 3. Принятое пишется в базу по фрагменту. Проход возобновляемый: прервали —
@@ -244,6 +246,28 @@ HEDGE = "предположительно"
 _PREPOSITION = re.compile(
     r"^(?:в|во|на|к|ко|по|с|со|у|о|об|из|при|для|in|at|on|of)\s+(?=\w)", re.IGNORECASE
 )
+_LATIN = re.compile(r"[A-Za-z]")
+_CYRILLIC = re.compile(r"[А-Яа-яЁё]")
+
+
+def _bad_relation(relation: str) -> str | None:
+    """Связь — по-русски (правила для модели). В базе было 139 связей с латиницей:
+    целиком английских («built out from», «poor in the study of») и с латинской
+    буквой внутри русского слова («дelineate», «тrending»)."""
+    if not relation or len(relation.split()) > 6:
+        return "связь пустая или длиннее 6 слов"
+    if _LATIN.search(relation):
+        return "связь не по-русски"
+    return None
+
+
+def _translated_name(name: str, quote: str) -> str | None:
+    """Имя — как в статье. В английской цитате имя с русскими словами переведено
+    наполовину: «quartzite и schist formations», «rutile из Moeda Formation» — так
+    в статье не сказано, и по такому имени предмет не найти (127 имён в базе)."""
+    if _CYRILLIC.search(name) and not _CYRILLIC.search(quote):
+        return "имя переведено, а в статье оно по-английски"
+    return None
 
 
 def _clean(value: Any) -> str:
@@ -343,8 +367,9 @@ def check(answer: Any, text: str) -> Checked:
         if reason:
             out.rejected.append(f"{label}: {reason}")
             continue
-        if not relation or len(relation.split()) > 6:
-            out.rejected.append(f"{label}: связь пустая или длиннее 6 слов")
+        reason = _bad_relation(relation)
+        if reason:
+            out.rejected.append(f"{label}: {reason}")
             continue
         if name_key(src) == name_key(dst):
             out.rejected.append(f"{label}: связь с самим собой")
@@ -372,6 +397,10 @@ def check(answer: Any, text: str) -> Checked:
                 out.rejected.append(f"{label}: в цитате нет «{missing}»")
                 continue
             quote = found
+        reason = _translated_name(src, quote) or _translated_name(dst, quote)
+        if reason:
+            out.rejected.append(f"{label}: {reason}")
+            continue
         fact = Fact(src, hedged(relation, quote), dst, quote)
         key = (fact.src_key, relation, fact.dst_key)
         if key in seen:
@@ -477,7 +506,13 @@ def recheck(conn: Any, log: Any = print) -> dict[str, int]:
     stats = {"facts": 0, "dropped": 0, "hedged": 0}
     for fact_id, chunk_id, src, relation, dst, quote in store.stored_facts(conn):
         stats["facts"] += 1
-        reason = _bad_name(src) or _bad_name(dst)
+        reason = (
+            _bad_name(src)
+            or _bad_name(dst)
+            or _bad_relation(relation)
+            or _translated_name(src, quote)
+            or _translated_name(dst, quote)
+        )
         if reason:
             store.drop_fact(conn, fact_id, chunk_id, f"«{src}» — {relation} — «{dst}»: {reason}")
             stats["dropped"] += 1
