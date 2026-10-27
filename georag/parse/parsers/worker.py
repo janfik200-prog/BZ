@@ -2,7 +2,7 @@
 
 Это не паранойя: у docling есть известные случаи зависания в нативном парсере, где ни
 document_timeout, ни Ctrl+C не помогают — процесс просто перестаёт отвечать. Для
-ночной добычи это означало бы остановку всей очереди, поэтому родитель ждёт результат
+долгого прогона это означало бы остановку всей очереди, поэтому родитель ждёт результат
 и убивает зависший процесс. Модели живут в дочернем процессе и грузятся один раз.
 
 Ни один сбой не проходит молча — у каждого в ошибке документа есть причина и место:
@@ -44,7 +44,7 @@ Message = tuple[str, Any]  # ("ready", "") | ("setup", ошибка) | ("result"
 
 def _no_crash_dialog() -> None:
     """Windows: упавший процесс иначе ждёт закрытия окна «Программа не работает» —
-    ночной прогон висел бы весь таймаут и писал «завис» вместо «упал». Без окна процесс
+    долгий прогон висел бы весь таймаут и писал «завис» вместо «упал». Без окна процесс
     сразу завершается с кодом ошибки, а стек успевает записать faulthandler."""
     if sys.platform == "win32":
         import ctypes
@@ -61,6 +61,21 @@ def _worker_loop(
     make_parser: Callable[[Settings], Any] | None,
 ) -> None:  # pragma: no cover — живёт в дочернем процессе
     """Разбирает документы, пока вместо документа не придёт None."""
+    try:
+        _serve(tasks, results, settings, crash_log, make_parser)
+    except KeyboardInterrupt:
+        # Ctrl+C приходит и сюда (консоль общая): процесс просто выходит, а о прерывании
+        # скажет основной — без второй трассировки от multiprocessing.
+        pass
+
+
+def _serve(
+    tasks: mp.Queue[ParseInput | None],
+    results: mp.Queue[Message],
+    settings: Settings,
+    crash_log: str,
+    make_parser: Callable[[Settings], Any] | None,
+) -> None:  # pragma: no cover — живёт в дочернем процессе
     _no_crash_dialog()
     crash = open(crash_log, "a", encoding="utf-8")  # noqa: SIM115 — открыт до конца процесса
     faulthandler.enable(file=crash, all_threads=True)

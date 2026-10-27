@@ -1,7 +1,8 @@
 """Граф знаний: факты из статей, которые выписывает Qwen3 и проверяет код.
 
     python -m georag.graph.cli build             Qwen3 проходит новые фрагменты
-    python -m georag.graph.cli build --redo      всё заново (после правки правил)
+    python -m georag.graph.cli build --redo      всё заново (после правки правил); спросит,
+                                                 стирать ли граф, без вопроса — --yes
     python -m georag.graph.cli build --limit 30  только 30 фрагментов — проба
     python -m georag.graph.cli report            что нашла модель и где ошибалась
     python -m georag.graph.cli dataset           сущности, у которых больше всего фактов
@@ -67,6 +68,38 @@ def _confirm(conn: Any, args: Any) -> int:
     return 0
 
 
+def _redo_agreed(conn: Any, args: Any) -> bool:
+    """build --redo стирает весь граф, сколько бы фрагментов ни прошло заново (--limit
+    ограничивает только новый проход). Спросить, если стирать есть что; когда спросить
+    некого (вывод в файл, планировщик), — только с --yes."""
+    was = store.summary(conn)
+    if not was["passed"] or args.yes:
+        return True
+    part = (
+        f" Заново будет пройдено фрагментов: {args.limit} (--limit), остальные останутся "
+        "без фактов до следующего graph."
+        if args.limit
+        else ""
+    )
+    print(
+        f"--redo сотрёт весь граф: факты по {was['passed']} пройденным фрагментам "
+        f"(принято было {was['facts']}).{part}"
+    )
+    no_one = "Подтвердить некому — без вопроса: python georag.py graph --redo --yes"
+    if not sys.stdin.isatty():
+        print(no_one, file=sys.stderr)
+        return False
+    try:
+        answer = input("Стереть и выписать заново? [да/нет] ").strip().lower()
+    except EOFError:  # ввод пуст: на Windows NUL — тоже «терминал»
+        print("\n" + no_one, file=sys.stderr)
+        return False
+    except KeyboardInterrupt:
+        print()
+        return False
+    return answer in ("да", "д", "yes", "y")
+
+
 def _build(conn: Any, args: Any) -> int:
     llm = _llm(args)
     status = llm.status()
@@ -83,6 +116,9 @@ def _build(conn: Any, args: Any) -> int:
         print(f"Правила для модели не читаются: {exc}", file=sys.stderr)
         return 1
     if args.redo:
+        if not _redo_agreed(conn, args):
+            print("Граф не тронут.")
+            return 1
         store.clear(conn)
         conn.commit()
         print("Прошлые факты убраны — модель проходит всё заново.")
@@ -392,6 +428,7 @@ def main(argv: list[str] | None = None) -> int:
         "--out", default=str(LOCAL / "datasets"), help="куда класть таблицу датасета"
     )
     parser.add_argument("--redo", action="store_true", help="модель проходит всё заново")
+    parser.add_argument("--yes", action="store_true", help="build --redo: стереть граф без вопроса")
     parser.add_argument("--limit", type=int, default=None, help="сколько фрагментов пройти")
     parser.add_argument("--rules", default=None, help="другой файл правил для модели")
     parser.add_argument("--synonyms", default=None, help="другой словарь синонимов")

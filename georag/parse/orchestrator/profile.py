@@ -5,6 +5,7 @@
 других — настоящий дефис («кварц- серицитовых»), а сам PDF этого не говорит. Зонд
 за доли секунды (PyMuPDF, без моделей) смотрит на текстовый слой и выбирает вариант:
 
+    повреждён            PDF чинили при открытии, текста нет   не разбирается (ошибка файла)
     скан                 текстового слоя нет            не разбирается
     переносы размечены   в тексте есть мягкий перенос ¬ по ¬ склеивается (words), простой дефис — правила языка
     с переносами         строк, кончающихся дефисом, ≥ 1 % и ≥ 5  правила языка
@@ -27,6 +28,7 @@ from ..diag import describe
 from ..models import ParseInput
 
 SCAN = "скан"
+BROKEN = "повреждён"  # обрезан, недокачан: не скан — файл надо скачать или взять заново
 MARKED = "переносы размечены"
 HYPHENATED = "с переносами"
 PLAIN = "без переносов"
@@ -58,6 +60,7 @@ class Profile:
     soft_hyphens: int = 0
     line_breaks: int = 0  # строк, кончающихся дефисом перед строчной буквой
     lines: int = 0
+    repaired: bool = False  # PyMuPDF восстанавливал структуру файла при открытии
     seconds: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
@@ -88,6 +91,7 @@ def _measure(inp: ParseInput) -> Profile:
     with doc:
         meta = doc.metadata or {}
         pages = doc.page_count
+        repaired = bool(doc.is_repaired)
         sample = min(pages, SAMPLE_PAGES)
         text = "".join(doc[i].get_text() for i in range(sample))
     lines = text.splitlines()
@@ -108,6 +112,7 @@ def _measure(inp: ParseInput) -> Profile:
         soft_hyphens=text.count("\u00ad"),
         line_breaks=breaks,
         lines=len(lines),
+        repaired=repaired,
     )
     return decide(p)
 
@@ -116,7 +121,16 @@ def decide(p: Profile) -> Profile:
     """Вариант по признакам зонда (отдельно от чтения PDF — проверяется на числах)."""
     rate = p.line_breaks / max(1, p.lines)
     breaks = f"строк с переносом {p.line_breaks} из {p.lines} ({rate:.1%})"
-    if p.chars_per_page < SCAN_CHARS:
+    if p.chars_per_page < SCAN_CHARS and (p.repaired or not p.pages):
+        # Обрезанный или недокачанный PDF: у него текста нет не потому, что это скан, —
+        # страницы просто не читаются (без конца файла, таблицы ссылок, потоков страниц).
+        p.variant = BROKEN
+        p.reason = (
+            "файл обрезан или недокачан — "
+            + ("страниц нет" if not p.pages else "структуру PDF пришлось восстанавливать")
+            + f", текста {p.chars_per_page:.0f} знаков на страницу"
+        )
+    elif p.chars_per_page < SCAN_CHARS:
         p.variant = SCAN
         p.reason = f"текстового слоя почти нет: {p.chars_per_page:.0f} знаков на страницу"
     elif p.soft_hyphens >= MIN_SOFT_HYPHENS:

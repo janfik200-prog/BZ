@@ -90,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"Папки {args.acquired} нет — сначала добыча", file=sys.stderr)
                     return 1
                 # Таблицы новых версий (formulas, figures и ссылки на них) — до загрузки: база, созданная
-                # init раньше, их не знает, и загрузка падала бы целиком (ночная — тоже).
+                # init раньше, их не знает, и загрузка падала бы целиком (и долгая — тоже).
                 db.init_db(conn, with_hnsw=False)
                 print(f"Векторы считает BGE-M3 на {args.device}")
                 report = ingest_dir(conn, embedder, args.acquired, force=args.force)
@@ -177,6 +177,13 @@ def main(argv: list[str] | None = None) -> int:
     except ImportError as exc:
         print(f"Не хватает библиотеки: {exc}", file=sys.stderr)
         print("Поставьте: pip install -r requirements.txt", file=sys.stderr)
+        return 1
+    except UnicodeEncodeError as exc:
+        # Не база: вывод в файл в кодировке системы. Запускатель ставит UTF-8 сам.
+        print(f"Вывод не записался: {exc}", file=sys.stderr)
+        print(
+            "Запускайте через python georag.py или задайте PYTHONIOENCODING=utf-8", file=sys.stderr
+        )
         return 1
     except Exception as exc:  # noqa: BLE001
         print(f"База недоступна или ответила ошибкой: {type(exc).__name__}: {exc}", file=sys.stderr)

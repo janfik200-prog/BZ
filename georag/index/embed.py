@@ -52,10 +52,11 @@ def _gpu_free() -> float | None:
     return (total - used) * 1024 * 1024
 
 
-def _auto_device() -> str:
+def auto_device() -> str:
     """Видеокарта, если на ней есть место, иначе процессор. Языковая модель (vLLM)
     занимает видеокарту почти целиком; без места векторы считаются на процессоре:
-    вопрос — 60 мс вместо 25, загрузка статей — 2,4 фрагмента в секунду вместо 190."""
+    вопрос — 60 мс вместо 25, загрузка статей — 2,4 фрагмента в секунду вместо 190.
+    Так же выбирает устройство docling (parse/parsers/docling.py)."""
     import torch
 
     if not torch.cuda.is_available():
@@ -123,7 +124,7 @@ class Embedder:
     def _build(self) -> Any:
         from sentence_transformers import SentenceTransformer
 
-        device = _auto_device() if self.device == "auto" else self.device
+        device = auto_device() if self.device == "auto" else self.device
         model = offline_first(lambda: SentenceTransformer(self.model_id, device=device))
         model.max_seq_length = self.max_length
         # fp16 на видеокарте — втрое быстрее и вдвое меньше памяти. Векторы те же:

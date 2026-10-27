@@ -463,10 +463,14 @@ const BADGE = { "вектор": "vector", "текст": "text", "оба": "both"
 async function loadStats() {
   try {
     const data = await (await fetch("/api/stats")).json();
+    if (data.error) {  // база выключена — 503 с понятным текстом, а не «undefined статей»
+      $("stats").textContent = data.error;
+      return;
+    }
     const years = data.year_from ? `, ${data.year_from}–${data.year_to}` : "";
     $("stats").textContent = `${articles(data.documents)}, ${fragmentsN(data.chunks)}${years}`;
   } catch (e) {
-    $("stats").textContent = "база не отвечает";
+    $("stats").textContent = "сервер страницы не отвечает";
   }
 }
 

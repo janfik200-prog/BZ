@@ -23,6 +23,7 @@ from docling.datamodel.pipeline_options import (
 )
 from docling.document_converter import DocumentConverter, PdfFormatOption
 
+from ...index.embed import auto_device
 from ..config import Settings
 from ..diag import describe, full_traceback
 from ..models import DOCLING, FAILED, OK, PARTIAL, ParsedDoc, ParseInput
@@ -57,12 +58,15 @@ def _docling_source(inp: ParseInput) -> Any:
 
 def build_converter(settings: Settings, notes: list[str] | None = None) -> DocumentConverter:
     """Конвертер docling по настройкам; что применить не удалось — в notes (и в лог)."""
+    # auto — как у векторов: видеокарта, только если на ней есть место. Рядом с vLLM
+    # места нет, а docling, влезая туда, гонял память через общую: статья в 9 страниц —
+    # 22,6 с против 11,8 с на процессоре (27.10.2026), и тормозил бы vLLM.
+    chosen = auto_device() if settings.device == "auto" else settings.device
     device = {
-        "auto": AcceleratorDevice.AUTO,
         "cuda": AcceleratorDevice.CUDA,
         "cpu": AcceleratorDevice.CPU,
         "mps": getattr(AcceleratorDevice, "MPS", AcceleratorDevice.AUTO),
-    }.get(settings.device, AcceleratorDevice.AUTO)
+    }.get(chosen, AcceleratorDevice.AUTO)
 
     pipeline_options = PdfPipelineOptions()
     # Распознавание картинок (OCR) у docling включено по умолчанию — выключаем: сканы не

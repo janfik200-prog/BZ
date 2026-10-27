@@ -20,6 +20,11 @@
     clean "тема"                то же, и Qwen3 проверяет каждую статью по теме
     clean --apply               убрать их в .local/acquired/_отсев
     ingest                      загрузить добытое в базу
+
+Свои статьи
+    local                       разобрать PDF из папки input; разобранные переезжают
+                                в output, до чего не дошла очередь — остаются в input
+                                (потом — ingest)
     tidy                        убрать служебный текст (колонтитулы, благодарности) из базы
 
 Поиск и чат-бот
@@ -36,14 +41,15 @@
     ask "вопрос"                спросить чат-бота в терминале (нужна модель)
                                 (хотите подробно или кратко — так и напишите в вопросе)
     collect                     выписки по частым предметам заранее: широкий вопрос о них
-                                не ждёт чтения статей (идёт и в ночном прогоне)
+                                не ждёт чтения статей
     collect --limit 40          то же для 40 самых упоминаемых предметов (обычно 20)
     collect --dry-run           что будет прочитано — без модели
 
 Граф связей
     graph                       Qwen3 выписывает факты из статей (правила — config/graph-rules.txt)
     graph --limit 30            только 30 фрагментов — проба
-    graph --redo                всё заново (после правки правил)
+    graph --redo                всё заново (после правки правил): весь граф стирается,
+                                поэтому сначала спросит; без вопроса — graph --redo --yes
     graph --new                 что нашла модель и где ошибалась
     graph --recheck             перепроверить готовые факты новыми правилами кода (без модели)
     graph --confirm             подтвердить факты вопросами по цитате (идёт и после graph)
@@ -56,12 +62,6 @@
                                 (старое имя команды — dataset — тоже работает)
     questions                   вопросы оценки из фактов графа → .local/eval-graph.yaml
     gaps                        где базе не хватает статей → темы .local/topics-graph.yaml
-
-Ночная автоматика
-    schedule                    каждую ночь в 03:00: добыча → загрузка → граф → выписки
-    schedule --at 01:30         то же в другое время
-    unschedule                  убрать ночной прогон
-    nightly                     сделать ночной прогон прямо сейчас
 
 Проверка
     test                        проверить код (проверки — у разработчика, в .local/tests)
@@ -82,6 +82,9 @@
     --force           обработать заново даже то, что уже было (add, all, ingest)
     --figures         описать рисунки статей моделью со зрением (add, all; нужна qwen3.5:9b)
     --no-formulas     разбирать без распознавания формул (add, all): быстрее, формулы — картинками
+    --queries 3       сколько поисковых запросов составить на тему (add, all; обычно 5)
+    --dsn АДРЕС       другая база: postgresql://georag:georag@127.0.0.1:5433/georag_copy
+                      (любая команда; то же — переменная GEORAG_DSN)
 
 Окружение .venv запускатель находит сам: запускать можно обычным `python`,
 нужные библиотеки всё равно возьмутся из .venv проекта.
@@ -90,23 +93,31 @@
 from __future__ import annotations
 
 import argparse
+import io
 import os
 import re
 import subprocess
 import sys
 import time
 import urllib.request
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent
+# Вывод в файл или в другую программу Python на Windows пишет в кодировке системы
+# (cp1251), и на знаках вроде «→» или «Δ» команда падала с UnicodeEncodeError. В окне
+# консоли кодировка не мешает (там вывод идёт мимо неё), а файлы и каналы получают
+# UTF-8: и сам запускатель, и дочерние команды — через переменную окружения.
+os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+for _stream in (sys.stdout, sys.stderr):
+    if isinstance(_stream, io.TextIOWrapper) and not _stream.isatty():
+        _stream.reconfigure(encoding="utf-8")
 # Только для этой машины — статьи, логи, ключи, кэши — в .local (georag/paths.py).
 # Байт-код Python — туда же, а не папками __pycache__ по всему коду; дочерние
 # команды получают это через переменную окружения.
 os.environ.setdefault("PYTHONPYCACHEPREFIX", str(ROOT / ".local" / "cache" / "python"))
 sys.pycache_prefix = os.environ["PYTHONPYCACHEPREFIX"]
-from georag.paths import LOCAL, LOGS  # noqa: E402
+from georag.paths import LOCAL  # noqa: E402
 
 LOCAL.mkdir(exist_ok=True)
 
@@ -136,9 +147,6 @@ if _key_file.exists() and not os.environ.get("GEORAG_OPENALEX_KEY"):
 # библиотека, поэтому импортируется и до перехода в .venv.
 from georag.llm import DEFAULT_MODEL as MODEL  # noqa: E402
 from georag.llm import LLM_HOST as LLM  # noqa: E402
-
-TASK_NAME = "GeoRAG-acquire"  # имя ночной задачи в планировщике
-NIGHTLY_MAX_DOCS = 10
 
 # Проверки кода — только у разработчика, в .local/tests: в репозиторий не входят.
 TESTS_DIR = LOCAL / "tests"
@@ -179,11 +187,25 @@ def _relaunch_in_venv() -> None:
     python = _venv_python()
     if python is None or _in_venv(python):
         return
+    sys.exit(_wait(subprocess.Popen([str(python), str(Path(__file__).resolve()), *sys.argv[1:]])))
+
+
+def _wait(proc: subprocess.Popen[Any]) -> int:
+    """Дождаться дочерней команды. Ctrl+C получает и она сама (одна консоль): ждём, пока
+    она остановится и допишет своё, — subprocess.call убивал её через четверть секунды.
+    Второй Ctrl+C — убить сразу."""
     try:
-        code = subprocess.call([str(python), str(Path(__file__).resolve()), *sys.argv[1:]])
+        return proc.wait()
     except KeyboardInterrupt:
-        code = 130
-    sys.exit(code)
+        pass
+    try:
+        code = proc.wait()
+    except KeyboardInterrupt:
+        proc.kill()
+        proc.wait()
+        return 130
+    # Дочерняя команда, поймавшая Ctrl+C, сама выходит с кодом 130 (georag/interrupt.py).
+    return code
 
 
 def _need_venv() -> None:
@@ -201,16 +223,16 @@ def _need_venv() -> None:
 def _run(args: list[str], **kwargs: Any) -> int:
     """Запустить команду из папки проекта. Ctrl+C прерывает её, а не запускатель."""
     try:
-        return subprocess.call(args, cwd=ROOT, **kwargs)
-    except KeyboardInterrupt:
-        return 130
+        return _wait(subprocess.Popen(args, cwd=ROOT, **kwargs))
     except FileNotFoundError:
         print(f"Не найдена программа: {args[0]}", file=sys.stderr)
         return 127
 
 
 def _py(module: str, *args: str) -> int:
-    return _run([sys.executable, "-m", module, *args])
+    # Через georag.interrupt: Ctrl+C, который команда не поймала сама, — строка «Прервано»
+    # вместо трассировки на два экрана.
+    return _run([sys.executable, "-m", "georag.interrupt", module, *args])
 
 
 # --------------------------------------------------------------------------- #
@@ -303,9 +325,26 @@ def _wait_database(limit: float = 60) -> bool:
         time.sleep(1)
 
 
+def _local_dsn(dsn: str) -> bool:
+    """Адрес базы — наш контейнер (127.0.0.1:5433 из docker-compose.yml)? Пустой — да:
+    по умолчанию команды идут в него. Другая база на том же сервере — тоже он."""
+    if not dsn:
+        return True
+    from urllib.parse import urlparse
+
+    try:
+        where = urlparse(dsn)
+        return where.hostname in ("127.0.0.1", "localhost", "::1") and where.port == 5433
+    except ValueError:
+        return False
+
+
 def _ensure_database() -> bool:
     """Поднять базу, если она не запущена, и дождаться, пока она примет подключения.
-    Ложь — если Docker недоступен или база не поднялась."""
+    Ложь — если Docker недоступен или база не поднялась. База не в нашем контейнере
+    (--dsn или GEORAG_DSN на другой сервер) — поднимать нечего, её держат там."""
+    if not _local_dsn(os.environ.get("GEORAG_DSN", "")):
+        return True
     db = _db_state()
     if db is None:
         return False
@@ -356,13 +395,33 @@ def _ensure_llm(wait: bool = True, limit: int = 1800) -> bool:
 # --------------------------------------------------------------------------- #
 #  Команды
 # --------------------------------------------------------------------------- #
+def _torch_has_cuda() -> bool:
+    """Сборка torch в .venv — с CUDA? По номеру версии, без импорта torch (он грузится
+    секунды): с PyPI на Windows приходит «2.14.1+cpu», сборка с CUDA — «2.14.1+cu130»."""
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return "+cpu" not in version("torch")
+    except PackageNotFoundError:
+        return False
+
+
 def _acquire(opts: argparse.Namespace, topic_args: list[str]) -> int:
+    # Устройство — auto: docling берёт видеокарту, если torch её видит, иначе процессор.
+    # С жёстким cuda при torch без CUDA docling падал на каждой статье, и всё разбирал
+    # запасной парсер.
+    if not _torch_has_cuda():
+        print(
+            "torch в .venv — без CUDA: статьи разбираются на процессоре, медленнее. "
+            "Сборка с CUDA — ЗАПУСК.md, «Первый запуск».",
+            file=sys.stderr,
+        )
     args = [
         *topic_args,
         "--max-docs",
         str(opts.max_docs),
         "--device",
-        "cuda",
+        "auto",
         *(["--mailto", MAILTO] if MAILTO else []),
         "--model",
         MODEL,
@@ -375,10 +434,16 @@ def _acquire(opts: argparse.Namespace, topic_args: list[str]) -> int:
         args.append("--figures")
     if opts.no_formulas:
         args.append("--no-formulas")
+    if opts.queries:
+        args += ["--queries", str(opts.queries)]
     return _py("georag.acquire.cli", *args)
 
 
 def cmd_start(opts: argparse.Namespace) -> int:
+    # Сначала — отвечает ли Docker: если нет, _db_state говорит по-русски, что делать,
+    # а up печатал бы только английское «error during connect…».
+    if _db_state() is None:
+        return 1
     up = _docker("--profile", "llm", "up", "-d")
     if up is None or up.returncode != 0:
         return 1
@@ -391,6 +456,8 @@ def cmd_start(opts: argparse.Namespace) -> int:
 
 
 def cmd_stop(opts: argparse.Namespace) -> int:
+    if _db_state() is None:
+        return 1
     done = _docker("--profile", "llm", "stop")
     if done is not None and done.returncode == 0:
         print("База и модель остановлены. Данные на месте, видеокарта свободна.")
@@ -399,6 +466,9 @@ def cmd_stop(opts: argparse.Namespace) -> int:
 
 
 def cmd_status(opts: argparse.Namespace) -> int:
+    if _db_state() is None:
+        print(f"Модель на {LLM}: " + ("отвечает" if _llm_up() else "не отвечает"))
+        return 1
     done = _docker("--profile", "llm", "ps")
     print(f"Модель на {LLM}: " + ("отвечает" if _llm_up() else "не отвечает"))
     return 0 if done is not None and done.returncode == 0 else 1
@@ -413,6 +483,7 @@ def cmd_stats(opts: argparse.Namespace) -> int:
 
 
 def cmd_add(opts: argparse.Namespace) -> int:
+    opts.text = opts.text.strip()
     if not opts.text:
         print('Нужна тема: python georag.py add "выделение рудных узлов"', file=sys.stderr)
         return 1
@@ -438,8 +509,8 @@ def cmd_all(opts: argparse.Namespace) -> int:
 
 def cmd_clean(opts: argparse.Namespace) -> int:
     args = ["--apply"] if opts.apply else []
-    if opts.text:
-        args += ["--topic", opts.text, "--model", MODEL]
+    if opts.text.strip():
+        args += ["--topic", opts.text.strip(), "--model", MODEL]
     return _py("georag.acquire.clean", *args)
 
 
@@ -450,6 +521,15 @@ def cmd_ingest(opts: argparse.Namespace) -> int:
     if opts.force:
         args.append("--force")
     return _py("georag.index.cli", *args)
+
+
+def cmd_local(opts: argparse.Namespace) -> int:
+    args = ["--force"] if opts.force else []
+    if opts.limit:
+        args += ["--limit", str(opts.limit)]
+    if opts.no_formulas:
+        args.append("--no-formulas")
+    return _py("georag.acquire.local", *args)
 
 
 def cmd_tidy(opts: argparse.Namespace) -> int:
@@ -511,6 +591,8 @@ def cmd_graph(opts: argparse.Namespace) -> int:
         extra = ["--limit", str(opts.limit)] if opts.limit else []
         return _py("georag.graph.cli", "confirm", "--model", MODEL, *extra, *workers)
     args = ["build", "--model", MODEL] + (["--redo"] if opts.redo else []) + workers
+    if opts.yes:
+        args.append("--yes")
     if opts.limit:
         args += ["--limit", str(opts.limit)]
     return _py("georag.graph.cli", *args)
@@ -621,6 +703,16 @@ def cmd_lint(opts: argparse.Namespace) -> int:
     Пакет georag и файл georag.py проверяются mypy отдельно: у них одно имя."""
     # Проверки кода лежат в .local (исключена в pyproject) — их файлы передаются явно;
     # tests/ из репозитория — тоже (mypy его не проверяет: проверки без типов).
+    from importlib.util import find_spec
+
+    missing = [tool for tool in ("ruff", "black", "mypy") if find_spec(tool) is None]
+    if missing:
+        print(
+            f"Не установлены: {', '.join(missing)}. Поставить один раз:\n"
+            "    .venv\\Scripts\\python -m pip install -r requirements-dev.txt",
+            file=sys.stderr,
+        )
+        return 1
     tests = [str(p) for p in sorted(TESTS_DIR.rglob("*.py"))]
     tests += ["tests"] if (ROOT / "tests").is_dir() else []
     steps = [
@@ -685,210 +777,6 @@ def cmd_test(opts: argparse.Namespace) -> int:
     return 0
 
 
-# --------------------------------------------------------------------------- #
-#  Ночная автоматика
-# --------------------------------------------------------------------------- #
-def cmd_nightly(opts: argparse.Namespace) -> int:
-    """То, что запускает планировщик: добыча → загрузка в базу → граф → выписки.
-
-    Всё пишется в .local/logs/run-ДАТА.txt; логи старше месяца удаляются, чтобы папка
-    не росла бесконечно. Если модель не поднялась, отбор статей идёт эвристикой —
-    прогон не останавливается.
-    """
-    logs = LOGS
-    logs.mkdir(parents=True, exist_ok=True)
-    log_path = logs / f"run-{datetime.now():%Y%m%d-%H%M%S}.txt"
-    env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
-
-    with open(log_path, "w", encoding="utf-8") as log:
-
-        def say(line: str) -> None:
-            print(line, flush=True)
-            log.write(line + "\n")
-            log.flush()
-
-        def step(title: str, args: list[str]) -> int:
-            say(f"\n=== {title} · {datetime.now():%H:%M:%S} ===")
-            try:
-                proc = subprocess.Popen(
-                    args,
-                    cwd=ROOT,
-                    env=env,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
-                )
-            except OSError as exc:
-                say(f"не запустилось: {exc}")
-                return 1
-            for line in proc.stdout or []:
-                say(line.rstrip("\n"))
-            code = proc.wait()
-            say(f"--- код возврата {code}")
-            return code
-
-        say(f"=== ночной прогон {datetime.now():%Y-%m-%d %H:%M:%S} ===")
-        acquire = [
-            "-m",
-            "georag.acquire.cli",
-            "--topics",
-            "config/topics.yaml",
-            "--device",
-            "cuda",
-            "--max-docs",
-            str(NIGHTLY_MAX_DOCS),
-            *(["--mailto", MAILTO] if MAILTO else []),
-            "--model",
-            MODEL,
-        ]
-        if not _ensure_database() or not _ensure_llm():
-            say("Модель не отвечает — отбор пойдёт эвристикой")
-            acquire.append("--no-llm")
-
-        codes = [step("добыча статей", [sys.executable, *acquire])]
-        if _ensure_database():
-            codes.append(
-                step("загрузка в базу", [sys.executable, "-m", "georag.index.cli", "ingest"])
-            )
-            # Граф: Qwen3 выписывает факты из новых фрагментов, не больше 1000 за ночь —
-            # около получаса при 4 запросах сразу (~2 с на фрагмент с подтверждением).
-            # За ночь добывается до NIGHTLY_MAX_DOCS статей — это ~370 фрагментов; при
-            # прежних 300 очередь непройденных росла бы от ночи к ночи.
-            codes.append(
-                step(
-                    "граф связей",
-                    [
-                        sys.executable,
-                        "-m",
-                        "georag.graph.cli",
-                        "build",
-                        "--model",
-                        MODEL,
-                        "--limit",
-                        "1000",
-                    ],
-                )
-            )
-            # Выписки по предметам, о которых спрашивали, и самым упоминаемым — с новыми
-            # статьями ночи (chat/collect.py): иначе первый широкий вопрос о предмете ждёт
-            # чтения до 30 статей, 1,5–2 минуты. Не дольше часа; не успел — в следующую ночь.
-            codes.append(
-                step(
-                    "выписки по частым предметам",
-                    [
-                        sys.executable,
-                        "-m",
-                        "georag.chat.collect",
-                        "--model",
-                        MODEL,
-                        "--device",
-                        "cpu",
-                        "--minutes",
-                        "60",
-                    ],
-                )
-            )
-        else:
-            say("База не поднялась — загрузка, граф и выписки пропущены до следующего раза")
-            codes.append(1)
-        say(f"\n=== конец {datetime.now():%Y-%m-%d %H:%M:%S} ===")
-
-    cutoff = datetime.now() - timedelta(days=30)
-    for old in logs.glob("run-*.txt"):
-        try:
-            if datetime.fromtimestamp(old.stat().st_mtime) < cutoff:
-                old.unlink()
-        except OSError:
-            pass
-    return max(codes)
-
-
-def task_xml(python: Path, at: str) -> str:
-    """Описание ночной задачи для планировщика Windows.
-
-    Через XML, а не короткими ключами schtasks: только так задаётся «запустить,
-    как только компьютер проснётся, если время пропущено» и «не останавливать
-    на батарее». Без этого ноутбук, спавший в 03:00, пропускал бы прогон.
-    """
-    from xml.sax.saxutils import escape
-
-    hour, minute = (int(x) for x in at.split(":"))
-    start = datetime.now().replace(hour=hour, minute=minute, second=0, microsecond=0)
-    return f"""<?xml version="1.0" encoding="UTF-16"?>
-<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
-  <RegistrationInfo>
-    <Description>ГеоRAG: ночное пополнение базы знаний — добыча, загрузка, граф, выписки</Description>
-  </RegistrationInfo>
-  <Triggers>
-    <CalendarTrigger>
-      <StartBoundary>{start:%Y-%m-%dT%H:%M:%S}</StartBoundary>
-      <Enabled>true</Enabled>
-      <ScheduleByDay><DaysInterval>1</DaysInterval></ScheduleByDay>
-    </CalendarTrigger>
-  </Triggers>
-  <Settings>
-    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
-    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
-    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
-    <StartWhenAvailable>true</StartWhenAvailable>
-    <ExecutionTimeLimit>PT6H</ExecutionTimeLimit>
-    <Enabled>true</Enabled>
-  </Settings>
-  <Actions Context="Author">
-    <Exec>
-      <Command>{escape(str(python))}</Command>
-      <Arguments>"{escape(str(Path(__file__).resolve()))}" nightly</Arguments>
-      <WorkingDirectory>{escape(str(ROOT))}</WorkingDirectory>
-    </Exec>
-  </Actions>
-</Task>
-"""
-
-
-def cmd_schedule(opts: argparse.Namespace) -> int:
-    try:
-        hour, minute = (int(x) for x in opts.at.split(":"))
-        if not (0 <= hour < 24 and 0 <= minute < 60):
-            raise ValueError
-    except ValueError:
-        print(f"Время — в виде ЧЧ:ММ, например 03:00. Пришло: {opts.at}", file=sys.stderr)
-        return 1
-    python = _venv_python() or Path(sys.executable)
-    if os.name != "nt":
-        print(
-            "На этой системе планировщик Windows недоступен. Строка для crontab -e:\n"
-            f'    {minute} {hour} * * * "{python}" "{Path(__file__).resolve()}" nightly'
-        )
-        return 0
-
-    import tempfile
-
-    with tempfile.TemporaryDirectory() as tmp:
-        xml = Path(tmp) / "georag-task.xml"
-        xml.write_text(task_xml(python, opts.at), encoding="utf-16")
-        done = _run(["schtasks", "/Create", "/TN", TASK_NAME, "/XML", str(xml), "/F"])
-    if done == 0:
-        print(
-            f"\nГотово: каждую ночь в {opts.at:0>5} — добыча, загрузка в базу и граф.\n"
-            "Если компьютер в это время спал, прогон случится, когда он проснётся.\n"
-            "Логи — в папке .local\\logs. Проверить сразу, не дожидаясь ночи:\n"
-            "    python georag.py nightly"
-        )
-    return done
-
-
-def cmd_unschedule(opts: argparse.Namespace) -> int:
-    if os.name != "nt":
-        print("Уберите строку с georag.py из crontab -e.")
-        return 0
-    done = _run(["schtasks", "/Delete", "/TN", TASK_NAME, "/F"])
-    if done == 0:
-        print("Ночной прогон убран.")
-    return done
-
-
 def cmd_help(opts: argparse.Namespace) -> int:
     print(__doc__)
     return 0
@@ -904,6 +792,7 @@ COMMANDS = {
     "all": cmd_all,
     "clean": cmd_clean,
     "ingest": cmd_ingest,
+    "local": cmd_local,
     "tidy": cmd_tidy,
     "search": cmd_search,
     "web": cmd_web,
@@ -921,13 +810,10 @@ COMMANDS = {
     "tg": cmd_tg,
     "test": cmd_test,
     "lint": cmd_lint,
-    "nightly": cmd_nightly,
-    "schedule": cmd_schedule,
-    "unschedule": cmd_unschedule,
     "help": cmd_help,
 }
-# Эти работают без .venv: им нужны только Docker и планировщик.
-NO_VENV = {"start", "stop", "status", "help", "unschedule"}
+# Эти работают без .venv: им нужен только Docker.
+NO_VENV = {"start", "stop", "status", "help"}
 
 
 def parse(argv: list[str]) -> argparse.Namespace:
@@ -944,6 +830,7 @@ def parse(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--only", default="")
     p.add_argument("--questions", default="")
     p.add_argument("--redo", action="store_true")
+    p.add_argument("--yes", action="store_true")
     p.add_argument("--no-check", action="store_true")
     p.add_argument("--all", action="store_true")
     p.add_argument("--new", action="store_true")
@@ -961,8 +848,9 @@ def parse(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--verbose", action="store_true")
     p.add_argument("--check", action="store_true")
     p.add_argument("--dry-run", action="store_true")
-    p.add_argument("--at", default="03:00")
     p.add_argument("--topics", default="config/topics.yaml")
+    p.add_argument("--queries", type=int, default=None)
+    p.add_argument("--dsn", default="")
     p.add_argument("-h", "--help", action="store_true")
     return p.parse_args(argv)
 
@@ -997,6 +885,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if opts.command.lower() not in NO_VENV:
         _need_venv()
+    if opts.dsn:
+        # Адрес базы дочерние команды берут из GEORAG_DSN (index/db.py) — ключ туда же.
+        os.environ["GEORAG_DSN"] = opts.dsn
     return command(opts)
 
 

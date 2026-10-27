@@ -51,7 +51,10 @@ services:
     image: vllm/vllm-openai:v0.30.0
     container_name: georag-llm
     profiles: ["llm"]
-    restart: "no"  # видеокарту модель занимает, только когда её запустили
+    # Упала (код не 0: за ночь стояла с Exited 255) — поднимается сама, до 3 раз подряд.
+    # Остановленная (python georag.py stop) — стоит: видеокарту модель занимает, только
+    # когда её запустили.
+    restart: on-failure:3
     entrypoint: ["vllm", "serve"]
     command:
       - Qwen/Qwen3-14B-AWQ

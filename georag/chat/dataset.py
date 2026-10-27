@@ -237,7 +237,7 @@ def dataset_summary(data: dict[str, Any]) -> str:
     """Факты о сущности одним текстом — «фрагмент» для модели."""
     includes = data.get("includes") or []
     # «Полный список» — только если модель прошла все фрагменты базы. Граф
-    # строится ночью порциями, и новые статьи попадают в него не сразу.
+    # строится порциями, и новые статьи попадают в него не сразу.
     passed = data.get("pass") or {}
     done, total = passed.get("passed") or 0, passed.get("chunks") or 0
     scope = (

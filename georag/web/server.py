@@ -13,7 +13,8 @@
 Для страницы:
 
     GET  /api/stats                    сколько статей и фрагментов
-    GET  /api/health                   чем отвечает база: версия, модель, объём
+    GET  /api/health                   чем отвечает база: версия, модель, объём; жива ли
+                                       база (db) и языковая модель (llm); без базы — 503
     GET  /api/search?q=...             гибридный поиск; &doc_id=... — только в этой статье
     GET  /api/documents                список статей
     GET  /api/document?doc_id=...      разбор статьи по фрагментам
@@ -104,6 +105,20 @@ def _hit_to_dict(hit: Any) -> dict[str, Any]:
     }
 
 
+DB_DOWN = "База недоступна — запустите её: python georag.py start"
+
+
+def _db_unavailable(exc: BaseException) -> bool:
+    """Ошибка значит «база не отвечает» (выключена, перезапускалась, не принимает
+    соединения), а не сбой самого запроса. Такой — 503 и понятные слова на странице
+    вместо 500 «OperationalError: consuming input failed»."""
+    import psycopg
+    from psycopg_pool import PoolTimeout
+
+    # OperationalError — и его подклассы: AdminShutdown (базу перезапустили), обрыв связи.
+    return isinstance(exc, psycopg.OperationalError | PoolTimeout | ConnectionRefusedError)
+
+
 def _version() -> str:
     """Короткий номер коммита — чем отвечала база. Нет git — пустая строка."""
     import subprocess
@@ -172,7 +187,7 @@ class Handler(BaseHTTPRequestHandler):
             elif route.path == "/api/stats":
                 self._json(self._stats())
             elif route.path == "/api/health":
-                self._json(self._health())
+                self._json(*self._health())
             elif route.path == "/api/search":
                 self._json(self._search(query))
             elif route.path == "/api/documents":
@@ -201,6 +216,9 @@ class Handler(BaseHTTPRequestHandler):
         except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
             pass  # страницу закрыли, пока отвечали
         except Exception as exc:  # noqa: BLE001 — ошибка уходит на страницу, сервер живёт
+            if _db_unavailable(exc):
+                self._json({"error": DB_DOWN, "detail": f"{type(exc).__name__}: {exc}"}, 503)
+                return
             traceback.print_exc()
             self._json({"error": f"{type(exc).__name__}: {exc}"}, 500)
 
@@ -233,6 +251,11 @@ class Handler(BaseHTTPRequestHandler):
         """Ответ потоком: строка JSON на событие, страница рисует по мере прихода."""
         history = payload.get("history") if isinstance(payload.get("history"), list) else []
         settings = State.chat_settings
+        if not str(payload.get("question") or "").strip():
+            # Неверный запрос — 400, а не 200 с ошибкой в потоке. Тело — то же событие
+            # error: страница читает его так же, как поток.
+            self._json({"type": "error", "error": "пустой вопрос: нужно поле question"}, 400)
+            return
         self.send_response(200)
         self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
         self.send_header("Cache-Control", "no-cache")
@@ -274,9 +297,12 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass  # страницу закрыли или нажали «Стоп» — не страшно
         except Exception as exc:  # noqa: BLE001
-            traceback.print_exc()
+            down = _db_unavailable(exc)
+            if not down:
+                traceback.print_exc()
             try:
-                line = {"type": "error", "error": f"{type(exc).__name__}: {exc}"}
+                text = DB_DOWN if down else f"{type(exc).__name__}: {exc}"
+                line = {"type": "error", "error": text}
                 self.wfile.write((json.dumps(line, ensure_ascii=False) + "\n").encode("utf-8"))
             except OSError:
                 pass
@@ -345,22 +371,36 @@ class Handler(BaseHTTPRequestHandler):
             "year_to": hi,
         }
 
-    def _health(self) -> dict[str, Any]:
+    def _health(self) -> tuple[dict[str, Any], int]:
         """Чем именно отвечала база знаний: версия кода, модель векторов, объём и
         состояние графа. Нужно другой базе: цитата, уехавшая в паспорт признака,
-        должна помнить, по какой разметке она получена."""
-        with db.connect(State.dsn) as conn:
-            info = db.stats(conn)
-            facts = graph.summary(conn)
-        return {
-            "documents": info["documents"],
-            "chunks": info["chunks"],
-            "embedded": info["embedded"],
-            "facts": facts,
+        должна помнить, по какой разметке она получена.
+
+        И что работает сейчас: db и llm — {"ok": …}. Языковая модель не нужна поиску,
+        поэтому без неё ответ 200; без базы — 503 (отвечать нечем)."""
+        llm = chat.llm_status(State.chat_settings.host, State.chat_settings.model, timeout=3)
+        state: dict[str, Any] = {
+            "llm": {"ok": bool(llm.get("ok")), "model": State.chat_settings.model}
+            | ({} if llm.get("ok") else {"error": llm.get("error", "")}),
             "embed_model": getattr(State.embedder, "model_id", ""),
             "version": _version(),
             "checked_at": datetime.now(UTC).isoformat(timespec="seconds"),
         }
+        try:
+            with db.connect(State.dsn) as conn:
+                info = db.stats(conn)
+                facts = graph.summary(conn)
+        except Exception as exc:
+            if not _db_unavailable(exc):
+                raise
+            return {"db": {"ok": False, "error": DB_DOWN}} | state, 503
+        return {
+            "db": {"ok": True},
+            "documents": info["documents"],
+            "chunks": info["chunks"],
+            "embedded": info["embedded"],
+            "facts": facts,
+        } | state, 200
 
     def _search(self, query: dict[str, Any]) -> dict[str, Any]:
         text = (query.get("q") or [""])[0].strip()

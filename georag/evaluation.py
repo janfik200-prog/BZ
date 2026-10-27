@@ -396,6 +396,14 @@ def report(
         f"Вопросов: {summary['questions']} · в базе: {meta['documents']} статей, "
         f"{meta['chunks']} фрагментов · модель: {meta['model']}"
         + ("" if meta["with_answer"] else " · только поиск")
+        + ("" if meta.get("graph", True) else " · **без графа** (--no-graph)")
+        + (" · с векторами фактов (--facts)" if meta.get("facts") else "")
+    )
+    lines.append("")
+    lines.append(
+        f"Сравнение — с прогоном {meta['previous']}: те же вопросы и тот же режим."
+        if meta.get("previous")
+        else "Сравнивать не с чем: прошлого прогона с теми же вопросами и в том же режиме нет."
     )
     if not meta.get("planner"):
         lines.append("")
@@ -476,18 +484,33 @@ def report(
     return "\n".join(lines).rstrip() + "\n"
 
 
-def previous_run(log_dir: Path, before: str) -> dict[str, Any] | None:
-    """Сводка прошлого прогона — из последнего eval-*.json в папке логов."""
+# По чему прогоны сравнимы: с графом и без, с ответами и только поиск — разные числа.
+MODE_KEYS = (("graph", True), ("facts", False), ("with_answer", True))
+
+
+def previous_run(
+    log_dir: Path, before: str, meta: dict[str, Any] | None = None, ids: list[str] | None = None
+) -> tuple[dict[str, Any] | None, str]:
+    """Сводка прошлого прогона и когда он был — из последнего eval-*.json в папке логов
+    с теми же вопросами (ids) и в том же режиме (meta). Иначе «+25 % к прошлому» значило
+    бы лишь, что вопросы другие или граф выключен."""
     runs = sorted(p for p in log_dir.glob("eval-*.json") if p.stem < f"eval-{before}")
     for path in reversed(runs):
         try:
-            summary: dict[str, Any] | None = json.loads(path.read_text(encoding="utf-8")).get(
-                "summary"
-            )
-            return summary
+            data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-    return None
+        was = data.get("meta") or {}
+        if meta is not None and any(
+            was.get(key, default) != meta.get(key, default) for key, default in MODE_KEYS
+        ):
+            continue
+        if ids is not None and sorted(r.get("id") for r in data.get("results") or []) != sorted(
+            ids
+        ):
+            continue
+        return data.get("summary"), str(was.get("when") or path.stem[len("eval-") :])
+    return None, ""
 
 
 # --------------------------------------------------------------------------- #
@@ -571,9 +594,8 @@ def main(argv: list[str] | None = None) -> int:
 
     when = datetime.now().strftime("%Y%m%d-%H%M")
     args.logs.mkdir(parents=True, exist_ok=True)
-    previous = previous_run(args.logs, when)
     summary = summarize(results)
-    meta = {
+    meta: dict[str, Any] = {
         "when": datetime.now().strftime("%d.%m.%Y %H:%M"),
         "documents": info["documents"],
         "chunks": info["chunks"],
@@ -583,6 +605,7 @@ def main(argv: list[str] | None = None) -> int:
         "graph": not args.no_graph,
         "facts": settings.fact_search,
     }
+    previous, meta["previous"] = previous_run(args.logs, when, meta, [r["id"] for r in results])
     md = report(results, summary, previous, meta)
     (args.logs / f"eval-{when}.md").write_text(md, encoding="utf-8")
     (args.logs / f"eval-{when}.json").write_text(

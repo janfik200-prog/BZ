@@ -11,6 +11,10 @@ __pycache__/
 # synonyms. Где что — georag/paths.py.
 .local/
 
+# Свои статьи: PDF для разбора и разобранные (python georag.py local)
+/input/
+/output/
+
 # Секреты вне .local — если кто-то положит .env в корень
 .env
 *.env

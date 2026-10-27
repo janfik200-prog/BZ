@@ -12,6 +12,7 @@ PDF не сохраняется. На диск ложатся: ссылка с �
 from __future__ import annotations
 
 import json
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,6 +23,7 @@ from ..llm import LLM
 from ..parse.config import Settings
 from ..parse.diag import describe, full_traceback
 from ..parse.models import FAILED, OK, PARTIAL, SCAN, ParseInput
+from ..parse.orchestrator.profile import BROKEN
 from ..parse.parsers.worker import DoclingWorker
 from ..parse.pipeline import StepLogger, process_document
 from ..paths import ARTICLES
@@ -45,6 +47,8 @@ from .providers import build_providers
 from .sources import load_sources
 
 INDEX_NAME = "index.jsonl"
+# Битые строки журнала, о которых уже сказано: журнал читается за прогон не раз.
+_WARNED: set[tuple[str, int]] = set()
 
 
 @dataclass
@@ -64,13 +68,13 @@ class AcquireConfig:
     fallback_filter: bool = True  # если модель молчит, решает эвристика, а не человек
     prefer_fetchable: bool = True  # сначала статьи, у которых есть полный текст
     max_fetch_attempts: int = 4  # сколько копий полного текста пробовать подряд
-    max_candidates: int = 120  # предел на отбор: ночной прогон должен заканчиваться
+    max_candidates: int = 120  # предел на отбор: прогон all должен заканчиваться
     # До модели — дешёвый доменный фильтр: без единого слова рудной тематики в
     # названии и аннотации статья отбрасывается сразу. Модель не тратит на неё время,
     # и место в пределе отбора достаётся статьям, которые могут подойти.
     domain_gate: bool = True
     # Заранее подготовленные запросы по темам. Если для темы они есть, модель
-    # на этом шаге не дёргается: думали один раз, ищем каждую ночь одинаково.
+    # на этом шаге не дёргается: думали один раз, ищем каждый раз одинаково.
     queries_map: dict[str, list[str]] | None = None
     # Рисунки → фрагменты с описанием моделью со зрением (chunks/figures.py, --figures).
     figures: bool = False
@@ -85,17 +89,34 @@ def load_index(out_dir: Path) -> dict[str, dict[str, Any]]:
     if not path.exists():
         return {}
     index: dict[str, dict[str, Any]] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         line = line.strip()
         if not line:
             continue
         try:
             record = json.loads(line)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as exc:
+            # Оборванная запись или правка руками: остальные строки читаются, но молча
+            # пропускать нельзя — статья из этой строки будет скачана и разобрана заново.
+            if (str(path), number) not in _WARNED:
+                _WARNED.add((str(path), number))
+                print(
+                    f"{path}, строка {number}: запись не читается ({exc.msg}) — пропущена; "
+                    "эту статью добыча не узнает и может скачать заново",
+                    file=sys.stderr,
+                )
             continue
         if record.get("doc_id"):
             index[record["doc_id"]] = record
     return index
+
+
+def failed_note(doc_result: Any) -> str:
+    """Почему статья не разобралась — для записи и списка «не разобрались». Повреждённый
+    файл (обрезан, недокачан) так и называется: валидация тут ни при чём."""
+    if doc_result.variant == BROKEN and doc_result.failed_checks:
+        return str(doc_result.failed_checks[0])
+    return "не прошёл валидацию, нужен человек"
 
 
 def append_index(out_dir: Path, record: AcquiredRecord) -> None:
@@ -564,7 +585,7 @@ def _acquire_one(
         attempts=doc_result.attempts,
         cases=doc_result.cases,
         note={ACQUIRED: "", SCANNED: "скан: текстового слоя нет — не разбирается"}.get(
-            status, "не прошёл валидацию, нужен человек"
+            status, failed_note(doc_result)
         ),
     )
     _write_doc(cfg.out_dir, record, None if status == SCANNED else parsed, chunks, fetched.data)

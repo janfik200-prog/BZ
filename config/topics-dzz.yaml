@@ -4,7 +4,7 @@
 # Запуск:
 #   python georag.py all --topics topics-dzz.yaml --max-docs 20
 #   python georag.py ingest
-#   python georag.py graph            (факты из новых статей — долго, можно ночью)
+#   python georag.py graph            (факты из новых статей — долго, можно прервать Ctrl+C)
 #
 # Уже добытые статьи пропускаются по индексу: прогон можно повторять.
 # Английских тем больше: открытых статей по ДЗЗ на английском в разы больше.

@@ -144,7 +144,7 @@ def _process(
         detail=f"{kind.variant}: {kind.reason}",
         profile=kind.to_dict(),
     )
-    if kind.variant == profile.SCAN:
+    if kind.variant in (profile.SCAN, profile.BROKEN):
         return _scan(inp, kind, logger, started)
 
     try:
@@ -275,22 +275,31 @@ def _crashed(
 def _scan(
     inp: ParseInput, kind: profile.Profile, logger: StepLogger, started: float
 ) -> tuple[DocResult, ParsedDoc, list[Chunk]]:
-    """Скан не разбирается: текста нет, распознавание картинок не делаем."""
-    parsed = ParsedDoc.failed(inp, PROBE, kind.reason, status=SCAN)
+    """Скан не разбирается: текста нет, распознавание картинок не делаем. Повреждённый
+    файл тоже, но это ошибка (FAILED), а не скан: его надо скачать или взять заново."""
+    status = FAILED if kind.variant == profile.BROKEN else SCAN
+    parsed = ParsedDoc.failed(inp, PROBE, kind.reason, status=status)
     parsed.page_count = kind.pages
     result = DocResult(
         doc_id=inp.doc_id,
         source_path=inp.source,
         parser=PROBE,
-        status=SCAN,
+        status=status,
         pages=kind.pages,
         duration_sec=time.monotonic() - started,
-        failed_checks=[f"скан: {kind.reason}"],
-        attempts=[f"{PROBE}:скан"],
+        failed_checks=[f"{kind.variant}: {kind.reason}"],
+        attempts=[f"{PROBE}:{kind.variant}"],
         variant=kind.variant,
         cases=[f.short() for f in orchestrator.before(kind) if f.found],
     )
-    logger.log(inp.doc_id, "document", SCAN, result.duration_sec, detail="скан — не разбирается")
+    logger.log(
+        inp.doc_id,
+        "document",
+        status,
+        result.duration_sec,
+        detail=f"{kind.variant} — не разбирается",
+        **({"errors": [kind.reason]} if status == FAILED else {}),
+    )
     return result, parsed, []
 
 

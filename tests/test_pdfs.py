@@ -83,3 +83,22 @@ def test_docling_formulas(data: Path) -> None:
     parsed = DoclingParser(Settings()).parse(data / "formulas_ru.pdf")
     assert parsed.status == OK, parsed.errors[:2]
     assert "Плотность пород" in parsed.text
+
+
+def test_truncated_pdf_is_broken_not_scan(data: Path, tmp_path: Path) -> None:
+    """Обрезанный PDF — «повреждён», а не «скан»: у скана текста нет, а этот просто
+    не дочитывается (нет конца файла, таблицы ссылок)."""
+    whole = (data / "plain_ru.pdf").read_bytes()
+    cut = tmp_path / "cut.pdf"
+    cut.write_bytes(whole[: len(whole) // 3])
+    found = profile.probe(ParseInput.of(cut))
+    assert found.variant == profile.BROKEN, found.reason
+    assert "обрезан" in found.reason
+
+
+def test_broken_needs_repair() -> None:
+    """Мало текста без восстановления файла — по-прежнему скан."""
+    scan = profile.decide(profile.Profile("", "", pages=3, chars_per_page=2))
+    assert scan.variant == profile.SCAN
+    broken = profile.decide(profile.Profile("", "", pages=3, chars_per_page=2, repaired=True))
+    assert broken.variant == profile.BROKEN

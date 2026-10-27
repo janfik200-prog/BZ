@@ -244,7 +244,8 @@ def test_ensure_database_docker_down(monkeypatch: MonkeyPatch, clock: FakeTime) 
 
 
 def test_start_waits_for_database_then_model(monkeypatch: MonkeyPatch, clock: FakeTime) -> None:
-    fake_docker(monkeypatch, ["running starting", "running healthy"])
+    # Первое состояние — проверка «отвечает ли Docker» до up, дальше — ожидание базы.
+    fake_docker(monkeypatch, ["exited ", "running starting", "running healthy"])
     monkeypatch.setattr(launcher, "_ensure_llm", lambda: True)
     assert launcher.cmd_start(launcher.parse(["start"])) == 0
     assert clock.sleeps == [1]
@@ -261,3 +262,36 @@ def test_start_database_failed(monkeypatch: MonkeyPatch, clock: FakeTime) -> Non
     monkeypatch.setattr(launcher, "_ensure_llm", ensure_llm)
     assert launcher.cmd_start(launcher.parse(["start"])) == 1
     assert asked == []  # база не поднялась — полчаса ждать модель незачем
+
+
+@pytest.mark.parametrize(
+    ("dsn", "local"),
+    [
+        ("", True),  # по умолчанию — наш контейнер
+        ("postgresql://georag:georag@127.0.0.1:5433/georag_copy", True),
+        ("postgresql://georag:georag@localhost:5433/georag", True),
+        ("postgresql://u:p@10.0.0.5:5432/georag", False),  # чужой сервер — Docker не трогаем
+        ("postgresql://u:p@127.0.0.1:5999/georag", False),
+    ],
+)
+def test_local_dsn(dsn: str, local: bool) -> None:
+    assert launcher._local_dsn(dsn) is local
+
+
+def test_add_blank_topic(capsys: Capsys) -> None:
+    """Тема из одних пробелов — как пустая: добыча не начинается."""
+    assert launcher.cmd_add(launcher.parse(["add", "   "])) == 1
+    assert "Нужна тема" in capsys.readouterr().err
+
+
+def test_dsn_and_queries_accepted() -> None:
+    opts = launcher.parse(["stats", "--dsn", "postgresql://x@h:1/db", "--queries", "1"])
+    assert (opts.dsn, opts.queries) == ("postgresql://x@h:1/db", 1)
+
+
+def test_start_docker_not_responding(monkeypatch: MonkeyPatch, capsys: Capsys) -> None:
+    """Docker не отвечает — start говорит по-русски, что делать, и up не зовёт."""
+    seen = fake_run(monkeypatch, code=1)
+    assert launcher.cmd_start(launcher.parse(["start"])) == 1
+    assert "Запустите Docker Desktop" in capsys.readouterr().err
+    assert not any("up" in cmd for cmd in seen)
