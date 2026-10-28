@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from georag.parse.orchestrator.formulas import fix_formula, tidy_formula
 
 
@@ -68,3 +70,19 @@ def test_formula_model_checked_before_parsing() -> None:
     assert problem and "--no-formulas" in problem
     settings.formulas = False
     assert formulas_problem(settings, gone) is None
+
+
+def test_formula_frame_reaches_docling_model() -> None:
+    """Рамка формулы — в опциях модели формул: с docling 2.1xx модель берёт её оттуда, а
+    не из поля класса, и без этого работала рамка 0,18 вместо настроенной (28.10.2026)."""
+    import pytest
+
+    pytest.importorskip("docling")
+    from docling.datamodel.base_models import InputFormat
+
+    from georag.parse.config import Settings
+    from georag.parse.parsers.docling import build_converter
+
+    converter = build_converter(Settings(formula_expansion=0.07, device="cpu"))
+    options: Any = converter.format_to_options[InputFormat.PDF].pipeline_options
+    assert options.code_formula_options.expansion_factor == 0.07

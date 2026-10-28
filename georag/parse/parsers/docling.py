@@ -91,6 +91,14 @@ def build_converter(settings: Settings, notes: list[str] | None = None) -> Docum
         log.warning(note)
         if notes is not None:
             notes.append(note)
+    # С docling 2.1xx модель формул берёт рамку из своих опций при создании, а поле
+    # класса (выше) лишь значение по умолчанию: без этого работала рамка 0,18, а не
+    # наши 0,05 (замер 28.10.2026). Пачку модель по-прежнему берёт из поля класса.
+    formula_options: Any = getattr(pipeline_options, "code_formula_options", None)
+    if settings.formulas and hasattr(formula_options, "expansion_factor"):
+        pipeline_options.code_formula_options = formula_options.model_copy(
+            update={"expansion_factor": settings.formula_expansion}
+        )
     if settings.figures:
         pipeline_options.generate_picture_images = True
         pipeline_options.images_scale = settings.figures_scale
