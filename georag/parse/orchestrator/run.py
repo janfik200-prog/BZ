@@ -20,7 +20,7 @@ from ..parsers.structure import FURNITURE, extract_structure, label_of
 from . import hyphens, layout, profile, textlayer
 from .captions import rescue_captions
 from .cases import Finding
-from .formulas import fix_formula
+from .formulas import fix_formula, fix_omath
 from .words import fix_homoglyphs, join_soft_hyphens, tidy_text
 
 
@@ -98,6 +98,8 @@ def _captions(doc: Any, inp: ParseInput) -> list[Finding]:
 
 
 def _symbols(doc: Any, inp: ParseInput) -> list[Finding]:
+    if profile.is_word(inp):
+        return [Finding("испорченные знаки", False, "документ Word: текстового слоя PDF нет")]
     share = textlayer.garbled_share(doc, inp)
     if share < textlayer.GARBLED_SHARE:
         return [Finding("испорченные знаки", False, f"лишних знаков {share:.1%}")]
@@ -114,6 +116,8 @@ def _symbols(doc: Any, inp: ParseInput) -> list[Finding]:
 
 def _formulas(doc: Any, inp: ParseInput) -> list[Finding]:
     items = [t for t in doc.texts if label_of(t) == "formula" and t.text]
+    if profile.is_word(inp):
+        return _word_formulas(doc, items)
     tails = numbers = russian = rebuilt = 0
     for item in items:
         fix = fix_formula(item.text, getattr(item, "orig", "") or "")
@@ -131,6 +135,34 @@ def _formulas(doc: Any, inp: ParseInput) -> list[Finding]:
             "не та формула", rebuilt > 0, f"из текста PDF {rebuilt} из {total}" if rebuilt else none
         ),
     ]
+
+
+_WORD_NUMBER = re.compile(r"\(\s*(\d{1,3})\s*\)")
+
+
+def _word_formulas(doc: Any, items: list[Any]) -> list[Finding]:
+    """Формулы Word — LaTeX из OMath (docling): русские буквы и знаки — показываемыми;
+    номер «(N)», который в Word стоит отдельным абзацем или после табуляции, — к формуле,
+    как у формул PDF («\\quad (N)»)."""
+    fixed = numbered = 0
+    for item in items:
+        text = fix_omath(item.text)
+        fixed += text != item.text
+        item.text = text
+        item.orig = ""  # текста PDF у формулы Word нет (index/formulas.py: pdf_text)
+    order = [item for item, _level in doc.iterate_items(with_groups=False)]
+    gone = []
+    for item, following in zip(order, order[1:], strict=False):
+        number = _WORD_NUMBER.fullmatch((getattr(following, "text", "") or "").strip())
+        if label_of(item) == "formula" and label_of(following) in ("text", "paragraph") and number:
+            item.text = f"{item.text} \\quad ({number.group(1)})"
+            gone.append(following)
+            numbered += 1
+    if gone:
+        doc.delete_items(node_items=gone)
+    total = len(items)
+    detail = f"из OMath {total}: исправлено {fixed}, номер приписан {numbered}" if total else ""
+    return [Finding("формулы Word", total > 0, detail or "формул нет")]
 
 
 def _targets(doc: Any) -> list[Any]:
@@ -170,6 +202,8 @@ def _table_rows(doc: Any, inp: ParseInput) -> list[Finding]:
 
 
 def _page_breaks(doc: Any, inp: ParseInput) -> list[Finding]:
+    if profile.is_word(inp):  # абзац Word страницей не рвётся
+        return [Finding("абзац на стыке страниц", False, "документ Word: страниц нет")]
     n = layout.join_split_paragraphs(doc)
     return [Finding("абзац на стыке страниц", n > 0, f"склеено: {n}" if n else "")]
 
@@ -199,7 +233,10 @@ def _figures(doc: Any, inp: ParseInput) -> list[Finding]:
 _DOCLING_STEPS: tuple[tuple[tuple[str, ...], Step], ...] = (
     (("подпись в колонтитуле",), _captions),
     (("испорченные знаки",), _symbols),
-    (("хвост формулы", "номер формулы", "русские обозначения", "не та формула"), _formulas),
+    (
+        ("хвост формулы", "номер формулы", "русские обозначения", "не та формула", "формулы Word"),
+        _formulas,
+    ),
     (("мягкие переносы", "буквы-двойники"), _words),
     (("колонтитулы",), _furniture),
     (("рисунок без картинки",), _figures),
@@ -252,6 +289,8 @@ class _Text:
 
 def _hyphens(targets: list[Any], kind: profile.Profile) -> list[Finding]:
     """Дефисы на концах строк по варианту зонда; targets — всё, у чего есть поле text."""
+    if kind.variant == profile.WORD:
+        return [Finding("дефисы на концах строк", False, "документ Word: строк нет — не трогаются")]
     if kind.variant in (profile.UNKNOWN, profile.SCAN):
         return [Finding("дефисы на концах строк", False, "вариант не известен — не трогаются")]
     fixed = 0

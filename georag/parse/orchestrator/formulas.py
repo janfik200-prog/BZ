@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 
 _CYRILLIC = re.compile(r"[А-Яа-яЁё]")
 # Номер формулы, который модель дописывает в LaTeX («\quad \ \ ( 8 )», «& & ( 1 3 )»),
@@ -122,3 +123,62 @@ def fix_formula(latex: str, orig: str) -> FormulaFix:
 def tidy_formula(latex: str, orig: str) -> str:
     """Только чистый LaTeX (см. fix_formula)."""
     return fix_formula(latex, orig).text
+
+
+# --- Формулы Word (OMath) ------------------------------------------------------ #
+# В .docx формула хранится разметкой OMath, и docling переводит её в LaTeX без модели —
+# точно и сразу. Но буквы и знаки вне математики он кодирует текстовыми командами
+# (pylatexenc): «V_{обр}» → «V_{ \cyro \cyrb \cyrr }», «·» → «\text{ \textperiodcentered }».
+# В формуле их не покажет ни KaTeX, ни MathJax — русское слово возвращается в \text{},
+# знак — командой формул.
+_CYRILLIC_RUN = re.compile(r"(?:\\(?:cyr[a-z]+|CYR[A-Z]+)\b\s*)+")
+_CYRILLIC_MACRO = re.compile(r"\\(?:cyr[a-z]+|CYR[A-Z]+)\b")
+_TEXT_SIGNS = {
+    "textperiodcentered": r"\cdot", "textdegree": r"^{\circ}", "textellipsis": r"\ldots",
+    "texttimes": r"\times", "textemdash": "-", "textendash": "-", "textminus": "-",
+    "textnumero": r"\text{№}", "textperthousand": r"\text{‰}",
+}  # fmt: skip
+_TEXT_SIGN = re.compile(
+    r"\\text\{\s*\\(" + "|".join(_TEXT_SIGNS) + r")\s*\}|\\(" + "|".join(_TEXT_SIGNS) + r")\b"
+)
+_CYRILLIC_LETTERS = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+
+
+@lru_cache(maxsize=1)
+def _cyrillic_macros() -> dict[str, str]:
+    """«\\cyrp» → «п»: обратная таблица того кодировщика, которым пользуется docling."""
+    try:
+        from pylatexenc.latexencode import UnicodeToLatexEncoder
+    except ImportError:  # без docling нечего и чинить
+        return {}
+    encoder = UnicodeToLatexEncoder(
+        replacement_latex_protection="braces-all",
+        unknown_char_policy="keep",
+        unknown_char_warning=False,
+    )
+    macros = {}
+    for letter in _CYRILLIC_LETTERS:
+        macro = encoder.unicode_to_latex(letter).strip("{} ")
+        if macro.startswith("\\"):
+            macros[macro] = letter
+    return macros
+
+
+def _word(run: re.Match[str]) -> str:
+    macros = _cyrillic_macros()
+    letters = [macros.get(m) for m in _CYRILLIC_MACRO.findall(run.group())]
+    if not letters or None in letters:
+        return run.group()  # незнакомая команда — оставить, как есть
+    return r"\text{" + "".join(str(ch) for ch in letters) + "} "
+
+
+def fix_omath(latex: str) -> str:
+    """LaTeX формулы Word от docling — с русскими буквами и знаками, которые показываются:
+    «V_{ \\cyrp \\cyro \\cyrr }» → «V_{\\text{пор}}», «\\text{ \\textperiodcentered }» → «\\cdot».
+    """
+    if not latex or "\\" not in latex:
+        return latex or ""
+    text = _CYRILLIC_RUN.sub(_word, latex)
+    text = _TEXT_SIGN.sub(lambda m: _TEXT_SIGNS[m.group(1) or m.group(2)] + " ", text)
+    text = re.sub(r"\{\s+", "{", re.sub(r"\s+\}", "}", text))
+    return " ".join(text.split())

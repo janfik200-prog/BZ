@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import re
 
-from .profile import PLAIN, SCAN, UNKNOWN
+from .profile import PLAIN, SCAN, UNKNOWN, WORD
 
 _LETTERS = "A-Za-zА-Яа-яЁё"
 _LINE_HYPHEN = re.compile(rf"\b([{_LETTERS}]{{2,}})- ([{_LETTERS}]{{2,}})\b")
@@ -85,7 +85,7 @@ def join_line_hyphens(text: str, variant: str) -> str:
 
 def fix_line_hyphens(text: str, variant: str) -> tuple[str, int]:
     """То же и сколько мест исправлено — для отчёта оркестратора."""
-    if not text or variant in (UNKNOWN, SCAN) or "- " not in text:
+    if not text or variant in (UNKNOWN, SCAN, WORD) or "- " not in text:
         return text, 0
     fixed = 0
 

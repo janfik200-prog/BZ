@@ -1,16 +1,22 @@
-"""Свои статьи из папки: PDF кладут в input, разобранные переезжают в output.
+"""Свои статьи из папки: PDF и документы Word (.docx) кладут в input, разобранные
+переезжают в output.
 
     python -m georag.acquire.local                      # input → output в папке проекта
     python -m georag.acquire.local --input D:\\статьи   # другая папка
 
 Разбор тот же, что у статей из интернета (process_document), и текст ложится туда же —
-в .local/acquired, откуда его берёт ingest. Каждый PDF переезжает сразу после разбора:
+в .local/acquired, откуда его берёт ingest. Каждый файл переезжает сразу после разбора:
 прервали прогон (Ctrl+C, выключили компьютер) — в input остаётся ровно то, до чего
 очередь не дошла, и следующий запуск продолжает с него. Статья, которую разобрать не
 вышло (скан, сбой парсера), уходит в input/не разобрались — чтобы не разбирать её
 каждый раз заново и чтобы в input не путалась с ещё не тронутыми.
 
-PDF, в отличие от добычи из интернета, не пропадает: он и есть статья, лежит в output.
+Документ Word лучше PDF той же статьи: формулы в нём — разметка OMath, и docling
+переводит её в LaTeX точно и без модели формул (в PDF формула — картинка из знаков,
+её распознаёт модель, 2–4 с на формулу на процессоре). Рисунки из .docx не вырезаются:
+их вырезка — по страницам PDF.
+
+Файл, в отличие от добычи из интернета, не пропадает: он и есть статья, лежит в output.
 """
 
 from __future__ import annotations
@@ -36,6 +42,7 @@ from .pipeline import _save_report, _write_doc, append_index, failed_note, load_
 INBOX = ROOT / "input"
 OUTBOX = ROOT / "output"
 FAILED_DIR = "не разобрались"  # внутри input
+SUFFIXES = (".pdf", ".docx")  # старый .doc docling не читает — сохранить его как .docx
 
 
 def local_doc_id(path: Path, sha256: str) -> str:
@@ -46,26 +53,58 @@ def local_doc_id(path: Path, sha256: str) -> str:
 
 
 def _pdf_meta(path: Path) -> dict[str, Any]:
-    """Название, авторы и год из свойств PDF; чего нет — название по имени файла."""
+    """Название, авторы и год из свойств PDF или документа Word; чего нет — название по
+    имени файла."""
     meta: dict[str, Any] = {"title": path.stem, "authors": [], "year": None}
     try:
-        import pymupdf
-
-        with pymupdf.open(path) as doc:
-            info = doc.metadata or {}
+        title, author, created = _word_props(path) if is_word(path) else _pdf_props(path)
     except Exception:  # noqa: BLE001 — битые свойства не мешают разбору
         return meta
-    title = (info.get("title") or "").strip()
+    title = title.strip()
     # «Microsoft Word - отчёт.docx», «untitled» — это не название статьи.
     if len(title) > 8 and not re.match(r"(?i)(microsoft word|untitled|\S+\.(docx?|pdf)$)", title):
         meta["title"] = title
-    author = (info.get("author") or "").strip()
+    author = author.strip()
     if author:
         meta["authors"] = [a.strip() for a in re.split(r"[;,]| and ", author) if a.strip()]
-    year = re.match(r"D:(\d{4})", info.get("creationDate") or "")
+    year = re.search(r"(?:19|20)\d{2}", created)
     if year:
-        meta["year"] = int(year.group(1))
+        meta["year"] = int(year.group())
     return meta
+
+
+def is_word(path: Path) -> bool:
+    return path.suffix.lower() == ".docx"
+
+
+def _pdf_props(path: Path) -> tuple[str, str, str]:
+    import pymupdf
+
+    with pymupdf.open(path) as doc:  # type: ignore[no-untyped-call]
+        info = doc.metadata or {}
+    created = re.match(r"D:(\d{4})", info.get("creationDate") or "")
+    return info.get("title") or "", info.get("author") or "", created.group(1) if created else ""
+
+
+_CORE = {
+    "dc": "http://purl.org/dc/elements/1.1/",
+    "dcterms": "http://purl.org/dc/terms/",
+}
+
+
+def _word_props(path: Path) -> tuple[str, str, str]:
+    """Свойства документа Word — docProps/core.xml внутри .docx (это zip)."""
+    import zipfile
+    from xml.etree import ElementTree
+
+    with zipfile.ZipFile(path) as z:
+        root = ElementTree.fromstring(z.read("docProps/core.xml"))
+
+    def field(name: str) -> str:
+        node = root.find(name, _CORE)
+        return (node.text or "") if node is not None else ""
+
+    return field("dc:title"), field("dc:creator"), field("dcterms:created")
 
 
 def _move(path: Path, folder: Path) -> Path:
@@ -83,7 +122,7 @@ def _move(path: Path, folder: Path) -> Path:
 def parse_one(
     path: Path, settings: Settings, worker: Any, logger: Any, out_dir: Path
 ) -> AcquiredRecord:
-    """Один PDF из папки → запись и файлы в out_dir, как у добытой статьи."""
+    """Один PDF или документ Word из папки → запись и файлы в out_dir, как у добытой статьи."""
     data = path.read_bytes()
     sha = hashlib.sha256(data).hexdigest()
     doc_id = local_doc_id(path, sha)
@@ -124,7 +163,9 @@ def parse_one(
             status, failed_note(doc_result)
         ),
     )
-    _write_doc(out_dir, record, None if status == SCANNED else parsed, chunks, data)
+    # рисунки вырезаются из страниц PDF; у документа Word их нет
+    pdf = None if is_word(path) else data
+    _write_doc(out_dir, record, None if status == SCANNED else parsed, chunks, pdf)
     return record
 
 
@@ -136,10 +177,10 @@ def process_folder(
     limit: int | None = None,
     force: bool = False,
 ) -> AcquireReport:
-    """Все PDF из inbox по очереди; каждый переезжает сразу после своего разбора."""
+    """Все PDF и .docx из inbox по очереди; каждый переезжает сразу после своего разбора."""
     started = time.monotonic()
     report = AcquireReport(topic=f"статьи из папки {inbox}")
-    pdfs = sorted(p for p in inbox.iterdir() if p.is_file() and p.suffix.lower() == ".pdf")
+    pdfs = sorted(p for p in inbox.iterdir() if p.is_file() and p.suffix.lower() in SUFFIXES)
     if limit:
         pdfs = pdfs[:limit]
     report.found = len(pdfs)
@@ -173,8 +214,8 @@ def process_folder(
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Разбор своих PDF из папки")
-    p.add_argument("--input", type=Path, default=INBOX, help="папка с PDF для разбора")
+    p = argparse.ArgumentParser(description="Разбор своих PDF и документов Word (.docx) из папки")
+    p.add_argument("--input", type=Path, default=INBOX, help="папка с PDF и .docx для разбора")
     p.add_argument("--output", type=Path, default=OUTBOX, help="куда перекладывать разобранные")
     p.add_argument("--out", type=Path, default=ARTICLES, help="куда писать разобранный текст")
     p.add_argument("--device", choices=["auto", "cuda", "cpu", "mps"], default=None)
@@ -206,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
         args.input, args.output, settings, args.out, limit=args.limit, force=args.force
     )
     if not report.found:
-        print(f"В папке {args.input} нет PDF — положите статьи туда и запустите снова.")
+        print(f"В папке {args.input} нет PDF и .docx — положите статьи туда и запустите снова.")
         return 0
 
     failed = [r for r in report.records if r.status != ACQUIRED]

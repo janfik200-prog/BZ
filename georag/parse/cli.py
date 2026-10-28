@@ -19,12 +19,14 @@ from .pipeline import process_all
 def _collect_pdfs(target: Path) -> list[Path]:
     if target.is_file():
         return [target]
-    return sorted(p for p in target.rglob("*.pdf") if p.is_file())
+    return sorted(
+        p for p in target.rglob("*") if p.is_file() and p.suffix.lower() in (".pdf", ".docx")
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Парсинг PDF для базы знаний ГеоRAG")
-    p.add_argument("--input", type=Path, default=None, help="папка с PDF или один файл")
+    p.add_argument("--input", type=Path, default=None, help="папка с PDF и .docx или один файл")
     p.add_argument("--out", type=Path, default=None, help="куда складывать результат")
     p.add_argument("--golden", type=Path, default=None, help="папка с эталонами")
     p.add_argument("--logs", type=Path, default=None, help="папка для логов")

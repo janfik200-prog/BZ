@@ -101,8 +101,10 @@ def build_converter(settings: Settings, notes: list[str] | None = None) -> Docum
     if hasattr(pipeline_options, "document_timeout"):
         pipeline_options.document_timeout = float(settings.doc_timeout_sec)
 
+    # .docx — свой разбор docling (msword): модели не нужны, формулы — из OMath.
     return DocumentConverter(
-        format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
+        allowed_formats=[InputFormat.PDF, InputFormat.DOCX],
+        format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)},
     )
 
 

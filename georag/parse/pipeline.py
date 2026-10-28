@@ -154,9 +154,11 @@ def _process(
         logger.log(inp.doc_id, "эталон", FAILED, 0.0, detail=f"сверка пропущена: {describe(exc)}")
 
     # Попытки по очереди, пока одна не пройдёт проверку: docling, затем PyMuPDF4LLM —
-    # быстрее и проще, но хуже держит сложную вёрстку и таблицы.
+    # быстрее и проще, но хуже держит сложную вёрстку и таблицы. Документ Word читает
+    # только docling: PyMuPDF открывает PDF, а не .docx.
     tried: list[tuple[ParsedDoc, ValidationReport]] = []
-    for parse in (worker.parse, parse_with_pymupdf):
+    word = kind.variant == profile.WORD
+    for parse in (worker.parse,) if word else (worker.parse, parse_with_pymupdf):
         parsed = parse(inp)
         report = validate(parsed, settings, golden)
         logger.log(
@@ -183,7 +185,9 @@ def _process(
     findings.append(orchestrator.chunks(chunk_problem))
 
     if write_outputs:
-        _write_outputs(parsed, report, chunks, settings, status, inp.path or inp.data)
+        # рисунки вырезаются из страниц PDF; у документа Word страниц нет
+        source = None if word else (inp.path or inp.data)
+        _write_outputs(parsed, report, chunks, settings, status, source)
 
     result = DocResult(
         doc_id=parsed.doc_id,
