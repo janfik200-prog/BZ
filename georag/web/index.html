@@ -385,6 +385,12 @@
         <label title="Тема — предметы, связанные между собой теснее, чем с остальными (алгоритм Лейдена; пересчёт — python georag.py graph --clusters)">Тема
           <select id="map-cluster"><option value="">все</option></select>
         </label>
+        <label>Цвет
+          <select id="map-color">
+            <option value="тема" selected>по теме</option>
+            <option value="вид">по виду</option>
+          </select>
+        </label>
       </div>
       <div class="net-found" id="net-found"></div>
       <div class="state" id="map-state">загружаю…</div>
@@ -658,6 +664,7 @@ function netLegend() {
     cb.checked = !net.hidden.has(kind);
     cb.addEventListener("change", () => {
       if (cb.checked) net.hidden.delete(kind); else net.hidden.add(kind);
+      net.chosen = true;  // выбор человека — дальше не трогаем
       buildNet(true);
     });
     const dot = document.createElement("span");
@@ -706,6 +713,9 @@ async function loadNetwork(force) {
     }
     net.data = data;
     fillClusters(data.clusters || []);
+    // С темами Лейдена статьи по умолчанию скрыты: статья связана с предметами разных
+    // тем, и тысячи её линий через всю карту скрывают острова. Включить — в легенде.
+    if ((data.clusters || []).length && !net.chosen) net.hidden.add("статья");
     netColors();
     netLegend();
     mountCanvas();
@@ -721,6 +731,76 @@ function seeded(id) {
   let h = 2166136261;
   for (let i = 0; i < id.length; i++) { h ^= id.charCodeAt(i); h = Math.imul(h, 16777619); }
   return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 10000) / 10000; };
+}
+
+// Раскладка островами по темам Лейдена. Силовой расчёт на тысячах узлов не успевает
+// растащить их от мест «по имени» — картинка выходила в порядке названий, а не связей.
+// Здесь узлы сразу стоят по темам: крупная тема — в центре, дальше по золотой спирали;
+// внутри темы — «подсолнухом», самые упоминаемые предметы в середине; предметы без
+// темы — внешним кольцом; статья — в центре своих предметов. Силы потом только
+// раздвигают узлы и держат каждый у центра его темы (n.cx, n.cy).
+const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+const ISLAND_STEP = 26;  // расстояние между соседними узлами острова
+
+function islands(nodes, edges) {
+  const groups = new Map();
+  const loose = [];
+  for (const n of nodes) {
+    if (n.kind !== "сущность") continue;
+    if (n.cluster == null) { loose.push(n); continue; }
+    if (!groups.has(n.cluster)) groups.set(n.cluster, []);
+    groups.get(n.cluster).push(n);
+  }
+  if (!groups.size) return;  // темы не посчитаны (graph --clusters)
+  const byDocs = (a, b) => (b.documents || 0) - (a.documents || 0) || a.name.localeCompare(b.name);
+  let area = 0, edge = 0;
+  [...groups.values()].sort((a, b) => b.length - a.length).forEach((members, i) => {
+    const r = ISLAND_STEP * Math.sqrt(members.length) + ISLAND_STEP;
+    const R = i ? Math.sqrt(area / Math.PI) * 1.25 + r : 0;
+    const cx = Math.cos(i * GOLDEN) * R, cy = Math.sin(i * GOLDEN) * R;
+    area += Math.PI * r * r * 1.6;
+    edge = Math.max(edge, R + r);
+    members.sort(byDocs).forEach((n, j) => {
+      n.x = cx + Math.cos(j * GOLDEN) * ISLAND_STEP * Math.sqrt(j);
+      n.y = cy + Math.sin(j * GOLDEN) * ISLAND_STEP * Math.sqrt(j);
+      n.cx = cx; n.cy = cy;
+    });
+  });
+  // Без темы — пары и одиночки (куски графа меньше трёх предметов). Связанные — рядом,
+  // кусок за куском по спирали снаружи всех островов: иначе их связь пересекала бы карту.
+  const root = {};
+  const find = (id) => (root[id] === id ? id : (root[id] = find(root[id])));
+  for (const n of loose) root[n.id] = n.id;
+  for (const e of edges) {
+    if (e.source in root && e.target in root) root[find(e.source)] = find(e.target);
+  }
+  const pieces = new Map();
+  for (const n of loose.sort(byDocs)) {
+    const k = find(n.id);
+    if (!pieces.has(k)) pieces.set(k, []);
+    pieces.get(k).push(n);
+  }
+  [...pieces.values()].forEach((members, j) => {
+    const R = edge + ISLAND_STEP * 3 + ISLAND_STEP * 1.2 * Math.sqrt(j);
+    const cx = Math.cos(j * GOLDEN) * R, cy = Math.sin(j * GOLDEN) * R;
+    members.forEach((n, i) => {
+      n.x = cx + Math.cos(i * Math.PI) * ISLAND_STEP * 0.5 * i;
+      n.y = cy;
+      n.cx = cx; n.cy = cy;
+    });
+  });
+  // Статья — в центре предметов, которые из неё выписаны.
+  const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+  const sum = {};
+  for (const e of edges) {
+    if (e.type !== "из статьи") continue;
+    const t = byId[e.target], s = sum[e.source] || (sum[e.source] = { x: 0, y: 0, n: 0 });
+    if (t) { s.x += t.x; s.y += t.y; s.n += 1; }
+  }
+  for (const [id, s] of Object.entries(sum)) {
+    const n = byId[id];
+    if (n && s.n) { n.x = s.x / s.n; n.y = s.y / s.n; }
+  }
 }
 
 function buildNet(reheat) {
@@ -740,13 +820,16 @@ function buildNet(reheat) {
     edges = edges.concat(docEdges);
   }
   net.nodes = keep.map((n) => {
-    const old = net.pos[n.id];
+    const old = reheat ? null : net.pos[n.id];
     const rnd = seeded(n.id);
     const r = 120 + rnd() * 220;
     const a = rnd() * Math.PI * 2;
     return { ...n, x: old ? old.x : Math.cos(a) * r, y: old ? old.y : Math.sin(a) * r,
              vx: 0, vy: 0, fixed: false, deg: 0 };
   });
+  // Раскладка по темам Лейдена (graph/clusters.py): тема — остров, предметы — вокруг
+  // её центра. Без тем (не посчитаны) — как раньше, место из имени.
+  if (reheat) islands(net.nodes, edges);
   net.byId = Object.fromEntries(net.nodes.map((n) => [n.id, n]));
   net.adj = {};
   for (const n of net.nodes) net.adj[n.id] = new Set();
@@ -846,7 +929,11 @@ function tick() {
     e.t.vx -= dx * f * b; e.t.vy -= dy * f * b;
   }
   for (const n of N) {
-    n.vx -= n.x * 0.004 * a; n.vy -= n.y * 0.004 * a;
+    if (n.cx != null) {  // держится у центра своей темы (раскладка островами)
+      n.vx -= (n.x - n.cx) * 0.02 * a; n.vy -= (n.y - n.cy) * 0.02 * a;
+    } else {
+      n.vx -= n.x * 0.004 * a; n.vy -= n.y * 0.004 * a;
+    }
     if (n.fixed) { n.vx = n.vy = 0; continue; }
     n.vx *= 0.55; n.vy *= 0.55;
     const v = Math.hypot(n.vx, n.vy);
@@ -919,6 +1006,15 @@ function hit(sx, sy) {
 
 function short(text, max) { return text.length > max ? text.slice(0, max - 1) + "…" : text; }
 
+// Цвет узла: по виду (сущность, статья) или по теме Лейдена — у каждой темы свой оттенок
+// (шаг золотого угла по кругу цветов: соседние номера не похожи), без темы — приглушённый.
+function nodeColor(n) {
+  if ($("map-color").value === "тема" && n.kind === "сущность") {
+    return n.cluster == null ? net.colors.muted : `hsl(${(n.cluster * 137.508) % 360} 62% 55%)`;
+  }
+  return net.colors[n.kind] || net.colors.ink;
+}
+
 function draw() {
   const { ctx, W, H, view: v } = net;
   if (!ctx) return;
@@ -933,7 +1029,9 @@ function draw() {
     const on = focus && (e.s === focus || e.t === focus);
     const fact = isLink(e);
     const cand = e.type === "кандидат";
-    ctx.globalAlpha = focus ? (on ? 0.9 : 0.05) : (fact ? (cand ? 0.35 : 0.55) : 0.18);
+    // Тысячи линий сразу — прозрачнее: иначе острова тем тонут в них.
+    const thin = net.edges.length > 1500 ? 0.45 : 1;
+    ctx.globalAlpha = focus ? (on ? 0.9 : 0.05) : (fact ? (cand ? 0.35 : 0.55) : 0.18) * thin;
     ctx.strokeStyle = fact ? net.colors.gpu : net.colors.ink;
     ctx.lineWidth = (fact ? 1 + Math.min(3, Math.log2(1 + e.weight)) : 0.7) / Math.sqrt(v.k);
     ctx.setLineDash(cand ? [5 / v.k, 4 / v.k] : []);
@@ -965,7 +1063,7 @@ function draw() {
   for (const n of net.nodes) {
     const dim = focus && n !== focus && !near.has(n.id);
     ctx.globalAlpha = dim ? 0.12 : 1;
-    ctx.fillStyle = net.colors[n.kind] || net.colors.ink;
+    ctx.fillStyle = nodeColor(n);
     ctx.beginPath();
     ctx.arc(n.x, n.y, radius(n), 0, Math.PI * 2);
     ctx.fill();
@@ -1481,6 +1579,7 @@ $("tab-graph").addEventListener("click", () => showTab("graph"));
 $("map-min").addEventListener("change", () => { if (net.data) buildNet(true); });
 $("map-cand").addEventListener("change", () => loadNetwork(true));
 $("map-cluster").addEventListener("change", () => { if (net.data) buildNet(true); });
+$("map-color").addEventListener("change", () => draw());
 
 // -- чат-бот ------------------------------------------------------------------ //
 const chat = { history: [], busy: false, abort: null };
