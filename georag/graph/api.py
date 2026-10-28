@@ -10,12 +10,20 @@
 Датасет — у любой сущности: все факты о ней и о том, что в неё входит
 (по фактам «входит в»), с цитатами и статьями. Его показывает карточка узла на
 странице, отдаёт Телеграм-бот, по нему отвечает чат-бот на «что известно о …».
+
+Большой граф (план графа v2, А6): пока фактов не больше MEMORY_FACTS, граф целиком
+держится в памяти (graph — с кэшем и дописыванием новых). Больше — страница и чат
+берут из базы только нужный кусок: датасет и вопрос о предмете — подграф вокруг него
+(around), связи под ответом — факты этих фрагментов, карта — самые упоминаемые
+предметы (NETWORK_ENTITIES). Отчёт и вопросы оценки (команды graph) — по-прежнему по
+всему графу: им можно и подождать.
 """
 
 from __future__ import annotations
 
 import csv
 import io
+import os
 import re
 import threading
 from collections import Counter, defaultdict
@@ -23,13 +31,20 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ..text import name_key, normalize
-from . import autosyn, store
+from . import autosyn, clusters, store
 from .kinds import HEDGE
 from .synonyms import PART_OF, Synonyms
 
 ENTITY = "сущность"
 ARTICLE = "статья"
 QUOTES_PER_LINK = 3
+# Сколько фактов граф держит в памяти целиком (А6). 13 тысяч фактов — 0,2 с на сборку и
+# десятки мегабайт; на миллионах фактов сборка — минуты, память — гигабайты.
+# GEORAG_GRAPH_MEMORY=0 — подграфами всегда (так это и проверяется на малой базе).
+_MEMORY_RAW = os.environ.get("GEORAG_GRAPH_MEMORY", "").strip()
+MEMORY_FACTS = int(_MEMORY_RAW) if _MEMORY_RAW.isdigit() else 200_000
+NETWORK_ENTITIES = 1500  # сколько предметов на карте большого графа — самые упоминаемые
+AROUND_DEPTH = 3  # на сколько уровней «входит в» вглубь собирать подграф предмета
 
 
 class RequestError(ValueError):
@@ -93,12 +108,23 @@ class Graph:
     добавляется к графу за сотые доли секунды, а не пересборкой из всех фактов
     (на 90 тысячах фактов — 19 мс против 12 с)."""
 
-    def __init__(self, rows: list[dict[str, Any]], syn: Synonyms):
+    def __init__(
+        self,
+        rows: list[dict[str, Any]],
+        syn: Synonyms,
+        spelled: dict[str, Counter[str]] | None = None,
+    ):
+        """spelled — частоты написаний по всей базе (подграф, around): подпись узла —
+        как во всём графе, а не самое частое в куске."""
         self.syn = syn
         self._spelled: dict[str, Counter[str]] = defaultdict(Counter)
-        for r in rows:
-            for raw in (r["src"], r["dst"]):
-                self._spelled[name_key(raw)][raw] += 1
+        if spelled is not None:
+            for key, counts in spelled.items():
+                self._spelled[key].update(counts)
+        else:
+            for r in rows:
+                for raw in (r["src"], r["dst"]):
+                    self._spelled[name_key(raw)][raw] += 1
         self.display = {k: c.most_common(1)[0][0] for k, c in self._spelled.items()}
         self.links: dict[tuple[str, str, str], Link] = {}
         self.entities: dict[str, dict[str, Any]] = {}
@@ -330,7 +356,11 @@ def _stamp(conn: Any) -> Any:
             f"{typed} FROM facts"
         )
         row = cur.fetchone()
-        return tuple(row) if row else None
+        # Сколько фактов в графе (А5): новая статья, повторив связь, переводит в граф и
+        # прежний факт-кандидат — тогда граф собирается заново, а не дописывается.
+        cur.execute(f"SELECT count(*) FROM facts f WHERE {store.accepted()}")
+        taken = cur.fetchone()
+        return (*row, taken[0] if taken else 0) if row else None
 
 
 def _only_added(conn: Any, old: tuple[Any, ...]) -> bool:
@@ -339,7 +369,7 @@ def _only_added(conn: Any, old: tuple[Any, ...]) -> bool:
     Отпечаток прежних фактов сверяется заново: сколько их, сколько проверено и сумма
     подтверждений и типов. Удаление, перепроверка, подтверждение или тип старого факта
     его меняют — тогда граф собирается с нуля."""
-    count, last, checked, total, typed = old
+    count, last, checked, total, typed, taken = old
     with conn.cursor() as cur:
         cur.execute(
             "SELECT count(*), count(votes), coalesce(sum(votes), 0), "
@@ -347,7 +377,18 @@ def _only_added(conn: Any, old: tuple[Any, ...]) -> bool:
             (last,),
         )
         row = cur.fetchone()
-    return bool(row) and tuple(row) == (count, checked, total, typed)
+        # Среди прежних фактов в графе столько же, сколько было, — ни один кандидат не
+        # перешёл в граф из-за новой статьи.
+        cur.execute(
+            f"SELECT count(*) FROM facts f WHERE f.id <= %s AND {store.accepted()}", (last,)
+        )
+        before = cur.fetchone()
+    return (
+        bool(row)
+        and tuple(row) == (count, checked, total, typed)
+        and bool(before)
+        and before[0] == taken
+    )
 
 
 def graph(conn: Any, syn: Synonyms) -> Graph:
@@ -359,8 +400,7 @@ def graph(conn: Any, syn: Synonyms) -> Graph:
     if stamp is None:
         return Graph(store.all_facts(conn), syn)
     # Автосинонимы (autosyn.py) — к словарю; сведено новое — граф собирается заново.
-    auto, auto_stamp = autosyn.mapping(conn)
-    syn = autosyn.extend(syn, auto, auto_stamp)
+    syn = _with_auto(conn, syn)
     words = syn.sha or repr(
         (sorted(syn.names.items()), sorted(syn.relations.items()), sorted(syn.inverse.items()))
     )
@@ -379,12 +419,87 @@ def graph(conn: Any, syn: Synonyms) -> Graph:
     return g
 
 
+def _with_auto(conn: Any, syn: Synonyms) -> Synonyms:
+    """Словарь синонимов вместе с автосинонимами (autosyn.py)."""
+    auto, auto_stamp = autosyn.mapping(conn)
+    return autosyn.extend(syn, auto, auto_stamp)
+
+
+def large(conn: Any) -> bool:
+    """Граф больше, чем держим в памяти (MEMORY_FACTS): читать его кусками (А6)."""
+    from ..index.db import is_real
+
+    return is_real(conn) and store.count_facts(conn) > MEMORY_FACTS
+
+
+def _keys(syn: Synonyms, names: list[str]) -> set[str]:
+    """Ключи всех написаний этих имён: само имя и всё, что словарь и автосинонимы
+    сводят к нему («Donetsk basin» → «Донецкий бассейн»)."""
+    canon = {syn.name(n) or n for n in names}
+    keys = {name_key(n) for n in [*names, *canon]}
+    keys |= {k for k, c in syn.names.items() if c in canon}
+    return {k for k in keys if k}
+
+
+def around(conn: Any, syn: Synonyms, hint: str, depth: int = AROUND_DEPTH) -> Graph:
+    """Подграф вокруг предмета — из базы, а не из всего графа в памяти (А6).
+
+    Факты, где предмет (в любом написании) — один из концов; для имени собственного —
+    и узлы, в названии которых оно стоит («зоне Персияновского разлома»). Затем то, что
+    в него входит («входит в»), — ещё depth уровней. Этого хватает датасету, вопросу о
+    предмете и его фрагментам: всё, что они читают у графа, — в этом куске."""
+    syn = _with_auto(conn, syn)
+    start = syn.name(hint) or " ".join(hint.split())
+    like = [name_key(start)] if _proper(start) and name_key(start) else []
+    rows: dict[int, dict[str, Any]] = {}
+    fetched: set[str] = set()
+    todo = _keys(syn, [start])
+    g = Graph([], syn)
+    for _ in range(depth + 1):
+        if not todo and not like:
+            break
+        for r in store.all_facts(conn, keys=sorted(todo), like=like):
+            rows[int(r["id"])] = r
+        fetched |= todo
+        like = []  # родственные имена — только у самого предмета
+        keys = sorted({name_key(r[end]) for r in rows.values() for end in ("src", "dst")})
+        g = Graph(list(rows.values()), syn, spelled=store.spellings(conn, keys))
+        name = g.resolve(hint) or start
+        inside = [p for root in [name, *g.related(name)] for p in g.parts(root)]
+        todo = _keys(syn, inside) - fetched
+    return g
+
+
+def graph_for(conn: Any, syn: Synonyms, hint: str | None = None) -> Graph:
+    """Граф для вопроса о предмете: весь (из памяти), а у большого графа — подграф вокруг
+    hint. Без hint у большого графа — пустой: узнавать предмет перебором всех имён
+    графа на миллионах фактов не годится, его назовёт разбор вопроса."""
+    if not large(conn):
+        return graph(conn, syn)
+    return around(conn, syn, hint) if hint else Graph([], _with_auto(conn, syn))
+
+
 # --------------------------------------------------------------------------- #
 #  Сеть для страницы
 # --------------------------------------------------------------------------- #
-def network_response(conn: Any, syn: Synonyms, with_articles: bool = True) -> dict[str, Any]:
-    """Узлы — сущности (и статьи), рёбра — связи с цитатами (и «из статьи»)."""
-    g = graph(conn, syn)
+CANDIDATE = "кандидат"
+
+
+def network_response(
+    conn: Any, syn: Synonyms, with_articles: bool = True, candidates: bool = False
+) -> dict[str, Any]:
+    """Узлы — сущности (и статьи), рёбра — связи с цитатами (и «из статьи»).
+    candidates — ещё и буфер (store.accepted): рёбра «кандидат», на странице пунктиром.
+    Большой граф (А6) — только связи между NETWORK_ENTITIES самыми упоминаемыми
+    предметами; что показано не всё — в ответе limited."""
+    limited = None
+    if large(conn):
+        top = store.top_keys(conn, NETWORK_ENTITIES)
+        keys = [k for k, _docs, _facts in top]
+        g = Graph(store.all_facts(conn, keys=keys, both_ends=True), _with_auto(conn, syn))
+        limited = {"entities": len(keys), "facts": store.count_facts(conn)}
+    else:
+        g = graph(conn, syn)
     nodes, edges = [], []
     for e in g.entities.values():
         nodes.append(
@@ -411,6 +526,40 @@ def network_response(conn: Any, syn: Synonyms, with_articles: bool = True) -> di
                 "quotes": link.quotes(),
             }
         )
+    if candidates:
+        # Буфер — отдельным графом тем же словарём: узлы, которых в графе нет, —
+        # с пометкой candidate.
+        near: dict[str, Any] = (
+            {"keys": keys, "both_ends": True} if limited else {}
+        )  # большой — те же узлы
+        buffer = Graph(store.all_facts(conn, candidates=True, **near), g.syn)
+        for e in buffer.entities.values():
+            if e["name"] not in g.entities:
+                nodes.append(
+                    {
+                        "id": f"{ENTITY}:{e['name']}",
+                        "kind": ENTITY,
+                        "name": e["name"],
+                        "facts": e["facts"],
+                        "documents": len(e["docs"]),
+                        "spellings": sorted(e["spellings"])[:12],
+                        "in_dictionary": e["in_dictionary"],
+                        "category": buffer.kind(e["name"]),
+                        "candidate": True,
+                    }
+                )
+        for link in buffer.links.values():
+            edges.append(
+                {
+                    "source": f"{ENTITY}:{link.src}",
+                    "target": f"{ENTITY}:{link.dst}",
+                    "type": CANDIDATE,
+                    "label": link.relation,
+                    "weight": link.documents,
+                    "fragments": len(link.facts),
+                    "quotes": link.quotes(),
+                }
+            )
     if with_articles:
         docs: dict[str, dict[str, Any]] = {}
         mentioned: dict[tuple[str, str], int] = Counter()
@@ -440,11 +589,19 @@ def network_response(conn: Any, syn: Synonyms, with_articles: bool = True) -> di
                     "weight": n,
                 }
             )
+    # Кластеры (А7, clusters.py): номер у узла — по ключу его имени; список — для выбора.
+    by_key, listed = clusters.load(conn)
+    if by_key:
+        for node in nodes:
+            if node["kind"] == ENTITY:
+                node["cluster"] = by_key.get(name_key(node["name"]))
     return {
         "nodes": nodes,
         "edges": edges,
         "pass": store.summary(conn),
         "dictionary": {"names": len(syn.groups), "sha": syn.sha},
+        "limited": limited,
+        "clusters": listed,
     }
 
 
@@ -456,7 +613,10 @@ def facts_response(conn: Any, syn: Synonyms, chunk_ids: list[int]) -> dict[str, 
     имя и открыть его на графе. Ответ строит не граф, а поиск по фрагментам; граф тут —
     карта, по которой можно дальше копаться руками (замер 13.10.2026: ответам граф
     почти ничего не добавляет, а связи с цитатами людям нужны)."""
-    g = graph(conn, syn)
+    if large(conn):  # А6: только факты этих фрагментов
+        g = Graph(store.all_facts(conn, chunk_ids=chunk_ids), _with_auto(conn, syn))
+    else:
+        g = graph(conn, syn)
     index = g.by_chunk()
     out: dict[str, list[dict[str, Any]]] = {}
     for cid in chunk_ids:
@@ -490,7 +650,7 @@ def facts_response(conn: Any, syn: Synonyms, chunk_ids: list[int]) -> dict[str, 
 # --------------------------------------------------------------------------- #
 def dataset(conn: Any, syn: Synonyms, name: str, g: Graph | None = None) -> dict[str, Any]:
     """Все факты о сущности и о том, что в неё входит: с кем как связана, где сказано."""
-    g = g or graph(conn, syn)
+    g = g or graph_for(conn, syn, name)
     names: list[str] = []
     for root in [name, *g.related(name)]:
         for part in g.parts(root):
@@ -539,7 +699,17 @@ def dataset(conn: Any, syn: Synonyms, name: str, g: Graph | None = None) -> dict
 def datasets_response(conn: Any, syn: Synonyms, limit: int = 300) -> dict[str, Any]:
     """Датасеты не хранятся: собираются из фактов при каждом запросе — после нового
     прохода модели появляются новые сущности и новые факты у старых.
-    Числа те же, что в карточке датасета: строк-фактов и статей за ними."""
+    Числа те же, что в карточке датасета: строк-фактов и статей за ними.
+    Большой граф (А6): самые упоминаемые предметы прямо из базы — фактов и статей по
+    ключу имени, без сборки датасета каждого."""
+    if large(conn):
+        top = store.top_keys(conn, limit)
+        g = Graph(store.all_facts(conn, keys=[k for k, _d, _n in top]), _with_auto(conn, syn))
+        shown = [
+            {"name": g.canonical(g.display.get(k, k)), "facts": n, "documents": d}
+            for k, d, n in top
+        ]
+        return {"datasets": shown, "total": len(shown), "pass": store.summary(conn)}
     g = graph(conn, syn)
     rows = []
     for name in g.entities:
@@ -552,7 +722,7 @@ def datasets_response(conn: Any, syn: Synonyms, limit: int = 300) -> dict[str, A
 
 def dataset_response(conn: Any, syn: Synonyms, payload: dict[str, Any]) -> dict[str, Any]:
     raw = str(payload.get("name") or payload.get("territory") or "").strip()
-    g = graph(conn, syn)
+    g = graph_for(conn, syn, raw or None)
     known = [e["name"] for e in sorted(g.entities.values(), key=lambda e: -e["facts"])]
     if not raw:
         raise RequestError("не указано, чей датасет (name)", known=known)

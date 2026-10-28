@@ -233,14 +233,49 @@ def clear(conn: Any) -> None:
 MIN_VOTES = 3
 
 
+def accepted(min_votes: int = MIN_VOTES, alias: str = "f") -> str:
+    """Условие SQL «факт идёт в граф» (план графа v2, А5 — буфер редких связей).
+
+    В граф — факт, подтверждённый вопросами (не меньше min_votes из 4), или факт, чьи
+    концы связаны и в другой статье (в любую сторону, любой связью): повтор в двух
+    статьях — уже не случайность. Остальное — кандидаты: в базе, на странице по
+    переключателю, в граф перейдут сами, когда повторятся или подтвердятся.
+
+    98,7 % пар в базе — из одной статьи (27.10.2026), поэтому порог только по числу
+    статей опустошил бы граф; подтверждённая вопросами связь идёт и из одной. Концы
+    сравниваются по ключу без падежей (src_key, dst_key), без словаря синонимов."""
+    a = alias
+    return (
+        # coalesce: у непроверенного votes — NULL, и NOT (NULL OR …) выкинуло бы его и
+        # из кандидатов.
+        f"(coalesce({a}.votes, 0) >= {int(min_votes)} OR EXISTS (SELECT 1 FROM facts o "
+        f"WHERE o.doc_id <> {a}.doc_id AND ((o.src_key = {a}.src_key AND o.dst_key = "
+        f"{a}.dst_key) OR (o.src_key = {a}.dst_key AND o.dst_key = {a}.src_key))))"
+    )
+
+
 def all_facts(
-    conn: Any, min_votes: int = MIN_VOTES, after: int = 0, upto: int | None = None
+    conn: Any,
+    min_votes: int = MIN_VOTES,
+    after: int = 0,
+    upto: int | None = None,
+    candidates: bool = False,
+    keys: list[str] | None = None,
+    like: list[str] | None = None,
+    chunk_ids: list[int] | None = None,
+    both_ends: bool = False,
 ) -> list[dict[str, Any]]:
     """Факты со статьёй: из них в памяти собирается граф (фактов — тысячи).
 
-    Факт, проверенный вопросами (confirm.py) и подтверждённый меньше чем min_votes
-    проверками из 4, в граф не идёт, но в базе остаётся. Непроверенный — идёт.
+    В граф идут факты по условию accepted: подтверждённые вопросами или повторённые в
+    другой статье; candidates=True — наоборот, буфер кандидатов (на странице — по
+    переключателю). Не прошедшие остаются в базе.
     after/upto — только факты с номером в (after, upto]: дописать новые к графу.
+
+    Подграф вместо всего графа (план графа v2, А6; api.around): keys — факты, у которых
+    один конец (both_ends — оба) с таким ключом имени; like — ещё и ключи, содержащие эти
+    слова («зоне Персияновского разлома» для «Персияновский разлом»); chunk_ids — факты
+    этих фрагментов.
 
     Тип связи и виды концов (kinds.py) — если их уже поставили: факт, которому тип
     поставлен как «не о геологии» (typed_at есть, rel_type нет), в граф не идёт. Колонок
@@ -250,6 +285,17 @@ def all_facts(
         if has_types(conn)
         else "NULL, NULL, NULL, NULL, NULL"
     )
+    where: list[str] = []
+    params: list[Any] = []
+    if keys is not None or like:
+        patterns = [f"%{w}%" for w in like or []]
+        ends = [f"(f.{end} = ANY(%s) OR f.{end} LIKE ANY(%s))" for end in ("src_key", "dst_key")]
+        where.append(f"({ends[0]} {'AND' if both_ends else 'OR'} {ends[1]})")
+        params += [list(keys or []), patterns, list(keys or []), patterns]
+    if chunk_ids is not None:
+        where.append("f.chunk_id = ANY(%s)")
+        params.append(list(chunk_ids))
+    extra = "".join(f" AND {w}" for w in where)
     with conn.cursor() as cur:
         cur.execute(
             f"""
@@ -257,11 +303,11 @@ def all_facts(
                    d.title, d.year, d.url, d.doi, f.votes, {typed}, c.pages
             FROM facts f JOIN documents d ON d.doc_id = f.doc_id
                          JOIN chunks c ON c.id = f.chunk_id
-            WHERE (f.votes IS NULL OR f.votes >= %s) AND f.id > %s
-                  AND (%s::bigint IS NULL OR f.id <= %s)
+            WHERE {"NOT " if candidates else ""}{accepted(min_votes)} AND f.id > %s
+                  AND (%s::bigint IS NULL OR f.id <= %s){extra}
             ORDER BY f.id
             """,
-            (min_votes, after, upto, upto),
+            (after, upto, upto, *params),
         )
         return [
             {
@@ -289,6 +335,56 @@ def all_facts(
         ]
 
 
+def spellings(conn: Any, keys: list[str]) -> dict[str, Counter[str]]:
+    """Как пишут имена с этими ключами — по всем фактам графа: подпись узла в подграфе
+    (api.around) та же, что во всём графе, — самое частое написание."""
+    out: dict[str, Counter[str]] = {}
+    # Те же факты, что у всего графа (all_facts): без помеченных «не о геологии»; и тот же
+    # порядок при равных частотах — по первому факту (Counter помнит порядок вставки).
+    geo = " AND NOT (f.typed_at IS NOT NULL AND f.rel_type IS NULL)" if has_types(conn) else ""
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT key, raw, count(*), min(id) FROM (
+                SELECT f.id, f.src_key AS key, f.src AS raw FROM facts f
+                WHERE f.src_key = ANY(%s) AND {accepted()}{geo}
+                UNION ALL
+                SELECT f.id, f.dst_key, f.dst FROM facts f
+                WHERE f.dst_key = ANY(%s) AND {accepted()}{geo}
+            ) x GROUP BY key, raw ORDER BY 4
+            """,
+            (keys, keys),
+        )
+        for key, raw, n, _first in cur.fetchall():
+            out.setdefault(str(key), Counter())[str(raw)] += int(n)
+    return out
+
+
+def count_facts(conn: Any) -> int:
+    """Сколько фактов в базе — решить, держать ли граф в памяти целиком (api.large)."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT count(*) FROM facts")
+        row = cur.fetchone()
+        return int(row[0]) if row else 0
+
+
+def top_keys(conn: Any, limit: int) -> list[tuple[str, int, int]]:
+    """Ключи имён, о которых больше всего статей: (ключ, статей, фактов). Для большого
+    графа — что показать на карте и в списке датасетов вместо всего (api, А6)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT key, count(DISTINCT doc_id), count(*) FROM (
+                SELECT f.src_key AS key, f.doc_id FROM facts f WHERE {accepted()}
+                UNION ALL
+                SELECT f.dst_key, f.doc_id FROM facts f WHERE {accepted()}
+            ) x GROUP BY key ORDER BY 2 DESC, 3 DESC, 1 LIMIT %s
+            """,
+            (limit,),
+        )
+        return [(str(k), int(d), int(n)) for k, d, n in cur.fetchall()]
+
+
 def has_types(conn: Any) -> bool:
     """Есть ли у фактов колонки типа (kinds.py) — их добавляет graph types. У заглушки
     в проверках — нет."""
@@ -314,12 +410,19 @@ def summary(conn: Any) -> dict[str, Any]:
         passed, facts, rejected, last = cur.fetchone() or (0, 0, 0, None)
         cur.execute("SELECT count(*) FROM chunks")
         chunks = (cur.fetchone() or (0,))[0]
-        # Отсеянные первым этапом тоже «пройдены» (passed): модель их не читала.
+        # Отсеянные первым этапом тоже «пройдены» (passed): модель их не читала. Колонки
+        # skipped может ещё не быть — база до 27.10.2026, init её пока не добавил.
         cur.execute(
-            "SELECT split_part(skipped, ':', 1), count(*) FROM facts_pass "
-            "WHERE skipped IS NOT NULL GROUP BY 1"
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name = 'facts_pass' AND column_name = 'skipped'"
         )
-        skipped = {str(k): int(n) for k, n in cur.fetchall()}
+        skipped: dict[str, int] = {}
+        if cur.fetchone():
+            cur.execute(
+                "SELECT split_part(skipped, ':', 1), count(*) FROM facts_pass "
+                "WHERE skipped IS NOT NULL GROUP BY 1"
+            )
+            skipped = {str(k): int(n) for k, n in cur.fetchall()}
     return {
         "passed": int(passed or 0),
         "facts": int(facts or 0),

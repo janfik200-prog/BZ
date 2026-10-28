@@ -32,6 +32,10 @@ psycopg[binary,pool]>=3.1     # PostgreSQL; binary — чтобы на Windows �
 # ru_core_news_sm (ЗАПУСК.md, «Граф знаний»); без них — только словарь терминов.
 spacy>=3.8,<3.9
 
+# --- граф: кластеры-темы по алгоритму Лейдена (graph/clusters.py) ---
+python-igraph>=0.11,<2
+leidenalg>=0.10,<1
+
 # --- добыча ---
 requests>=2.31                # поиск в источниках и получение статей в память
 pyyaml>=6.0                   # каталог источников sources.yaml

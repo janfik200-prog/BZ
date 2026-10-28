@@ -65,7 +65,7 @@ def question_subject(conn: Any, hint: str | None, question: str) -> str | None:
     try:
         from ..graph import api
 
-        name = resolve_entity(api.graph(conn, _synonyms()), hint, question)
+        name = resolve_entity(api.graph_for(conn, _synonyms(), hint), hint, question)
     except Exception:  # noqa: BLE001 — графа нет: только подсказка модели
         try:
             conn.rollback()
@@ -144,7 +144,7 @@ def collect_dataset(conn: Any, hint: str | None, question: str) -> dict[str, Any
 
     try:
         syn = _synonyms()
-        g = api.graph(conn, syn)
+        g = api.graph_for(conn, syn, hint)  # большой граф — подграф вокруг предмета
         name = named(resolve_entity(g, hint, question), hint, question)
         if not name:
             return None
@@ -184,7 +184,7 @@ def graph_candidates(conn: Any, hint: str | None, question: str) -> list[Any]:
 
     try:
         syn = _synonyms()
-        g = api.graph(conn, syn)
+        g = api.graph_for(conn, syn, hint)
         name = named(resolve_entity(g, hint, question), hint, question)
         if not name:
             return []

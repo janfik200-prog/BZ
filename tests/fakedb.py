@@ -49,6 +49,10 @@ class FakeCursor:
         self.rows = list(self.conn.answer(flat, params))
         self.rowcount = len(self.rows)
 
+    def executemany(self, sql: str, seq: Iterable[Any]) -> None:
+        for params in seq:
+            self.execute(sql, params)
+
     def fetchall(self) -> list[Any]:
         return self.rows
 

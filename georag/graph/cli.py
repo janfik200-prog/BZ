@@ -13,6 +13,8 @@
     python -m georag.graph.cli names             автосинонимы: новые имена — к известным (идёт и после build)
     python -m georag.graph.cli names --redo      автосинонимы заново, по всем именам
     python -m georag.graph.cli vectors           векторы фактов для поиска (идёт и после build)
+    python -m georag.graph.cli clusters          кластеры-темы по Лейдену (идёт и после build)
+    python -m georag.graph.cli embed             имена, векторы и кластеры разом (после build --defer-embed)
     python -m georag.graph.cli types             тип связи и виды концов по цитате (идёт и после build)
     python -m georag.graph.cli types --redo      типы заново, у всех подтверждённых фактов
     python -m georag.graph.cli questions         вопросы оценки из фактов (.local/eval-graph.yaml)
@@ -34,7 +36,7 @@ from typing import Any
 from ..common import add_db_args, add_embedder_args, add_llm_args
 from ..index import db
 from ..paths import LOCAL, ROOT
-from . import api, autosyn, confirm, entities, facts, kinds, store, vectors
+from . import api, autosyn, clusters, confirm, entities, facts, kinds, store, vectors
 from .synonyms import PROPOSALS_PATH, SynonymsError, judge_pairs, load, proposals_text, suggest
 
 # Сколько запросов держать у модели одновременно. vLLM считает их одной пачкой:
@@ -43,6 +45,11 @@ from .synonyms import PROPOSALS_PATH, SynonymsError, judge_pairs, load, proposal
 # не держит (--max-num-seqs в docker-compose.yml). Другое число — --workers или
 # переменная GEORAG_WORKERS.
 WORKERS = 8
+# Подтверждение — короткие запросы (цитата и четыре вопроса), их у модели держится
+# больше: на Qwen3-8B 200 фактов — 13,8 с при 16 сразу против 4,4 с при 64 (28.10.2026).
+# Строитель принимает 64 (--max-num-seqs); у Qwen3-14B (8) лишние просто ждут очереди.
+# Другое число — --confirm-workers или GEORAG_CONFIRM_WORKERS.
+CONFIRM_WORKERS = 64
 
 
 def _llm(args: Any) -> Any:
@@ -51,18 +58,20 @@ def _llm(args: Any) -> Any:
     return LLM(model=args.model, host=args.llm_host, timeout=args.timeout)
 
 
-def _confirm(conn: Any, args: Any) -> int:
-    """Подтвердить вопросами факты, которых ещё не проверяли (confirm.py)."""
+def _confirm(conn: Any, args: Any, limit: int | None = None) -> int:
+    """Подтвердить вопросами факты, которых ещё не проверяли (confirm.py). limit — фактов
+    (у build --limit — фрагментов, поэтому build подтверждает все непроверенные)."""
     left = len(store.unconfirmed(conn))
     if not left:
         print("Все факты уже проверены вопросами.")
         return 0
-    todo = min(left, args.limit) if args.limit else left
+    todo = min(left, limit) if limit else left
     print(
-        f"Проверяю факты вопросами по цитате: {todo}. В граф идут подтверждённые не меньше "
-        f"чем {confirm.MIN_VOTES} проверками из 4. Можно прервать Ctrl+C — продолжится."
+        f"Проверяю факты вопросами по цитате: {todo}, одновременно у модели "
+        f"{args.confirm_workers}. В граф идут подтверждённые не меньше чем "
+        f"{confirm.MIN_VOTES} проверками из 4. Можно прервать Ctrl+C — продолжится."
     )
-    stats = confirm.run(conn, _llm(args), limit=args.limit, workers=args.workers)
+    stats = confirm.run(conn, _llm(args), limit=limit, workers=args.confirm_workers)
     print(
         f"Проверено фактов: {stats['done']}; в граф идут {stats['kept']}, остальные "
         "остаются в базе." + (f" Модель не ответила: {stats['errors']}." if stats["errors"] else "")
@@ -112,11 +121,15 @@ def _build(conn: Any, args: Any) -> int:
             file=sys.stderr,
         )
         return 1
+    # Свои правила у модели — config/graph-rules.<модель>.txt, если он есть.
+    args.rules = args.rules or facts.rules_for(args.model)
     try:
         facts.load_rules(args.rules)
     except (OSError, ValueError) as exc:
         print(f"Правила для модели не читаются: {exc}", file=sys.stderr)
         return 1
+    if args.rules:
+        print(f"Правила для {args.model}: {args.rules}")
     if args.redo:
         if not _redo_agreed(conn, args):
             print("Граф не тронут.")
@@ -140,7 +153,7 @@ def _build(conn: Any, args: Any) -> int:
         return 1
     print(
         f"Факты выписывает {args.model} по правилам config/graph-rules.txt, каждый проверяет "
-        f"код и тут же — вопросы по цитате. Фрагментов: {todo}, одновременно у модели "
+        f"код, потом — вопросы по цитате. Фрагментов: {todo}, одновременно у модели "
         f"{args.workers}. "
         + (
             f"До модели: дубли и фрагменты, где терминов меньше {args.min_terms} "
@@ -156,7 +169,9 @@ def _build(conn: Any, args: Any) -> int:
         limit=args.limit,
         rules_path=args.rules,
         workers=args.workers,
-        confirm=confirm.fact_votes,
+        # Подтверждение — отдельным проходом после выписки (_confirm): там у модели
+        # CONFIRM_WORKERS фактов сразу, а внутри выписки факты фрагмента шли по одному.
+        confirm=None,
         finder=finder,
         filtering=filtering,
         min_terms=args.min_terms,
@@ -176,8 +191,8 @@ def _build(conn: Any, args: Any) -> int:
     if not stats["stopped"]:
         _confirm(conn, args)
         _types(conn, args)
-        _names(conn, args)
-        _vectors(conn, args)
+        if not args.defer_embed:
+            _embed(conn, args)
     print(
         "Что нашла модель и где ошибалась: python georag.py graph --new\n"
         "Свести разные написания одного и того же: python georag.py synonyms"
@@ -185,8 +200,10 @@ def _build(conn: Any, args: Any) -> int:
     return 2 if stats["stopped"] else 0
 
 
-def _types(conn: Any, args: Any) -> int:
-    """Тип связи и виды концов у подтверждённых фактов (kinds.py)."""
+def _types(conn: Any, args: Any, limit: int | None = None) -> int:
+    """Тип связи и виды концов у подтверждённых фактов (kinds.py). limit — фактов (у
+    build --limit — фрагментов, поэтому build ставит типы всем новым). Запросы — по
+    пачке фактов, коротких: у модели их сразу столько же, сколько при подтверждении."""
     kinds.init(conn)
     left = len(kinds.todo(conn)) if not args.redo else None
     if left == 0:
@@ -196,7 +213,7 @@ def _types(conn: Any, args: Any) -> int:
         "Ставлю тип связи и виды концов по цитате: связь — из списка, факт не о геологии "
         "(рисунок, расчёт, свойство) в граф не идёт." + (" Всё заново." if args.redo else "")
     )
-    stats = kinds.run(conn, _llm(args), limit=args.limit, workers=args.workers, redo=args.redo)
+    stats = kinds.run(conn, _llm(args), limit=limit, workers=args.confirm_workers, redo=args.redo)
     print(
         f"Фактов с типом: {stats['typed']}; не в граф: {stats['dropped']}"
         + (
@@ -229,6 +246,38 @@ def _vectors(conn: Any, args: Any) -> int:
         f"Фактов с векторами: {stats['facts']}; посчитано новых: {stats['new']}"
         + (f"; убрано: {stats['removed']}" if stats["removed"] else "")
         + "."
+    )
+    return 0
+
+
+def _embed(conn: Any, args: Any) -> int:
+    """Шаги без языковой модели: сведение имён, векторы фактов, кластеры. Их считает
+    BGE-M3 на видеокарте, если на ней есть место, — поэтому запускатель зовёт их после
+    остановки строителя (build --defer-embed, потом embed): пока строитель работает, они
+    шли на процессоре в разы дольше."""
+    return _names(conn, args) or _vectors(conn, args) or _clusters(conn, args)
+
+
+def _clusters(conn: Any, args: Any) -> int:
+    """Кластеры графа — темы по алгоритму Лейдена (clusters.py)."""
+    try:
+        syn = api._with_auto(conn, load(args.synonyms))
+    except SynonymsError as exc:
+        print(f"Словарь синонимов: {exc}", file=sys.stderr)
+        return 1
+    try:
+        stats = clusters.compute(conn, syn)
+    except ImportError as exc:
+        print(
+            f"Кластеры не посчитаны: {exc}. Поставить: pip install -r requirements.txt",
+            file=sys.stderr,
+        )
+        return 1
+    print(
+        f"Кластеры (Лейден): {stats['clusters']} тем по {stats['clustered']} предметам из "
+        f"{stats['entities']}"
+        + (f", модулярность {stats['modularity']}" if stats.get("modularity") is not None else "")
+        + f"; мельче {clusters.MIN_SIZE} предметов — без кластера."
     )
     return 0
 
@@ -449,6 +498,8 @@ def main(argv: list[str] | None = None) -> int:
             "recheck",
             "names",
             "vectors",
+            "clusters",
+            "embed",
             "types",
             "report",
             "dataset",
@@ -469,6 +520,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--redo", action="store_true", help="модель проходит всё заново")
     parser.add_argument("--yes", action="store_true", help="build --redo: стереть граф без вопроса")
+    parser.add_argument(
+        "--defer-embed",
+        action="store_true",
+        help="build, confirm: имена, векторы и кластеры не считать (потом — команда embed)",
+    )
     parser.add_argument(
         "--no-filter",
         action="store_true",
@@ -494,7 +550,13 @@ def main(argv: list[str] | None = None) -> int:
         "--workers",
         type=int,
         default=int(os.environ.get("GEORAG_WORKERS") or WORKERS),
-        help="сколько фрагментов у модели одновременно (build, confirm)",
+        help="сколько фрагментов у модели одновременно (build)",
+    )
+    parser.add_argument(
+        "--confirm-workers",
+        type=int,
+        default=int(os.environ.get("GEORAG_CONFIRM_WORKERS") or CONFIRM_WORKERS),
+        help="сколько фактов у модели одновременно при подтверждении вопросами",
     )
     add_db_args(parser)
     add_embedder_args(parser)
@@ -517,7 +579,10 @@ def main(argv: list[str] | None = None) -> int:
                 return _build(conn, args)
             if args.command == "confirm":
                 # Подтверждённых стало больше — им нужны тип и векторы для поиска.
-                return _confirm(conn, args) or _types(conn, args) or _vectors(conn, args)
+                code = _confirm(conn, args, args.limit) or _types(conn, args)
+                return code or (0 if args.defer_embed else _vectors(conn, args))
+            if args.command == "embed":
+                return _embed(conn, args)
             if args.command == "recheck":
                 facts.recheck(conn)
                 return 0
@@ -525,8 +590,10 @@ def main(argv: list[str] | None = None) -> int:
                 return _names(conn, args)
             if args.command == "vectors":
                 return _vectors(conn, args)
+            if args.command == "clusters":
+                return _clusters(conn, args)
             if args.command == "types":
-                return _types(conn, args)
+                return _types(conn, args, args.limit)
             if args.command == "report":
                 return _report(conn, syn)
             if args.command == "dataset":

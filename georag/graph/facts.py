@@ -65,7 +65,21 @@ SENTENCES_BACK = 1
 # Потолок ответа модели по фрагменту, токенов. Обычный ответ — 100–600; зациклившаяся
 # модель без потолка пишет до конца окна и держит место, нужное другим фрагментам.
 ANSWER_TOKENS = 3000
+# А в бюджете памяти под окна (llm.budget) ответ держит меньше: обычный ответ — сотни
+# токенов. По потолку на строителе (81 824 токена памяти) помещалось 16 выписок сразу при
+# занятой на деле памяти 25 % (28.10.2026); длинный ответ, если выйдет, vLLM доместит сам.
+ANSWER_RESERVE = 1000
 _NUMBER = re.compile(r"^[\d\s.,–—\-±~<>=%]+(гг?|г\.|лет|млн|ма|ga|ma)?\.?$", re.IGNORECASE)
+
+
+def rules_for(model: str | None) -> Path | None:
+    """Свои правила модели, если они есть: config/graph-rules.<модель>.txt (план графа v2,
+    Б1). Маленькие модели ошибаются по-разному — одной правила о номере предложения,
+    другой о языке связи; общие правила для них — config/graph-rules.txt."""
+    if not model:
+        return None
+    path = CONFIG / f"graph-rules.{model}.txt"
+    return path if path.exists() else None
 
 
 def load_rules(path: Path | str | None = None) -> str:
@@ -486,7 +500,11 @@ def run(
     def work(row: tuple[Any, ...], found: Any) -> tuple[Checked, list[int] | None]:
         text = row[2] or ""
         system, user = messages(rules, text, found.entities if found is not None else None)
-        checked = check(llm.chat_json(system, user, max_tokens=ANSWER_TOKENS), text)
+        # Оборванный ответ (потолок длины, зацикливание) — факты до обрыва не пропадают.
+        answer = llm.chat_json(
+            system, user, max_tokens=ANSWER_TOKENS, repair=True, reserve=ANSWER_RESERVE
+        )
+        checked = check(answer, text)
         votes = [int(confirm(llm, f)) for f in checked.facts] if confirm is not None else None
         return checked, votes
 

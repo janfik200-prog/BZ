@@ -5,8 +5,8 @@
     python georag.py <команда> [ключи]
 
 База и модель
-    start                       поднять базу и модель Qwen3 в vLLM (Docker)
-    stop                        остановить базу и модель, данные остаются
+    start                       поднять базу и модель Qwen3-14B в vLLM (Docker)
+    stop                        остановить базу и обе модели, данные остаются
     status                      что сейчас работает
     init                        создать таблицы — один раз на новой машине
     stats                       сколько статей и фрагментов в базе
@@ -46,7 +46,11 @@
     collect --dry-run           что будет прочитано — без модели
 
 Граф связей
-    graph                       Qwen3 выписывает факты из статей (правила — config/graph-rules.txt)
+    Связи выписывает модель-строитель Qwen3-8B; Qwen3-14B — только ответы по базе. Обе
+    в 16 ГБ видеопамяти сразу не помещаются: на время graph, synonyms, questions, add,
+    all и clean «тема» Qwen3-14B останавливается (чат-бот не отвечает), потом
+    поднимается снова; если она работает, команда сначала спросит (без вопроса — --yes).
+    graph                       строитель выписывает факты из статей (правила — config/graph-rules.txt)
     graph --limit 30            только 30 фрагментов — проба
     graph --redo                всё заново (после правки правил): весь граф стирается,
                                 поэтому сначала спросит; без вопроса — graph --redo --yes
@@ -58,6 +62,7 @@
     graph --names               свести написания одного и того же по смыслу (идёт и после graph)
     graph --vectors             векторы фактов для поиска по связям (идёт и после graph)
     graph --types               тип связи и виды концов по цитате (идёт и после graph)
+    graph --clusters            кластеры-темы графа по Лейдену (идёт и после graph)
     synonyms                    предложения в словарь синонимов (config/synonyms.yaml)
     facts                       у чего больше всего фактов из статей
     facts "Анабарский щит"      все факты о нём с цитатами, файл CSV для Excel
@@ -79,7 +84,7 @@
 Ключи
     --max-docs 5      сколько статей разбирать за тему (add, all)
     --limit 10        сколько результатов показать (search); сколько фрагментов (graph)
-    --workers 8       сколько фрагментов у модели одновременно (graph; по умолчанию 8)
+    --workers 16      сколько фрагментов у строителя одновременно (graph; по умолчанию 16)
     --no-llm          не спрашивать модель, отбирать эвристикой (add, all)
     --force           обработать заново даже то, что уже было (add, all, ingest)
     --figures         описать рисунки статей моделью со зрением (add, all; нужна qwen3.5:9b)
@@ -102,6 +107,8 @@ import subprocess
 import sys
 import time
 import urllib.request
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -147,8 +154,17 @@ if _key_file.exists() and not os.environ.get("GEORAG_OPENALEX_KEY"):
 # Модель и адрес её сервера (vLLM) — одни на весь проект, из georag/llm.py (адрес
 # можно поменять переменной GEORAG_LLM). Этот модуль лёгкий: только стандартная
 # библиотека, поэтому импортируется и до перехода в .venv.
+from georag.llm import BUILDER_HOST, BUILDER_MODEL  # noqa: E402
 from georag.llm import DEFAULT_MODEL as MODEL  # noqa: E402
 from georag.llm import LLM_HOST as LLM  # noqa: E402
+
+# Сколько запросов строитель держит сразу — его --max-num-seqs (docker-compose.yml, та же
+# переменная GEORAG_BUILDER_SEQS). Столько фактов идёт к нему при подтверждении (короткие
+# запросы); фрагментов при выписке — не больше BUILDER_WORKERS: длинным запросам столько
+# памяти под окна нет.
+_SEQS = os.environ.get("GEORAG_BUILDER_SEQS", "").strip()
+BUILDER_SEQS = int(_SEQS) if _SEQS.isdigit() and int(_SEQS) > 0 else 64
+BUILDER_WORKERS = min(16, BUILDER_SEQS)
 
 # Проверки кода — только у разработчика, в .local/tests: в репозиторий не входят.
 TESTS_DIR = LOCAL / "tests"
@@ -360,13 +376,117 @@ def _ensure_database() -> bool:
     return _wait_database()
 
 
-def _llm_up(timeout: int = 5) -> bool:
+def _llm_up(timeout: int = 5, host: str = LLM) -> bool:
     """Отвечает ли сервер модели (vLLM): /v1/models."""
     try:
-        with urllib.request.urlopen(f"{LLM}/v1/models", timeout=timeout):
+        with urllib.request.urlopen(f"{host}/v1/models", timeout=timeout):
             return True
     except Exception:  # noqa: BLE001
         return False
+
+
+def _local(host: str) -> bool:
+    return host.startswith(("http://localhost", "http://127.0.0.1"))
+
+
+def _running(service: str) -> bool:
+    """Запущен ли контейнер сервиса docker-compose (отвечает он или ещё грузится)."""
+    done = _docker(
+        "--profile",
+        "llm",
+        "--profile",
+        "builder",
+        "ps",
+        "--status",
+        "running",
+        "-q",
+        service,
+        quiet=True,
+    )
+    return bool(done is not None and done.returncode == 0 and (done.stdout or "").strip())
+
+
+def _agreed(question: str) -> bool:
+    """Да/нет у человека; спросить некого (вывод в файл, планировщик) — нет, с подсказкой."""
+    if not sys.stdin.isatty():
+        print("Подтвердить некому — без вопроса: тот же запуск с --yes", file=sys.stderr)
+        return False
+    try:
+        answer = input(question).strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return False
+    return answer in ("да", "д", "yes", "y")
+
+
+def _start_builder(limit: int = 3600) -> bool:
+    """Поднять модель-строитель и дождаться её: грузится 1–2 минуты, в первый раз ещё и
+    скачивается (около 6 ГБ — при 2 МБ/с это 50 минут, отсюда час ожидания)."""
+    print(f"Поднимаю модель-строитель {BUILDER_MODEL}…", flush=True)
+    up = _docker("--profile", "builder", "up", "-d", "builder")
+    if up is None or up.returncode != 0:
+        return False
+    started = time.monotonic()
+    while time.monotonic() - started < limit:
+        if _llm_up(host=BUILDER_HOST):
+            print(f"Модель-строитель готова ({time.monotonic() - started:.0f} с).")
+            return True
+        time.sleep(5)
+    print("Модель-строитель не поднялась. Журнал: docker logs georag-builder", file=sys.stderr)
+    return False
+
+
+@contextmanager
+def _builder(opts: argparse.Namespace, after: Callable[[], object] | None = None) -> Iterator[bool]:
+    """Модель-строитель на время графовой команды (план графа v2, Б2).
+
+    Одна видеокарта (16 ГБ): Qwen3-14B и строитель вместе не помещаются. Если Qwen3-14B
+    работает, она на это время останавливается — чат-бот на странице и в Телеграме не
+    отвечает, — а по окончании (и после Ctrl+C) поднимается снова; строитель
+    останавливается. Ложь — строителя нет: человек отказался или он не поднялся."""
+    if _llm_up(host=BUILDER_HOST):
+        yield True
+        if after is not None:  # строитель не наш — не останавливаем, видеокарта занята им
+            after()
+        return
+    if not _local(BUILDER_HOST):
+        print(
+            f"Модель-строитель на {BUILDER_HOST} не отвечает — её сервер запускают там.",
+            file=sys.stderr,
+        )
+        yield False
+        return
+    # Работает ли Qwen3-14B — по контейнеру, а не только по ответу: пока она грузится,
+    # она не отвечает, но видеопамять уже заняла, и строитель рядом не поместится.
+    analyst = _local(LLM) and (_llm_up() or _running("llm"))
+    if analyst:
+        print(
+            f"Граф строит {BUILDER_MODEL}; вместе с {MODEL} в видеопамять она не помещается. "
+            f"На время работы {MODEL} остановится — чат-бот на странице и в Телеграме не "
+            "ответит, — а потом поднимется снова."
+        )
+        if not opts.yes and not _agreed("Продолжить? [да/нет] "):
+            print("Ничего не запущено.")
+            yield False
+            return
+        _docker("--profile", "llm", "stop", "llm")
+    ready = False
+    try:
+        ready = _start_builder()
+        yield ready
+    finally:
+        _docker("--profile", "builder", "stop", "builder", quiet=True)
+        # Строитель остановлен, Qwen3-14B ещё не вернулась — видеокарта свободна: здесь
+        # шаги без языковой модели (имена, векторы, кластеры) идут на ней, а не на
+        # процессоре. После Ctrl+C или сбоя их не делаем — их сделает следующий graph.
+        if after is not None and ready:
+            try:
+                after()
+            except KeyboardInterrupt:
+                print("Прервано: имена, векторы и кластеры — следующим graph.")
+        if analyst:
+            print(f"Возвращаю {MODEL} — чат-бот снова ответит через 1–2 минуты.")
+            _ensure_llm(wait=False)
 
 
 def _ensure_llm(wait: bool = True, limit: int = 1800) -> bool:
@@ -426,7 +546,9 @@ def _acquire(opts: argparse.Namespace, topic_args: list[str]) -> int:
         "auto",
         *(["--mailto", MAILTO] if MAILTO else []),
         "--model",
-        MODEL,
+        BUILDER_MODEL,
+        "--llm-host",
+        BUILDER_HOST,
     ]
     if opts.no_llm:
         args.append("--no-llm")
@@ -438,7 +560,10 @@ def _acquire(opts: argparse.Namespace, topic_args: list[str]) -> int:
         args.append("--no-formulas")
     if opts.queries:
         args += ["--queries", str(opts.queries)]
-    return _py("georag.acquire.cli", *args)
+    if opts.no_llm:  # отбор эвристикой — модель не нужна
+        return _py("georag.acquire.cli", *args)
+    with _builder(opts) as ready:
+        return _py("georag.acquire.cli", *args) if ready else 1
 
 
 def cmd_start(opts: argparse.Namespace) -> int:
@@ -460,19 +585,25 @@ def cmd_start(opts: argparse.Namespace) -> int:
 def cmd_stop(opts: argparse.Namespace) -> int:
     if _db_state() is None:
         return 1
-    done = _docker("--profile", "llm", "stop")
+    done = _docker("--profile", "llm", "--profile", "builder", "stop")
     if done is not None and done.returncode == 0:
-        print("База и модель остановлены. Данные на месте, видеокарта свободна.")
+        print("База и модели остановлены. Данные на месте, видеокарта свободна.")
         return 0
     return 1
 
 
 def cmd_status(opts: argparse.Namespace) -> int:
+    def models() -> None:
+        for name, host in ((MODEL, LLM), (BUILDER_MODEL, BUILDER_HOST)):
+            print(
+                f"Модель {name} на {host}: " + ("отвечает" if _llm_up(host=host) else "не отвечает")
+            )
+
     if _db_state() is None:
-        print(f"Модель на {LLM}: " + ("отвечает" if _llm_up() else "не отвечает"))
+        models()
         return 1
-    done = _docker("--profile", "llm", "ps")
-    print(f"Модель на {LLM}: " + ("отвечает" if _llm_up() else "не отвечает"))
+    done = _docker("--profile", "llm", "--profile", "builder", "ps")
+    models()
     return 0 if done is not None and done.returncode == 0 else 1
 
 
@@ -511,9 +642,11 @@ def cmd_all(opts: argparse.Namespace) -> int:
 
 def cmd_clean(opts: argparse.Namespace) -> int:
     args = ["--apply"] if opts.apply else []
-    if opts.text.strip():
-        args += ["--topic", opts.text.strip(), "--model", MODEL]
-    return _py("georag.acquire.clean", *args)
+    if not opts.text.strip():  # без темы — только доменный фильтр, без модели
+        return _py("georag.acquire.clean", *args)
+    args += ["--topic", opts.text.strip(), "--model", BUILDER_MODEL, "--llm-host", BUILDER_HOST]
+    with _builder(opts) as ready:
+        return _py("georag.acquire.clean", *args) if ready else 1
 
 
 def cmd_ingest(opts: argparse.Namespace) -> int:
@@ -583,34 +716,43 @@ def cmd_graph(opts: argparse.Namespace) -> int:
         return _py("georag.graph.cli", "names", *(["--redo"] if opts.redo else []))
     if opts.vectors:
         return _py("georag.graph.cli", "vectors", *(["--redo"] if opts.redo else []))
-    workers = ["--workers", str(opts.workers)] if opts.workers else []
-    if not _ensure_llm():
-        return 1
+    if opts.clusters:
+        return _py("georag.graph.cli", "clusters")
+    # Связи выписывает, подтверждает и типизирует модель-строитель (план графа v2, Б2).
+    model = ["--model", BUILDER_MODEL, "--llm-host", BUILDER_HOST]
+    workers = ["--workers", str(opts.workers or BUILDER_WORKERS)]
+    workers += ["--confirm-workers", str(BUILDER_SEQS)]
+    redo = ["--redo"] if opts.redo else []
+    limit = ["--limit", str(opts.limit)] if opts.limit else []
     if opts.types:
-        redo = ["--redo"] if opts.redo else []
-        return _py("georag.graph.cli", "types", "--model", MODEL, *redo, *workers)
-    if opts.confirm:
-        extra = ["--limit", str(opts.limit)] if opts.limit else []
-        return _py("georag.graph.cli", "confirm", "--model", MODEL, *extra, *workers)
-    args = ["build", "--model", MODEL] + (["--redo"] if opts.redo else []) + workers
-    if opts.yes:
-        args.append("--yes")
-    if opts.no_filter:
-        args.append("--no-filter")
-    if opts.limit:
-        args += ["--limit", str(opts.limit)]
-    return _py("georag.graph.cli", *args)
+        args = ["types", *model, *redo, *workers]
+    elif opts.confirm:
+        args = ["confirm", *model, *limit, *workers]
+    else:
+        args = ["build", *model, *redo, *workers, *limit]
+        args += ["--yes"] if opts.yes else []
+        args += ["--no-filter"] if opts.no_filter else []
+    # Имена, векторы и кластеры — после остановки строителя, на свободной видеокарте.
+    defer = not opts.types
+    args += ["--defer-embed"] if defer else []
+    result = {"code": 1}
+
+    def embed() -> None:
+        if defer and result["code"] == 0:
+            print("Имена, векторы и кластеры — на видеокарте, пока она свободна…", flush=True)
+            _py("georag.graph.cli", "embed")
+
+    with _builder(opts, after=embed) as ready:
+        result["code"] = _py("georag.graph.cli", *args) if ready else 1
+    return result["code"]
 
 
 def cmd_synonyms(opts: argparse.Namespace) -> int:
-    if not _ensure_database() or not _ensure_llm():
+    if not _ensure_database():
         return 1
-    return _py(
-        "georag.graph.cli",
-        "synonyms",
-        "--model",
-        MODEL,
-    )
+    with _builder(opts) as ready:
+        model = ["--model", BUILDER_MODEL, "--llm-host", BUILDER_HOST]
+        return _py("georag.graph.cli", "synonyms", *model) if ready else 1
 
 
 def cmd_verify(opts: argparse.Namespace) -> int:
@@ -639,14 +781,18 @@ def cmd_dataset(opts: argparse.Namespace) -> int:
 def cmd_questions(opts: argparse.Namespace) -> int:
     if not _ensure_database():
         return 1
-    return _py(
-        "georag.graph.cli",
+    args = [
         "questions",
         "--model",
-        MODEL,
+        BUILDER_MODEL,
+        "--llm-host",
+        BUILDER_HOST,
         *(["--limit", str(opts.limit)] if opts.limit else []),
-        *(["--no-llm"] if opts.no_llm else []),
-    )
+    ]
+    if opts.no_llm:  # вопросы по шаблону — модель не нужна
+        return _py("georag.graph.cli", *args, "--no-llm")
+    with _builder(opts) as ready:
+        return _py("georag.graph.cli", *args) if ready else 1
 
 
 def cmd_gaps(opts: argparse.Namespace) -> int:
@@ -843,6 +989,7 @@ def parse(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--confirm", action="store_true")
     p.add_argument("--names", action="store_true")
     p.add_argument("--vectors", action="store_true")
+    p.add_argument("--clusters", action="store_true")
     p.add_argument("--types", action="store_true")
     p.add_argument("--figures", action="store_true")
     p.add_argument("--no-formulas", action="store_true")

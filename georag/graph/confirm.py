@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import re
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from typing import Any
 
 from . import store
@@ -110,14 +110,27 @@ def run(
     def ask(row: tuple[Any, ...]) -> int:
         return votes(llm, row[1], row[2], row[3], row[4])
 
+    # У модели всё время workers фактов: закончился один — сразу следующий (раньше —
+    # пачками, и пачка ждала самый долгий ответ). В базу пишет только этот поток.
+    queue = iter(rows)
+    pending: dict[Future[int], tuple[Any, ...]] = {}
     pool = ThreadPoolExecutor(max(1, workers))
+
+    def submit() -> None:
+        row = next(queue, None)
+        if row is not None:
+            pending[pool.submit(ask, row)] = row
+
+    seen = 0
     try:
-        # Пачками по workers: модель занята целиком, а остановиться можно в любой момент.
-        for start in range(0, len(rows), max(1, workers)):
-            batch = rows[start : start + max(1, workers)]
-            futures = [pool.submit(ask, row) for row in batch]
+        for _ in range(max(1, workers)):
+            submit()
+        while pending:
+            finished, _ = wait(pending, return_when=FIRST_COMPLETED)
             stop = False
-            for i, (row, future) in enumerate(zip(batch, futures, strict=True), start=start + 1):
+            for future in finished:
+                row = pending.pop(future)
+                seen += 1
                 try:
                     got = future.result()
                     errors_in_row = 0
@@ -134,18 +147,20 @@ def run(
                             )
                         stop = True
                         break
+                    submit()
                     continue
                 store.set_votes(conn, row[0], got)
                 stats["done"] += 1
                 stats["kept"] += got >= MIN_VOTES
-                if i % 50 == 0 or i == len(rows):
+                if seen % 50 == 0 or seen == len(rows):
                     conn.commit()
                     if log:
-                        pace = (time.monotonic() - started) / i
+                        pace = (time.monotonic() - started) / seen
                         log(
-                            f"  [{i}/{len(rows)}] подтверждено ≥{MIN_VOTES} из 4: {stats['kept']} "
-                            f"из {stats['done']} · {pace:.1f} с на факт"
+                            f"  [{seen}/{len(rows)}] подтверждено ≥{MIN_VOTES} из 4: "
+                            f"{stats['kept']} из {stats['done']} · {pace:.2f} с на факт"
                         )
+                submit()
             if stop:
                 break
     finally:

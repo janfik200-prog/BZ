@@ -379,6 +379,12 @@
             <option value="5">от 5 статей</option>
           </select>
         </label>
+        <label title="Связи из одной статьи, ещё не подтверждённые вопросами: в граф они перейдут сами, когда повторятся в другой статье или подтвердятся">
+          <input type="checkbox" id="map-cand"> кандидаты
+        </label>
+        <label title="Тема — предметы, связанные между собой теснее, чем с остальными (алгоритм Лейдена; пересчёт — python georag.py graph --clusters)">Тема
+          <select id="map-cluster"><option value="">все</option></select>
+        </label>
       </div>
       <div class="net-found" id="net-found"></div>
       <div class="state" id="map-state">загружаю…</div>
@@ -666,13 +672,31 @@ function netLegend() {
   box.append(f);
 }
 
+// Список тем (кластеров Лейдена) — выбранная остаётся, если она есть и в новом списке.
+function fillClusters(list) {
+  const sel = $("map-cluster");
+  const was = sel.value;
+  sel.innerHTML = '<option value="">все</option>';
+  for (const c of list) {
+    const o = document.createElement("option");
+    o.value = String(c.id);
+    o.textContent = `${c.id}. ${short(c.title, 48)} · ${c.size}`;
+    sel.append(o);
+  }
+  sel.value = list.some((c) => String(c.id) === was) ? was : "";
+  sel.disabled = !list.length;
+}
+
+// Ребро-связь между сущностями: факт графа или кандидат из буфера (не «из статьи»).
+const isLink = (e) => e.type === "факт" || e.type === "кандидат";
+
 async function loadNetwork(force) {
   $("map-tip").textContent = "Колесо — масштаб, тянуть фон — сдвиг, тянуть узел — переставить. " +
     "Щёлкните узел — внизу все факты о нём с цитатами.";
   if (net.data && !force) { mountCanvas(); buildNet(false); return; }
   $("map-state").textContent = "загружаю…";
   try {
-    const data = await (await fetch("/api/network")).json();
+    const data = await (await fetch("/api/network" + ($("map-cand").checked ? "?candidates=1" : ""))).json();
     if (data.error) { $("map-state").textContent = data.error; $("map-box").innerHTML = ""; return; }
     if (!data.nodes.length) {
       $("map-state").textContent = "Фактов пока нет: граф строит Qwen3 командой python georag.py graph. " +
@@ -681,6 +705,7 @@ async function loadNetwork(force) {
       return;
     }
     net.data = data;
+    fillClusters(data.clusters || []);
     netColors();
     netLegend();
     mountCanvas();
@@ -700,11 +725,13 @@ function seeded(id) {
 
 function buildNet(reheat) {
   const minDocs = Number($("map-min").value);
+  const cluster = $("map-cluster").value;  // тема (кластер Лейдена) или все
   // Сущности — от N статей; статьи — только те, что связаны с показанными сущностями.
   const entities = net.data.nodes.filter((n) => n.kind === "сущность" && !net.hidden.has(n.kind)
-    && (n.documents || 0) >= minDocs);
+    && (n.documents || 0) >= minDocs && (!cluster || String(n.cluster) === cluster));
   const ids = new Set(entities.map((n) => n.id));
-  let edges = net.data.edges.filter((e) => e.type === "факт" && ids.has(e.source) && ids.has(e.target));
+  // Связи графа и, если включены, кандидаты (буфер редких связей) — пунктиром.
+  let edges = net.data.edges.filter((e) => isLink(e) && ids.has(e.source) && ids.has(e.target));
   const keep = [...entities];
   if (!net.hidden.has("статья")) {
     const docEdges = net.data.edges.filter((e) => e.type === "из статьи" && ids.has(e.target));
@@ -727,7 +754,7 @@ function buildNet(reheat) {
     const s = net.byId[e.source], t = net.byId[e.target];
     s.deg++; t.deg++;
     net.adj[s.id].add(t.id); net.adj[t.id].add(s.id);
-    return { ...e, s, t, rest: e.type === "факт" ? 110 : 80 };
+    return { ...e, s, t, rest: isLink(e) ? 110 : 80 };
   });
   if (net.selected && !net.byId[net.selected.id]) net.selected = null;
   if (net.selected) net.selected = net.byId[net.selected.id];
@@ -735,9 +762,13 @@ function buildNet(reheat) {
 
   const p = net.data.pass || {};
   const facts = net.edges.filter((e) => e.type === "факт").length;
+  const cands = net.edges.filter((e) => e.type === "кандидат").length;
   $("map-state").textContent =
     `${plural(entities.length, "сущность", "сущности", "сущностей")}, ` +
     `${plural(facts, "связь", "связи", "связей")}` +
+    (cands ? ` и ${plural(cands, "кандидат", "кандидата", "кандидатов")} (пунктиром)` : "") +
+    // Большой граф: на карте — только самые упоминаемые предметы (graph/api.py, А6).
+    (net.data.limited ? ` · граф большой — показаны связи ${net.data.limited.entities} самых упоминаемых предметов, остальные — в датасете по имени` : "") +
     (p.passed ? ` · Qwen3 прошла ${p.passed} из ${p.chunks} фрагментов` : "") +
     (p.as_of ? ` · от ${String(p.as_of).replace("T", " ").slice(0, 16)}` : "");
   if (reheat) { net.alpha = 1; net.fitted = false; net.userView = false; net.follow = null; }
@@ -900,14 +931,17 @@ function draw() {
 
   for (const e of net.edges) {
     const on = focus && (e.s === focus || e.t === focus);
-    const fact = e.type === "факт";
-    ctx.globalAlpha = focus ? (on ? 0.9 : 0.05) : (fact ? 0.55 : 0.18);
+    const fact = isLink(e);
+    const cand = e.type === "кандидат";
+    ctx.globalAlpha = focus ? (on ? 0.9 : 0.05) : (fact ? (cand ? 0.35 : 0.55) : 0.18);
     ctx.strokeStyle = fact ? net.colors.gpu : net.colors.ink;
     ctx.lineWidth = (fact ? 1 + Math.min(3, Math.log2(1 + e.weight)) : 0.7) / Math.sqrt(v.k);
+    ctx.setLineDash(cand ? [5 / v.k, 4 / v.k] : []);
     ctx.beginPath();
     ctx.moveTo(e.s.x, e.s.y);
     ctx.lineTo(e.t.x, e.t.y);
     ctx.stroke();
+    ctx.setLineDash([]);
     if (fact) arrowHead(e.s, e.t, v.k);
   }
 
@@ -917,7 +951,7 @@ function draw() {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     for (const e of net.edges) {
-      if (e.type !== "факт" || (e.s !== focus && e.t !== focus)) continue;
+      if (!isLink(e) || (e.s !== focus && e.t !== focus)) continue;
       const x = (e.s.x + e.t.x) / 2, y = (e.s.y + e.t.y) / 2;
       ctx.globalAlpha = 1;
       ctx.lineWidth = 3 / v.k;
@@ -1445,6 +1479,8 @@ $("tab-chat").addEventListener("click", () => showTab("chat"));
 $("tab-graph").addEventListener("click", () => showTab("graph"));
 
 $("map-min").addEventListener("change", () => { if (net.data) buildNet(true); });
+$("map-cand").addEventListener("change", () => loadNetwork(true));
+$("map-cluster").addEventListener("change", () => { if (net.data) buildNet(true); });
 
 // -- чат-бот ------------------------------------------------------------------ //
 const chat = { history: [], busy: false, abort: null };

@@ -21,7 +21,7 @@ from __future__ import annotations
 import re
 import time
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from typing import Any
 
 from . import store
@@ -433,47 +433,62 @@ def run(
     def ask(batch: list[tuple[Any, ...]]) -> Any:
         return llm.chat_json(SYSTEM, prompt(batch), temperature=0, max_tokens=ANSWER_TOKENS)
 
+    def save(batch: list[tuple[Any, ...]], answer: Any) -> None:
+        answer = answer if isinstance(answer, dict) else {}
+        with conn.cursor() as cur:
+            for i, (fact_id, src, _rel, dst, _quote) in enumerate(batch, start=1):
+                relation, flip, sk, dk, note = judge(answer.get(str(i)), src, dst)
+                if note == "нет ответа":
+                    continue  # модель пропустила факт — спросим в следующий раз
+                cur.execute(
+                    """
+                    UPDATE facts SET rel_type = %s, rel_flip = %s, src_kind = %s,
+                        dst_kind = %s, typed_at = now(), type_note = %s WHERE id = %s
+                    """,
+                    (relation, flip, sk or None, dk or None, note or None, fact_id),
+                )
+                if relation:
+                    stats["typed"] += 1
+                    types[relation] += 1
+                else:
+                    stats["dropped"] += 1
+                    notes[note.split(":")[0]] += 1
+        conn.commit()
+
+    # У модели всё время workers пачек: ответила одна — сразу следующая (раньше группа
+    # пачек ждала самый долгий ответ). В базу пишет только этот поток.
     started = time.monotonic()
+    queue = iter(batches)
+    pending: dict[Future[Any], list[tuple[Any, ...]]] = {}
     pool = ThreadPoolExecutor(max(1, workers))
+
+    def submit() -> None:
+        batch = next(queue, None)
+        if batch is not None:
+            pending[pool.submit(ask, batch)] = batch
+
+    done = 0
     try:
-        for start in range(0, len(batches), max(1, workers)):
-            group = batches[start : start + max(1, workers)]
-            futures = [pool.submit(ask, b) for b in group]
-            for batch, future in zip(group, futures, strict=True):
+        for _ in range(max(1, workers)):
+            submit()
+        while pending:
+            finished, _ = wait(pending, return_when=FIRST_COMPLETED)
+            for future in finished:
+                batch = pending.pop(future)
                 try:
-                    answer = future.result()
+                    save(batch, future.result())
                 except Exception as exc:  # noqa: BLE001 — эти факты пройдут в следующий раз
                     stats["errors"] += 1
                     if log:
                         log(f"  модель не ответила: {type(exc).__name__}: {exc}")
-                    continue
-                answer = answer if isinstance(answer, dict) else {}
-                with conn.cursor() as cur:
-                    for i, (fact_id, src, _rel, dst, _quote) in enumerate(batch, start=1):
-                        relation, flip, sk, dk, note = judge(answer.get(str(i)), src, dst)
-                        if note == "нет ответа":
-                            continue  # модель пропустила факт — спросим в следующий раз
-                        cur.execute(
-                            """
-                            UPDATE facts SET rel_type = %s, rel_flip = %s, src_kind = %s,
-                                dst_kind = %s, typed_at = now(), type_note = %s WHERE id = %s
-                            """,
-                            (relation, flip, sk or None, dk or None, note or None, fact_id),
-                        )
-                        if relation:
-                            stats["typed"] += 1
-                            types[relation] += 1
-                        else:
-                            stats["dropped"] += 1
-                            notes[note.split(":")[0]] += 1
-                conn.commit()
-            done = min(len(rows), (start + len(group)) * BATCH)
-            if log and (start // max(1, workers)) % 10 == 0:
-                pace = (time.monotonic() - started) / max(1, done)
-                log(
-                    f"  [{done}/{len(rows)}] с типом {stats['typed']}, не в граф "
-                    f"{stats['dropped']} · {pace:.2f} с на факт"
-                )
+                done += len(batch)
+                if log and (done // BATCH) % 10 == 0:
+                    pace = (time.monotonic() - started) / max(1, done)
+                    log(
+                        f"  [{done}/{len(rows)}] с типом {stats['typed']}, не в граф "
+                        f"{stats['dropped']} · {pace:.2f} с на факт"
+                    )
+                submit()
     finally:
         pool.shutdown(wait=False, cancel_futures=True)
     stats["notes"] = dict(notes.most_common())

@@ -33,6 +33,16 @@ NUM_CTX = 12288
 # 127.0.0.1, а не localhost — см. DEFAULT_DSN в index/db.py.
 LLM_HOST = os.environ.get("GEORAG_LLM", "").strip() or "http://127.0.0.1:8100"
 
+# Модель-строитель графа (план графа v2, Б1–Б2): выписывает связи, подтверждает их
+# вопросами, ставит типы, сводит имена, отбирает статьи при добыче. Меньше Qwen3-14B —
+# быстрее на миллионах фрагментов. Qwen3-14B (DEFAULT_MODEL) остаётся для ответов по
+# всей базе: чат-бот, Телеграм, сбор по предмету. Свой сервер vLLM (docker-compose,
+# сервис builder, порт 8101); на 16 ГБ обе модели сразу не помещаются — запускатель
+# переключает их (georag.py, _builder). Другие модель и адрес — GEORAG_BUILDER_MODEL и
+# GEORAG_BUILDER.
+BUILDER_MODEL = os.environ.get("GEORAG_BUILDER_MODEL", "").strip() or "qwen3-8b"
+BUILDER_HOST = os.environ.get("GEORAG_BUILDER", "").strip() or "http://127.0.0.1:8101"
+
 # Qwen3 по умолчанию сначала «думает» вслух — это в разы дольше, а рассуждать в
 # наших заданиях не о чем. vLLM выключает размышления так, через шаблон чата.
 NO_THINK = {"chat_template_kwargs": {"enable_thinking": False}}
@@ -169,14 +179,62 @@ def strip_think(text: str) -> str:
     return cleaned
 
 
-def extract_json(text: str) -> dict[str, Any]:
-    """Первый объект JSON из ответа модели: вокруг него бывает лишний текст."""
+# Модели, у которых шаблон чата не знает системной роли (Gemma 2): правила уходят в
+# начало вопроса. Пополняется сам — по первому отказу сервера.
+_NO_SYSTEM: set[str] = set()
+
+
+def extract_json(text: str, repair: bool = False) -> dict[str, Any]:
+    """Первый объект JSON из ответа модели: вокруг него бывает лишний текст.
+
+    repair — оборванный ответ (модель упёрлась в потолок длины или зациклилась)
+    обрезается после последнего целого элемента и закрывается: из
+    {"факты": [[1, …], [2, …], [3, "go — берутся первые два факта. Qwen3-8B обрывала
+    так каждый седьмой длинный ответ (план графа v2, Б1), и пропадали все его факты."""
     cleaned = strip_think(text)
     start, end = cleaned.find("{"), cleaned.rfind("}")
-    if start == -1 or end <= start:
+    if start == -1 or (end <= start and not repair):
         raise ValueError(f"в ответе нет JSON: {cleaned[:200]!r}")
-    data: dict[str, Any] = json.loads(cleaned[start : end + 1])
-    return data
+    try:
+        data: dict[str, Any] = json.loads(cleaned[start : end + 1])
+        return data
+    except json.JSONDecodeError:
+        if not repair:
+            raise
+    fixed = _close_truncated(cleaned[start:])
+    if fixed is None:
+        raise ValueError(f"в ответе нет JSON: {cleaned[:200]!r}")
+    repaired: dict[str, Any] = json.loads(fixed)
+    return repaired
+
+
+def _close_truncated(text: str) -> str | None:
+    """Оборванный JSON → до последнего закончившегося элемента, скобки закрыты."""
+    stack: list[str] = []
+    in_string = escaped = False
+    cut, cut_stack = -1, []
+    for i, ch in enumerate(text):
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch in "[{":
+            stack.append("]" if ch == "[" else "}")
+        elif ch in "]}":
+            if not stack:
+                return None
+            stack.pop()
+            if stack:  # закончился элемент внутри списка или объекта — здесь можно резать
+                cut, cut_stack = i + 1, list(stack)
+    if cut == -1:
+        return None
+    return text[:cut] + "".join(reversed(cut_stack))
 
 
 @dataclass
@@ -205,29 +263,41 @@ class LLM:
         temperature: float | None = None,
         timeout: Any = None,
         max_tokens: int | None = None,
+        repair: bool = False,
+        reserve: int | None = None,
     ) -> dict[str, Any]:
-        """Один вопрос — один объект JSON в ответ.
+        """Один вопрос — один объект JSON в ответ. repair — оборванный ответ дочинить
+        до последнего целого элемента (extract_json). reserve — сколько токенов ответа
+        держать в бюджете памяти (budget): обычно ответ много короче потолка max_tokens,
+        и резерв по потолку пускал к модели вчетверо меньше запросов, чем помещается.
 
         max_tokens — потолок длины ответа: зациклившаяся модель иначе пишет до
         конца окна и держит занятым место, которое нужно другим запросам."""
         import requests
 
-        payload = self._payload(
-            [{"role": "system", "content": system}, {"role": "user", "content": user}],
-            temperature,
-        )
-        payload["response_format"] = {"type": "json_object"}
-        if max_tokens:
-            payload["max_tokens"] = max_tokens
-        need = _tokens_of(payload["messages"]) + (max_tokens or JSON_REPLY)
-        # Таймаут — на сам запрос: ожидание места в бюджете в него не входит.
-        with budget(self.host).hold(need):
-            response = requests.post(
-                self._url("/chat/completions"), json=payload, timeout=timeout or self.timeout
-            )
+        def ask(messages: list[dict[str, Any]]) -> Any:
+            payload = self._payload(messages, temperature)
+            payload["response_format"] = {"type": "json_object"}
+            if max_tokens:
+                payload["max_tokens"] = max_tokens
+            need = _tokens_of(payload["messages"]) + (reserve or max_tokens or JSON_REPLY)
+            # Таймаут — на сам запрос: ожидание места в бюджете в него не входит.
+            with budget(self.host).hold(need):
+                return requests.post(
+                    self._url("/chat/completions"), json=payload, timeout=timeout or self.timeout
+                )
+
+        split = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+        merged = [{"role": "user", "content": f"{system}\n\n{user}"}]
+        response = ask(merged if self.model in _NO_SYSTEM else split)
+        if response.status_code == 400 and "system role" in response.text.lower():
+            # Gemma 2 не принимает системную роль (шаблон чата): правила — в начало
+            # вопроса, и так дальше для этой модели.
+            _NO_SYSTEM.add(self.model)
+            response = ask(merged)
         response.raise_for_status()
         message = response.json()["choices"][0]["message"]
-        return extract_json(message.get("content") or "")
+        return extract_json(message.get("content") or "", repair=repair)
 
     def stream(
         self,

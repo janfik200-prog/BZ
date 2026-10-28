@@ -75,3 +75,21 @@ def test_extra_names() -> None:
     # «разлом» в списке, «Персияновский разлом» — тоже он (одно содержит другое)
     known = facts.Fact("Персияновский разлом", "контролирует", "gold", "q")
     assert facts.extra_names([known], ["разлом", "gold"]) == []
+
+
+def test_truncated_answer_keeps_whole_facts() -> None:
+    import pytest
+
+    from georag.llm import extract_json
+
+    cut = '{"факты": [[1, "gold", "содержит", "Ag"], [2, "pyrite", "содержит", "gold"], [3, "go'
+    assert extract_json(cut, repair=True) == {
+        "факты": [[1, "gold", "содержит", "Ag"], [2, "pyrite", "содержит", "gold"]]
+    }
+    with pytest.raises(ValueError):  # без repair — как раньше: ошибка
+        extract_json(cut)
+    # кавычки и скобки внутри строк не путают
+    tricky = '{"факты": [[1, "zone [A]", "связано с", "a \\"b\\""], [2, "x'
+    assert extract_json(tricky, repair=True)["факты"] == [[1, "zone [A]", "связано с", 'a "b"']]
+    # целый ответ не трогается
+    assert extract_json('{"факты": []}', repair=True) == {"факты": []}

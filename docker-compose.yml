@@ -76,8 +76,65 @@ services:
     ports:
       # Снаружи 8100: на 8000 — веб-страница проекта (python georag.py web).
       - "127.0.0.1:8100:8000"
+    environment:
+      HF_HUB_DISABLE_XET: "1"  # см. builder: Xet в контейнере зависал на загрузке
     volumes:
       # Скачанная модель (около 10 ГБ) хранится в томе и не качается заново.
+      - georag-models:/root/.cache/huggingface
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 900s
+
+  # Модель-строитель графа: Qwen3-8B, тоже 4 бита (AWQ), — выписывает связи, подтверждает
+  # их вопросами, ставит типы (georag/llm.py, BUILDER_MODEL). Меньше и быстрее Qwen3-14B,
+  # а та остаётся для ответов по всей базе. На 16 ГБ обе сразу не помещаются: graph
+  # останавливает llm, поднимает builder и по окончании возвращает llm (georag.py).
+  builder:
+    image: vllm/vllm-openai:v0.30.0
+    container_name: georag-builder
+    profiles: ["builder"]
+    restart: on-failure:3
+    entrypoint: ["vllm", "serve"]
+    command:
+      # Другую модель-строитель (план графа v2, Б1) задают две переменные — репозиторий на
+      # Hugging Face и имя для проекта (то же имя читает georag/llm.py), например:
+      #   GEORAG_BUILDER_REPO=hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4
+      #   GEORAG_BUILDER_MODEL=llama3.1-8b
+      - ${GEORAG_BUILDER_REPO:-Qwen/Qwen3-8B-AWQ}
+      - --served-model-name=${GEORAG_BUILDER_MODEL:-qwen3-8b}
+      # Окно: у Gemma 2 не больше 8192 — GEORAG_BUILDER_LEN=8192 (правила, фрагмент и
+      # ответ вместе — около 6 тысяч токенов, помещаются).
+      - --max-model-len=${GEORAG_BUILDER_LEN:-12288}
+      - --gpu-memory-utilization=0.90
+      # Память под окна в 8 бит. Не всякой модели это годится — тогда
+      # GEORAG_BUILDER_KV=auto (как у самой модели, вдвое больше памяти на окно).
+      - --kv-cache-dtype=${GEORAG_BUILDER_KV:-fp8}
+      # Модель — около 6 ГБ, места под окна много: 64 запроса сразу. Столько фактов идёт
+      # при подтверждении вопросами (короткие запросы), фрагментов при выписке — 16.
+      # Другое число — GEORAG_BUILDER_SEQS (его же берёт запускатель).
+      - --max-num-seqs=${GEORAG_BUILDER_SEQS:-64}
+      # Сколько токенов заданий читать за шаг. Задание выписки — около 2000 токенов, так
+      # что при 2048 за шаг дочитывается одно; другое число — GEORAG_BUILDER_BATCH.
+      - --max-num-batched-tokens=${GEORAG_BUILDER_BATCH:-2048}
+    ports:
+      - "127.0.0.1:8101:8000"
+    environment:
+      # Загрузка весов по протоколу Xet в контейнере зависала на нуле байт (27.10.2026):
+      # обычная загрузка по HTTP идёт.
+      HF_HUB_DISABLE_XET: "1"
+    volumes:
+      # Тот же том, что у llm: модели скачиваются один раз (8B — около 6 ГБ).
       - georag-models:/root/.cache/huggingface
     ipc: host
     deploy:

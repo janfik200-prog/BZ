@@ -20,7 +20,8 @@
     GET  /api/document?doc_id=...      разбор статьи по фрагментам
     GET  /api/chat/status              жив ли сервер модели и та ли на нём модель
     POST /api/chat                     вопрос чат-боту; ответ потоком, строка JSON на событие
-    GET  /api/network                  граф: сущности, связи с цитатами, статьи
+    GET  /api/network                  граф: сущности, связи с цитатами, статьи;
+                                       ?candidates=1 — и кандидаты (буфер редких связей)
     GET  /api/facts?chunks=12,34       связи графа, выписанные из этих фрагментов (под ответом)
     GET  /api/datasets                 у каких сущностей больше всего фактов
     GET  /api/dataset?name=...         датасет сущности: все факты о ней с цитатами
@@ -198,7 +199,11 @@ class Handler(BaseHTTPRequestHandler):
             elif route.path == "/api/dataset":
                 self._dataset({k: v[0] for k, v in query.items() if v})
             elif route.path == "/api/network":
-                self._graph(graph_api.network_response)
+                # ?candidates=1 — и буфер редких связей (graph/store.py, accepted)
+                buffer = (query.get("candidates") or ["0"])[0] == "1"
+                self._graph(
+                    lambda conn, syn: graph_api.network_response(conn, syn, candidates=buffer)
+                )
             elif route.path == "/api/facts":
                 raw = (query.get("chunks") or [""])[0].split(",")
                 ids = [int(x) for x in raw if x.strip().isdigit()][:40]

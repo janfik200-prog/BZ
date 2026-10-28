@@ -295,3 +295,105 @@ def test_start_docker_not_responding(monkeypatch: MonkeyPatch, capsys: Capsys) -
     assert launcher.cmd_start(launcher.parse(["start"])) == 1
     assert "Запустите Docker Desktop" in capsys.readouterr().err
     assert not any("up" in cmd for cmd in seen)
+
+
+# --------------------------------------------------------------------------- #
+#  Модель-строитель (план графа v2, Б2): переключение на одной видеокарте
+# --------------------------------------------------------------------------- #
+def fake_models(
+    monkeypatch: MonkeyPatch, analyst: bool, builder: bool = False, starts: bool = True
+) -> list[str]:
+    """Подменить docker и модели; вернуть журнал действий."""
+    log: list[str] = []
+    monkeypatch.setattr(
+        launcher,
+        "_llm_up",
+        lambda timeout=5, host=launcher.LLM: builder if host == launcher.BUILDER_HOST else analyst,
+    )
+    monkeypatch.setattr(launcher, "_docker", lambda *a, **k: log.append(" ".join(a)))
+    monkeypatch.setattr(launcher, "_running", lambda service: analyst and service == "llm")
+    monkeypatch.setattr(launcher, "_start_builder", lambda: log.append("start builder") or starts)
+    monkeypatch.setattr(launcher, "_ensure_llm", lambda wait=True: log.append("start llm") or True)
+    return log
+
+
+def test_builder_already_up(monkeypatch: MonkeyPatch) -> None:
+    log = fake_models(monkeypatch, analyst=True, builder=True)
+    with launcher._builder(launcher.parse(["graph"])) as ready:
+        assert ready
+    assert log == []  # ничего не переключали
+
+
+def test_builder_replaces_analyst_and_returns_it(monkeypatch: MonkeyPatch) -> None:
+    log = fake_models(monkeypatch, analyst=True)
+    with launcher._builder(launcher.parse(["graph", "--yes"])) as ready:
+        assert ready
+        assert log == ["--profile llm stop llm", "start builder"]
+    assert log[2:] == ["--profile builder stop builder", "start llm"]
+
+
+def test_builder_asks_before_stopping_chat(monkeypatch: MonkeyPatch, capsys: Capsys) -> None:
+    log = fake_models(monkeypatch, analyst=True)
+    monkeypatch.setattr(launcher.sys.stdin, "isatty", lambda: False)
+    with launcher._builder(launcher.parse(["graph"])) as ready:
+        assert not ready
+    assert log == []  # чат-бот не тронут
+    assert "--yes" in capsys.readouterr().err
+
+
+def test_builder_without_analyst(monkeypatch: MonkeyPatch) -> None:
+    log = fake_models(monkeypatch, analyst=False)
+    with launcher._builder(launcher.parse(["graph"])) as ready:
+        assert ready
+    assert log == ["start builder", "--profile builder stop builder"]  # 14B не поднимаем
+
+
+def test_analyst_returns_after_interrupt(monkeypatch: MonkeyPatch) -> None:
+    log = fake_models(monkeypatch, analyst=True)
+    with pytest.raises(KeyboardInterrupt), launcher._builder(launcher.parse(["graph", "--yes"])):
+        raise KeyboardInterrupt
+    assert log[-1] == "start llm"
+
+
+def test_graph_runs_on_builder(monkeypatch: MonkeyPatch) -> None:
+    fake_models(monkeypatch, analyst=False, builder=True)
+    monkeypatch.setattr(launcher, "_ensure_database", lambda: True)
+    seen: list[tuple[str, ...]] = []
+    monkeypatch.setattr(launcher, "_py", lambda module, *a: seen.append((module, *a)) or 0)
+    assert launcher.cmd_graph(launcher.parse(["graph", "--limit", "5"])) == 0
+    args = seen[0]
+    assert args[:2] == ("georag.graph.cli", "build")
+    assert launcher.BUILDER_MODEL in args and launcher.BUILDER_HOST in args
+    assert args[args.index("--workers") + 1] == str(launcher.BUILDER_WORKERS)
+
+
+def test_loading_analyst_counts_as_running(monkeypatch: MonkeyPatch) -> None:
+    """Qwen3-14B ещё грузится (не отвечает), но видеопамять заняла: её тоже остановить."""
+    log = fake_models(monkeypatch, analyst=False)
+    monkeypatch.setattr(launcher, "_running", lambda service: service == "llm")
+    with launcher._builder(launcher.parse(["graph", "--yes"])) as ready:
+        assert ready
+    assert log[0] == "--profile llm stop llm" and log[-1] == "start llm"
+
+
+@pytest.mark.parametrize(("code", "embedded"), [(0, True), (2, False)])
+def test_embed_runs_on_free_gpu(monkeypatch: MonkeyPatch, code: int, embedded: bool) -> None:
+    """Имена, векторы и кластеры — после остановки строителя и до возврата Qwen3-14B:
+    видеокарта в этот момент свободна. Прерванный graph (код 2) — без них."""
+    log = fake_models(monkeypatch, analyst=True)
+    monkeypatch.setattr(launcher, "_ensure_database", lambda: True)
+
+    def py(module: str, *args: str) -> int:
+        log.append(f"py {args[0]}" + (" --defer-embed" if "--defer-embed" in args else ""))
+        return code if args[0] == "build" else 0
+
+    monkeypatch.setattr(launcher, "_py", py)
+    assert launcher.cmd_graph(launcher.parse(["graph", "--yes"])) == code
+    expected = [
+        "--profile llm stop llm",
+        "start builder",
+        "py build --defer-embed",
+        "--profile builder stop builder",
+    ]
+    expected += ["py embed"] if embedded else []
+    assert log == [*expected, "start llm"]
