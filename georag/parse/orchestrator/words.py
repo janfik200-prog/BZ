@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import re
 
+from . import hyphens
+
 # После мягкого переноса — пробелы, перевод строки (у PyMuPDF строки не склеены) и
 # видимый дефис; абзац мягким переносом не кончается, поэтому строка — одна.
 _SOFT_HYPHEN = re.compile("\u00ad[ \t]*\n?[ \t]*(?:-[ \t]*\n?[ \t]*)?")
@@ -37,9 +39,36 @@ _CYRILLIC = set("АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭ�
 _ELEMENT_PREFIX = re.compile(r"[A-Z][a-z][А-Яа-яЁё]")
 
 
+# Мягкий перенос между двумя кусками слова — решается по кускам (join_soft_hyphens).
+_SOFT_BREAK = re.compile(r"([^\W_]+)" + _SOFT_HYPHEN.pattern + r"([^\W_]+)")
+
+
+def _soft_break(m: re.Match[str]) -> str:
+    """Мягкий перенос между кусками: часть PDF (из LaTeX, из Word с особой разметкой) пишет
+    им и настоящий дефис на конце строки — «Северо¬ Западный», «Au¬ содержащие», «КП¬1»
+    (тест-план 6.08, 7.02). У букв с цифрой переноса не бывает — дефис; остальное — по
+    правилам дефиса на конце строки (hyphens.py), которые не решили — склеить: мягкий
+    перенос обычно внутри слова."""
+    first, second = m.group(1), m.group(2)
+    if first[-1].isdigit() or second[0].isdigit():
+        return f"{first}-{second}"  # «КП¬1», «2¬3»
+    if second.lower() in hyphens.HANGING:
+        return f"{first}- {second}"  # «северо¬ и юго-западный»
+    kept = hyphens.line_hyphen(first, second)
+    return kept if kept and "-" in kept else first + second
+
+
 def join_soft_hyphens(text: str) -> str:
-    """Слово, разорванное мягким переносом, — целиком: «ра¬ - бот» → «работ»."""
-    return _SOFT_HYPHEN.sub("", text) if "\u00ad" in text else text
+    """Слово, разорванное мягким переносом, — целиком: «ра¬ - бот» → «работ»; настоящий
+    дефис, записанный мягким переносом, — дефисом: «Северо¬ Западный» → «Северо-Западный»."""
+    if "\u00ad" not in text:
+        return text
+    for _ in range(3):  # «недоста¬ то¬ чно»: кусок после склейки — снова первый
+        joined = _SOFT_BREAK.sub(_soft_break, text)
+        if joined == text:
+            break
+        text = joined
+    return _SOFT_HYPHEN.sub("", text)
 
 
 def _one_script(match: re.Match[str]) -> str:

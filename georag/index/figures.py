@@ -28,6 +28,7 @@ generate_picture_images — так быстрее). Картинка вырез�
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -381,13 +382,42 @@ def caption_line(item: dict[str, Any]) -> str:
 # --------------------------------------------------------------------------- #
 #  Команда: python georag.py figures — вырезать рисунки уже разобранных статей
 # --------------------------------------------------------------------------- #
-def find_pdf(doc_id: str, meta: dict[str, Any], folders: dict[str, Path]) -> Path | None:
-    """PDF статьи: путь из записи, если файл есть, иначе — файл <doc_id>.pdf в папках --pdf."""
+def find_pdf(
+    doc_id: str,
+    meta: dict[str, Any],
+    folders: dict[str, Path],
+    hashes: dict[Path, str] | None = None,
+) -> Path | None:
+    """PDF статьи: путь из записи, если файл есть; иначе в папках --pdf — файл <doc_id>.pdf
+    или файл с тем же хэшем, что в записи. Второе — для статей из папки: local кладёт PDF в
+    output под исходным именем («kekura_formulas.pdf»), а doc_id у статьи другой (тест-план
+    8.20). hashes — хэши уже прочитанных файлов: каждый PDF читается за прогон раз."""
     for key in ("source_path", "path"):
         value = str(meta.get(key) or "")
         if value.lower().endswith(".pdf") and Path(value).is_file():
             return Path(value)
-    return folders.get(doc_id)
+    if doc_id in folders:
+        return folders[doc_id]
+    sha = str(meta.get("sha256") or "").lower()
+    if not sha:
+        return None
+    hashes = {} if hashes is None else hashes
+    # Сначала файлы, чьё имя есть в doc_id (local: «local-<имя>-<хэш>»), — их обычно один.
+    named = sorted(folders.values(), key=lambda p: not _slug(p.stem) or _slug(p.stem) not in doc_id)
+    for path in named:
+        if path not in hashes:
+            try:
+                hashes[path] = hashlib.sha256(path.read_bytes()).hexdigest()
+            except OSError:
+                hashes[path] = ""
+        if hashes[path] == sha:
+            return path
+    return None
+
+
+def _slug(stem: str) -> str:
+    """Имя файла, как его пишет doc_id статьи из папки (acquire/local.py, local_doc_id)."""
+    return re.sub(r"[^a-z0-9._-]+", "_", stem.lower()).strip("_.")[:60]
 
 
 def _write_meta(path: Path, meta: dict[str, Any]) -> None:
@@ -403,7 +433,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("doc_ids", nargs="*", help="статьи (doc_id); без них — все разобранные")
     parser.add_argument(
-        "--pdf", action="append", default=[], type=Path, help="папка с PDF статей (<doc_id>.pdf)"
+        "--pdf",
+        action="append",
+        default=[],
+        type=Path,
+        help="папка с PDF статей (<doc_id>.pdf или под исходным именем)",
     )
     parser.add_argument("--redo", action="store_true", help="вырезать заново и уже вырезанные")
     parser.add_argument("--articles", type=Path, default=ARTICLES)
@@ -412,6 +446,7 @@ def main(argv: list[str] | None = None) -> int:
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
 
     folders = {p.stem: p for folder in args.pdf for p in sorted(Path(folder).rglob("*.pdf"))}
+    hashes: dict[Path, str] = {}
     ids = args.doc_ids or sorted(
         p.name[: -len(".docling.json")] for p in args.articles.glob("*.docling.json")
     )
@@ -430,7 +465,7 @@ def main(argv: list[str] | None = None) -> int:
             if "figures" in meta and not args.redo:
                 kept += 1
             else:
-                pdf = find_pdf(doc_id, meta, folders)
+                pdf = find_pdf(doc_id, meta, folders, hashes)
                 if pdf is None:
                     no_pdf += 1
                     continue

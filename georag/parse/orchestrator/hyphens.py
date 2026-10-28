@@ -20,9 +20,44 @@ from .profile import PLAIN, SCAN, UNKNOWN
 
 _LETTERS = "A-Za-zА-Яа-яЁё"
 _LINE_HYPHEN = re.compile(rf"\b([{_LETTERS}]{{2,}})- ([{_LETTERS}]{{2,}})\b")
-_HANGING = {"и", "или", "либо", "а", "and", "or", "nor", "to"}  # «северо- и юго-западный»
+HANGING = {"и", "или", "либо", "а", "and", "or", "nor", "to"}  # «северо- и юго-западный»
+_HANGING = HANGING
 _CYRILLIC = re.compile(r"[А-Яа-яЁё]")
 _ELEMENT = re.compile(r"[A-Z][a-z]?")
+# Составное прилагательное с минералом или породой в первой части: «кварц- серицитовые»,
+# «хлорит- эпидотовых» — первая часть целое слово-название, вторая — прилагательное. Это
+# 6 ошибок из 74 русских мест разметки 13.10.2026 (правило «на -о/-е» их не ловит).
+_ADJECTIVE = re.compile(
+    r"(?:ый|ий|ой|ая|яя|ое|ее|ые|ие|ых|их|ым|им|ыми|ими|ого|его|ому|ему|ую|юю)$"
+)
+_COMPOUND_HEADS_BUILTIN = {
+    "кварц", "пирит", "хлорит", "серицит", "эпидот", "карбонат", "альбит", "биотит",
+    "мусковит", "турмалин", "гранат", "магнетит", "гематит", "барит", "флюорит",
+    "кальцит", "доломит", "анкерит", "сидерит", "галенит", "сфалерит", "арсенопирит",
+    "халькопирит", "пирротин", "шеелит", "молибденит", "касситерит", "полевошпат",
+    "гранит", "диорит", "сиенит", "базальт", "андезит", "сланец", "гнейс", "мрамор",
+}  # fmt: skip
+
+
+def _compound_heads() -> set[str]:
+    """Слова-названия для составных: встроенные и русские слова config/geo-terms.txt."""
+    global _HEADS
+    if _HEADS is None:
+        heads = set(_COMPOUND_HEADS_BUILTIN)
+        try:
+            from ...paths import CONFIG
+
+            for line in (CONFIG / "geo-terms.txt").read_text(encoding="utf-8-sig").splitlines():
+                word = line.strip().lower()
+                if word and not word.startswith("#") and " " not in word and _CYRILLIC.search(word):
+                    heads.add(word)
+        except OSError:
+            pass
+        _HEADS = heads
+    return _HEADS
+
+
+_HEADS: set[str] | None = None
 
 
 def line_hyphen(first: str, second: str) -> str | None:
@@ -37,6 +72,8 @@ def line_hyphen(first: str, second: str) -> str | None:
     if _CYRILLIC.search(first + second):
         if len(first) >= 5 and first[-1] in "оеОЕ" and len(second) >= 5:
             return f"{first}-{second}"  # «сульфидно- кварцевым», «северо- западного»
+        if first.lower() in _compound_heads() and len(second) >= 5 and _ADJECTIVE.search(second):
+            return f"{first}-{second}"  # «кварц- серицитовых», «хлорит- эпидотовые»
         return first + second  # «метасома- тические», «труд- нодоступных»
     return None  # латиница, обе со строчной: «hy- drothermal» или «ore- forming» — не решить
 

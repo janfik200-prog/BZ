@@ -17,7 +17,7 @@ from typing import Any
 from ..diag import describe, full_traceback
 from ..models import OK, PARTIAL, ParsedDoc, ParseInput, ValidationReport
 from ..parsers.structure import FURNITURE, extract_structure, label_of
-from . import hyphens, profile, textlayer
+from . import hyphens, layout, profile, textlayer
 from .captions import rescue_captions
 from .cases import Finding
 from .formulas import fix_formula
@@ -114,18 +114,22 @@ def _symbols(doc: Any, inp: ParseInput) -> list[Finding]:
 
 def _formulas(doc: Any, inp: ParseInput) -> list[Finding]:
     items = [t for t in doc.texts if label_of(t) == "formula" and t.text]
-    tails = numbers = russian = 0
+    tails = numbers = russian = rebuilt = 0
     for item in items:
         fix = fix_formula(item.text, getattr(item, "orig", "") or "")
         item.text = fix.text
         tails += fix.tail
         numbers += bool(fix.number)
         russian += fix.russian
+        rebuilt += fix.from_text
     total, none = len(items), "" if items else "формул нет"
     return [
         Finding("хвост формулы", tails > 0, f"убран у {tails} из {total}" if tails else none),
         Finding("номер формулы", numbers > 0, f"{numbers} из {total}" if numbers else none),
         Finding("русские обозначения", russian > 0, f"у {russian} из {total}" if russian else none),
+        Finding(
+            "не та формула", rebuilt > 0, f"из текста PDF {rebuilt} из {total}" if rebuilt else none
+        ),
     ]
 
 
@@ -155,6 +159,21 @@ def _words(doc: Any, inp: ParseInput) -> list[Finding]:
     ]
 
 
+def _authors(doc: Any, inp: ParseInput) -> list[Finding]:
+    n = layout.demote_authors(doc)
+    return [Finding("ФИО вместо заголовка", n > 0, f"стали текстом: {n}" if n else "")]
+
+
+def _table_rows(doc: Any, inp: ParseInput) -> list[Finding]:
+    n = layout.rescue_table_rows(doc)
+    return [Finding("строка таблицы абзацами", n > 0, f"возвращено в таблицу: {n}" if n else "")]
+
+
+def _page_breaks(doc: Any, inp: ParseInput) -> list[Finding]:
+    n = layout.join_split_paragraphs(doc)
+    return [Finding("абзац на стыке страниц", n > 0, f"склеено: {n}" if n else "")]
+
+
 def _furniture(doc: Any, inp: ParseInput) -> list[Finding]:
     n = sum(1 for t in doc.texts if label_of(t) in FURNITURE)
     return [Finding("колонтитулы", n > 0, f"не в тексте: {n}" if n else "")]
@@ -180,10 +199,15 @@ def _figures(doc: Any, inp: ParseInput) -> list[Finding]:
 _DOCLING_STEPS: tuple[tuple[tuple[str, ...], Step], ...] = (
     (("подпись в колонтитуле",), _captions),
     (("испорченные знаки",), _symbols),
-    (("хвост формулы", "номер формулы", "русские обозначения"), _formulas),
+    (("хвост формулы", "номер формулы", "русские обозначения", "не та формула"), _formulas),
     (("мягкие переносы", "буквы-двойники"), _words),
     (("колонтитулы",), _furniture),
     (("рисунок без картинки",), _figures),
+    # Разметка (layout.py) — после слов: куски строк и абзацев уже чистые; дефис на
+    # склеенном стыке страниц («об- щем») разбирают дефисы, они идут после всех шагов.
+    (("ФИО вместо заголовка",), _authors),
+    (("строка таблицы абзацами",), _table_rows),
+    (("абзац на стыке страниц",), _page_breaks),
 )
 
 

@@ -86,9 +86,24 @@ _AFFILIATION = re.compile(
     r"кафедр\w*|факультет\w*|лаборатор\w*|академи\w*|обособленное\s+подразделение)",
     re.IGNORECASE,
 )
+# Те же места работы сокращениями и сами авторы: «… институт ДВО РАН», «И. И. Иванов¹».
+# Без них перечень из двух авторов и двух институтов набирал 2 упоминания из 3 нужных и
+# попадал в базу (тест-план 8.29). Сокращения — с учётом регистра: «ран» — не РАН.
+_ACADEMY = re.compile(r"\b(?:РАН|ДВО|УрО|НАН|ФГБУН|ФГБОУ|ФИЦ|RAS|NAS)\b")
+_AUTHOR = re.compile(
+    r"(?<!\w)(?:[А-ЯЁA-Z]\.\s?){1,2}[А-ЯЁA-Z][а-яёa-z]+(?:-[А-ЯЁA-Z][а-яёa-z]+)?"
+    r"|\b[А-ЯЁA-Z][а-яёa-z]+\s(?:[А-ЯЁA-Z]\.\s?){1,2}(?!\w)"
+)
+# Список литературы тоже полон «ДВО РАН» и инициалов («Докл. РАН. – 1997. – С. 97–99»),
+# но у его записей — страницы; у перечня мест работы их нет.
+_PAGES = re.compile(r"(?<!\w)(?:[СсPp]{1,2}\.\s*\d|\d+\s*(?:с|p|pp)\.)")
 AFFILIATION_MIN = 3  # не меньше трёх упоминаний…
 AFFILIATION_SHARE = 0.06  # …на каждые ~16 слов…
 AFFILIATION_MAX_WORDS = 150  # …и фрагмент короткий: в длинном это вступление статьи
+# С авторами и сокращениями — порог плотнее: в аннотации и методике бывают институт,
+# «ИГМ СО РАН» и пара инициалов на 50–130 слов (до 0,11 по 4272 фрагментам базы,
+# 28.10.2026), а у шапки из авторов и мест работы — от 0,12.
+AUTHORS_SHARE = 0.12
 
 
 @dataclass
@@ -110,12 +125,15 @@ def _words(text: str) -> list[str]:
 
 def is_affiliations(text: str) -> bool:
     words = _letter_words(text)
+    if words >= AFFILIATION_MAX_WORDS or len(_PAGES.findall(text)) >= 2:
+        return False
     found = len(_AFFILIATION.findall(text))
-    return (
-        found >= AFFILIATION_MIN
-        and words < AFFILIATION_MAX_WORDS
-        and found / max(words, 1) >= AFFILIATION_SHARE
-    )
+    if found >= AFFILIATION_MIN and found / max(words, 1) >= AFFILIATION_SHARE:
+        return True
+    # Авторы — только рядом с местами работы: в списке литературы авторов десятки, а мест нет.
+    places = found + len(_ACADEMY.findall(text))
+    people = len(_AUTHOR.findall(text))
+    return places >= 2 and (places + people) / max(words, 1) >= AUTHORS_SHARE
 
 
 def _letter_words(text: str) -> int:
