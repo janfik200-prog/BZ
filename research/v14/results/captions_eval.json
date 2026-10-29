@@ -1,0 +1,491 @@
+{
+ "run_at": "2026-10-29 23:47:13",
+ "rules": "captions-v14.t6",
+ "captions_sha256": "bc1d1be17ece1004818c0a94cfd80710c1dccc994b5fda2fa3396994e0b3c977",
+ "db": "georag_v14",
+ "totals": {
+  "DEV": {
+   "fragments": 1433,
+   "facts": 4777,
+   "gold_by_label": {
+    "ENTAILED": 92,
+    "PARTIAL": 17,
+    "UNKNOWN": 13,
+    "CONTRADICTED": 1
+   },
+   "precision_labels": {}
+  },
+  "TEST": {
+   "fragments": 2839,
+   "facts": 8962,
+   "gold_by_label": {
+    "ENTAILED": 160,
+    "PARTIAL": 16,
+    "UNKNOWN": 16,
+    "CONTRADICTED": 1
+   },
+   "precision_labels": {
+    "True": 45,
+    "False": 46
+   }
+  }
+ },
+ "DEV": {
+  "grid": [
+   {
+    "kinds": "CAPTION+LEGEND",
+    "threshold": 0.0,
+    "fragments": 28,
+    "fragments_share": 0.0195,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 28,
+    "facts": 0,
+    "facts_share": 0.0,
+    "facts_accepted": 0,
+    "gold": {},
+    "gold_correct_lost": 0,
+    "precision_samples": {
+     "correct": 0,
+     "wrong": 0
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND",
+    "threshold": 0.1,
+    "fragments": 29,
+    "fragments_share": 0.0202,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 29,
+    "facts": 0,
+    "facts_share": 0.0,
+    "facts_accepted": 0,
+    "gold": {},
+    "gold_correct_lost": 0,
+    "precision_samples": {
+     "correct": 0,
+     "wrong": 0
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND",
+    "threshold": 0.2,
+    "fragments": 29,
+    "fragments_share": 0.0202,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 29,
+    "facts": 0,
+    "facts_share": 0.0,
+    "facts_accepted": 0,
+    "gold": {},
+    "gold_correct_lost": 0,
+    "precision_samples": {
+     "correct": 0,
+     "wrong": 0
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND",
+    "threshold": 0.3,
+    "fragments": 34,
+    "fragments_share": 0.0237,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 34,
+    "facts": 0,
+    "facts_share": 0.0,
+    "facts_accepted": 0,
+    "gold": {},
+    "gold_correct_lost": 0,
+    "precision_samples": {
+     "correct": 0,
+     "wrong": 0
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND",
+    "threshold": 0.5,
+    "fragments": 41,
+    "fragments_share": 0.0286,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 40,
+    "facts": 4,
+    "facts_share": 0.0008,
+    "facts_accepted": 3,
+    "gold": {},
+    "gold_correct_lost": 0,
+    "precision_samples": {
+     "correct": 0,
+     "wrong": 0
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND+TABLE_ROW",
+    "threshold": 0.0,
+    "fragments": 180,
+    "fragments_share": 0.1256,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 169,
+    "facts": 144,
+    "facts_share": 0.0301,
+    "facts_accepted": 91,
+    "gold": {
+     "ENTAILED": 3
+    },
+    "gold_correct_lost": 3,
+    "precision_samples": {
+     "correct": 0,
+     "wrong": 0
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND+TABLE_ROW",
+    "threshold": 0.1,
+    "fragments": 189,
+    "fragments_share": 0.1319,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 176,
+    "facts": 179,
+    "facts_share": 0.0375,
+    "facts_accepted": 97,
+    "gold": {
+     "ENTAILED": 5
+    },
+    "gold_correct_lost": 5,
+    "precision_samples": {
+     "correct": 0,
+     "wrong": 0
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND+TABLE_ROW",
+    "threshold": 0.2,
+    "fragments": 198,
+    "fragments_share": 0.1382,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 182,
+    "facts": 212,
+    "facts_share": 0.0444,
+    "facts_accepted": 112,
+    "gold": {
+     "ENTAILED": 5
+    },
+    "gold_correct_lost": 5,
+    "precision_samples": {
+     "correct": 0,
+     "wrong": 0
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND+TABLE_ROW",
+    "threshold": 0.3,
+    "fragments": 204,
+    "fragments_share": 0.1424,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 188,
+    "facts": 212,
+    "facts_share": 0.0444,
+    "facts_accepted": 112,
+    "gold": {
+     "ENTAILED": 5
+    },
+    "gold_correct_lost": 5,
+    "precision_samples": {
+     "correct": 0,
+     "wrong": 0
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND+TABLE_ROW",
+    "threshold": 0.5,
+    "fragments": 239,
+    "fragments_share": 0.1668,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 212,
+    "facts": 316,
+    "facts_share": 0.0662,
+    "facts_accepted": 152,
+    "gold": {
+     "PARTIAL": 2,
+     "ENTAILED": 8
+    },
+    "gold_correct_lost": 8,
+    "precision_samples": {
+     "correct": 0,
+     "wrong": 0
+    }
+   }
+  ],
+  "choice": {
+   "criterion": "на DEV не теряется ни один верный размеченный факт (ENTAILED) и ни один принятый факт графа; из таких — больше всего отсеянных фрагментов (при равенстве — меньше видов, меньший порог)",
+   "kinds": [
+    "CAPTION",
+    "LEGEND"
+   ],
+   "threshold": 0.3,
+   "matches_code": true
+  },
+  "code": {
+   "kinds": [
+    "CAPTION",
+    "LEGEND"
+   ],
+   "threshold": 0.3
+  }
+ },
+ "TEST": {
+  "chosen": {
+   "kinds": "CAPTION+LEGEND",
+   "threshold": 0.3,
+   "fragments": 100,
+   "fragments_share": 0.0352,
+   "fragments_already_skipped": 0,
+   "fragments_without_facts": 91,
+   "facts": 60,
+   "facts_share": 0.0067,
+   "facts_accepted": 25,
+   "gold": {
+    "UNKNOWN": 1
+   },
+   "gold_correct_lost": 0,
+   "precision_samples": {
+    "correct": 0,
+    "wrong": 1
+   }
+  },
+  "grid_for_reference": [
+   {
+    "kinds": "CAPTION+LEGEND",
+    "threshold": 0.0,
+    "fragments": 82,
+    "fragments_share": 0.0289,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 76,
+    "facts": 30,
+    "facts_share": 0.0033,
+    "facts_accepted": 8,
+    "gold": {
+     "UNKNOWN": 1
+    },
+    "gold_correct_lost": 0,
+    "precision_samples": {
+     "correct": 0,
+     "wrong": 1
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND",
+    "threshold": 0.1,
+    "fragments": 87,
+    "fragments_share": 0.0306,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 80,
+    "facts": 39,
+    "facts_share": 0.0044,
+    "facts_accepted": 17,
+    "gold": {
+     "UNKNOWN": 1
+    },
+    "gold_correct_lost": 0,
+    "precision_samples": {
+     "correct": 0,
+     "wrong": 1
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND",
+    "threshold": 0.2,
+    "fragments": 91,
+    "fragments_share": 0.0321,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 83,
+    "facts": 46,
+    "facts_share": 0.0051,
+    "facts_accepted": 18,
+    "gold": {
+     "UNKNOWN": 1
+    },
+    "gold_correct_lost": 0,
+    "precision_samples": {
+     "correct": 0,
+     "wrong": 1
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND",
+    "threshold": 0.3,
+    "fragments": 100,
+    "fragments_share": 0.0352,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 91,
+    "facts": 60,
+    "facts_share": 0.0067,
+    "facts_accepted": 25,
+    "gold": {
+     "UNKNOWN": 1
+    },
+    "gold_correct_lost": 0,
+    "precision_samples": {
+     "correct": 0,
+     "wrong": 1
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND",
+    "threshold": 0.5,
+    "fragments": 133,
+    "fragments_share": 0.0468,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 116,
+    "facts": 117,
+    "facts_share": 0.0131,
+    "facts_accepted": 54,
+    "gold": {
+     "UNKNOWN": 1
+    },
+    "gold_correct_lost": 0,
+    "precision_samples": {
+     "correct": 1,
+     "wrong": 2
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND+TABLE_ROW",
+    "threshold": 0.0,
+    "fragments": 251,
+    "fragments_share": 0.0884,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 233,
+    "facts": 199,
+    "facts_share": 0.0222,
+    "facts_accepted": 65,
+    "gold": {
+     "ENTAILED": 3,
+     "UNKNOWN": 1
+    },
+    "gold_correct_lost": 3,
+    "precision_samples": {
+     "correct": 2,
+     "wrong": 2
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND+TABLE_ROW",
+    "threshold": 0.1,
+    "fragments": 266,
+    "fragments_share": 0.0937,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 247,
+    "facts": 208,
+    "facts_share": 0.0232,
+    "facts_accepted": 74,
+    "gold": {
+     "ENTAILED": 3,
+     "UNKNOWN": 1
+    },
+    "gold_correct_lost": 3,
+    "precision_samples": {
+     "correct": 2,
+     "wrong": 2
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND+TABLE_ROW",
+    "threshold": 0.2,
+    "fragments": 279,
+    "fragments_share": 0.0983,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 259,
+    "facts": 215,
+    "facts_share": 0.024,
+    "facts_accepted": 75,
+    "gold": {
+     "ENTAILED": 3,
+     "UNKNOWN": 1
+    },
+    "gold_correct_lost": 3,
+    "precision_samples": {
+     "correct": 2,
+     "wrong": 2
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND+TABLE_ROW",
+    "threshold": 0.3,
+    "fragments": 295,
+    "fragments_share": 0.1039,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 274,
+    "facts": 229,
+    "facts_share": 0.0256,
+    "facts_accepted": 82,
+    "gold": {
+     "ENTAILED": 3,
+     "UNKNOWN": 1
+    },
+    "gold_correct_lost": 3,
+    "precision_samples": {
+     "correct": 4,
+     "wrong": 2
+    }
+   },
+   {
+    "kinds": "CAPTION+LEGEND+TABLE_ROW",
+    "threshold": 0.5,
+    "fragments": 347,
+    "fragments_share": 0.1222,
+    "fragments_already_skipped": 0,
+    "fragments_without_facts": 315,
+    "facts": 323,
+    "facts_share": 0.036,
+    "facts_accepted": 124,
+    "gold": {
+     "ENTAILED": 3,
+     "UNKNOWN": 1
+    },
+    "gold_correct_lost": 3,
+    "precision_samples": {
+     "correct": 5,
+     "wrong": 5
+    }
+   }
+  ]
+ },
+ "corpus": {
+  "fragments": 4272,
+  "dropped": 134,
+  "dropped_share": 0.0314,
+  "dropped_without_facts": 125,
+  "dropped_already_skipped": 0,
+  "facts_in_dropped": 60,
+  "facts_total": 13739,
+  "chars_share_by_kind": {
+   "CAPTION": 0.0436,
+   "LEGEND": 0.012,
+   "TABLE_ROW": 0.0918,
+   "PROSE": 0.8526
+  }
+ },
+ "facts_by_quote_kind": {
+  "all": {
+   "PROSE": 12868,
+   "TABLE_ROW": 512,
+   "CAPTION": 157,
+   "LEGEND": 202
+  },
+  "by_split": {
+   "TEST": {
+    "PROSE": 8471,
+    "TABLE_ROW": 211,
+    "CAPTION": 114,
+    "LEGEND": 166
+   },
+   "DEV": {
+    "PROSE": 4397,
+    "CAPTION": 43,
+    "TABLE_ROW": 301,
+    "LEGEND": 36
+   }
+  },
+  "nonprose_share": 0.0634,
+  "note": "сколько фактов графа выписано из подписей/легенд/таблиц по цитате; отсев фрагментов из них убирает только факты фрагментов без прозы"
+ }
+}

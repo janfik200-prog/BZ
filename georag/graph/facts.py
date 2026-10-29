@@ -41,6 +41,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import time
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
@@ -462,6 +463,7 @@ def run(
     finder: Any = None,
     filtering: bool = True,
     min_terms: int | None = None,
+    captions: bool | None = None,
 ) -> dict[str, Any]:
     """Модель проходит фрагменты, которых ещё не видела. Возобновляемо.
 
@@ -477,9 +479,18 @@ def run(
     не отдаются (отметка skipped); остальные идут к ней со списком найденных предметов.
     filtering=False (graph --no-filter) — список предметов есть, но не отсеивается
     ничего, и отсеянные раньше проходятся заново. Без finder — как раньше: модель
-    ищет всё сама."""
+    ищет всё сама.
+
+    captions — третий отсев первого этапа (captions.py): фрагмент, где прозы почти нет,
+    только подписи рисунков, легенды и строки таблиц, модели не отдаётся (отметка
+    skipped с причиной). По умолчанию — по переменной GEORAG_SKIP_CAPTIONS=1, иначе
+    выключен: граф строится как раньше."""
+    from . import captions as cap
     from . import dedup
     from .entities import MIN_TERMS
+
+    if captions is None:
+        captions = os.environ.get("GEORAG_SKIP_CAPTIONS") == "1"
 
     need = MIN_TERMS if min_terms is None else min_terms
     rules = load_rules(rules_path)
@@ -494,6 +505,7 @@ def run(
         "errors": 0,
         "duplicates": 0,
         "sparse": 0,
+        "captions": 0,
         "stopped": False,
     }
 
@@ -517,7 +529,7 @@ def run(
     def progress() -> None:
         if seen % 10 == 0 or seen == len(rows):
             pace = (time.monotonic() - started) / max(seen, 1)
-            skipped = stats["duplicates"] + stats["sparse"]
+            skipped = stats["duplicates"] + stats["sparse"] + stats["captions"]
             log(
                 f"  [{seen}/{len(rows)}] фактов {stats['facts']}, отброшено проверкой "
                 f"{stats['rejected']}"
@@ -539,6 +551,8 @@ def run(
                 elif not found.enough(need):
                     terms = len({t.lower() for t in found.terms})
                     reason, kind = f"мало предметов: терминов {terms} из {need}", "sparse"
+                elif captions and (why := cap.skip_reason(text or "")):
+                    reason, kind = why, "captions"
                 if reason:
                     store.skip(conn, chunk_id, reason, found.lang)
                     conn.commit()

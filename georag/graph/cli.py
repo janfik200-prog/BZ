@@ -176,13 +176,15 @@ def _build(conn: Any, args: Any) -> int:
         filtering=filtering,
         min_terms=args.min_terms,
     )
-    skipped = stats["duplicates"] + stats["sparse"]
+    skipped = stats["duplicates"] + stats["sparse"] + stats.get("captions", 0)
     print(
         f"\nМодель прошла фрагментов: {stats['done']} из {stats['todo']}. Фактов принято: "
         f"{stats['facts']}; отброшено проверкой: {stats['rejected']}."
         + (
             f" Отсеяно до модели: {skipped} (дублей {stats['duplicates']}, мало предметов "
-            f"{stats['sparse']})."
+            f"{stats['sparse']}"
+            + (f", подписи и таблицы {stats['captions']}" if stats.get("captions") else "")
+            + ")."
             if skipped
             else ""
         )
