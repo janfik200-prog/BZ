@@ -30,7 +30,8 @@ COLUMNS = ["sample_id", "query_id", "source_family", "source_id", "evidence_id",
 
 
 def sha(p: Path) -> str:
-    return hashlib.sha256(p.read_bytes()).hexdigest()
+    """Отпечаток содержимого без учёта концов строк (git хранит LF, Windows пишет CRLF)."""
+    return hashlib.sha256(p.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def main() -> None:
@@ -94,6 +95,7 @@ def main() -> None:
         "frozen_at": "2026-10-29",
         "note": "Отпечатки до прогона V0–V3 на разметке. Менять правила V3 после этого — только с новой заморозкой и пометкой.",
         "git_head_at_freeze": head,
+        "hash_rule": "sha256 содержимого файла с заменой CRLF на LF",
         "annotator": ANNOTATOR,
         "n_pairs": len(rows),
         "labels": dict(Counter(r["gold_applicability"] for r in rows)),
