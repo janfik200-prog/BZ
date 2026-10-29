@@ -1,0 +1,37 @@
+{
+ "frozen_at": "2026-10-29",
+ "note": "Отпечатки до прогона V0–V3 на разметке. Менять правила V3 после этого — только с новой заморозкой и пометкой.",
+ "git_head_at_freeze": "4e26b335503ac89287f87eebd7e495d15d7dd063",
+ "annotator": "claude-opus-5.5-annotator",
+ "n_pairs": 335,
+ "labels": {
+  "UNRESOLVED": 85,
+  "DIRECT": 73,
+  "OUT_OF_SCOPE": 171,
+  "ANALOG": 6
+ },
+ "labels_by_split": {
+  "DEV": {
+   "UNRESOLVED": 37,
+   "DIRECT": 26,
+   "OUT_OF_SCOPE": 61,
+   "ANALOG": 4
+  },
+  "TEST": {
+   "OUT_OF_SCOPE": 110,
+   "UNRESOLVED": 48,
+   "DIRECT": 47,
+   "ANALOG": 2
+  }
+ },
+ "expert_review_sample": 164,
+ "sha256": {
+  "gold_annotations.csv": "2621a9458ca2b3ec7cdd6ec9caaeac06f88638bfbfbb43341e3cdd28ab063244",
+  "pairs.jsonl": "7eb1744ca32f6840eee4f5f5531dcdffdb5f3d7f10568e2f60909caeb0451baa",
+  "queries.json": "75e19a23ebc1d93e8e12a52b1cc4597c148853e3c879f67783a9b5cb377dedf1",
+  "split_manifest.json": "4d4e39010d31e8c13ab16e96678c7656e08adf7a86a4a3d8040702354efdf775",
+  "regional_registry.csv": "5478721dea85051bc24bb13ea5071dc189345d561233499512e4d3699c97b2a1",
+  "registry_aliases.csv": "ebe6a9ff48acb58498dcebb38135f1f6b560fd45436f6dd8946c79364a0e1210",
+  "annotation_guidelines.md": "4b51ccba93ca9adae57024cc3f91cc4f833a3da92c8ee0a259e79d2b8fdc49e6"
+ }
+}
