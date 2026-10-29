@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "v13.1",
+        "v14"
+      ]
+    },
+    "claim_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "subject": {
+      "type": "string",
+      "minLength": 1
+    },
+    "subject_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "predicate": {
+      "type": "string",
+      "minLength": 1
+    },
+    "object": {
+      "type": "string",
+      "minLength": 1
+    },
+    "object_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "polarity": {
+      "enum": [
+        "AFFIRM",
+        "NEGATE",
+        "UNCLEAR"
+      ]
+    },
+    "modality": {
+      "enum": [
+        "ASSERTED",
+        "HYPOTHESIS",
+        "REPORTED",
+        "UNKNOWN"
+      ]
+    },
+    "quantifier": {
+      "enum": [
+        "EXISTS",
+        "LOCAL",
+        "TYPICAL",
+        "ALL",
+        "UNSPECIFIED"
+      ]
+    },
+    "scope": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "region_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "region_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "region_role": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "deposit_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "geological_setting": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mineralization_stage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spatial_scale": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "geological_time": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "temporal_scope": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "parent_region_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "scope_provenance": {
+          "type": "array",
+          "items": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "field": {
+                "type": "string",
+                "minLength": 1
+              },
+              "evidence_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "derivation": {
+                "enum": [
+                  "EXPLICIT",
+                  "ANAPHORA",
+                  "SECTION",
+                  "TITLE",
+                  "REGISTRY"
+                ]
+              },
+              "rule_or_model_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "field",
+              "evidence_id",
+              "derivation",
+              "rule_or_model_id"
+            ]
+          }
+        }
+      },
+      "required": [
+        "region_id",
+        "region_name",
+        "region_role",
+        "deposit_type",
+        "geological_setting",
+        "mineralization_stage",
+        "spatial_scale",
+        "geological_time",
+        "temporal_scope",
+        "parent_region_ids",
+        "scope_provenance"
+      ]
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "source_family_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prompt_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "extraction_status": {
+      "enum": [
+        "CANDIDATE",
+        "FORMALLY_VALIDATED",
+        "REJECTED"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "claim_id",
+    "subject",
+    "subject_type",
+    "predicate",
+    "object",
+    "object_type",
+    "polarity",
+    "modality",
+    "quantifier",
+    "scope",
+    "evidence_ids",
+    "source_family_id",
+    "model_id",
+    "prompt_sha256",
+    "extraction_status"
+  ]
+}

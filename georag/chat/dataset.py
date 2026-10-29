@@ -135,6 +135,15 @@ def proper_stems(text: str) -> set[str]:
     return out
 
 
+def _scope_gate(conn: Any, question: str, data: dict[str, Any]) -> dict[str, Any]:
+    """Вопрос о территории — в ответ только факты, прямо применимые к ней (evidence/gate.py,
+    по GEORAG_SCOPE_GATE=1). Без переменной датасет как раньше: режим без проверки
+    сохраняется для парных испытаний."""
+    from ..evidence import gate
+
+    return gate.filter_dataset(conn, question, data) if gate.enabled() else data
+
+
 def collect_dataset(conn: Any, hint: str | None, question: str) -> dict[str, Any] | None:
     """Датасет для вопроса «собрать всё»: факты о сущности и фрагменты к главным.
     None — сущность не узнана, фактов нет (граф не строили) или про неё ничего нет."""
@@ -148,7 +157,7 @@ def collect_dataset(conn: Any, hint: str | None, question: str) -> dict[str, Any
         name = named(resolve_entity(g, hint, question), hint, question)
         if not name:
             return None
-        data = api.dataset(conn, syn, name, g)
+        data = _scope_gate(conn, question, api.dataset(conn, syn, name, g))
         if not data["facts"]:
             return None
         chunk_ids = []
@@ -189,7 +198,7 @@ def graph_candidates(conn: Any, hint: str | None, question: str) -> list[Any]:
         if not name:
             return []
         ids: list[int] = []
-        for row in api.dataset(conn, syn, name, g)["facts"]:
+        for row in _scope_gate(conn, question, api.dataset(conn, syn, name, g))["facts"]:
             for cid in row["chunk_ids"]:
                 if cid not in ids:
                     ids.append(cid)
@@ -252,10 +261,21 @@ def dataset_summary(data: dict[str, Any]) -> str:
         + " — выписаны моделью из статей базы и проверены по цитатам, а не найдены "
         f"поиском; {scope}. Статей: {data['documents']}."
     ]
+    gate = data.get("scope_gate") or {}
+    if gate.get("applied"):
+        region = (gate.get("frame") or {}).get("target_region_name")
+        lines.append(
+            f"Только факты, прямо относящиеся к территории «{region}» (проверка области "
+            f"действия); фактов о других районах исключено: {len(gate.get('excluded') or [])}."
+        )
     lines += _grouped(data["facts"][: DATASET_ITEMS * 2])
     more = len(data["facts"]) - DATASET_ITEMS * 2
     if more > 0:
         lines.append(f"- и ещё {more}")
+    analogs = data.get("analogs") or []
+    if analogs:
+        lines.append("По другим районам (аналоги, не прямые свидетельства):")
+        lines += [f"- {a['about']} — {a['relation']} — {a['other']} ({a['title']})" for a in analogs[:8]]
     return "\n".join(lines)
 
 

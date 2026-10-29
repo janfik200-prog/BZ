@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "v13.1"
+    },
+    "support_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "label": {
+      "enum": [
+        "ENTAILED",
+        "PARTIAL",
+        "CONTRADICTED",
+        "UNKNOWN",
+        "INVALID_EVIDENCE"
+      ]
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "assessor_type": {
+      "enum": [
+        "DETERMINISTIC",
+        "LLM",
+        "HUMAN"
+      ]
+    },
+    "assessor_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quote_verified": {
+      "type": "boolean"
+    },
+    "annotator_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "evaluation_split": {
+      "enum": [
+        "DEV",
+        "TEST",
+        "SYNTHETIC",
+        "UNSPLIT"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "support_id",
+    "claim_id",
+    "evidence_id",
+    "label",
+    "reason_codes",
+    "assessor_type",
+    "assessor_id",
+    "quote_verified",
+    "annotator_id",
+    "evaluation_split"
+  ]
+}

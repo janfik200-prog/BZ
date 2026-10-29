@@ -1,0 +1,108 @@
+{
+  "warning": "ТОЛЬКО СИНТЕТИКА ДЛЯ ПРОВЕРКИ JSON-СХЕМ; НЕ ГЕОЛОГИЧЕСКИЕ ДАННЫЕ",
+  "evidence": {
+    "schema_version": "v13.1",
+    "evidence_id": "SYNTH-E1",
+    "doc_id": "SYNTH-D1",
+    "pdf_sha256": "0ce04ead5d8c3585f09db2d696d8db3e7eb999db88044e7d83f360492bf272fa",
+    "parsed_sha256": "2d48c79573ad906c672a5ca0104e64a69a981fd8eef6194b148dd501a55d22a8",
+    "parser_version": "SYNTHETIC",
+    "chunk_id": "SYNTH-C1",
+    "page_start": 1,
+    "page_end": 1,
+    "offset_start": 0,
+    "offset_end": 36,
+    "exact_quote": "В районе A выявлена минерализация M.",
+    "quote_sha256": "d429e839fda41f2ea72efb2604dca00fdf015befb17e4209f499c95487a1313f",
+    "sentence_indices": [
+      1
+    ],
+    "license_status": "PUBLIC"
+  },
+  "claim": {
+    "schema_version": "v13.1",
+    "claim_id": "SYNTH-F1",
+    "subject": "минерализация M",
+    "subject_type": "оруденение",
+    "predicate": "выявлено в",
+    "object": "район A",
+    "object_type": "объект",
+    "polarity": "AFFIRM",
+    "modality": "ASSERTED",
+    "quantifier": "EXISTS",
+    "scope": {
+      "region_id": "SYNTH_REGION_A",
+      "region_name": "район A",
+      "region_role": null,
+      "deposit_type": null,
+      "geological_setting": null,
+      "mineralization_stage": null,
+      "spatial_scale": null,
+      "geological_time": null,
+      "temporal_scope": null,
+      "parent_region_ids": [],
+      "scope_provenance": [
+        {
+          "field": "region_id",
+          "evidence_id": "SYNTH-E1",
+          "derivation": "EXPLICIT",
+          "rule_or_model_id": "synthetic"
+        }
+      ]
+    },
+    "evidence_ids": [
+      "SYNTH-E1"
+    ],
+    "source_family_id": null,
+    "model_id": "synthetic-test",
+    "prompt_sha256": "a22d46319bc8433360517a62306b26befdc30ac1a738e2f7ebd7c9148c93e6d7",
+    "extraction_status": "FORMALLY_VALIDATED"
+  },
+  "query": {
+    "schema_version": "v13.1",
+    "query_id": "SYNTH-Q1",
+    "raw_text": "В районе A существует ли минерализация M?",
+    "target_region_id": "SYNTH_REGION_A",
+    "target_region_name": "район A",
+    "target_deposit_type": null,
+    "required_predicate": "выявлено в",
+    "requested_polarity": "AFFIRM",
+    "requested_quantifier": "EXISTS",
+    "allow_analogies": false,
+    "requested_mode": "FACTUAL"
+  },
+  "support": {
+    "schema_version": "v13.1",
+    "support_id": "SYNTH-S1",
+    "claim_id": "SYNTH-F1",
+    "evidence_id": "SYNTH-E1",
+    "label": "ENTAILED",
+    "reason_codes": [
+      "SOURCE_SPAN_EXACT"
+    ],
+    "assessor_type": "DETERMINISTIC",
+    "assessor_id": "synthetic-test",
+    "quote_verified": true,
+    "annotator_id": null,
+    "evaluation_split": "SYNTHETIC"
+  },
+  "decision": {
+    "schema_version": "v13.1",
+    "decision_id": "SYNTH-A1",
+    "query_id": "SYNTH-Q1",
+    "claim_id": "SYNTH-F1",
+    "support_id": "SYNTH-S1",
+    "status": "DIRECT",
+    "reason_codes": [
+      "REGION_EXACT",
+      "SUPPORT_ENTAILED"
+    ],
+    "policy_version": "synthetic-v13",
+    "registry_version": "synthetic-v1",
+    "evidence_ids": [
+      "SYNTH-E1"
+    ],
+    "is_human_override": false,
+    "override_reason": null
+  }
+}

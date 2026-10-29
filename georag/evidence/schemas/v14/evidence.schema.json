@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "v13.1",
+        "v14"
+      ]
+    },
+    "evidence_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "doc_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pdf_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "parsed_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "parser_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "chunk_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "page_start": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "page_end": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "offset_start": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "offset_end": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "exact_quote": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quote_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sentence_indices": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "minItems": 1
+    },
+    "license_status": {
+      "enum": [
+        "PUBLIC",
+        "RESTRICTED",
+        "UNKNOWN"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "doc_id",
+    "pdf_sha256",
+    "parsed_sha256",
+    "parser_version",
+    "chunk_id",
+    "page_start",
+    "page_end",
+    "offset_start",
+    "offset_end",
+    "exact_quote",
+    "quote_sha256",
+    "sentence_indices",
+    "license_status"
+  ]
+}

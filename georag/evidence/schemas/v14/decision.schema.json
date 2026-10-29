@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "v13.1",
+        "v14"
+      ]
+    },
+    "decision_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "query_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "support_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "DIRECT",
+        "ANALOG",
+        "OUT_OF_SCOPE",
+        "UNRESOLVED"
+      ]
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "policy_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "registry_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "is_human_override": {
+      "type": "boolean"
+    },
+    "override_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "modality": {
+      "enum": [
+        "ASSERTED",
+        "HYPOTHESIS",
+        "REPORTED",
+        "UNKNOWN",
+        null
+      ]
+    },
+    "polarity": {
+      "enum": [
+        "AFFIRM",
+        "NEGATE",
+        "UNCLEAR",
+        null
+      ]
+    },
+    "scope_derivation": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "decision_id",
+    "query_id",
+    "claim_id",
+    "support_id",
+    "status",
+    "reason_codes",
+    "policy_version",
+    "registry_version",
+    "evidence_ids",
+    "is_human_override",
+    "override_reason"
+  ]
+}

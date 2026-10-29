@@ -100,7 +100,7 @@ from .messages import build_messages, fit_budget, general_messages
 from .plan import Plan, is_follow_up, make_plan, plan_question
 from .retrieval import MAX_ROUNDS, Retrieval, judge_fragments, retrieve
 from .settings import MODEL, Settings
-from .support import check_support, seen_numbers
+from .support import check_support, not_checked, seen_numbers
 
 NOT_IN_BASE = (
     "По вашему запросу в базе знаний такой информации нет. Ниже — ответ модели "
@@ -508,12 +508,14 @@ def _answer_from(
         unsupported: list[str] = []
         recited = 0
         support_seconds = None
+        unchecked: list[str] = []
         real = support is not check_support or llm is stream_llm
         if cleaned and support is not None and settings.check_support and real:
             yield {"type": "status", "text": "проверяю, что ссылки подтверждают сказанное…"}
             since = time.monotonic()
             checked, unsupported, recited = support(question, cleaned, sources, settings)
             support_seconds = round(time.monotonic() - since, 1)
+            unchecked = not_checked(cleaned)
             if checked and citations(checked, len(sources))[0]:
                 cleaned = checked
             else:  # сверка убрала бы всё — ответ остаётся как был
@@ -548,6 +550,8 @@ def _answer_from(
             "unsupported": len(unsupported),
             "recited": recited,
             "support_seconds": support_seconds,
+            # Утверждения сверх лимита сверки (support.MAX_CLAIMS) — не проверены.
+            "not_checked": len(unchecked),
             "model": settings.model,
             "seconds": round(time.monotonic() - started, 1),
             "tokens": tokens,

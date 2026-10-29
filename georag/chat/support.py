@@ -187,6 +187,12 @@ def _ask(claims: list[str], by_n: dict[int, dict[str, Any]], settings: Settings)
     ]
 
 
+def not_checked(answer: str) -> list[str]:
+    """Утверждения со ссылкой сверх MAX_CLAIMS: сверка их не видела — NOT_CHECKED, и
+    объявлять их проверенными нельзя (ТЗ v14, WP08)."""
+    return _claims(answer)[MAX_CLAIMS:]
+
+
 def check_support(
     question: str, answer: str, sources: list[dict[str, Any]], settings: Settings
 ) -> tuple[str, list[str], int]:

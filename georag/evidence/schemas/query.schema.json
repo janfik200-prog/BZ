@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "v13.1"
+    },
+    "query_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "raw_text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_region_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "target_region_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "target_deposit_type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "required_predicate": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "requested_polarity": {
+      "enum": [
+        "AFFIRM",
+        "NEGATE",
+        "ANY"
+      ]
+    },
+    "requested_quantifier": {
+      "enum": [
+        "EXISTS",
+        "LOCAL",
+        "TYPICAL",
+        "ALL",
+        "UNSPECIFIED"
+      ]
+    },
+    "allow_analogies": {
+      "type": "boolean"
+    },
+    "requested_mode": {
+      "enum": [
+        "FACTUAL",
+        "COMPARATIVE",
+        "RESEARCH_REVIEW"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "query_id",
+    "raw_text",
+    "target_region_id",
+    "target_region_name",
+    "target_deposit_type",
+    "required_predicate",
+    "requested_polarity",
+    "requested_quantifier",
+    "allow_analogies",
+    "requested_mode"
+  ]
+}

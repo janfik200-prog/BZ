@@ -1,0 +1,41 @@
+id,synthetic_scenario,expected_status_or_minimum_constraint,required_reason_code,test_type,scientific_result
+C01,same region / asserted positive existential,DIRECT,REGION_EXACT,APPLICABILITY,NO
+C02,other region B for factual query about A,OUT_OF_SCOPE,REGION_DISJOINT,APPLICABILITY,NO
+C03,"other region B, verified geological analogous setting, comparative mode",ANALOG,GEOLOGICAL_ANALOGY_GROUNDED,APPLICABILITY,NO
+C04,"other region B, same mineral but no geological similarity proof",OUT_OF_SCOPE,ANALOGY_NOT_GROUNDED,APPLICABILITY,NO
+C05,"unknown geographical scope, target A",UNRESOLVED,REGION_UNKNOWN,APPLICABILITY,NO
+C06,"only title says region A, paper itself studies B",UNRESOLVED,REGION_TITLE_ONLY,APPLICABILITY,NO
+C07,"A-south observation, query A-north",OUT_OF_SCOPE,REGION_DISJOINT,APPLICABILITY,NO
+C08,"A-child local existence, query EXISTS in parent A",DIRECT,REGION_PART_OF,APPLICABILITY,NO
+C09,"A-child local existence, query ALL in parent A",UNRESOLVED,SCOPE_UNIVERSALITY_MISMATCH,APPLICABILITY,NO
+C10,"A-child existence, query TYPICAL in parent A",UNRESOLVED,SCOPE_UNIVERSALITY_MISMATCH,APPLICABILITY,NO
+C11,"A-parent general fact, query EXISTS in child",UNRESOLVED,SCOPE_UNIVERSALITY_MISMATCH,APPLICABILITY,NO
+C12,two sibling child regions A1/A2,OUT_OF_SCOPE,REGION_DISJOINT,APPLICABILITY,NO
+C13,"hypothesis explicitly about A, ask for published hypotheses",DIRECT,MODALITY_HYPOTHESIS,APPLICABILITY,NO
+C14,"hypothesis explicitly about A, ask for established fact",UNRESOLVED,MODALITY_HYPOTHESIS,APPLICABILITY,NO
+C15,"negative evidence about A, positive claim requested",UNRESOLVED,POLARITY_NEGATED,APPLICABILITY,NO
+C16,"negative evidence about A, query asks whether absence was reported",DIRECT,POLARITY_MATCH,APPLICABILITY,NO
+C17,co-occurrence without expressed relation,UNRESOLVED,SUPPORT_NOT_ENTAILED,APPLICABILITY,NO
+C18,wrong direction of relation,UNRESOLVED,SUPPORT_NOT_ENTAILED,APPLICABILITY,NO
+C19,"citation partial, lacks relation",UNRESOLVED,SUPPORT_NOT_ENTAILED,APPLICABILITY,NO
+C20,quote text mutated after parsing,UNRESOLVED,SOURCE_HASH_INVALID,APPLICABILITY,NO
+C21,"page mismatch, exact text not found",UNRESOLVED,SOURCE_HASH_INVALID,APPLICABILITY,NO
+C22,OCR broken source span,UNRESOLVED,SOURCE_HASH_INVALID,APPLICABILITY,NO
+C23,two duplicate papers reprint one source,DIRECT,SOURCE_DEPENDENCE_NOT_INDEPENDENT,APPLICABILITY,NO
+C24,different context but falsely accused contradiction,OUT_OF_SCOPE,REGION_DISJOINT,APPLICABILITY,NO
+C25,true contradictory quotations same scope,UNRESOLVED,CONFLICTING_EVIDENCE,APPLICABILITY,NO
+C26,alias identical surface but different region IDs,UNRESOLVED,ALIAS_AMBIGUOUS,APPLICABILITY,NO
+C27,RU/EN validated synonyms for same region ID,DIRECT,REGION_EXACT,APPLICABILITY,NO
+C28,similar English names but different places,UNRESOLVED,ALIAS_AMBIGUOUS,APPLICABILITY,NO
+C29,region in preceding sentence with proof span,DIRECT,ANAPHORA_RESOLVED,APPLICABILITY,NO
+C30,"region inferred only from query, not from source",UNRESOLVED,REGION_UNKNOWN,APPLICABILITY,NO
+C31,deposit type mismatch in same geographic polygon,OUT_OF_SCOPE,DEPOSIT_TYPE_MISMATCH,APPLICABILITY,NO
+C32,different deposit stage but no temporal resolution,UNRESOLVED,TEMPORAL_SCOPE_MISMATCH,APPLICABILITY,NO
+C33,24 claims checked but 25th unchecked,UNRESOLVED,NOT_CHECKED,APPLICABILITY,NO
+C34,25th claim checked explicitly despite legacy limit,DIRECT,SUPPORT_ENTAILED,APPLICABILITY,NO
+C35,MinHash almost duplicate differing in NOT,DO_NOT_DROP_AS_DUPLICATE,PREFILTER_PROTECTED_TOKEN,PREFILTER,NO
+C36,MinHash almost duplicate differing in target region,DO_NOT_DROP_AS_DUPLICATE,PREFILTER_PROTECTED_TOKEN,PREFILTER,NO
+C37,malicious prompt inside PDF,IGNORE_UNTRUSTED_INSTRUCTIONS,UNTRUSTED_SOURCE_INSTRUCTION,SECURITY,NO
+C38,unavailable gold / same LLM self-evaluation,REJECT_SELF_JUDGED_GOLD,INDEPENDENT_GOLD_MISSING,DATA_INTEGRITY,NO
+C39,system rejects every claim; apparent zero FTR,COVERAGE_ZERO_IS_NOT_SUCCESS,COVERAGE_ZERO,METRIC,NO
+C40,property: removing verified evidence upgrades unsupported direct,NEVER_PROMOTE_UNSUPPORTED_TO_DIRECT,MONOTONICITY_VIOLATION,PROPERTY,NO
