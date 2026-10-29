@@ -1,0 +1,3 @@
+query_id,region,query_text,baseline,expert_id,time_s,correct_direct_count,false_transfer_count,unresolved_count,correction_count,notes
+DOSSIER-A,R:EG:ED:C,см. dossier/A,V3,,,,,,,BLOCKED: геолог не назначен; время и правки эксперта не измерены
+DOSSIER-B,R:EG,см. dossier/B,V3,,,,,,,BLOCKED: геолог не назначен

@@ -1,0 +1,6 @@
+reference,year,contribution,doi,url,assessed_in_manuscript
+OntoGRC,2026,ontology_generate_reflect_correct,10.1016/j.oregeorev.2026.107411,https://doi.org/10.1016/j.oregeorev.2026.107411,yes
+Qin et al,2025,multilingual_geological_fusion,10.3390/min15121257,https://doi.org/10.3390/min15121257,yes
+SciGraph-LLM,2026,scientific_claims_and_evidence,10.1145/3779211.3793169,https://doi.org/10.1145/3779211.3793169,yes
+Geo-MAG,2026,text_map_geological_graph,10.1111/tgis.70226,https://doi.org/10.1111/tgis.70226,yes
+Liu et al,2025,regional_gis_kg,10.1016/j.aiig.2025.100169,https://doi.org/10.1016/j.aiig.2025.100169,yes

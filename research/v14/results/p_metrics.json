@@ -1,0 +1,92 @@
+{
+ "P0": {
+  "n_questions": 15,
+  "citations": 38,
+  "foreign_citations": 5,
+  "foreign_citation_rate": 0.13157894736842105,
+  "questions_with_own_citation": 11,
+  "questions_with_foreign_citation": 4,
+  "errors": 0,
+  "mean_seconds": 29.4,
+  "no_data_questions": [
+   {
+    "q": "X1",
+    "cited": {
+     "own": 0,
+     "foreign": 0,
+     "unknown": 0
+    },
+    "mode": "без базы"
+   },
+   {
+    "q": "X2",
+    "cited": {
+     "own": 0,
+     "foreign": 0,
+     "unknown": 0
+    },
+    "mode": "база"
+   }
+  ]
+ },
+ "P1": {
+  "n_questions": 15,
+  "citations": 57,
+  "foreign_citations": 9,
+  "foreign_citation_rate": 0.15789473684210525,
+  "questions_with_own_citation": 12,
+  "questions_with_foreign_citation": 5,
+  "errors": 0,
+  "mean_seconds": 42.2,
+  "no_data_questions": [
+   {
+    "q": "X1",
+    "cited": {
+     "own": 0,
+     "foreign": 0,
+     "unknown": 0
+    },
+    "mode": "без базы"
+   },
+   {
+    "q": "X2",
+    "cited": {
+     "own": 0,
+     "foreign": 0,
+     "unknown": 2
+    },
+    "mode": "база"
+   }
+  ]
+ },
+ "P2": {
+  "n_questions": 15,
+  "citations": 61,
+  "foreign_citations": 5,
+  "foreign_citation_rate": 0.08196721311475409,
+  "questions_with_own_citation": 12,
+  "questions_with_foreign_citation": 4,
+  "errors": 0,
+  "mean_seconds": 29.4,
+  "no_data_questions": [
+   {
+    "q": "X1",
+    "cited": {
+     "own": 0,
+     "foreign": 0,
+     "unknown": 0
+    },
+    "mode": "без базы"
+   },
+   {
+    "q": "X2",
+    "cited": {
+     "own": 0,
+     "foreign": 0,
+     "unknown": 0
+    },
+    "mode": "база"
+   }
+  ]
+ }
+}

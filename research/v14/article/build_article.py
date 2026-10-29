@@ -45,6 +45,7 @@ def pct(x: float) -> str:
 
 
 def dec(x: float, d: int = 2) -> str:
+    x = 0.0 if abs(x) < 0.5 * 10 ** -d else x  # без «-0,00»
     return f"{x:.{d}f}".replace(".", ",")
 
 
@@ -173,6 +174,12 @@ def table(caption: str, header: list[str], rows: list[list[str]], widths: list[f
             pp.paragraph_format.first_line_indent = Cm(0)
             pp.alignment = WD_ALIGN_PARAGRAPH.LEFT if j == 0 else WD_ALIGN_PARAGRAPH.CENTER
             _runs(pp, v, size=size)
+    t.autofit = False
+    layout = OxmlElement("w:tblLayout")
+    layout.set(qn("w:type"), "fixed")
+    t._tbl.tblPr.append(layout)
+    for j, w in enumerate(widths):
+        t._tbl.tblGrid.findall(qn("w:gridCol"))[j].set(qn("w:w"), str(int(w * 567)))
     for row in t.rows:
         for j, w in enumerate(widths):
             row.cells[j].width = Cm(w)
@@ -362,8 +369,8 @@ rows = [row("V0 — граф без контроля контекста", T["V0"
         row("V3 — предложенный метод", T["V3"], "results/metrics.json", "TEST:V3"),
         row("V2 + поддержка S*", T["V2+S"], "results/support_rules.json", f"v2_same_support.TEST.{chosen}"),
         row("V3 + поддержка S*", T["V3+S"], "results/support_rules.json", f"metrics.TEST.{chosen}")]
-table("Таблица 1. Применимость на тестовой части (207 пар, 35 семейств; в скобках — доля и 95 % интервал)",
-      ["Режим", "Ложный перенос FTR", "Охват прямых ответов", "Изб. риск"], rows, [5.4, 3.9, 3.9, 2.9], size=10.5)
+table("Таблица 1. Применимость на тестовой части (207 пар, 35 семейств; в скобках — доля и 95 % интервал)",
+      ["Режим", "Ложный перенос FTR", "Охват прямых ответов", "Изб. риск"], rows, [4.6, 4.4, 4.4, 3.0], size=10.5)
 para("* S — правило поддержки, выбранное на DEV до проверки на TEST (не менее одного голоса из четырёх и подтверждение "
      "отдельным вопросом модели о направлении и отрицании); см. ниже.", size=11, indent=False)
 
@@ -445,8 +452,8 @@ if pmet:
          f"{num(p0['questions_with_own_citation'], 'вопросов со своей ссылкой P0', 'results/p_metrics.json', 'P0.questions_with_own_citation')}, "
          f"{num(p1['questions_with_own_citation'], 'P1 own', 'results/p_metrics.json', 'P1.questions_with_own_citation')} и "
          f"{num(p2['questions_with_own_citation'], 'P2 own', 'results/p_metrics.json', 'P2.questions_with_own_citation')} ответах. "
-         "Оценка ведётся по области исследования процитированной статьи, а не по каждому утверждению, и требует "
-         "проверки геологом.")
+         "Оценка ведётся по области исследования процитированной статьи, а не по каждому утверждению, по одному "
+         "прогону на режим, и требует проверки геологом.")
 para("**Досье.** Для одного и того же набора из "
      f"{num(dos['n_facts_same_set'], 'фактов в досье', 'dossier/summary.json', 'n_facts_same_set')} структурных фактов о золоте "
      "вопрос о Центральной Восточной пустыне Египта с разрешёнными аналогиями дал "
