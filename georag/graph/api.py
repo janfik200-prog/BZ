@@ -358,7 +358,7 @@ def _stamp(conn: Any) -> Any:
         row = cur.fetchone()
         # Сколько фактов в графе (А5): новая статья, повторив связь, переводит в граф и
         # прежний факт-кандидат — тогда граф собирается заново, а не дописывается.
-        cur.execute(f"SELECT count(*) FROM facts f WHERE {store.accepted()}")
+        cur.execute(f"SELECT count(*) FROM facts f WHERE {store.accepted(fresh=store.has_stale(conn))}")
         taken = cur.fetchone()
         return (*row, taken[0] if taken else 0) if row else None
 
@@ -380,7 +380,8 @@ def _only_added(conn: Any, old: tuple[Any, ...]) -> bool:
         # Среди прежних фактов в графе столько же, сколько было, — ни один кандидат не
         # перешёл в граф из-за новой статьи.
         cur.execute(
-            f"SELECT count(*) FROM facts f WHERE f.id <= %s AND {store.accepted()}", (last,)
+            f"SELECT count(*) FROM facts f WHERE f.id <= %s AND {store.accepted(fresh=store.has_stale(conn))}",
+            (last,),
         )
         before = cur.fetchone()
     return (

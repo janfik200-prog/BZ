@@ -55,7 +55,7 @@ def _edges(conn: Any) -> list[tuple[str, str, int]]:
         cur.execute(f"""
             SELECT least(f.src_key, f.dst_key), greatest(f.src_key, f.dst_key),
                    count(DISTINCT f.doc_id)
-            FROM facts f WHERE {store.accepted()}{geo} AND f.src_key <> f.dst_key
+            FROM facts f WHERE {store.accepted(fresh=store.has_stale(conn))}{geo} AND f.src_key <> f.dst_key
             GROUP BY 1, 2
             """)
         return [(str(a), str(b), int(n)) for a, b, n in cur.fetchall()]

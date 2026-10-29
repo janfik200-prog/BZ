@@ -23,6 +23,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import sys
 from dataclasses import dataclass, field
@@ -34,6 +35,16 @@ from ..text import keyword_pattern, normalize
 
 TERMS_PATH = CONFIG / "geo-terms.txt"
 MIN_TERMS = 3
+# Список предметов в задании модели (facts.messages). По умолчанию — да, как было.
+# GEORAG_GRAPH_ENTITY_LIST=0 — отсев первого этапа остаётся, а задание модели — как без
+# первого этапа. Зачем: в E (research/v14) список снизил точность выписки (22/33 → 14/33);
+# проверка варианта без списка — E3 (run_e3.py, T9).
+ENTITY_LIST_ENV = "GEORAG_GRAPH_ENTITY_LIST"
+
+
+def entity_list_enabled() -> bool:
+    """Идёт ли список предметов первого этапа модели (флаг ENTITY_LIST_ENV, по умолчанию да)."""
+    return os.environ.get(ENTITY_LIST_ENV, "1").strip().lower() not in ("0", "no", "false", "нет", "off")
 MAX_ENTITIES = 40  # сколько предметов уходит модели списком
 SPACY_MODELS = {"ru": "ru_core_news_sm", "en": "en_core_web_sm"}
 # Метки spaCy, которые бывают предметами геологии: места, объекты, организации-

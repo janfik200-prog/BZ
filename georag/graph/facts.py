@@ -464,6 +464,7 @@ def run(
     filtering: bool = True,
     min_terms: int | None = None,
     captions: bool | None = None,
+    entity_list: bool | None = None,
 ) -> dict[str, Any]:
     """Модель проходит фрагменты, которых ещё не видела. Возобновляемо.
 
@@ -484,15 +485,20 @@ def run(
     captions — третий отсев первого этапа (captions.py): фрагмент, где прозы почти нет,
     только подписи рисунков, легенды и строки таблиц, модели не отдаётся (отметка
     skipped с причиной). По умолчанию — по переменной GEORAG_SKIP_CAPTIONS=1, иначе
-    выключен: граф строится как раньше."""
+    выключен: граф строится как раньше.
+
+    entity_list=False (или GEORAG_GRAPH_ENTITY_LIST=0, если не задано) — отсев первого
+    этапа остаётся, но список предметов модели не уходит: задание то же, что без finder
+    (опыт E3, research/v14). По умолчанию список идёт, как раньше."""
     from . import captions as cap
     from . import dedup
-    from .entities import MIN_TERMS
+    from .entities import MIN_TERMS, entity_list_enabled
 
     if captions is None:
         captions = os.environ.get("GEORAG_SKIP_CAPTIONS") == "1"
 
     need = MIN_TERMS if min_terms is None else min_terms
+    give_list = entity_list_enabled() if entity_list is None else entity_list
     rules = load_rules(rules_path)
     retry = finder is not None and not filtering
     rows = store.todo(conn, limit=limit, retry_skipped=retry)
@@ -511,7 +517,8 @@ def run(
 
     def work(row: tuple[Any, ...], found: Any) -> tuple[Checked, list[int] | None]:
         text = row[2] or ""
-        system, user = messages(rules, text, found.entities if found is not None else None)
+        listed = found.entities if found is not None and give_list else None
+        system, user = messages(rules, text, listed)
         # Оборванный ответ (потолок длины, зацикливание) — факты до обрыва не пропадают.
         answer = llm.chat_json(
             system, user, max_tokens=ANSWER_TOKENS, repair=True, reserve=ANSWER_RESERVE
