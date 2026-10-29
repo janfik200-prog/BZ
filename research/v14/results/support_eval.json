@@ -1,0 +1,164 @@
+{
+ "support": {
+  "n_facts": 316,
+  "by_threshold": {
+   "1": {
+    "tp": 229,
+    "fp": 35,
+    "fn": 23,
+    "tn": 29,
+    "precision": 0.8674242424242424,
+    "precision_ci": [
+     0.8212018290183682,
+     0.9031072486508691
+    ],
+    "recall": 0.9087301587301587,
+    "recall_ci": [
+     0.8667740520480588,
+     0.9384121009294951
+    ],
+    "false_confirmation_rate": 0.546875
+   },
+   "2": {
+    "tp": 208,
+    "fp": 29,
+    "fn": 44,
+    "tn": 35,
+    "precision": 0.8776371308016878,
+    "precision_ci": [
+     0.8297906632736896,
+     0.9134368560931694
+    ],
+    "recall": 0.8253968253968254,
+    "recall_ci": [
+     0.7737372148326506,
+     0.8672847710329749
+    ],
+    "false_confirmation_rate": 0.453125
+   },
+   "3": {
+    "tp": 154,
+    "fp": 11,
+    "fn": 98,
+    "tn": 53,
+    "precision": 0.9333333333333333,
+    "precision_ci": [
+     0.8845785014422503,
+     0.962369878409542
+    ],
+    "recall": 0.6111111111111112,
+    "recall_ci": [
+     0.5496835751863616,
+     0.6692019809628764
+    ],
+    "false_confirmation_rate": 0.171875
+   },
+   "4": {
+    "tp": 108,
+    "fp": 7,
+    "fn": 144,
+    "tn": 57,
+    "precision": 0.9391304347826087,
+    "precision_ci": [
+     0.8796668779578461,
+     0.9702048839866703
+    ],
+    "recall": 0.42857142857142855,
+    "recall_ci": [
+     0.3689950004533809,
+     0.4902928563078233
+    ],
+    "false_confirmation_rate": 0.109375
+   }
+  },
+  "legacy_graph_acceptance_vs_gold": {
+   "CONTRADICTED|accepted=False": 2,
+   "ENTAILED|accepted=False": 97,
+   "ENTAILED|accepted=True": 155,
+   "PARTIAL|accepted=False": 27,
+   "PARTIAL|accepted=True": 6,
+   "UNKNOWN|accepted=False": 24,
+   "UNKNOWN|accepted=True": 5
+  },
+  "polarity_agreement": {
+   "agree": 309,
+   "n": 316,
+   "rate": 0.9778481012658228,
+   "confusion": {
+    "gold=AFFIRM|pred=AFFIRM": 306,
+    "gold=AFFIRM|pred=NEGATE": 6,
+    "gold=NEGATE|pred=AFFIRM": 1,
+    "gold=NEGATE|pred=NEGATE": 3
+   }
+  },
+  "modality_agreement": {
+   "agree": 291,
+   "n": 316,
+   "rate": 0.9208860759493671,
+   "confusion": {
+    "gold=ASSERTED|pred=ASSERTED": 179,
+    "gold=ASSERTED|pred=HYPOTHESIS": 15,
+    "gold=ASSERTED|pred=REPORTED": 10,
+    "gold=HYPOTHESIS|pred=ASSERTED": 5,
+    "gold=HYPOTHESIS|pred=HYPOTHESIS": 33,
+    "gold=HYPOTHESIS|pred=REPORTED": 1,
+    "gold=REPORTED|pred=ASSERTED": 34,
+    "gold=REPORTED|pred=HYPOTHESIS": 4,
+    "gold=REPORTED|pred=REPORTED": 35
+   }
+  },
+  "quantifier_agreement": {
+   "agree": 111,
+   "n": 316,
+   "rate": 0.3512658227848101,
+   "confusion": {
+    "gold=EXISTS|pred=ALL": 2,
+    "gold=EXISTS|pred=EXISTS": 7,
+    "gold=EXISTS|pred=LOCAL": 4,
+    "gold=EXISTS|pred=TYPICAL": 1,
+    "gold=EXISTS|pred=UNSPECIFIED": 6,
+    "gold=LOCAL|pred=ALL": 1,
+    "gold=LOCAL|pred=EXISTS": 15,
+    "gold=LOCAL|pred=LOCAL": 1,
+    "gold=LOCAL|pred=TYPICAL": 3,
+    "gold=LOCAL|pred=UNSPECIFIED": 12,
+    "gold=TYPICAL|pred=EXISTS": 4,
+    "gold=TYPICAL|pred=LOCAL": 1,
+    "gold=TYPICAL|pred=TYPICAL": 18,
+    "gold=TYPICAL|pred=UNSPECIFIED": 14,
+    "gold=UNSPECIFIED|pred=ALL": 9,
+    "gold=UNSPECIFIED|pred=EXISTS": 94,
+    "gold=UNSPECIFIED|pred=LOCAL": 17,
+    "gold=UNSPECIFIED|pred=TYPICAL": 22,
+    "gold=UNSPECIFIED|pred=UNSPECIFIED": 85
+   }
+  }
+ },
+ "frame_parse": {
+  "region": {
+   "ok": 27,
+   "n": 35,
+   "rate": 0.7714285714285715
+  },
+  "quantifier": {
+   "ok": 35,
+   "n": 35,
+   "rate": 1.0
+  },
+  "mode": {
+   "ok": 35,
+   "n": 35,
+   "rate": 1.0
+  },
+  "analogies": {
+   "ok": 35,
+   "n": 35,
+   "rate": 1.0
+  },
+  "deposit": {
+   "ok": 35,
+   "n": 35,
+   "rate": 1.0
+  }
+ }
+}

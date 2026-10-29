@@ -1,0 +1,1026 @@
+{
+ "DEV:V0": {
+  "method": "V0",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 27,
+  "ftr": 0.4153846153846154,
+  "ftr_ci": [
+   0.30360241557422635,
+   0.5366101512650265
+  ],
+  "n_answerable": 14,
+  "covered": 11,
+  "direct_coverage": 0.7857142857142857,
+  "coverage_ci": [
+   0.524107694133997,
+   0.9242861328730683
+  ],
+  "n_direct_pred": 65,
+  "n_false_direct": 47,
+  "selective_risk": 0.7230769230769231,
+  "selective_risk_ci": [
+   0.6041936164611803,
+   0.817064161871699
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.6923076923076923,
+  "unresolved_rate": 0.4921875,
+  "accuracy4": 0.2734375,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V1": {
+  "method": "V1",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 1,
+  "ftr": 0.015384615384615385,
+  "ftr_ci": [
+   0.0027209446020234687,
+   0.08213284729551473
+  ],
+  "n_answerable": 14,
+  "covered": 9,
+  "direct_coverage": 0.6428571428571429,
+  "coverage_ci": [
+   0.38764423103907397,
+   0.8365526824644587
+  ],
+  "n_direct_pred": 24,
+  "n_false_direct": 9,
+  "selective_risk": 0.375,
+  "selective_risk_ci": [
+   0.21159367559548778,
+   0.5729003755732572
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.5769230769230769,
+  "unresolved_rate": 0.8125,
+  "accuracy4": 0.34375,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V2": {
+  "method": "V2",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 2,
+  "ftr": 0.03076923076923077,
+  "ftr_ci": [
+   0.008478997236440126,
+   0.10542705523577942
+  ],
+  "n_answerable": 14,
+  "covered": 10,
+  "direct_coverage": 0.7142857142857143,
+  "coverage_ci": [
+   0.4535091567010681,
+   0.8827862135542308
+  ],
+  "n_direct_pred": 31,
+  "n_false_direct": 15,
+  "selective_risk": 0.4838709677419355,
+  "selective_risk_ci": [
+   0.31970251562417307,
+   0.651596045519712
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.6153846153846154,
+  "unresolved_rate": 0.59375,
+  "accuracy4": 0.4765625,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V3": {
+  "method": "V3",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 1,
+  "ftr": 0.015384615384615385,
+  "ftr_ci": [
+   0.0027209446020234687,
+   0.08213284729551473
+  ],
+  "n_answerable": 14,
+  "covered": 9,
+  "direct_coverage": 0.6428571428571429,
+  "coverage_ci": [
+   0.38764423103907397,
+   0.8365526824644587
+  ],
+  "n_direct_pred": 20,
+  "n_false_direct": 6,
+  "selective_risk": 0.3,
+  "selective_risk_ci": [
+   0.1454772448676043,
+   0.5189728183535235
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.5384615384615384,
+  "unresolved_rate": 0.671875,
+  "accuracy4": 0.515625,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V3-registry": {
+  "method": "V3-registry",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 1,
+  "ftr": 0.015384615384615385,
+  "ftr_ci": [
+   0.0027209446020234687,
+   0.08213284729551473
+  ],
+  "n_answerable": 14,
+  "covered": 9,
+  "direct_coverage": 0.6428571428571429,
+  "coverage_ci": [
+   0.38764423103907397,
+   0.8365526824644587
+  ],
+  "n_direct_pred": 20,
+  "n_false_direct": 5,
+  "selective_risk": 0.25,
+  "selective_risk_ci": [
+   0.11186170140766569,
+   0.468700877618744
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.5769230769230769,
+  "unresolved_rate": 0.84375,
+  "accuracy4": 0.375,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V3-quantifier": {
+  "method": "V3-quantifier",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 2,
+  "ftr": 0.03076923076923077,
+  "ftr_ci": [
+   0.008478997236440126,
+   0.10542705523577942
+  ],
+  "n_answerable": 14,
+  "covered": 9,
+  "direct_coverage": 0.6428571428571429,
+  "coverage_ci": [
+   0.38764423103907397,
+   0.8365526824644587
+  ],
+  "n_direct_pred": 25,
+  "n_false_direct": 11,
+  "selective_risk": 0.44,
+  "selective_risk_ci": [
+   0.26665638881067344,
+   0.6293266813020123
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.5384615384615384,
+  "unresolved_rate": 0.6328125,
+  "accuracy4": 0.484375,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V3-modality_polarity": {
+  "method": "V3-modality_polarity",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 1,
+  "ftr": 0.015384615384615385,
+  "ftr_ci": [
+   0.0027209446020234687,
+   0.08213284729551473
+  ],
+  "n_answerable": 14,
+  "covered": 9,
+  "direct_coverage": 0.6428571428571429,
+  "coverage_ci": [
+   0.38764423103907397,
+   0.8365526824644587
+  ],
+  "n_direct_pred": 22,
+  "n_false_direct": 8,
+  "selective_risk": 0.36363636363636365,
+  "selective_risk_ci": [
+   0.19733204670366125,
+   0.5704829190986899
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.5384615384615384,
+  "unresolved_rate": 0.65625,
+  "accuracy4": 0.5,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V3-support": {
+  "method": "V3-support",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 1,
+  "ftr": 0.015384615384615385,
+  "ftr_ci": [
+   0.0027209446020234687,
+   0.08213284729551473
+  ],
+  "n_answerable": 14,
+  "covered": 9,
+  "direct_coverage": 0.6428571428571429,
+  "coverage_ci": [
+   0.38764423103907397,
+   0.8365526824644587
+  ],
+  "n_direct_pred": 20,
+  "n_false_direct": 6,
+  "selective_risk": 0.3,
+  "selective_risk_ci": [
+   0.1454772448676043,
+   0.5189728183535235
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.5384615384615384,
+  "unresolved_rate": 0.671875,
+  "accuracy4": 0.515625,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V3-anaphora": {
+  "method": "V3-anaphora",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 1,
+  "ftr": 0.015384615384615385,
+  "ftr_ci": [
+   0.0027209446020234687,
+   0.08213284729551473
+  ],
+  "n_answerable": 14,
+  "covered": 9,
+  "direct_coverage": 0.6428571428571429,
+  "coverage_ci": [
+   0.38764423103907397,
+   0.8365526824644587
+  ],
+  "n_direct_pred": 20,
+  "n_false_direct": 6,
+  "selective_risk": 0.3,
+  "selective_risk_ci": [
+   0.1454772448676043,
+   0.5189728183535235
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.5384615384615384,
+  "unresolved_rate": 0.6796875,
+  "accuracy4": 0.5234375,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V3-title_rules": {
+  "method": "V3-title_rules",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 1,
+  "ftr": 0.015384615384615385,
+  "ftr_ci": [
+   0.0027209446020234687,
+   0.08213284729551473
+  ],
+  "n_answerable": 14,
+  "covered": 9,
+  "direct_coverage": 0.6428571428571429,
+  "coverage_ci": [
+   0.38764423103907397,
+   0.8365526824644587
+  ],
+  "n_direct_pred": 21,
+  "n_false_direct": 7,
+  "selective_risk": 0.3333333333333333,
+  "selective_risk_ci": [
+   0.17194752605083477,
+   0.5462654802574476
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.5384615384615384,
+  "unresolved_rate": 0.671875,
+  "accuracy4": 0.515625,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V3@votes>=1": {
+  "method": "V3@votes>=1",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 1,
+  "ftr": 0.015384615384615385,
+  "ftr_ci": [
+   0.0027209446020234687,
+   0.08213284729551473
+  ],
+  "n_answerable": 14,
+  "covered": 10,
+  "direct_coverage": 0.7142857142857143,
+  "coverage_ci": [
+   0.4535091567010681,
+   0.8827862135542308
+  ],
+  "n_direct_pred": 27,
+  "n_false_direct": 9,
+  "selective_risk": 0.3333333333333333,
+  "selective_risk_ci": [
+   0.18643261498715644,
+   0.5217523949267991
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.6923076923076923,
+  "unresolved_rate": 0.4765625,
+  "accuracy4": 0.6328125,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V2@votes>=1": {
+  "method": "V2@votes>=1",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 2,
+  "ftr": 0.03076923076923077,
+  "ftr_ci": [
+   0.008478997236440126,
+   0.10542705523577942
+  ],
+  "n_answerable": 14,
+  "covered": 12,
+  "direct_coverage": 0.8571428571428571,
+  "coverage_ci": [
+   0.6005862050302965,
+   0.9599060787285351
+  ],
+  "n_direct_pred": 43,
+  "n_false_direct": 21,
+  "selective_risk": 0.4883720930232558,
+  "selective_risk_ci": [
+   0.3461744754671859,
+   0.632476915305507
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.8461538461538461,
+  "unresolved_rate": 0.328125,
+  "accuracy4": 0.6171875,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V3@votes>=2": {
+  "method": "V3@votes>=2",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 1,
+  "ftr": 0.015384615384615385,
+  "ftr_ci": [
+   0.0027209446020234687,
+   0.08213284729551473
+  ],
+  "n_answerable": 14,
+  "covered": 10,
+  "direct_coverage": 0.7142857142857143,
+  "coverage_ci": [
+   0.4535091567010681,
+   0.8827862135542308
+  ],
+  "n_direct_pred": 27,
+  "n_false_direct": 9,
+  "selective_risk": 0.3333333333333333,
+  "selective_risk_ci": [
+   0.18643261498715644,
+   0.5217523949267991
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.6923076923076923,
+  "unresolved_rate": 0.5078125,
+  "accuracy4": 0.6015625,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V2@votes>=2": {
+  "method": "V2@votes>=2",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 2,
+  "ftr": 0.03076923076923077,
+  "ftr_ci": [
+   0.008478997236440126,
+   0.10542705523577942
+  ],
+  "n_answerable": 14,
+  "covered": 11,
+  "direct_coverage": 0.7857142857142857,
+  "coverage_ci": [
+   0.524107694133997,
+   0.9242861328730683
+  ],
+  "n_direct_pred": 41,
+  "n_false_direct": 21,
+  "selective_risk": 0.5121951219512195,
+  "selective_risk_ci": [
+   0.3648450865154381,
+   0.6574557044556734
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.7692307692307693,
+  "unresolved_rate": 0.390625,
+  "accuracy4": 0.5546875,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V3@votes>=4": {
+  "method": "V3@votes>=4",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 1,
+  "ftr": 0.015384615384615385,
+  "ftr_ci": [
+   0.0027209446020234687,
+   0.08213284729551473
+  ],
+  "n_answerable": 14,
+  "covered": 7,
+  "direct_coverage": 0.5,
+  "coverage_ci": [
+   0.26799202452413634,
+   0.7320079754758637
+  ],
+  "n_direct_pred": 15,
+  "n_false_direct": 5,
+  "selective_risk": 0.3333333333333333,
+  "selective_risk_ci": [
+   0.1517632443971473,
+   0.5828645226148023
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.38461538461538464,
+  "unresolved_rate": 0.7578125,
+  "accuracy4": 0.4609375,
+  "run_id": "V-20261029-114409"
+ },
+ "DEV:V2@votes>=4": {
+  "method": "V2@votes>=4",
+  "split": "DEV",
+  "n_pairs": 128,
+  "n_families": 19,
+  "n_foreign": 65,
+  "false_direct_foreign": 2,
+  "ftr": 0.03076923076923077,
+  "ftr_ci": [
+   0.008478997236440126,
+   0.10542705523577942
+  ],
+  "n_answerable": 14,
+  "covered": 8,
+  "direct_coverage": 0.5714285714285714,
+  "coverage_ci": [
+   0.3259064457965074,
+   0.7861920109552588
+  ],
+  "n_direct_pred": 22,
+  "n_false_direct": 10,
+  "selective_risk": 0.45454545454545453,
+  "selective_risk_ci": [
+   0.2692029418081331,
+   0.6534020467926505
+  ],
+  "n_gold_direct": 26,
+  "direct_recall_pairs": 0.46153846153846156,
+  "unresolved_rate": 0.703125,
+  "accuracy4": 0.4453125,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V0": {
+  "method": "V0",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 65,
+  "ftr": 0.5803571428571429,
+  "ftr_ci": [
+   0.4877851847005556,
+   0.6675995988065428
+  ],
+  "n_answerable": 20,
+  "covered": 17,
+  "direct_coverage": 0.85,
+  "coverage_ci": [
+   0.6395811352592431,
+   0.9476312541037835
+  ],
+  "n_direct_pred": 112,
+  "n_false_direct": 89,
+  "selective_risk": 0.7946428571428571,
+  "selective_risk_ci": [
+   0.71066346806868,
+   0.8590807381240136
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.48936170212765956,
+  "unresolved_rate": 0.45893719806763283,
+  "accuracy4": 0.22705314009661837,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V1": {
+  "method": "V1",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 0,
+  "ftr": 0.0,
+  "ftr_ci": [
+   3.469446951953614e-18,
+   0.033161347066943875
+  ],
+  "n_answerable": 20,
+  "covered": 10,
+  "direct_coverage": 0.5,
+  "coverage_ci": [
+   0.2992980081982123,
+   0.7007019918017877
+  ],
+  "n_direct_pred": 19,
+  "n_false_direct": 9,
+  "selective_risk": 0.47368421052631576,
+  "selective_risk_ci": [
+   0.2732980516117956,
+   0.6829219075488682
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.2127659574468085,
+  "unresolved_rate": 0.9082125603864735,
+  "accuracy4": 0.23671497584541062,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V2": {
+  "method": "V2",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 0,
+  "ftr": 0.0,
+  "ftr_ci": [
+   3.469446951953614e-18,
+   0.033161347066943875
+  ],
+  "n_answerable": 20,
+  "covered": 15,
+  "direct_coverage": 0.75,
+  "coverage_ci": [
+   0.531299122381256,
+   0.8881382985923343
+  ],
+  "n_direct_pred": 30,
+  "n_false_direct": 10,
+  "selective_risk": 0.3333333333333333,
+  "selective_risk_ci": [
+   0.19230498083676134,
+   0.5121994835545616
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.425531914893617,
+  "unresolved_rate": 0.5942028985507246,
+  "accuracy4": 0.5217391304347826,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V3": {
+  "method": "V3",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 0,
+  "ftr": 0.0,
+  "ftr_ci": [
+   3.469446951953614e-18,
+   0.033161347066943875
+  ],
+  "n_answerable": 20,
+  "covered": 14,
+  "direct_coverage": 0.7,
+  "coverage_ci": [
+   0.4810271816464765,
+   0.8545227551323956
+  ],
+  "n_direct_pred": 22,
+  "n_false_direct": 5,
+  "selective_risk": 0.22727272727272727,
+  "selective_risk_ci": [
+   0.10123039985248516,
+   0.4343995317522171
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.3617021276595745,
+  "unresolved_rate": 0.6570048309178744,
+  "accuracy4": 0.5265700483091788,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V3-registry": {
+  "method": "V3-registry",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 0,
+  "ftr": 0.0,
+  "ftr_ci": [
+   3.469446951953614e-18,
+   0.033161347066943875
+  ],
+  "n_answerable": 20,
+  "covered": 10,
+  "direct_coverage": 0.5,
+  "coverage_ci": [
+   0.2992980081982123,
+   0.7007019918017877
+  ],
+  "n_direct_pred": 16,
+  "n_false_direct": 6,
+  "selective_risk": 0.375,
+  "selective_risk_ci": [
+   0.18481232558863633,
+   0.6135895945449727
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.2127659574468085,
+  "unresolved_rate": 0.9227053140096618,
+  "accuracy4": 0.25120772946859904,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V3-quantifier": {
+  "method": "V3-quantifier",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 0,
+  "ftr": 0.0,
+  "ftr_ci": [
+   3.469446951953614e-18,
+   0.033161347066943875
+  ],
+  "n_answerable": 20,
+  "covered": 14,
+  "direct_coverage": 0.7,
+  "coverage_ci": [
+   0.4810271816464765,
+   0.8545227551323956
+  ],
+  "n_direct_pred": 24,
+  "n_false_direct": 7,
+  "selective_risk": 0.2916666666666667,
+  "selective_risk_ci": [
+   0.14914648196960875,
+   0.49167693664496637
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.3617021276595745,
+  "unresolved_rate": 0.6473429951690821,
+  "accuracy4": 0.5169082125603864,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V3-modality_polarity": {
+  "method": "V3-modality_polarity",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 0,
+  "ftr": 0.0,
+  "ftr_ci": [
+   3.469446951953614e-18,
+   0.033161347066943875
+  ],
+  "n_answerable": 20,
+  "covered": 14,
+  "direct_coverage": 0.7,
+  "coverage_ci": [
+   0.4810271816464765,
+   0.8545227551323956
+  ],
+  "n_direct_pred": 24,
+  "n_false_direct": 7,
+  "selective_risk": 0.2916666666666667,
+  "selective_risk_ci": [
+   0.14914648196960875,
+   0.49167693664496637
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.3617021276595745,
+  "unresolved_rate": 0.6473429951690821,
+  "accuracy4": 0.5169082125603864,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V3-support": {
+  "method": "V3-support",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 0,
+  "ftr": 0.0,
+  "ftr_ci": [
+   3.469446951953614e-18,
+   0.033161347066943875
+  ],
+  "n_answerable": 20,
+  "covered": 14,
+  "direct_coverage": 0.7,
+  "coverage_ci": [
+   0.4810271816464765,
+   0.8545227551323956
+  ],
+  "n_direct_pred": 22,
+  "n_false_direct": 5,
+  "selective_risk": 0.22727272727272727,
+  "selective_risk_ci": [
+   0.10123039985248516,
+   0.4343995317522171
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.3617021276595745,
+  "unresolved_rate": 0.6473429951690821,
+  "accuracy4": 0.5362318840579711,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V3-anaphora": {
+  "method": "V3-anaphora",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 0,
+  "ftr": 0.0,
+  "ftr_ci": [
+   3.469446951953614e-18,
+   0.033161347066943875
+  ],
+  "n_answerable": 20,
+  "covered": 14,
+  "direct_coverage": 0.7,
+  "coverage_ci": [
+   0.4810271816464765,
+   0.8545227551323956
+  ],
+  "n_direct_pred": 22,
+  "n_false_direct": 5,
+  "selective_risk": 0.22727272727272727,
+  "selective_risk_ci": [
+   0.10123039985248516,
+   0.4343995317522171
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.3617021276595745,
+  "unresolved_rate": 0.6570048309178744,
+  "accuracy4": 0.5265700483091788,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V3-title_rules": {
+  "method": "V3-title_rules",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 0,
+  "ftr": 0.0,
+  "ftr_ci": [
+   3.469446951953614e-18,
+   0.033161347066943875
+  ],
+  "n_answerable": 20,
+  "covered": 15,
+  "direct_coverage": 0.75,
+  "coverage_ci": [
+   0.531299122381256,
+   0.8881382985923343
+  ],
+  "n_direct_pred": 24,
+  "n_false_direct": 6,
+  "selective_risk": 0.25,
+  "selective_risk_ci": [
+   0.11999366228595004,
+   0.44899444005154004
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.3829787234042553,
+  "unresolved_rate": 0.6231884057971014,
+  "accuracy4": 0.5314009661835749,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V3@votes>=1": {
+  "method": "V3@votes>=1",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 0,
+  "ftr": 0.0,
+  "ftr_ci": [
+   3.469446951953614e-18,
+   0.033161347066943875
+  ],
+  "n_answerable": 20,
+  "covered": 16,
+  "direct_coverage": 0.8,
+  "coverage_ci": [
+   0.5839825677481064,
+   0.919342337420202
+  ],
+  "n_direct_pred": 39,
+  "n_false_direct": 8,
+  "selective_risk": 0.20512820512820512,
+  "selective_risk_ci": [
+   0.10779718230710382,
+   0.35533968013582296
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.6595744680851063,
+  "unresolved_rate": 0.41545893719806765,
+  "accuracy4": 0.7101449275362319,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V2@votes>=1": {
+  "method": "V2@votes>=1",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 2,
+  "ftr": 0.017857142857142856,
+  "ftr_ci": [
+   0.004910811536248828,
+   0.06278048742116135
+  ],
+  "n_answerable": 20,
+  "covered": 17,
+  "direct_coverage": 0.85,
+  "coverage_ci": [
+   0.6395811352592431,
+   0.9476312541037835
+  ],
+  "n_direct_pred": 54,
+  "n_false_direct": 18,
+  "selective_risk": 0.3333333333333333,
+  "selective_risk_ci": [
+   0.22241416537492573,
+   0.46639036398870637
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.7659574468085106,
+  "unresolved_rate": 0.30434782608695654,
+  "accuracy4": 0.714975845410628,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V3@votes>=2": {
+  "method": "V3@votes>=2",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 0,
+  "ftr": 0.0,
+  "ftr_ci": [
+   3.469446951953614e-18,
+   0.033161347066943875
+  ],
+  "n_answerable": 20,
+  "covered": 15,
+  "direct_coverage": 0.75,
+  "coverage_ci": [
+   0.531299122381256,
+   0.8881382985923343
+  ],
+  "n_direct_pred": 38,
+  "n_false_direct": 8,
+  "selective_risk": 0.21052631578947367,
+  "selective_risk_ci": [
+   0.11074791842995879,
+   0.363457794753274
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.6382978723404256,
+  "unresolved_rate": 0.4830917874396135,
+  "accuracy4": 0.642512077294686,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V2@votes>=2": {
+  "method": "V2@votes>=2",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 0,
+  "ftr": 0.0,
+  "ftr_ci": [
+   3.469446951953614e-18,
+   0.033161347066943875
+  ],
+  "n_answerable": 20,
+  "covered": 16,
+  "direct_coverage": 0.8,
+  "coverage_ci": [
+   0.5839825677481064,
+   0.919342337420202
+  ],
+  "n_direct_pred": 48,
+  "n_false_direct": 14,
+  "selective_risk": 0.2916666666666667,
+  "selective_risk_ci": [
+   0.18241578926516536,
+   0.431792598095717
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.723404255319149,
+  "unresolved_rate": 0.391304347826087,
+  "accuracy4": 0.6570048309178744,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V3@votes>=4": {
+  "method": "V3@votes>=4",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 0,
+  "ftr": 0.0,
+  "ftr_ci": [
+   3.469446951953614e-18,
+   0.033161347066943875
+  ],
+  "n_answerable": 20,
+  "covered": 10,
+  "direct_coverage": 0.5,
+  "coverage_ci": [
+   0.2992980081982123,
+   0.7007019918017877
+  ],
+  "n_direct_pred": 17,
+  "n_false_direct": 5,
+  "selective_risk": 0.29411764705882354,
+  "selective_risk_ci": [
+   0.1327998961029523,
+   0.5313311006653985
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.2553191489361702,
+  "unresolved_rate": 0.748792270531401,
+  "accuracy4": 0.43478260869565216,
+  "run_id": "V-20261029-114409"
+ },
+ "TEST:V2@votes>=4": {
+  "method": "V2@votes>=4",
+  "split": "TEST",
+  "n_pairs": 207,
+  "n_families": 35,
+  "n_foreign": 112,
+  "false_direct_foreign": 0,
+  "ftr": 0.0,
+  "ftr_ci": [
+   3.469446951953614e-18,
+   0.033161347066943875
+  ],
+  "n_answerable": 20,
+  "covered": 11,
+  "direct_coverage": 0.55,
+  "coverage_ci": [
+   0.34208534245034233,
+   0.7418021417443759
+  ],
+  "n_direct_pred": 24,
+  "n_false_direct": 9,
+  "selective_risk": 0.375,
+  "selective_risk_ci": [
+   0.21159367559548778,
+   0.5729003755732572
+  ],
+  "n_gold_direct": 47,
+  "direct_recall_pairs": 0.3191489361702128,
+  "unresolved_rate": 0.7053140096618358,
+  "accuracy4": 0.42995169082125606,
+  "run_id": "V-20261029-114409"
+ }
+}

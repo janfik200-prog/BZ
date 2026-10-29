@@ -1,0 +1,210 @@
+{
+ "DEV:V0": {
+  "ANALOG": {
+   "ANALOG": 0,
+   "DIRECT": 4,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 0
+  },
+  "DIRECT": {
+   "ANALOG": 0,
+   "DIRECT": 18,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 8
+  },
+  "OUT_OF_SCOPE": {
+   "ANALOG": 0,
+   "DIRECT": 23,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 38
+  },
+  "UNRESOLVED": {
+   "ANALOG": 0,
+   "DIRECT": 20,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 17
+  }
+ },
+ "DEV:V1": {
+  "ANALOG": {
+   "ANALOG": 0,
+   "DIRECT": 0,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 4
+  },
+  "DIRECT": {
+   "ANALOG": 0,
+   "DIRECT": 15,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 11
+  },
+  "OUT_OF_SCOPE": {
+   "ANALOG": 0,
+   "DIRECT": 1,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 60
+  },
+  "UNRESOLVED": {
+   "ANALOG": 0,
+   "DIRECT": 8,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 29
+  }
+ },
+ "DEV:V2": {
+  "ANALOG": {
+   "ANALOG": 2,
+   "DIRECT": 0,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 2
+  },
+  "DIRECT": {
+   "ANALOG": 0,
+   "DIRECT": 16,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 10
+  },
+  "OUT_OF_SCOPE": {
+   "ANALOG": 0,
+   "DIRECT": 2,
+   "OUT_OF_SCOPE": 19,
+   "UNRESOLVED": 40
+  },
+  "UNRESOLVED": {
+   "ANALOG": 0,
+   "DIRECT": 13,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 24
+  }
+ },
+ "DEV:V3": {
+  "ANALOG": {
+   "ANALOG": 2,
+   "DIRECT": 0,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 2
+  },
+  "DIRECT": {
+   "ANALOG": 0,
+   "DIRECT": 14,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 12
+  },
+  "OUT_OF_SCOPE": {
+   "ANALOG": 0,
+   "DIRECT": 1,
+   "OUT_OF_SCOPE": 19,
+   "UNRESOLVED": 41
+  },
+  "UNRESOLVED": {
+   "ANALOG": 0,
+   "DIRECT": 5,
+   "OUT_OF_SCOPE": 1,
+   "UNRESOLVED": 31
+  }
+ },
+ "TEST:V0": {
+  "ANALOG": {
+   "ANALOG": 0,
+   "DIRECT": 1,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 1
+  },
+  "DIRECT": {
+   "ANALOG": 0,
+   "DIRECT": 23,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 24
+  },
+  "OUT_OF_SCOPE": {
+   "ANALOG": 0,
+   "DIRECT": 64,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 46
+  },
+  "UNRESOLVED": {
+   "ANALOG": 0,
+   "DIRECT": 24,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 24
+  }
+ },
+ "TEST:V1": {
+  "ANALOG": {
+   "ANALOG": 0,
+   "DIRECT": 0,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 2
+  },
+  "DIRECT": {
+   "ANALOG": 0,
+   "DIRECT": 10,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 37
+  },
+  "OUT_OF_SCOPE": {
+   "ANALOG": 0,
+   "DIRECT": 0,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 110
+  },
+  "UNRESOLVED": {
+   "ANALOG": 0,
+   "DIRECT": 9,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 39
+  }
+ },
+ "TEST:V2": {
+  "ANALOG": {
+   "ANALOG": 1,
+   "DIRECT": 0,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 1
+  },
+  "DIRECT": {
+   "ANALOG": 0,
+   "DIRECT": 20,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 27
+  },
+  "OUT_OF_SCOPE": {
+   "ANALOG": 0,
+   "DIRECT": 0,
+   "OUT_OF_SCOPE": 51,
+   "UNRESOLVED": 59
+  },
+  "UNRESOLVED": {
+   "ANALOG": 0,
+   "DIRECT": 10,
+   "OUT_OF_SCOPE": 2,
+   "UNRESOLVED": 36
+  }
+ },
+ "TEST:V3": {
+  "ANALOG": {
+   "ANALOG": 1,
+   "DIRECT": 0,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 1
+  },
+  "DIRECT": {
+   "ANALOG": 0,
+   "DIRECT": 17,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 30
+  },
+  "OUT_OF_SCOPE": {
+   "ANALOG": 0,
+   "DIRECT": 0,
+   "OUT_OF_SCOPE": 48,
+   "UNRESOLVED": 62
+  },
+  "UNRESOLVED": {
+   "ANALOG": 0,
+   "DIRECT": 5,
+   "OUT_OF_SCOPE": 0,
+   "UNRESOLVED": 43
+  }
+ }
+}

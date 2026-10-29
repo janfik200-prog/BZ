@@ -1,0 +1,35 @@
+{
+ "run_id": "V-20261029-114409",
+ "git_sha": "69aef777eaeb1f655f2b8268e16f364b6fcba8e9",
+ "freeze_git_head": "aad7ce611f248a0af7608009bc3502680ef34760",
+ "n_pairs": 335,
+ "n_methods": 16,
+ "decisions": 5360,
+ "elapsed_s": 13.98,
+ "registry_version": "registry-e31b55444d19",
+ "policy_version": "applicability-v14.1",
+ "errors_by_method": {
+  "V0": {
+   "DEV:FALSE_DIRECT_OTHER": 20,
+   "DEV:MISSED_DIRECT": 8,
+   "TEST:FALSE_DIRECT_FOREIGN": 65,
+   "DEV:FALSE_DIRECT_FOREIGN": 27,
+   "TEST:FALSE_DIRECT_OTHER": 24,
+   "TEST:MISSED_DIRECT": 24
+  },
+  "V2": {
+   "DEV:FALSE_DIRECT_OTHER": 13,
+   "DEV:MISSED_DIRECT": 10,
+   "TEST:MISSED_DIRECT": 27,
+   "TEST:FALSE_DIRECT_OTHER": 10,
+   "DEV:FALSE_DIRECT_FOREIGN": 2
+  },
+  "V3": {
+   "DEV:FALSE_DIRECT_OTHER": 5,
+   "DEV:MISSED_DIRECT": 12,
+   "TEST:MISSED_DIRECT": 30,
+   "DEV:FALSE_DIRECT_FOREIGN": 1,
+   "TEST:FALSE_DIRECT_OTHER": 5
+  }
+ }
+}
