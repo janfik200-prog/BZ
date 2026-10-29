@@ -21,7 +21,7 @@ from . import hyphens, layout, profile, textlayer
 from .captions import rescue_captions
 from .cases import Finding
 from .formulas import fix_formula, fix_omath
-from .words import fix_homoglyphs, join_soft_hyphens, tidy_text
+from .words import fix_homoglyphs, join_soft_hyphens, shifted_letters, tidy_text, unshift_cyrillic
 
 
 # --------------------------------------------------------------------------- #
@@ -175,6 +175,20 @@ def _targets(doc: Any) -> list[Any]:
     ]
 
 
+def _shifted(doc: Any, inp: ParseInput) -> list[Finding]:
+    targets = _targets(doc)
+    letters = shifted_letters([t.text for t in targets])
+    if not letters:
+        return [Finding("буквы со сдвигом", False)]
+    fixed = 0
+    for target in targets:
+        text = unshift_cyrillic(target.text)
+        fixed += text != target.text
+        target.text = text
+    detail = f"букв {letters}, исправлено абзацев и ячеек: {fixed}"
+    return [Finding("буквы со сдвигом", fixed > 0, detail)]
+
+
 def _words(doc: Any, inp: ParseInput) -> list[Finding]:
     soft = homoglyphs = 0
     for target in _targets(doc):
@@ -233,6 +247,9 @@ def _figures(doc: Any, inp: ParseInput) -> list[Finding]:
 _DOCLING_STEPS: tuple[tuple[tuple[str, ...], Step], ...] = (
     (("подпись в колонтитуле",), _captions),
     (("испорченные знаки",), _symbols),
+    # Сдвиг — после замены знаков (текст из PyMuPDF сдвинут так же) и до слов: буквам-
+    # двойникам и дефисам нужны настоящие русские буквы.
+    (("буквы со сдвигом",), _shifted),
     (
         ("хвост формулы", "номер формулы", "русские обозначения", "не та формула", "формулы Word"),
         _formulas,
@@ -277,8 +294,22 @@ def _plain(parsed: ParsedDoc, kind: profile.Profile) -> list[Finding]:
         parsed.sections = [hyphens.join_line_hyphens(s, kind.variant) for s in parsed.sections]
         return findings
 
-    return _guarded(("мягкие переносы", "буквы-двойники"), words) + _guarded(
-        ("дефисы на концах строк",), line_ends
+    def shifted() -> list[Finding]:
+        letters = shifted_letters(list(parsed.pages_text.values()))
+        if not letters:
+            return [Finding("буквы со сдвигом", False)]
+        fixed = {k: unshift_cyrillic(v) for k, v in parsed.pages_text.items()}
+        pages = sum(1 for k in fixed if fixed[k] != parsed.pages_text[k])
+        parsed.pages_text = fixed
+        parsed.markdown = unshift_cyrillic(parsed.markdown)
+        parsed.sections = [unshift_cyrillic(s) for s in parsed.sections]
+        detail = f"букв {letters}, исправлено страниц: {pages}"
+        return [Finding("буквы со сдвигом", pages > 0, detail)]
+
+    return (
+        _guarded(("буквы со сдвигом",), shifted)
+        + _guarded(("мягкие переносы", "буквы-двойники"), words)
+        + _guarded(("дефисы на концах строк",), line_ends)
     )
 
 
