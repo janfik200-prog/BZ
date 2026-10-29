@@ -22,7 +22,7 @@ NORMALIZATION = "collapse-whitespace-v1"
 # Битый текстовый слой: знаки замены, «буквы» из областей частного использования,
 # сплошные одиночные буквы через пробел («g o l d»).
 _BROKEN = re.compile(r"[�-]")
-_SPACED = re.compile(r"(?:\b\w\s){6,}")
+_SPACED = re.compile(r"(?:(?<![^\W\d_])[^\W\d_]\s){6,}")  # буквы через пробел; цифры таблиц — не сбой
 OCR_BROKEN_SHARE = 0.02
 
 

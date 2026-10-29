@@ -1,0 +1,213 @@
+{
+ "n_facts": 13739,
+ "relations_in_2plus_docs": 25,
+ "independence_status": {
+  "TEXT_REUSE": 5,
+  "INDEPENDENT": 10,
+  "DEPENDENT_COPIES": 10
+ },
+ "non_independent_examples": [
+  {
+   "relation": [
+    "alteration and quartz vein sample",
+    "выбраны для",
+    "atomic absorption spectrometry aas"
+   ],
+   "docs": [
+    "10.31248_gjees2024.162",
+    "10.31248_gjees2024.170"
+   ],
+   "n_independent": 1,
+   "status": "TEXT_REUSE"
+  },
+  {
+   "relation": [
+    "gold bearing quartz vein and alteration zone",
+    "сопровождается",
+    "clear variation in gold distribution"
+   ],
+   "docs": [
+    "10.31248_gjees2024.162",
+    "10.31248_gjees2024.170"
+   ],
+   "n_independent": 1,
+   "status": "TEXT_REUSE"
+  },
+  {
+   "relation": [
+    "gold distribution",
+    "предположительно связано с",
+    "local structural formation"
+   ],
+   "docs": [
+    "10.31248_gjees2024.162",
+    "10.31248_gjees2024.170"
+   ],
+   "n_independent": 1,
+   "status": "TEXT_REUSE"
+  },
+  {
+   "relation": [
+    "gold distribution",
+    "предположительно связано с",
+    "specific area within quartz vein"
+   ],
+   "docs": [
+    "10.31248_gjees2024.162",
+    "10.31248_gjees2024.170"
+   ],
+   "n_independent": 1,
+   "status": "TEXT_REUSE"
+  },
+  {
+   "relation": [
+    "gold distribution",
+    "предположительно связано с",
+    "alteration zone"
+   ],
+   "docs": [
+    "10.31248_gjees2024.162",
+    "10.31248_gjees2024.170"
+   ],
+   "n_independent": 1,
+   "status": "TEXT_REUSE"
+  },
+  {
+   "relation": [
+    "western henan province",
+    "входит в",
+    "gold producing area"
+   ],
+   "docs": [
+    "10.5194_egusphere-2026-1293",
+    "10.5194_gmd-19-8755-2026"
+   ],
+   "n_independent": 1,
+   "status": "DEPENDENT_COPIES"
+  },
+  {
+   "relation": [
+    "gold deposit",
+    "связано с",
+    "extensional tectonic regime"
+   ],
+   "docs": [
+    "10.5194_egusphere-2026-1293",
+    "10.5194_gmd-19-8755-2026"
+   ],
+   "n_independent": 1,
+   "status": "DEPENDENT_COPIES"
+  },
+  {
+   "relation": [
+    "mineralization",
+    "контролирует",
+    "regional fault"
+   ],
+   "docs": [
+    "10.5194_egusphere-2026-1293",
+    "10.5194_gmd-19-8755-2026"
+   ],
+   "n_independent": 1,
+   "status": "DEPENDENT_COPIES"
+  },
+  {
+   "relation": [
+    "mineralization",
+    "контролирует",
+    "strata of the xiong'er and taihua rock group"
+   ],
+   "docs": [
+    "10.5194_egusphere-2026-1293",
+    "10.5194_gmd-19-8755-2026"
+   ],
+   "n_independent": 1,
+   "status": "DEPENDENT_COPIES"
+  },
+  {
+   "relation": [
+    "ore forming material",
+    "содержит",
+    "deep mantle"
+   ],
+   "docs": [
+    "10.5194_egusphere-2026-1293",
+    "10.5194_gmd-19-8755-2026"
+   ],
+   "n_independent": 1,
+   "status": "DEPENDENT_COPIES"
+  },
+  {
+   "relation": [
+    "fluid transport",
+    "сопровождается",
+    "gold mineralization"
+   ],
+   "docs": [
+    "10.5194_egusphere-2026-1293",
+    "10.5194_gmd-19-8755-2026"
+   ],
+   "n_independent": 1,
+   "status": "DEPENDENT_COPIES"
+  },
+  {
+   "relation": [
+    "gold mineralization",
+    "расположено в",
+    "taihua and xiong'er group formation"
+   ],
+   "docs": [
+    "10.5194_egusphere-2026-1293",
+    "10.5194_gmd-19-8755-2026"
+   ],
+   "n_independent": 1,
+   "status": "DEPENDENT_COPIES"
+  },
+  {
+   "relation": [
+    "gold deposit",
+    "образовано при",
+    "early cretaceou"
+   ],
+   "docs": [
+    "10.5194_egusphere-2026-1293",
+    "10.5194_gmd-19-8755-2026"
+   ],
+   "n_independent": 1,
+   "status": "DEPENDENT_COPIES"
+  },
+  {
+   "relation": [
+    "intrusion",
+    "содержит",
+    "intermediate to acidic magmatic rock"
+   ],
+   "docs": [
+    "10.5194_egusphere-2026-1293",
+    "10.5194_gmd-19-8755-2026"
+   ],
+   "n_independent": 1,
+   "status": "DEPENDENT_COPIES"
+  },
+  {
+   "relation": [
+    "fault",
+    "сопровождается",
+    "fluid transport"
+   ],
+   "docs": [
+    "10.5194_egusphere-2026-1293",
+    "10.5194_gmd-19-8755-2026"
+   ],
+   "n_independent": 1,
+   "status": "DEPENDENT_COPIES"
+  }
+ ],
+ "legacy_buffer_end_pairs_in_2plus_docs": 60,
+ "same_counting_by_families": 50,
+ "polarity_disagreements_same_relation": 2,
+ "conflict_verdicts": {
+  "DIFFERENT_SCOPE": 1,
+  "CONFLICT": 1
+ }
+}

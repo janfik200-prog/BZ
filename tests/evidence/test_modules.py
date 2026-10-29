@@ -170,14 +170,18 @@ def test_support_votes_are_one_instrument():
 # --- WP07 семейства и противоречия ------------------------------------------------------------------
 def test_families_duplicate_and_series():
     text = " ".join(f"слово{i} " * 1 for i in range(80))
-    docs = [{"doc_id": "a", "title": "Uncertainty quantification of deep learning", "authors": ["X"]},
-            {"doc_id": "b", "title": "Uncertainty quantification of deep learning algorithms", "authors": ["X"]},
+    docs = [{"doc_id": "a", "title": "Uncertainty quantification of deep learning", "authors": ["Xiao Ming"]},
+            {"doc_id": "b", "title": "Uncertainty quantification of deep learning algorithms", "authors": ["Yan Lee"]},
             {"doc_id": "c", "title": "Месторождение Сухой Лог. Часть I. Постановка", "authors": ["Иванов"]},
-            {"doc_id": "d", "title": "Месторождение Сухой Лог. Часть II. Постановка", "authors": ["Иванов"]},
+            {"doc_id": "d", "title": "Месторождение Сухой Лог. Часть II. Структура", "authors": ["Петров", "Иванов"]},
             {"doc_id": "e", "title": "Другое", "authors": ["Y"]}]
     chunks = {"a": [text], "b": [text], "c": ["первая часть " * 30], "d": ["вторая часть иное " * 30], "e": ["иное " * 40]}
     fams = {f.doc_ids: f.kind for f in fusion.source_families(docs, chunks)}
     assert fams[("a", "b")] == "DUPLICATE_PUBLICATION" and fams[("c", "d")] == "SERIES" and fams[("e",)] == "SINGLE"
+    version = [{"doc_id": "p", "title": "Uncertainty quantification of deep learning model for mapping", "authors": ["Ziye Wang", "Renguang Zuo"]},
+               {"doc_id": "j", "title": "Uncertainty quantification of deep learning algorithms for mapping", "authors": ["Ziye Wang", "Renguang Zuo"]}]
+    fams = {f.doc_ids: f.kind for f in fusion.source_families(version, {"p": ["один " * 30], "j": ["другой " * 30]})}
+    assert fams[("j", "p")] == "SAME_WORK_VERSION"
 
 
 def test_different_stage_not_conflict():
@@ -271,3 +275,10 @@ def test_not_checked_beyond_limit():
     answer = " ".join(f"Утверждение номер {i}: золото в районе Альфа приурочено к кварцевым жилам [1]." for i in range(1, 27))
     rest = support.not_checked(answer)
     assert len(support._claims(answer)) == 26 and len(rest) == 2
+
+
+def test_text_reuse_is_one_vote():
+    quote = "The variation in gold distribution suggests that gold may be concentrated in quartz veins and zones."
+    claims = [{"src": "gold", "relation": "связано с", "dst": "quartz veins", "doc_id": d, "quote": quote} for d in ("a", "b")]
+    row = next(iter(fusion.independent_support(claims, {"a": "FA", "b": "FB"}).values()))
+    assert row["n_docs"] == 2 and row["n_independent"] == 1 and row["independence_status"] == "TEXT_REUSE"

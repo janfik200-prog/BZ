@@ -174,3 +174,29 @@ def mark_unchecked(claims: list[str], checked: int) -> list[dict[str, Any]]:
 
 def normalized(text: str) -> str:
     return normalize(text)
+
+
+def filter_sources(question: str, sources: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Фрагменты ответа под вопрос о территории: фрагмент, все названные территории
+    которого (текст, заголовки, название статьи — resolve_scope) несовместимы с
+    территорией вопроса, в ответ как прямой источник не идёт; неизвестные и свои —
+    остаются. Номера источников переписываются по порядку (ссылки [n] — на новые)."""
+    from .georegistry import CONTAINS, DISJOINT, OVERLAP
+
+    reg = registry()
+    frame = frame_question(question, reg)
+    if frame.target_region_id is None or not sources:
+        return sources, {"applied": False, "reason": "NO_TARGET_REGION", "frame": frame.to_json()}
+    kept, excluded = [], []
+    for s in sources:
+        sc = resolve_scope(s.get("text", ""), reg, chunk_text=s.get("text", ""), headings=tuple(s.get("headings") or ()),
+                           title=s.get("title", ""))
+        rels = {registry().relation(r, frame.target_region_id) for r in sc.region_ids}
+        foreign = bool(rels) and rels <= {DISJOINT}
+        (excluded if foreign else kept).append({**s, "scope_regions": list(sc.region_ids), "scope_relations": sorted(rels)})
+    if not kept:  # всё о других районах — честнее ответить «в базе нет», чем по чужому
+        return [], {"applied": True, "frame": frame.to_json(), "kept": 0, "excluded": excluded}
+    for i, s in enumerate(kept, start=1):
+        s["n"] = i
+    return kept, {"applied": True, "frame": frame.to_json(), "kept": len(kept),
+                  "excluded": [{k: e.get(k) for k in ("doc_id", "chunk_id", "title", "scope_regions")} for e in excluded]}

@@ -1,0 +1,674 @@
+{
+"labels": [
+{
+"id": 0,
+"mode": "E1",
+"chunk_id": 2221,
+"fact": [
+"гидротермально-метасоматические образования",
+"развиваются по",
+"вулканогенным породам кислого и, реже, средне-основного состава",
+"Гидротермально-метасоматические образования развиваются по вулканогенным породам преимущественно кислого и, реже, средне-основного состава."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 1,
+"mode": "E0",
+"chunk_id": 470,
+"fact": [
+"натриевые метасоматиты",
+"содержит",
+"альбит",
+"В состав натриевых метасоматитов, помимо альбита, входят бурый биотит, карбонат (кальцит), доломит, пиро­ хлор, которые образуют раннюю ассоциацию."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 2,
+"mode": "E1",
+"chunk_id": 4830,
+"fact": [
+"late granitic units",
+"сопровождается",
+"cyanic pink",
+"In the PC 413, syn, late and post granitic units characterized by orange, pale pink and yellowish pale green (Fig. 2a). In contrast, in PC 214 they were recognized by violetpale cyan, cyanic pink and lemon tones respectively (Fig. 2b)."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 3,
+"mode": "E0",
+"chunk_id": 3898,
+"fact": [
+"galena",
+"содержит",
+"round compact pyrite grains",
+"Galena was identified as inclusions in round compact pyrite grains and intergrown with uraninite."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 4,
+"mode": "E0",
+"chunk_id": 19,
+"fact": [
+"шлиховые ореолы",
+"содержит",
+"золото",
+"Минералого - геохимичес - кие, Южное рудопроявление = 1) широкие ( до 400 м ) АГХП золота в ВОР (0,01-0,1 г / т ); с АГХП золота совмещены ано - мальные поля мышьяка , марган - ца ; по периферии АГХП золота - ореолы цинка ; 2) слабоконтрастные выдержанные широкие шлиховые ореолы тонко - го и мелкого золота ; содержание металла на шлиховую пробу - 3-5 знаков , редко более в пределах минерализованной зоны."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 5,
+"mode": "E1",
+"chunk_id": 1595,
+"fact": [
+"Аргиллизация",
+"связано с",
+"Глинистые минералы (Al-OH)",
+"Diagnostic absorption bands and the corresponding ASTER channels for main hydrothermal alteration types (compiled after [23]) Аргиллизация, Группа минералов = Глинистые минералы (Al-OH)."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 6,
+"mode": "E0",
+"chunk_id": 4836,
+"fact": [
+"geological lineaments",
+"является признаком",
+"understanding the area's structural characteristics",
+"The application of these parameters ensures the effective identification of geological lineaments, which are crucial for understanding the area's structural characteristics."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 7,
+"mode": "E1",
+"chunk_id": 2479,
+"fact": [
+"Alteration indices",
+"связано с",
+"most influential",
+"Alteration indices and proximity to faults were most influential, and SHAP values clarified variable importance."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 8,
+"mode": "E0",
+"chunk_id": 4675,
+"fact": [
+"quartz",
+"связано с",
+"iron and copper localities",
+"In terms of mineralization, the quartz and iron oxide signatures align with the mapped iron and copper localities (Figs. 7, 8 and 11, GPS points P2, P3, and P28, Fig. 7)."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 9,
+"mode": "E1",
+"chunk_id": 7026,
+"fact": [
+"priority targets for follow-up exploration",
+"содержит",
+"structural field validation",
+"These zones constitute priority targets for follow-up exploration, including detailed geochemical sampling and structural field validation."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 10,
+"mode": "E0",
+"chunk_id": 470,
+"fact": [
+"трещины различной ориентировки",
+"развиваются в",
+"крупных идиоморфных длиннопризматических или таблитчатых индивидах",
+"Крупные идиоморфные длиннопризматические или таблитчатые индивиды рассечены трещинами различной ориентировки, по которым развиваются прожилки кальцита и доломита."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 11,
+"mode": "E1",
+"chunk_id": 1595,
+"fact": [
+"Филлизитизация",
+"связано с",
+"Мусковит (серицит)",
+"Филлизитизация, Ключевые минералы = Мусковит (серицит), иллит."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 12,
+"mode": "E1",
+"chunk_id": 6142,
+"fact": [
+"BirninGwari Belt",
+"стягивается",
+"Katsina State",
+"The BirninGwari Belt is more extensive, stretching from Katsina State through Kaduna State and terminating near Minna in Niger State [22-23]."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 13,
+"mode": "E0",
+"chunk_id": 558,
+"fact": [
+"кольцевые структуры Букантау",
+"связаны с",
+"узлами пересечения",
+"Сопоставление результатов дешифрирования с геолого-геофизическими материалами показывает, что кольцевые структуры Букантау тесно связаны с глубинными разломами, интрузивными массивами и узлами пересечения Рис. 4."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 14,
+"mode": "E1",
+"chunk_id": 4397,
+"fact": [
+"ASTER",
+"входит в",
+"Mountain Pass Mining District",
+"The chosen PCA layers, PC4 and PC5 from Landsat-9 and Sentinel-2, and PC2, PC3, and PC5 from ASTER, were integrated to produce a unified mineral prospectivity map for the Mountain Pass Mining District."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 15,
+"mode": "E0",
+"chunk_id": 19,
+"fact": [
+"АГХП",
+"содержит",
+"марганец",
+"Минералого - геохимичес - кие, Южное рудопроявление = 1) широкие ( до 400 м ) АГХП золота в ВОР (0,01-0,1 г / т ); с АГХП золота совмещены ано - мальные поля мышьяка , марган - ца ; по периферии АГХП золота - ореолы цинка ; 2) слабоконтрастные выдержанные широкие шлиховые ореолы тонко - го и мелкого золота ; содержание металла на шлиховую пробу - 3-5 знаков , редко более в пределах минерализованной зоны. Минералого - геохимичес - кие, Буреминское рудопроявление = 1) широкие ( до 300 м ) АГХП золота в ВОР с содержаниями 0,01-0,1 г / т ; по периферии АГХП золота - аномалии сере - бра , марганца ; 2) широкие слабоконтрастные шлиховые ореолы тонкого и мелкого золота (0,1-0,6 мм ) с невысоким содержанием метал - ла - 3-5 знаков на шлиховую пробу в пределах минерализо - ванной зоны."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 16,
+"mode": "E0",
+"chunk_id": 5323,
+"fact": [
+"First Vertical Derivative",
+"связано с",
+"Tilt Angle",
+"The combined analysis of Analytic Signal, First Vertical Derivative, and Tilt Angle maps provides a robust framework for magnetic lineament delineation."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 17,
+"mode": "E1",
+"chunk_id": 5093,
+"fact": [
+"Константиновский гранитоидный массив",
+"обусловлен",
+"южного гравитационного минимума",
+"От южного гравитационного минимума, обусловленного Константиновским гранитоидным массивом, наблюдаются линейные локальные минимумы, вытянутые в сторону месторождения."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 18,
+"mode": "E1",
+"chunk_id": 360,
+"fact": [
+"Eastern Donbass",
+"связано с",
+"magmatism",
+"Eastern Donbass, which determines the connection of ore manifestations with magmatism."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 19,
+"mode": "E0",
+"chunk_id": 5905,
+"fact": [
+"Wadi Umm Eish El-Zarqa",
+"входит в",
+"CED, Egypt",
+"The current study continues to utilize mainly remotely sensed data, including EnMAP hyperspectral data, ASTER multispectral data, and ALOS PALSAR DEM data, to map potential localities for gold mineralization in both the mountainous rocky reliefs and the detrital stream deposits at Wadi Umm Eish El-Zarqa, CED, Egypt."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 20,
+"mode": "E0",
+"chunk_id": 525,
+"fact": [
+"граниты",
+"прорывают",
+"куполообразную структуру",
+"Граниты проры­ вают куполообразную структуру, сложенную девонскими отложениями."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 21,
+"mode": "E1",
+"chunk_id": 5893,
+"fact": [
+"Светлинского и Кочкарского месторождений",
+"отвечают",
+"начальным фазам постколлизионного этапа",
+"Средневзвешенное значение возраста для Светлинского месторождения составляет 276 ±2 млн лет, для Кочкарского 284 ±2 млн лет, отвечая начальным фазам постколлизионного этапа."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 22,
+"mode": "E0",
+"chunk_id": 4675,
+"fact": [
+"alteration zones",
+"сопровождается",
+"presence of iron minerals",
+"Alteration zones were also observed along the walls of the mineralized veins, characterized by the presence of clay and iron minerals, including limonite and goethite (Fig. 10A,C)."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 23,
+"mode": "E0",
+"chunk_id": 6142,
+"fact": [
+"Kushaka Schist Belt",
+"входит в",
+"Kaduna State",
+"Kaduna State hosts two principal schist belts: the BirninGwari Schist Belt and the Kushaka Schist Belt."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 24,
+"mode": "E1",
+"chunk_id": 3898,
+"fact": [
+"compact rims",
+"является признаком",
+"Jacobina",
+"The compact rims represent overgrowths-a feature that is widespread in Jacobina."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 25,
+"mode": "E0",
+"chunk_id": 3898,
+"fact": [
+"chalcopyrite",
+"сопровождается",
+"overgrowth on pyrite grains",
+"Chalcopyrite occurs mostly associated with chalcocite and/or bornite, either free in the matrix of the metaconglomerates or as overgrowth on pyrite grains (Fig. 6K)."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 26,
+"mode": "E1",
+"chunk_id": 4510,
+"fact": [
+"ALI DPC3",
+"показывает",
+"iron oxides' bearing rocks",
+"Pseudocolor ramps representing rule images of ( e ) ASTER DPC2, ( f ) Landsat 8 DPC3, ( g ) Sentinel 2 DPC3 and ( h ) ALI DPC3 showing iron oxides' bearing rocks."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 27,
+"mode": "E1",
+"chunk_id": 470,
+"fact": [
+"жилы",
+"содержит",
+"анкеритом",
+"Как во вмещающих кальцитовые жилы альбититах, так и в самих жилах отмечается проявление вторичных низкотемпературных изменений, выражающихся прежде всего в замещении доломита или кальцита анкеритом."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 28,
+"mode": "E1",
+"chunk_id": 5341,
+"fact": [
+"Blocks",
+"связано с",
+"target zones",
+"Based on the integrated geophysical characteristics and structural analysis, seven prospective target zones (Blocks A-G) have been delineated for future mineral exploration."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 29,
+"mode": "E0",
+"chunk_id": 5904,
+"fact": [
+"granitic rocks",
+"входит в",
+"Gabal Kab Amiri",
+"Geologic map of Wadi Umm Eish El-Zarqa area, modified after EGSMA [33] They are intruded by granitic rocks at localities such as Gabal Kab Amiri and Gabal Abu Qarahish."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 30,
+"mode": "E1",
+"chunk_id": 6576,
+"fact": [
+"target enhancement method",
+"содержит",
+"Huynen decomposition",
+"For instance, the target enhancement method based on Huynen decomposition and polarization azimuth zeroing effectively eliminates the influence of random vector scattering and speckle noise, achieving consistent optimization of polarization characteristics in the same region in the full-polarimetric SAR measured data [9]."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 31,
+"mode": "E0",
+"chunk_id": 312,
+"fact": [
+"золоторудные и полиметаллические проявления",
+"контролируются",
+"зонами слабоинтенсивных магнитных аномалий",
+"Площадное распространение выявленных ранее золоторудных и полиметаллических проявлений в существенной мере контролируется вновь обнаруженными зонами слабоинтенсивных магнитных аномалий."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 32,
+"mode": "E0",
+"chunk_id": 3898,
+"fact": [
+"Nickelian pyrite",
+"содержит",
+"rims on compact round pyrite",
+"Nickelian pyrite and siegenite (confirmed by EMPA) were identified as rims on compact round pyrite (Figs. 6J and 7B)."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 33,
+"mode": "E1",
+"chunk_id": 3876,
+"fact": [
+"Archean blocks",
+"входят в",
+"cratonic shield areas",
+"The Jacobina Basin is located in the São Francisco Craton (Almeida 1977, 1981), more specifically at the eastern edge of the Gavião Block, one of the Archean blocks that constitute the cratonic shield areas (Fig. 1A). As such, the basin is enclosed by the oldest terranes in South America, including the 3.65 Ga Mairi Gneiss Complex, 3.4 Ga tonalite-trondhjemite-granodiorite (TTG) suite, 3.3 Ga granite and associated felsic volcanic rocks, and supracrustal rocks including greenstone belts (Nutman and Cordani 1993; Mascarenhas and Silva 1994; Magee et al. 2001; Barbosa and Sabaté 2004; Teles et al. 2015; Zincone et al. 2016; Oliveira et al. 2020; Moreira et al. 2022)."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 34,
+"mode": "E0",
+"chunk_id": 470,
+"fact": [
+"вторичные низкотемпературные изменения",
+"выражается в",
+"замещении доломита или кальцита анкеритом",
+"Как во вмещающих кальцитовые жилы альбититах, так и в самих жилах отмечается проявление вторичных низкотемпературных изменений, выражающихся прежде всего в замещении доломита или кальцита анкеритом."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 35,
+"mode": "E1",
+"chunk_id": 5904,
+"fact": [
+"granitic rocks",
+"входит в",
+"Gabal Kab Amiri",
+"Geologic map of Wadi Umm Eish El-Zarqa area, modified after EGSMA [33] They are intruded by granitic rocks at localities such as Gabal Kab Amiri and Gabal Abu Qarahish."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 36,
+"mode": "E1",
+"chunk_id": 525,
+"fact": [
+"плагиогранитов",
+"сопровождается",
+"формированием рудных и рудоносных зон",
+"В центральной части района вскрыты неболь шие фрагменты позднедевонских биотитовых и дву­ слюдяных плагиогранитов комплекса Нган Сон - части слабо эродированного ­ (невскрытого) крупного гранитного плутона, обусловившего тепло­ генерацию, флюидопоток, проявление гидротерма­ льно-метасоматических процессов с формирова­ нием рудных и рудоносных зон."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 37,
+"mode": "E0",
+"chunk_id": 4646,
+"fact": [
+"hydrothermal alteration mapping",
+"выявило",
+"quartz",
+"Hydrothermal alteration mapping identified abundant iron-bearing minerals and quartz, closely associated with fault zones sush as Tit N'Ali, Tijane, Talharit, and Tamelahl."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 38,
+"mode": "E0",
+"chunk_id": 3930,
+"fact": [
+"Jacobina gold",
+"связано с",
+"absence of Hg",
+"Compared with other metaconglomeratehosted gold deposits, the Jacobina gold has a unique composition characterized by the following: (a) relatively low Ag content, (b) presence of Cu in low concentrations, and (c) absence of Hg."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 39,
+"mode": "E1",
+"chunk_id": 4522,
+"fact": [
+"iron oxides'bearing rocks",
+"связано с",
+"ASTER",
+"Areal differences of iron oxides'bearing rocks (green color) detected utilizing ( a ) ASTER, ( b ) Landsat 8, ( c ) Sentinel 2, and ( d ) ALI."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 40,
+"mode": "E1",
+"chunk_id": 4103,
+"fact": [
+"Au",
+"входит в",
+"A-A",
+"Two profiles, A-A' and B-B', were selected to traverse porphyry centers and Au mineralization."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 41,
+"mode": "E0",
+"chunk_id": 1543,
+"fact": [
+"Линейная зона минимов СЗ простирания",
+"совпадает с",
+"Верхояно-Колымской (Тенькинской или Адыча-Тенькинской) зоной растяжения-сдвига",
+"Линейная зона минимумов СЗ простирания (рис. 4а, 4б) совпадает с Верхояно-Колымской (Тенькинской или Адыча-Тенькинской) зоной растяжения-сдвига на границе Северо-Американской и Евразиатской плит [Шахтыров, 1997; Тектоника …, 2001]."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 42,
+"mode": "E1",
+"chunk_id": 6142,
+"fact": [
+"Durimi pebbly schist",
+"содержит",
+"impure quartzite",
+"These are overlain by the Durimi pebbly schist, a metamorphosed mudstone conglomerate containing interbeds of impure quartzite and meta-greywacke."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 43,
+"mode": "E0",
+"chunk_id": 5904,
+"fact": [
+"Wadi Umm Eish El-Zarqa area",
+"состоит из",
+"metavolcanic rocks",
+"High-resolution Google Earth images showing intense excavations (black arrows) in the placer deposits at Wadi Umm Eish El-Zarqa Geologically, the study area is composed mainly of metavolcanic rocks ranging in composition from felsic through intermediate to mafic (Fig. 3)."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 44,
+"mode": "E0",
+"chunk_id": 4646,
+"fact": [
+"Mougueur inlier",
+"содержит",
+"carbonate vein mineralization",
+"Tarik Amraoui 1 , Hassan Ibouh 1 , Abdelouahed Farah 2 , Youssef Bammou 1 & Ali Shebl 3,4  Located north of the town of Gouramma, the Mougueur inlier in the eastern High Atlas of Morocco a part of the Hercynian chain of the Paleozoic Era. It is known for its richness in carbonate vein mineralization (e.g., siderite, ankerite) and Zn-Pb (± Fe, Cu, and Mg) association."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 45,
+"mode": "E0",
+"chunk_id": 525,
+"fact": [
+"кварц-серицитовые и кремнистые сланцы",
+"развиты в",
+"центре",
+"В центре развиты кварц-­ серицитовые и кремнистые сланцы с горизонта ми риолитов, альбитофиров и их туфов (D1pp1)."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 46,
+"mode": "E1",
+"chunk_id": 5893,
+"fact": [
+"оценки возраста",
+"соотнесены с периодами активизации",
+"тектонических и тектоно-магматических процессов",
+"Оценки возраста соотнесены с периодами активизации тектонических и тектоно-магматических процессов, реконструированных на Урале (Vikentyev et al., 2017)."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 47,
+"mode": "E0",
+"chunk_id": 19,
+"fact": [
+"АГХП",
+"содержит",
+"сурьму",
+"слабоконтрастные АГХП золота в ВОР и элементов - спутников ( сурьма , мышьяк , вольфрам ); 2) широкие слабоконтрастные шли - ховые ореолы с тонким и мелким золотом - первые десятки , редко сот - ни знаков металла на шлиховую пробу."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 48,
+"mode": "E1",
+"chunk_id": 7010,
+"fact": [
+"Tilt Derivative (TDR)",
+"сопровождается",
+"identify structural trends",
+"In addition, the Tilt Derivative (TDR) was applied to enhance both weak and strong magnetic anomalies simultaneously, facilitating the identification of fault geometries and structural trends (Figure 11)."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 49,
+"mode": "E1",
+"chunk_id": 470,
+"fact": [
+"Хлорит",
+"замещает",
+"амфибол",
+"Хлорит замещает темноцветные минералы вмещающих пород (биотит, амфибол)."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+}
+],
+"precision": {
+"E0": {
+"correct": 17,
+"n": 25,
+"precision": 0.68,
+"ci95": [
+0.48410269273102247,
+0.8279480969309202
+]
+},
+"E1": {
+"correct": 10,
+"n": 25,
+"precision": 0.4,
+"ci95": [
+0.23403302377747973,
+0.5926054264103301
+]
+}
+}
+}

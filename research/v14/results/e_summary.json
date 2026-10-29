@@ -1,0 +1,153 @@
+{
+ "offline": {
+  "chosen_k_on_dev": 4,
+  "rule": "max k with DEV ref-loss <= 0.05",
+  "dev_at_k": {
+   "k": 4,
+   "split": "DEV",
+   "lang": "all",
+   "n_chunks": 1433,
+   "chunks_to_model": 969,
+   "share_to_model": 0.6762037683182135,
+   "tokens_share": 0.7275835103094693,
+   "duplicates": 1,
+   "review_not_drop": 0,
+   "ref_facts": 2512,
+   "ref_facts_lost": 105,
+   "prefilter_loss_ref": 0.04179936305732484,
+   "gold_entailed": 92,
+   "gold_lost": 1,
+   "prefilter_loss_gold": 0.010869565217391304
+  },
+  "test_at_k": {
+   "k": 4,
+   "split": "TEST",
+   "lang": "all",
+   "n_chunks": 2839,
+   "chunks_to_model": 1813,
+   "share_to_model": 0.6386051426558648,
+   "tokens_share": 0.7036131253418373,
+   "duplicates": 4,
+   "review_not_drop": 1,
+   "ref_facts": 4838,
+   "ref_facts_lost": 261,
+   "prefilter_loss_ref": 0.053947912360479536,
+   "gold_entailed": 160,
+   "gold_lost": 1,
+   "prefilter_loss_gold": 0.00625
+  },
+  "test_k3": {
+   "k": 3,
+   "split": "TEST",
+   "lang": "all",
+   "n_chunks": 2839,
+   "chunks_to_model": 2043,
+   "share_to_model": 0.7196195843606904,
+   "tokens_share": 0.776939293732757,
+   "duplicates": 4,
+   "review_not_drop": 1,
+   "ref_facts": 4838,
+   "ref_facts_lost": 158,
+   "prefilter_loss_ref": 0.032658123191401406,
+   "gold_entailed": 160,
+   "gold_lost": 0,
+   "prefilter_loss_gold": 0.0
+  },
+  "protected_tokens": {
+   "REVIEW_NOT_DROP_with_protection": 1,
+   "would_be_dropped_without_protection": 1,
+   "ref_facts_in_those": 0,
+   "duplicates_with_protection": 5,
+   "duplicates_without_protection": 6,
+   "ref_facts_in_duplicates": 0
+  }
+ },
+ "live": {
+  "n_chunks": 100,
+  "k": 4,
+  "served_models": [
+   {
+    "id": "qwen3-14b",
+    "object": "model",
+    "created": 1793264207,
+    "owned_by": "vllm",
+    "root": "Qwen/Qwen3-14B-AWQ",
+    "parent": null,
+    "max_model_len": 12288,
+    "permission": [
+     {
+      "id": "modelperm-bcf3fdb7d276e998",
+      "object": "model_permission",
+      "created": 1793264207,
+      "allow_create_engine": false,
+      "allow_sampling": true,
+      "allow_logprobs": true,
+      "allow_search_indices": false,
+      "allow_view": true,
+      "allow_fine_tuning": false,
+      "organization": "*",
+      "group": null,
+      "is_blocking": false
+     }
+    ]
+   }
+  ],
+  "wall_s_both": 121.5,
+  "by_mode": {
+   "E0": {
+    "calls": 100,
+    "errors": 0,
+    "facts": 289,
+    "prompt_tokens": 201955,
+    "completion_tokens": 19774,
+    "latency_sum_s": 435.2
+   },
+   "E1": {
+    "calls": 72,
+    "errors": 0,
+    "facts": 695,
+    "prompt_tokens": 157579,
+    "completion_tokens": 24821,
+    "latency_sum_s": 463.6
+   }
+  },
+  "e0_fact_keys": 289,
+  "e1_fact_keys": 694,
+  "e0_keys_recovered_by_e1": 88,
+  "e0_keys_in_dropped_chunks": 0,
+  "note": "E1 = те же модель и правила, плюс список предметов в задании и отсев первого этапа"
+ },
+ "historical_e2": {
+  "georag_b14": {
+   "facts_by_model": [
+    {
+     "model": "qwen3-14b",
+     "facts": 1342,
+     "votes_ge3": 449,
+     "chunks_with_facts": 116
+    }
+   ],
+   "pass_started": "2026-10-27 18:40:05.411849+00:00",
+   "pass_finished": "2026-10-27 18:47:47.440899+00:00",
+   "chunks_passed": 200,
+   "skipped_first_stage": 60,
+   "wall_minutes": 7.7
+  },
+  "georag_b8v3": {
+   "facts_by_model": [
+    {
+     "model": "qwen3-8b",
+     "facts": 1483,
+     "votes_ge3": 435,
+     "chunks_with_facts": 132
+    }
+   ],
+   "pass_started": "2026-10-28 07:30:19.094194+00:00",
+   "pass_finished": "2026-10-28 07:36:39.534080+00:00",
+   "chunks_passed": 200,
+   "skipped_first_stage": 60,
+   "wall_minutes": 6.3
+  },
+  "caveat": "исторические прогоны 27–28.10.2026; версия правил графа между ними могла отличаться (коммиты 065123e, fe4673c); голоса ставила сама модель-строитель — сравнение ориентировочное"
+ }
+}

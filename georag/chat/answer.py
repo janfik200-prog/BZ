@@ -309,6 +309,15 @@ def answer(
             conn, embedder, question, history, settings, planner, judge, datasets
         )
     sources, plan, info = prepared.sources, prepared.plan, prepared.info()
+    # Вопрос о территории — фрагменты только о других районах прямыми источниками не
+    # идут (evidence/gate.py, GEORAG_SCOPE_GATE=1); исключённые — в info["scope_gate"].
+    from ..evidence import gate
+
+    if gate.enabled() and sources and prepared.catalog is None:
+        sources, info["scope_gate"] = gate.filter_sources(question, sources)
+        if not sources:
+            yield {"type": "done", "mode": "нет в базе", "text": NOT_IN_BASE, "scope_gate": info["scope_gate"]}
+            return
     if prepared.catalog is not None:
         yield from _catalog_answer(prepared, settings, started, info)
         return

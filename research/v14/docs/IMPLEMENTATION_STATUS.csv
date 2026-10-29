@@ -1,0 +1,23 @@
+component,published_main_sha,in_local,status,owner,source_path,run_command,tests,raw_evidence,blocker
+facts.py выписка по номеру предложения,34f5360,yes,in_main,BZ,georag/graph/facts.py,python georag.py graph,tests/test_graph_*.py,DB facts (13739),
+confirm.py четыре вопроса,34f5360,yes,in_main; verified as baseline instrument,BZ,georag/graph/confirm.py,python georag.py graph --confirm,tests/test_graph_*.py,results/support_eval.json (P=0.93 R=0.61 at >=3),
+kinds.py типы связей,34f5360,yes,in_main,BZ,georag/graph/kinds.py,python georag.py graph --types,tests/test_graph_fixes.py,,
+synonyms.py словарь синонимов,34f5360,yes,in_main,BZ,georag/graph/synonyms.py,python georag.py synonyms,tests,,
+MinHash LSH 64/16x4 (dedup.py),no,yes (065123e),in_local,BZ,georag/graph/dedup.py,python georag.py graph,tests/test_graph_v2.py,,
+словарь + spaCy первый этап (entities.py),no,yes (065123e),in_local,BZ,georag/graph/entities.py,python georag.py graph,tests/test_graph_v2.py,,
+буфер редких связей store.accepted,no,yes (fe4673c),in_local; measured,BZ,georag/graph/store.py,,tests/test_graph_v2.py,results/independence_report.json,
+chat/support.py лимит 24 утверждения,34f5360,yes,in_main; NOT_CHECKED added,BZ+v14,georag/chat/support.py; georag/chat/answer.py,,tests/evidence/test_modules.py::test_not_checked_beyond_limit,,
+контракты v13.1/v14 (JSON Schema),no,v14,verified,v14,georag/evidence/contracts.py; georag/evidence/schemas,,tests/evidence,,
+provenance: отпечатки и смещения цитат,no,v14,verified,v14,georag/evidence/provenance.py,python georag.py evidence audit,tests/evidence/test_modules.py,results/provenance_audit.json,
+первый этап с защищёнными отличиями,no,v14,verified (offline sweep),v14,georag/evidence/prefilter.py,research/v14/experiments/run_e.py,tests/evidence/test_cases.py C35-C36,results/prefilter_sweep.csv; prefilter_decisions.jsonl,
+признаки цитаты (полярность/модальность/квантор),no,v14,verified on gold (quantifier weak),v14,georag/evidence/claims.py,,tests/evidence/test_modules.py,results/support_eval.json,
+поддержка источником S(f;e),no,v14,verified,v14,georag/evidence/support.py,,tests/evidence,results/support_rules.json,
+справочник территорий,no,v14,proposed+curated (197 units); needs geologist review,v14,research/v14/data/regional_registry.csv; georag/evidence/georegistry.py,research/v14/data/build_registry.py,tests/evidence/test_modules.py,,EXPERT_REVIEW
+область действия по контексту,no,v14,verified,v14,georag/evidence/scope.py,,tests/evidence,results/raw_predictions.csv,
+политика применимости V0-V3 и абляции,no,v14,verified (I1-I10; 40/40 CASES),v14,georag/evidence/applicability.py,research/v14/experiments/run_v.py,tests/evidence/test_applicability.py; test_cases.py,results/metrics.csv,
+семейства источников / повтор текста / противоречия,no,v14,verified,v14,georag/evidence/fusion.py,research/v14/experiments/run_fusion.py,tests/evidence,results/independence_report.json; conflicts.jsonl,
+гейт в графе и чате (GEORAG_SCOPE_GATE=1),no,v14,verified (off by default),v14,georag/evidence/gate.py; georag/chat/dataset.py; georag/chat/answer.py,,tests/evidence/test_modules.py,results/p_metrics.json,
+досье геолога + журнал правок,no,v14,verified (technical demo; no expert actions),v14,georag/evidence/dossier.py; georag/evidence/cli.py,python georag.py evidence dossier,tests/evidence/test_modules.py,research/v14/dossier,EXPERT_ACTIONS
+метрики FTR/coverage/risk + Wilson + cluster bootstrap,no,v14,verified,v14,georag/evidence/metrics.py,,tests/evidence,results/metrics.json; bootstrap.json,
+человеческая разметка (gold),no,v14,BLOCKED: single non-human annotator (Claude); expert review package ready,v14,research/v14/data/gold_annotations.csv,,metrics.check_gold,annotation/expert_review_sample.csv,NO_GEOLOGIST
+E2 Qwen3-8B на той же выборке,no,historical runs only,NOT_EVALUATED (live); historical only,v14,research/v14/results/e_summary.json,,,DB georag_b8v3,GPU_SWAP_NEEDS_PERMISSION

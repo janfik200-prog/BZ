@@ -1022,6 +1022,12 @@ def main(argv: list[str] | None = None) -> int:
         if not _ensure_database():
             return 1
         return _py("georag.index.formulas", *argv[1:])
+    if argv and argv[0].lower() == "evidence":
+        # Досье по вопросу, аудит цитат, разбор вопроса (georag/evidence/cli.py) — свои ключи.
+        _need_venv()
+        if not _ensure_database():
+            return 1
+        return _py("georag.evidence.cli", *argv[1:])
     if argv and argv[0].lower() == "figures":
         # Свои ключи (doc_id, --pdf, --redo) — как у formula, передаются как есть.
         _need_venv()

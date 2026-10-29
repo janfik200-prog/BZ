@@ -1,0 +1,20 @@
+{
+ "pytest_full": {
+  "tests": 770,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 14
+ },
+ "pytest_evidence": {
+  "tests": 96,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0
+ },
+ "cases_pass": 40,
+ "cases_total": 40,
+ "baseline_before_changes": {
+  "passed": 617,
+  "xfailed": 14
+ }
+}

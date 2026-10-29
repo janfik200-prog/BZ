@@ -1,0 +1,1 @@
+{"decision_id": "D:783b2e101f8383b7", "claim_id": "F:6622", "query_id": "DOSSIER-A", "original_status": "UNRESOLVED", "new_status": "OUT_OF_SCOPE", "reason": "ДЕМОНСТРАЦИЯ механизма журнала: не экспертное решение; проверяется, что исходный статус сохраняется", "user": "demo:claude-agent (не геолог)", "at": "2026-10-29T08:51:30+00:00", "policy_version": "applicability-v14.1:V3"}

@@ -1,0 +1,49 @@
+{
+ "A": {
+  "frame": {
+   "schema_version": "v13.1",
+   "query_id": "DOSSIER-A",
+   "raw_text": "Какие публикации непосредственно подтверждают структурные признаки золотого оруденения для Центральной Восточной пустыни Египта? Какие работы дают только аналогии для других районов?",
+   "target_region_id": "R:EG:ED:C",
+   "target_region_name": "Центральная Восточная пустыня",
+   "target_deposit_type": "gold",
+   "required_predicate": null,
+   "requested_polarity": "AFFIRM",
+   "requested_quantifier": "UNSPECIFIED",
+   "allow_analogies": true,
+   "requested_mode": "COMPARATIVE"
+  },
+  "sections": {
+   "UNRESOLVED": 715,
+   "OUT_OF_SCOPE": 489,
+   "DIRECT": 20,
+   "ANALOG": 8
+  }
+ },
+ "B": {
+  "frame": {
+   "schema_version": "v13.1",
+   "query_id": "DOSSIER-B",
+   "raw_text": "Характерен ли для Египта в целом структурный (сдвиговый) контроль золотого оруденения?",
+   "target_region_id": "R:EG",
+   "target_region_name": "Египет",
+   "target_deposit_type": "gold",
+   "required_predicate": null,
+   "requested_polarity": "AFFIRM",
+   "requested_quantifier": "TYPICAL",
+   "allow_analogies": false,
+   "requested_mode": "FACTUAL"
+  },
+  "sections": {
+   "UNRESOLVED": 735,
+   "OUT_OF_SCOPE": 497
+  }
+ },
+ "n_facts_same_set": 1232,
+ "status_switches": 28,
+ "switch_kinds": {
+  "DIRECT→UNRESOLVED": 20,
+  "ANALOG→OUT_OF_SCOPE": 8
+ },
+ "override_demo": true
+}

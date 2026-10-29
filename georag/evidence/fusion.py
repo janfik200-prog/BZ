@@ -36,8 +36,27 @@ class Family:
     evidence: str
 
 
-def _title_stem(title: str) -> str:
-    return normalize(_PART.sub("", title or "")).strip(" .:-–")
+TITLE_SAME_WORK = 0.6
+_TOKEN = re.compile(r"[a-zа-я0-9]{3,}")
+
+
+def _series_key(title: str) -> str:
+    """Название до «Часть …» / «Part …»: общая часть серии."""
+    m = _PART.search(title or "")
+    return normalize((title or "")[: m.start()]).strip(" .:-–()") if m else ""
+
+
+def _title_jaccard(a: str, b: str) -> float:
+    wa, wb = set(_TOKEN.findall(normalize(a))), set(_TOKEN.findall(normalize(b)))
+    return len(wa & wb) / len(wa | wb) if wa and wb else 0.0
+
+
+def _authors_overlap(x: dict[str, Any], y: dict[str, Any]) -> float:
+    def words(d: dict[str, Any]) -> set[str]:
+        return {w for a in (d.get("authors") or [])[:4] for w in _TOKEN.findall(normalize(str(a)))}
+
+    wx, wy = words(x), words(y)
+    return len(wx & wy) / min(len(wx), len(wy)) if wx and wy else 0.0
 
 
 def source_families(docs: list[dict[str, Any]], chunks: dict[str, list[str]]) -> list[Family]:
@@ -75,14 +94,17 @@ def source_families(docs: list[dict[str, Any]], chunks: dict[str, list[str]]) ->
         share = dup / min(len(sa), len(sb))
         if share >= DUP_CHUNK_SHARE:
             union(a, b, f"DUPLICATE_PUBLICATION: {share:.0%} почти-дублей фрагментов")
-    by_stem: defaultdict[tuple[str, str], list[str]] = defaultdict(list)
-    for d in docs:
-        if _PART.search(d.get("title") or ""):
-            first = (d.get("authors") or [""])[0]
-            by_stem[(_title_stem(d["title"])[:60], normalize(first))].append(d["doc_id"])
-    for ids in by_stem.values():
-        for b in ids[1:]:
-            union(ids[0], b, "SERIES: части одной работы одних авторов")
+    # Серия «Часть I / Часть II» и версии одной работы (препринт → журнал): одна команда
+    # авторов (половина слов имён общие) и общее начало названия до «Часть» или почти
+    # то же название (доля общих слов ≥ 0,6).
+    for x, y in combinations(docs, 2):
+        if _authors_overlap(x, y) < 0.5:
+            continue
+        tx, ty = x.get("title") or "", y.get("title") or ""
+        if _PART.search(tx) and _PART.search(ty) and _series_key(tx) and _series_key(tx) == _series_key(ty):
+            union(x["doc_id"], y["doc_id"], "SERIES: части одной работы одной команды авторов")
+        elif _title_jaccard(tx, ty) >= TITLE_SAME_WORK:
+            union(x["doc_id"], y["doc_id"], "SAME_WORK_VERSION: та же команда авторов, почти то же название")
     groups: defaultdict[str, list[str]] = defaultdict(list)
     for d in docs:
         groups[find(d["doc_id"])].append(d["doc_id"])
@@ -90,7 +112,7 @@ def source_families(docs: list[dict[str, Any]], chunks: dict[str, list[str]]) ->
     for root, ids in sorted(groups.items()):
         ids = sorted(ids)
         reasons = sorted({r for (a, b), r in why.items() if a in ids and b in ids})
-        kind = "SINGLE" if len(ids) == 1 else ("SERIES" if all(r.startswith("SERIES") for r in reasons) else "DUPLICATE_PUBLICATION")
+        kind = "SINGLE" if len(ids) == 1 else reasons[0].split(":")[0] if len({r.split(":")[0] for r in reasons}) == 1 else "MIXED"
         out.append(Family(f"FAM:{ids[0]}", tuple(ids), kind, "; ".join(reasons)))
     return out
 
@@ -101,17 +123,30 @@ def family_of(families: list[Family]) -> dict[str, str]:
 
 def independent_support(claims: list[dict[str, Any]], families: dict[str, str]) -> dict[tuple[str, str, str], dict[str, Any]]:
     """Сколько независимых семейств сообщают одну связь (src_key, relation, dst_key).
-    Копии одной первичной работы — один голос (ТЗ WP07, приёмка)."""
+    Копии одной первичной работы — один голос (ТЗ WP07, приёмка). Дословно та же цитата
+    в разных статьях (повтор текста одной группы авторов) — тоже один голос: статьи
+    объединяются по цитате, даже если семейства разные."""
     out: dict[tuple[str, str, str], dict[str, Any]] = {}
+    quote_group: dict[str, str] = {}
     for c in claims:
         key = (name_key(c["src"]), normalize(c["relation"]), name_key(c["dst"]))
-        row = out.setdefault(key, {"docs": set(), "families": set()})
+        row = out.setdefault(key, {"docs": set(), "families": set(), "text_reuse": False})
         row["docs"].add(c["doc_id"])
-        row["families"].add(families.get(c["doc_id"], c["doc_id"]))
+        fam = families.get(c["doc_id"], c["doc_id"])
+        q = normalize(c.get("quote") or "")
+        if len(q) >= 60:
+            first = quote_group.setdefault(q, fam)
+            if first != fam:
+                row["text_reuse"] = True
+                fam = first
+        row["families"].add(fam)
     for row in out.values():
         row["n_docs"] = len(row["docs"])
         row["n_independent"] = len(row["families"])
-        row["independence_status"] = "INDEPENDENT" if row["n_independent"] == row["n_docs"] else "DEPENDENT_COPIES"
+        row["independence_status"] = (
+            "INDEPENDENT" if row["n_independent"] == row["n_docs"]
+            else "TEXT_REUSE" if row["text_reuse"] else "DEPENDENT_COPIES"
+        )
     return out
 
 
