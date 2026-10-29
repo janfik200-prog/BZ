@@ -107,6 +107,7 @@ class AcquiredRecord:
     fetched_at: str = ""
     # что получилось
     parser: str = ""
+    parser_version: str = ""  # «docling@2.140.0» — в базу как documents.parser_version (T13)
     accuracy: float = 0.0
     pages: int = 0
     sections: int = 0

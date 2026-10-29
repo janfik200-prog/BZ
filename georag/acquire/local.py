@@ -149,6 +149,7 @@ def parse_one(
         bytes_len=len(data),
         fetched_at=datetime.now(UTC).isoformat(timespec="seconds"),
         parser=doc_result.parser,
+        parser_version=doc_result.parser_version,
         accuracy=doc_result.accuracy,
         pages=doc_result.pages,
         sections=doc_result.sections,

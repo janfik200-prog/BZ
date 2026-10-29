@@ -20,6 +20,26 @@ PYMUPDF = "pymupdf4llm"  # запасной: когда docling упал, зав
 PROBE = "зонд"  # разбор остановлен зондом (скан)
 PIPELINE = "конвейер"  # непредвиденный сбой в самом конвейере — причина и стек в журнале
 
+# Пакет, чья версия — версия парсера (T13: documents.parser_version). У docling разбор
+# делает сам пакет docling (модели разметки — его же), у запасного — pymupdf4llm.
+PARSER_PACKAGES = {DOCLING: "docling", PYMUPDF: "pymupdf4llm"}
+
+
+def parser_version(parser: str) -> str:
+    """«docling@2.140.0»: имя парсера и версия установленного пакета, которым идёт разбор.
+    Пакет не установлен или у шага нет пакета (зонд, сбой конвейера) — «имя@unrecorded»:
+    версия не выдумывается. Версия берётся из метаданных пакета, без его импорта: docling
+    грузится долго и разбирает в отдельном процессе (parsers/worker.py) того же окружения."""
+    from importlib.metadata import PackageNotFoundError, version
+
+    package = PARSER_PACKAGES.get(parser)
+    if not package:
+        return f"{parser or 'unknown'}@unrecorded"
+    try:
+        return f"{parser}@{version(package)}"
+    except PackageNotFoundError:
+        return f"{parser}@unrecorded"
+
 
 @dataclass
 class ParseInput:

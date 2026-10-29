@@ -15,9 +15,13 @@ from __future__ import annotations
 
 import os
 import threading
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any
+
+from ..evidence.contracts import sha256_text
+from ..evidence.provenance import normalize
 
 VECTOR_DIM = 1024  # BGE-M3
 
@@ -130,6 +134,26 @@ CREATE INDEX IF NOT EXISTS chunks_embedding_idx
     ON chunks USING hnsw (embedding vector_cosine_ops)
     WITH (m = 16, ef_construction = 64);
 """
+
+# Происхождение цитат при переразборе (T13): версия парсера и отпечаток разбора у статьи,
+# пометка «устарел» у факта. Миграция идемпотентна и применяется в init_db; откат —
+# отдельным файлом (research/v14/docs/MIGRATION_T13.md).
+#
+# Пометка — две колонки у факта (stale_since, stale_reason), а не отдельная таблица:
+# пометка у факта одна (одно время, одна причина) и уходит вместе с фактом — каскадом с
+# фрагментом или когда модель проходит фрагмент заново (graph/store.py, save пишет факты
+# без пометки); граф отсекает устаревшие тем же запросом, без соединения с ещё одной
+# таблицей; база без колонок (до T13) читается как раньше. Истории пометок не нужно:
+# аудит пишет её в отчёт (evidence audit --mark-stale).
+MIGRATIONS = Path(__file__).with_name("migrations")
+PROVENANCE_SQL = MIGRATIONS / "t13_provenance.sql"
+PROVENANCE_ROLLBACK_SQL = MIGRATIONS / "t13_provenance_rollback.sql"
+PARSE_COLUMNS = ("parser_version", "parsed_sha256", "parsed_at")
+CHUNK_COLUMNS = ("parser_version",)
+STALE_COLUMNS = ("stale_since", "stale_reason")
+# Причина пометки: цитаты нет в нормализованном тексте фрагмента — тот же код, что у
+# аудита цитат (evidence audit): гейт по такому факту доказательства не построит.
+QUOTE_LOST = "QUOTE_NOT_IN_PARSED_TEXT"
 
 
 def dsn_from_env(default: str = DEFAULT_DSN) -> str:
@@ -267,7 +291,112 @@ def init_db(conn: Any, dim: int = VECTOR_DIM, with_hnsw: bool = True) -> None:
         cur.execute(SCHEMA % {"dim": dim})
         if with_hnsw:
             cur.execute(HNSW)
+    migrate_provenance(conn)
     conn.commit()
+
+
+def migrate_provenance(conn: Any) -> None:
+    """Колонки T13 (migrations/t13_provenance.sql) — если их ещё нет. Без commit:
+    сохраняет вызывающий (init_db, connect)."""
+    with conn.cursor() as cur:
+        cur.execute(PROVENANCE_SQL.read_text("utf-8"))
+
+
+def rollback_provenance(conn: Any) -> None:
+    """Откат T13: колонки уходят (migrations/t13_provenance_rollback.sql). Без commit."""
+    with conn.cursor() as cur:
+        cur.execute(PROVENANCE_ROLLBACK_SQL.read_text("utf-8"))
+
+
+def has_columns(conn: Any, table: str, columns: Iterable[str]) -> bool:
+    """Есть ли у таблицы все эти колонки: база до миграции читается и пишется как раньше.
+    Сверяются имена колонок, а не «нашлась строка»: заглушка в проверках, что отвечает
+    одним и тем же на любой запрос, колонок не «заводит»."""
+    wanted = set(columns)
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_schema = current_schema() AND table_name = %s "
+            "AND column_name = ANY(%s)",
+            (table, sorted(wanted)),
+        )
+        found = {r[0] for r in cur.fetchall() or [] if r and isinstance(r[0], str)}
+    return found == wanted
+
+
+def parse_print(texts: Iterable[str]) -> str:
+    """Отпечаток разбора статьи по текстам фрагментов в порядке ord — тот же, что
+    DocumentSnapshot.parsed_sha256 (evidence/provenance.py) по снимку из базы."""
+    return sha256_text("\n".join(normalize(t) for t in texts))
+
+
+def record_parse(
+    conn: Any, doc_id: str, rows: list[dict[str, Any]], parser_version: str | None = None
+) -> str | None:
+    """Записать статье версию парсера и отпечаток её разбора (rows — фрагменты с text и
+    ord, как в replace_chunks). parser_version=None — версия остаётся прежней (чистка уже
+    загруженного текста). Колонок нет (база до T13) — ничего не пишется, None."""
+    if not has_columns(conn, "documents", PARSE_COLUMNS):
+        return None
+    digest = parse_print(r["text"] for r in sorted(rows, key=lambda r: int(r["ord"])))
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE documents SET parser_version = coalesce(%s, parser_version), "
+            "parsed_sha256 = %s, parsed_at = now() WHERE doc_id = %s",
+            (parser_version, digest, doc_id),
+        )
+    # Версия — и у каждого фрагмента: фрагменты, оставшиеся от прежнего разбора (тот же
+    # текст, тот же id), получают версию нового — их текст ею подтверждён.
+    if parser_version is not None and has_columns(conn, "chunks", CHUNK_COLUMNS):
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE chunks SET parser_version = %s WHERE doc_id = %s",
+                (parser_version, doc_id),
+            )
+    return digest
+
+
+def quote_in_text(quote: str, text: str) -> bool:
+    """Цитата есть в тексте фрагмента — после той же нормализации, что у make_evidence
+    (пробелы подряд — один): по ней гейт строит доказательство."""
+    wanted = normalize(quote)
+    return bool(wanted) and wanted in normalize(text)
+
+
+def recheck_facts(
+    conn: Any, texts: dict[int, str], reason: str = QUOTE_LOST
+) -> tuple[list[int], list[int]]:
+    """Факты этих фрагментов (chunk_id → новый текст) сверяются с текстом: цитаты нет —
+    факт помечается устаревшим (stale_since, stale_reason), нашлась — пометка снимается.
+    Возвращает (помеченные, снятые). Уже помеченный факт с потерянной цитатой не
+    трогается: stale_since — когда расхождение замечено впервые."""
+    if not texts:
+        return [], []
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, chunk_id, quote, stale_since IS NOT NULL FROM facts "
+            "WHERE chunk_id = ANY(%s) ORDER BY id",
+            (sorted(texts),),
+        )
+        lost: list[int] = []
+        back: list[int] = []
+        for fact_id, chunk_id, quote, stale in cur.fetchall() or []:
+            found = quote_in_text(str(quote or ""), texts.get(int(chunk_id), ""))
+            if not found and not stale:
+                lost.append(int(fact_id))
+            elif found and stale:
+                back.append(int(fact_id))
+        if lost:
+            cur.execute(
+                "UPDATE facts SET stale_since = now(), stale_reason = %s WHERE id = ANY(%s)",
+                (reason, lost),
+            )
+        if back:
+            cur.execute(
+                "UPDATE facts SET stale_since = NULL, stale_reason = NULL WHERE id = ANY(%s)",
+                (back,),
+            )
+    return lost, back
 
 
 def upsert_document(conn: Any, record: dict[str, Any]) -> None:
@@ -329,7 +458,13 @@ def match_chunks(
     return plan
 
 
-def replace_chunks(conn: Any, doc_id: str, rows: list[dict[str, Any]]) -> int:
+def replace_chunks(
+    conn: Any,
+    doc_id: str,
+    rows: list[dict[str, Any]],
+    parser_version: str | None = None,
+    stale: dict[str, list[int]] | None = None,
+) -> int:
     """Чанки документа пишутся целиком: переиндексация не должна плодить дубли.
 
     Прежние строки обновляются на месте, а не удаляются и вставляются заново: так у
@@ -339,6 +474,13 @@ def replace_chunks(conn: Any, doc_id: str, rows: list[dict[str, Any]]) -> int:
     версия docling, другая нарезка) сдвигает номера, и сравнение по номеру стирало факты
     всей статьи. Факты стираются только у фрагментов, чей текст правда поменялся, — их
     модель пройдёт заново сама; фрагменты, которых больше нет, уходят со своими фактами.
+
+    С колонками T13 (stale_since, stale_reason у фактов) факты не стираются, а
+    сверяются с новым текстом (recheck_facts) — у всех оставшихся фрагментов статьи, не
+    только у изменённых: цитаты больше нет — факт помечен устаревшим с причиной и в граф
+    не идёт, нашлась — пометка снята. Изменённые фрагменты модель всё равно пройдёт
+    заново (их facts_pass стирается): её новый результат заменит факты фрагмента целиком.
+    stale — сюда кладутся номера помеченных (marked) и снятых (cleared) фактов.
     """
     with conn.cursor() as cur:
         cur.execute("SELECT ord, id, text FROM chunks WHERE doc_id = %s", (doc_id,))
@@ -375,12 +517,26 @@ def replace_chunks(conn: Any, doc_id: str, rows: list[dict[str, Any]]) -> int:
         gone = [chunk_id for chunk_id, _, _ in old if chunk_id not in kept]
         if gone:
             cur.execute("DELETE FROM chunks WHERE id = ANY(%s)", (gone,))
+        if not old:
+            return len(rows)
+        cur.execute("SELECT to_regclass('facts') IS NOT NULL")
+        found = cur.fetchone()
+        if not (found and found[0]):
+            return len(rows)
+    if has_columns(conn, "facts", STALE_COLUMNS):
+        texts = {cid: row["text"] for row, (cid, _) in zip(rows, plan, strict=True) if cid}
+        note = f" {parser_version}" if parser_version else ""
+        marked, cleared = recheck_facts(conn, texts, f"{QUOTE_LOST}: переразбор{note}")
+        if stale is not None:
+            stale.setdefault("marked", []).extend(marked)
+            stale.setdefault("cleared", []).extend(cleared)
         if changed:
-            cur.execute("SELECT to_regclass('facts') IS NOT NULL")
-            found = cur.fetchone()
-            if found and found[0]:
-                cur.execute("DELETE FROM facts WHERE chunk_id = ANY(%s)", (changed,))
+            with conn.cursor() as cur:
                 cur.execute("DELETE FROM facts_pass WHERE chunk_id = ANY(%s)", (changed,))
+    elif changed:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM facts WHERE chunk_id = ANY(%s)", (changed,))
+            cur.execute("DELETE FROM facts_pass WHERE chunk_id = ANY(%s)", (changed,))
     return len(rows)
 
 

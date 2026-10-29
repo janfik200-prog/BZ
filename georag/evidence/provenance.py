@@ -146,10 +146,15 @@ def verify_evidence(evidence: EvidenceSpan, document: DocumentSnapshot | None) -
 
 
 def snapshot_from_db(conn: Any, doc_id: str) -> DocumentSnapshot | None:
-    """Снимок статьи из базы (documents + chunks) — только чтение."""
+    """Снимок статьи из базы (documents + chunks) — только чтение.
+
+    Версия парсера — из documents.parser_version (T13), если колонка есть и заполнена;
+    иначе «имя@unrecorded». to_jsonb(d) читает колонку и из базы до миграции, где её нет:
+    отдельной проверки схемы на каждый снимок не нужно."""
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT doc_id, sha256, parser, title, doi, language FROM documents WHERE doc_id = %s",
+            "SELECT doc_id, sha256, parser, title, doi, language, "
+            "to_jsonb(d) ->> 'parser_version' FROM documents d WHERE doc_id = %s",
             (doc_id,),
         )
         row = cur.fetchone()
@@ -167,8 +172,8 @@ def snapshot_from_db(conn: Any, doc_id: str) -> DocumentSnapshot | None:
         doc_id=row[0],
         # Отпечаток PDF не выдумывается: нет его в базе — пусто, и проверка цитаты не пройдёт.
         pdf_sha256=(row[1] or "").lower() if re.fullmatch(r"[0-9a-fA-F]{64}", row[1] or "") else "",
-        # Версия парсера в базе не записана (только имя) — так и помечается.
-        parser_version=f"{row[2] or 'unknown'}@unrecorded",
+        # Версия парсера не записана (статья загружена до T13) — так и помечается.
+        parser_version=(row[6] if len(row) > 6 and row[6] else f"{row[2] or 'unknown'}@unrecorded"),
         title=row[3] or "",
         chunks=chunks,
         doi=row[4],

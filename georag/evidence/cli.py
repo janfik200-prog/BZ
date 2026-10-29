@@ -4,8 +4,12 @@
     python georag.py evidence dossier "…вопрос…" --out research/v14/dossier/q1 [--topic REGEX] [--dsn …]
     python georag.py evidence override D:… DIRECT "причина" "кто" --log research/v14/dossier/overrides.jsonl
     python georag.py evidence audit [--out provenance_audit.json]
+    python georag.py evidence audit --mark-stale --out research/v14/results/stale_audit_t13.json
 
-Только чтение базы: досье и аудит пишутся в файлы, факты и статьи не меняются.
+Только чтение базы: досье и аудит пишутся в файлы, факты и статьи не меняются. Кроме
+audit --mark-stale (T13): он применяет миграцию происхождения (index/migrations), помечает
+устаревшими факты, чьей цитаты нет в тексте фрагмента, снимает пометку с тех, чья цитата
+нашлась, и записывает статьям отпечаток разбора (documents.parsed_sha256).
 """
 
 from __future__ import annotations
@@ -17,6 +21,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from ..index import db as index_db
 from ..index.db import connect
 from . import dossier as D
 from . import gate
@@ -78,6 +83,98 @@ def write_dossier(frame: Any, results: list[dict[str, Any]], out_dir: Path, over
     return dos
 
 
+def audit_facts(conn: Any, mark_stale: bool = False) -> dict[str, Any]:
+    """Аудит цитат всех фактов по снимкам статей из базы (provenance_audit.json).
+
+    Цитаты нет в нормализованном тексте фрагмента (или фрагмента нет) — факт устарел: его
+    фрагмент разобран заново, и гейт по нему доказательства не построит. Битый текст
+    (OCR_BROKEN) и отпечатки PDF — другие причины недействительности, не устаревание.
+
+    mark_stale — записать в базу (T13): миграция, пометки stale_since/stale_reason
+    (новые — помечаются, нашедшиеся — снимаются, прежние остаются со своим временем),
+    отпечаток разбора у статей, где его нет или он другой."""
+    if mark_stale:
+        index_db.migrate_provenance(conn)
+    with conn.cursor() as cur:
+        cur.execute("SELECT id, chunk_id, doc_id, quote FROM facts ORDER BY id")
+        rows = cur.fetchall()
+        cur.execute("SELECT doc_id FROM documents ORDER BY doc_id")
+        doc_ids = [str(r[0]) for r in cur.fetchall()]
+    cache: dict[str, Any] = {}
+    bad, stale, ok = [], [], 0
+    for fid, cid, did, quote in rows:
+        if did not in cache:
+            cache[did] = snapshot_from_db(conn, did)
+        doc = cache[did]
+        ev = make_evidence(doc, str(cid), quote) if doc else None
+        res = verify_evidence(ev, doc) if ev else None
+        if res and res.valid:
+            ok += 1
+            continue
+        bad.append({"fact_id": fid, "doc_id": did, "chunk_id": cid,
+                    "reasons": list(res.reason_codes) if res else ["SPAN_LOST", "QUOTE_NOT_IN_PARSED_TEXT"],
+                    "quote": re.sub(r"\s+", " ", quote)[:200]})
+        if ev is None:
+            stale.append(int(fid))
+    report: dict[str, Any] = {"normalization": "collapse-whitespace-v1", "n_facts": len(rows), "valid": ok,
+                              "invalid": len(bad), "invalid_examples": bad[:200]}
+    if not mark_stale:
+        return report
+
+    from ..graph import store
+
+    lost = set(stale)
+    reason = f"{index_db.QUOTE_LOST}: evidence audit"
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM facts WHERE stale_since IS NOT NULL")
+        before = {int(r[0]) for r in cur.fetchall()}
+        # Сколько устаревших шло в граф, пока пометки не было (accepted без fresh).
+        cur.execute(f"SELECT count(*) FROM facts f WHERE f.id = ANY(%s) AND {store.accepted()}", (stale,))
+        in_graph = int((cur.fetchone() or (0,))[0])
+        marked, cleared = sorted(lost - before), sorted(before - lost)
+        if marked:
+            cur.execute("UPDATE facts SET stale_since = now(), stale_reason = %s WHERE id = ANY(%s)",
+                        (reason, marked))
+        if cleared:
+            cur.execute("UPDATE facts SET stale_since = NULL, stale_reason = NULL WHERE id = ANY(%s)",
+                        (cleared,))
+        cur.execute("SELECT doc_id, parsed_sha256 FROM documents")
+        stored = {str(d): sha for d, sha in cur.fetchall()}
+    # Отпечаток разбора у статьи: нет — записывается (база до T13); другой — текст статьи
+    # менялся мимо загрузки, это и есть «невидимое расхождение»: оно в отчёте, факты
+    # статьи только что сверены с её текущим текстом, и отпечаток — текущий.
+    filled, differs, versions = [], [], {}
+    for did in doc_ids:
+        if did not in cache:
+            cache[did] = snapshot_from_db(conn, did)
+        doc = cache[did]
+        versions[doc.parser_version] = versions.get(doc.parser_version, 0) + 1
+        if stored.get(did) == doc.parsed_sha256:
+            continue
+        (differs if stored.get(did) else filled).append(did)
+        with conn.cursor() as cur:
+            cur.execute("UPDATE documents SET parsed_sha256 = %s, parsed_at = now() WHERE doc_id = %s",
+                        (doc.parsed_sha256, did))
+    by_doc: dict[str, int] = {}
+    for e in bad:
+        if int(e["fact_id"]) in lost:
+            by_doc[e["doc_id"]] = by_doc.get(e["doc_id"], 0) + 1
+    report["stale"] = {
+        "reason": reason,
+        "n": len(stale),
+        "fact_ids": stale,
+        "by_doc": by_doc,
+        "was_in_graph": in_graph,
+        "marked_now": marked,
+        "already_marked": sorted(before & lost),
+        "cleared_now": cleared,
+    }
+    report["invalid_not_stale"] = [e for e in bad if int(e["fact_id"]) not in lost]
+    report["documents"] = {"n": len(doc_ids), "parsed_sha256_filled": len(filled),
+                           "parsed_sha256_differed": differs, "parser_versions": versions}
+    return report
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="python georag.py evidence")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -97,6 +194,8 @@ def main(argv: list[str] | None = None) -> int:
     ov.add_argument("--log", required=True)
     au = sub.add_parser("audit")
     au.add_argument("--out", default="research/v14/results/provenance_audit.json")
+    au.add_argument("--mark-stale", action="store_true",
+                    help="пометить в базе устаревшими факты, чьей цитаты нет в тексте фрагмента (T13)")
     a = p.parse_args(argv)
 
     if a.cmd == "frame":
@@ -124,28 +223,14 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({s: len(dos.entries[s]) for s in D.SECTIONS} | {"frame": frame.to_json()}, ensure_ascii=False))
             return 0
         if a.cmd == "audit":
-            with conn.cursor() as cur:
-                cur.execute("SELECT id, chunk_id, doc_id, quote FROM facts ORDER BY id")
-                rows = cur.fetchall()
-            cache: dict[str, Any] = {}
-            bad, ok = [], 0
-            for fid, cid, did, quote in rows:
-                if did not in cache:
-                    cache[did] = snapshot_from_db(conn, did)
-                doc = cache[did]
-                ev = make_evidence(doc, str(cid), quote) if doc else None
-                res = verify_evidence(ev, doc) if ev else None
-                if res and res.valid:
-                    ok += 1
-                else:
-                    bad.append({"fact_id": fid, "doc_id": did, "chunk_id": cid,
-                                "reasons": list(res.reason_codes) if res else ["SPAN_LOST", "QUOTE_NOT_IN_PARSED_TEXT"],
-                                "quote": re.sub(r"\s+", " ", quote)[:200]})
-            report = {"normalization": "collapse-whitespace-v1", "n_facts": len(rows), "valid": ok,
-                      "invalid": len(bad), "invalid_examples": bad[:200]}
+            report = audit_facts(conn, mark_stale=a.mark_stale)
             Path(a.out).parent.mkdir(parents=True, exist_ok=True)
             Path(a.out).write_text(json.dumps(report, ensure_ascii=False, indent=1), "utf-8")
-            print(json.dumps({k: report[k] for k in ("n_facts", "valid", "invalid")}, ensure_ascii=False))
+            brief = {k: report[k] for k in ("n_facts", "valid", "invalid")}
+            if "stale" in report:
+                brief |= {"stale": report["stale"]["n"], "marked_now": len(report["stale"]["marked_now"]),
+                          "cleared_now": len(report["stale"]["cleared_now"])}
+            print(json.dumps(brief, ensure_ascii=False))
             return 0
     return 1
 
