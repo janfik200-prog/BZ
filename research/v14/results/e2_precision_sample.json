@@ -1,0 +1,585 @@
+{
+"labels": [
+{
+"id": 0,
+"mode": "E0",
+"chunk_id": 3876,
+"fact": [
+"N-S striking group of sills and dikes",
+"состоит из",
+"serpentinites",
+"A N-S striking group of sills and dikes consists of amphibolite, serpentinites, metapyroxenite, and metaperidotite, whereas a younger E-W to NW-SE striking group, consisting of mainly metagabbro and metadiorite, crosscuts the former (Leo et al. 1964; Couto et al. 1978; Santos 2011; Teixeira 2017; Reis et al. 2021 and references therein)."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 1,
+"mode": "E1",
+"chunk_id": 4830,
+"fact": [
+"mylonitic zones",
+"сопровождается",
+"unique colors",
+"Both PCs (Fig. 4a and b) were able to highlight the gneissic and mylonitic zones by unique colors from the rest of the surrounding rocks like the ophiolitic sequence, arc assemblages, Dokhan volcanic, felsite and sedimentary sequence."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 2,
+"mode": "E2",
+"chunk_id": 5528,
+"fact": [
+"hematite",
+"входит в",
+"iron oxides",
+"The spectral signature of such residues arises from the combined optical responses of their constituent minerals, particularly iron oxides (hematite, goethite, and magnetite) and aluminum oxide-rich phases (gibbsite, boehmite, and diaspore) [3]."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 3,
+"mode": "E2",
+"chunk_id": 4673,
+"fact": [
+"hydrothermal alteration",
+"связано с",
+"actual hydrothermal alteration",
+"Fieldwork was carried out to verify hydrothermal alteration zones and highly dissected areas (Figs. 5 and 6, and 7), and displayed in Fig. 11 to manifest the power of the ASTER and Landsat OLI combination by targeting areas of actual hydrothermal alteration within the study area."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 4,
+"mode": "E0",
+"chunk_id": 1484,
+"fact": [
+"Верхояно-Колымская зона растяжения-сдвига",
+"сжатие сменилось растяжением",
+"Момский рифт",
+"В начальный период геологической истории этой структуры (юра-нижний мел) здесь происходили субдукционные процессы, сопровождавшиеся надвиганием Колымо-Омолонского супертеррейна на Северо-Азиатский кратон, затем сжатие сменилось растяжением (Момский рифт), а в неогене произошли сдвиговые деформации (Тектоника..., 2001; Шахтыров, 2009; Юшманов, 2019). В гравитационных моделях, отражающих реологические свойства геологических сред, Верхояно-Колымская зона растяжения-сдвига проявлена минимумом плотностной контрастности в большинстве срезов µ z -модели (Петрищевский, Юшманов, 2021)."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 5,
+"mode": "E0",
+"chunk_id": 5120,
+"fact": [
+"метасоматиты",
+"соответствуют",
+"березитовому профилю",
+"Метасоматиты, по представлениям авторов, соответствуют березитовому профилю, образованы в результате воздействия углекислотного флюида, осуществлявшего вынос оснований и привнос щелочных металлов."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 6,
+"mode": "E2",
+"chunk_id": 1487,
+"fact": [
+"Колымо-Омолонский супертеррейн",
+"является признаком",
+"Северо-Американской плите (",
+"Гравитационные модели (рис. 1 а , б , г ) показывают, что подкоровый вязкий слой занимает наклонное положение и по нему Колымо-Омолонский супертеррейн, обычно относимый к Северо-Американской плите (Геодинамика..., 2006; Тектоника..., 2001), был надвинут на окраину Северо-Азиатского кратона."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 7,
+"mode": "E0",
+"chunk_id": 2280,
+"fact": [
+"минерализация",
+"образуется в",
+"дожильный этап рудообразования",
+"По нашему мнению , эта минерализация образуется в самостоятельный дожильный этап рудо образования [2; 3; 6]."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 8,
+"mode": "E1",
+"chunk_id": 6142,
+"fact": [
+"Birnin-Gwari Schist Formation",
+"составляет",
+"Zungeru-Birnin Gwari Schist Belt",
+"The Birnin-Gwari Schist Formation, together with the underlying quartzo-feldspathic rocks of the Zungeru Granulite Formation, constitutes a single structural unit known as the Zungeru-Birnin Gwari Schist Belt."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 9,
+"mode": "E2",
+"chunk_id": 2181,
+"fact": [
+"stream sediment",
+"сопровождается",
+"Rookery showing",
+"Stream sediment sampling was undertaken around the Rookery showing."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 10,
+"mode": "E2",
+"chunk_id": 4830,
+"fact": [
+"ophiolitic sequence",
+"сопровождается",
+"unique colors",
+"Both PCs (Fig. 4a and b) were able to highlight the gneissic and mylonitic zones by unique colors from the rest of the surrounding rocks like the ophiolitic sequence, arc assemblages, Dokhan volcanic, felsite and sedimentary sequence."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 11,
+"mode": "E2",
+"chunk_id": 5637,
+"fact": [
+"alteration mapping",
+"связано с",
+"lithological classification",
+"By combining spectral indices, alteration mapping, and lithological classification, remote sensing provides a multifaceted analytical framework for identifying mineral-rich environments."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 12,
+"mode": "E1",
+"chunk_id": 5637,
+"fact": [
+"alteration zones",
+"содержит",
+"phyllic",
+"These enhancements facilitate rapid detection of alteration zones that commonly accompany ore-forming systems, including argillic, phyllic, and propylitic assemblages [12]."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 13,
+"mode": "E2",
+"chunk_id": 6576,
+"fact": [
+"ETM multispectral and SAR data",
+"выявлено методом",
+"collaborative processing",
+"For instance, in the northwest margin of the Qaidam Basin, the collaborative processing of ETM multispectral and SAR data enhanced the spectral response of salt minerals through band combination transformation, delineating four salt mine prediction areas."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 14,
+"mode": "E2",
+"chunk_id": 2221,
+"fact": [
+"гидротермально-метасоматические образования",
+"преимущественно кислого и",
+"состава",
+"Гидротермально-метасоматические образования развиваются по вулканогенным породам преимущественно кислого и, реже, средне-основного состава."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 15,
+"mode": "E1",
+"chunk_id": 4510,
+"fact": [
+"Landsat 8 DPC3",
+"показывает",
+"iron oxides' bearing rocks",
+"Pseudocolor ramps representing rule images of ( e ) ASTER DPC2, ( f ) Landsat 8 DPC3, ( g ) Sentinel 2 DPC3 and ( h ) ALI DPC3 showing iron oxides' bearing rocks."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 16,
+"mode": "E2",
+"chunk_id": 4675,
+"fact": [
+"mineralogical assemblage",
+"содержит",
+"chalcopyrite",
+"Field observations reveal a mineralogical assemblage comprising galena, pyrite, and chalcopyrite."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 17,
+"mode": "E1",
+"chunk_id": 2479,
+"fact": [
+"Lithology type - Roches siliceuses feuilletées (RSF)",
+"связано с",
+"Indicates mineralisation preferences for specific rock types",
+"Lithology type - Roches siliceuses feuilletées (RSF), Geological relevance = Indicates mineralisation preferences for specific rock types."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 18,
+"mode": "E2",
+"chunk_id": 6142,
+"fact": [
+"Birnin-Gwari Schist Belt",
+"связано с",
+"gold mineralization",
+"Both the Birnin-Gwari and Kushaka belts form part of the four recognized schist groups in Nigeria and are widely noted for their association with gold mineralization."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 19,
+"mode": "E2",
+"chunk_id": 4637,
+"fact": [
+"Mundiyawas Cu-Au gravity anomaly",
+"исследуется методом",
+"Ensemble Kalman Inversion",
+"The search space and the inversion result of the Mundiyawas Cu-Au gravity anomaly using regularized Ensemble Kalman Inversion (EKI): (a) Comparison between the observed residual gravity anomaly and the gravity response computed from the best-fit EKI model; (b) Marginal posterior distributions of the model parameters for both deep and shallow anomalies, illustrating the stability and ensemble consistency of the inversion."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 20,
+"mode": "E1",
+"chunk_id": 3930,
+"fact": [
+"Witwatersrand gold",
+"содержит",
+"Hg",
+"The Witwatersrand gold has been reported in several studies to contain far higher Ag and Hg contents between 0.3-32.1wt% and 0.5-5.9 wt%, respectively, and traces of the following elements: As, Bi, Cd, Co, Cr, Cu, Fe, Ir, Mn, Mo, Ni, Os, Pb, Pd, Pt, Re, Ru, Se, Sb, Sn, Ta, Te, and V (Saager 1969; Feather and Koen 1975; Hallbauer and Utter 1977; Utter 1979; von Gehlen 1983; Hallbauer 1986; Oberthür and Saager 1986; Reid et al. 1988; Minter et al. 1990; Garayp et al. 1991; Frimmel et al. 1993; Frimmel and Gartz 1997)."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 21,
+"mode": "E0",
+"chunk_id": 1610,
+"fact": [
+"канал, 1",
+"равен",
+"PC1 (TIR)",
+"Вторая, доминирующая система представлена оперяющими разлома- Канал, 1 = PC1 (TIR)."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 22,
+"mode": "E1",
+"chunk_id": 4836,
+"fact": [
+"hydrothermal ore deposits",
+"сопровождается",
+"gold mineralization",
+"The rapid extraction of lineaments, particularly fault and fracture zones, is vital because hydrothermal ore deposits are often located near these structures, which facilitate the transport of hydrothermal fluids and gold mineralization 107,108 ."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 23,
+"mode": "E2",
+"chunk_id": 6262,
+"fact": [
+"Баимки",
+"развитие которых придаст мощный толчок",
+"месторождений",
+"Но это получит движение, на мой взгляд, только при запуске Кючюса, Баимки и крупнейших олово-редкометалльных месторождений: Депутатское (с запасами ~ 275 тыс. т Sn), Пыркакай (~ 200 тыс. т Sn) и Светлое – (W, Sn, Be), развитие которых придаст мощный толчок поисково-оценочным работам. _Статья подготовлена в рамках госзадания СВКНИИ ДВО РАН, тема № 121031700301-5 и НОЦ «Север: территория устойчивого развития», проект 3._ ## **Список литературы**"
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 24,
+"mode": "E2",
+"chunk_id": 4223,
+"fact": [
+"uranium",
+"содержится в",
+"dust",
+"Similarly, wind activity during the Harmattan season, coupled with surface erosion, may spread uranium-bearing dust across the region [11]."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 25,
+"mode": "E2",
+"chunk_id": 4510,
+"fact": [
+"RTP magnetic map",
+"сопровождается",
+"porphyry-like circular or semi-circular structures (intrusions)",
+"Concerning aeromagnetic data, a set of algorithms for CET porphyry analysis are applied to the RTP magnetic map to locate the porphyry-like circular or semi-circular structures (intrusions) that are associated with hydrothermal alteration."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 26,
+"mode": "E0",
+"chunk_id": 4675,
+"fact": [
+"copper and iron vein mineralization",
+"входит в",
+"intrusions",
+"The copper and iron vein mineralization in the basement are hosted within the schist-sandstone series, intrusions, and gabbroic dikes."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 27,
+"mode": "E2",
+"chunk_id": 3930,
+"fact": [
+"Witwatersrand gold",
+"содержит",
+"Ag",
+"The Witwatersrand gold has been reported in several studies to contain far higher Ag and Hg contents between 0.3-32.1wt% and 0.5-5.9 wt%, respectively, and traces of the following elements: As, Bi, Cd, Co, Cr, Cu, Fe, Ir, Mn, Mo, Ni, Os, Pb, Pd, Pt, Re, Ru, Se, Sb, Sn, Ta, Te, and V (Saager 1969; Feather and Koen 1975; Hallbauer and Utter 1977; Utter 1979; von Gehlen 1983; Hallbauer 1986; Oberthür and Saager 1986; Reid et al. 1988; Minter et al. 1990; Garayp et al. 1991; Frimmel et al. 1993; Frimmel and Gartz 1997)."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 28,
+"mode": "E0",
+"chunk_id": 5093,
+"fact": [
+"южный гравитационный минимум",
+"наблюдаются",
+"линейные локальные минимумы",
+"От южного гравитационного минимума, обусловленного Константиновским гранитоидным массивом, наблюдаются линейные локальные минимумы, вытянутые в сторону месторождения."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 29,
+"mode": "E2",
+"chunk_id": 2221,
+"fact": [
+"штоками и дайками",
+"образовано при",
+"уракского и андезибазальтов хакаринского комплексов",
+"Субвулканические тела образованы штоками и дайками гранодиорит-порфиров, дацитов, риолитов уракского и андезибазальтов хакаринского комплексов и распространены в полосе влияния Онѐмненско- го и Алалиндийского разломов, и совпадают с полями распространения метасоматитов."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 30,
+"mode": "E1",
+"chunk_id": 2280,
+"fact": [
+"Майское",
+"содержит",
+"золото",
+"В 2013 г . в Арктической зоне России ( цен - тральная Чукотка ) введено в эксплуатацию крупное месторождение золото - сульфидных вкрапленных руд ( ЗСМВР ) Майское , из руд которого к насто - ящему времени уже добыто более 15 т золота ."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 31,
+"mode": "E2",
+"chunk_id": 494,
+"fact": [
+"плагиограниты, мигматит-граниты ( а )",
+"входит в",
+"ятулий",
+"1, 2 - ятулий: вулканогенные ( 1 ), терригенно-осадочные ( 2 ) образования; 3 - вулканогенные, осадочно-вулканогенные породы сариолия; 4 - вулканиты кислого состава сумия; 5 - вулканиты основного-среднего состава сумия(?); 6 - сланцы разного состава лопия; 7 - долериты, габбродолериты; 8 - граниты; 9 - плагиограниты, мигматит-граниты ( а ), тоналиты, диориты, гранодиориты ( b ); 10 - разломы; 11 - рудопроявления и проявления: урановые ( а ), золото-урановые ( b ), золотые ( c ); участки, перспективные на обнаружение золотого, золото-уранового оруденения: Колгевара (I), Хохлозеро (II), Риговарака (III), Пайозеро (IV), Железные Ворота (V) ); 13 - контур Лежевской площади, в пределах которой проводились поисковые работы на золото (2009 г.); 14 - контур Лехтинской раннепротерозойской структуры; 15 - платформенный чехол; 16 - Свекофеннский складчатый пояс; 17-19 - Карельская гранит-зеленокаменная область: 17 - ятулий, суйсарий, вепсий нерасчлененные, 18 - сумий, сариолий нерасчлененные, 19 - комплекс архейского основания; 20 - Беломорская гранулит-гнейсовая область; 21 - границы Восточно-Карельской структурной зоны Источник: по Е. Н. Афанасьевой [и др.] [15] Fig. 9."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 32,
+"mode": "E2",
+"chunk_id": 5637,
+"fact": [
+"minimum noise fraction",
+"входит в",
+"spectral transformation techniques",
+"Lithological discrimination benefits greatly from spectral transformation techniques, including principal component analysis, minimum noise fraction, and matched filtering algorithms."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 33,
+"mode": "E2",
+"chunk_id": 4522,
+"fact": [
+"iron oxides'bearing rocks",
+"выявлено методом",
+"ALI",
+"Areal differences of iron oxides'bearing rocks (green color) detected utilizing ( a ) ASTER, ( b ) Landsat 8, ( c ) Sentinel 2, and ( d ) ALI."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 34,
+"mode": "E2",
+"chunk_id": 4646,
+"fact": [
+"alteration indices",
+"предположительно связано с",
+"geological field surveys",
+"A spatial overlay analysis of alteration indices, lineaments, geological field surveys shows that anomaly zones correlate strongly with known mineralized structures, suggesting that mineralization is primarily structurally controlled."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 35,
+"mode": "E2",
+"chunk_id": 4673,
+"fact": [
+"hydrothermal alteration",
+"связано с",
+"Landsat",
+"Fieldwork was carried out to verify hydrothermal alteration zones and highly dissected areas (Figs. 5 and 6, and 7), and displayed in Fig. 11 to manifest the power of the ASTER and Landsat OLI combination by targeting areas of actual hydrothermal alteration within the study area."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 36,
+"mode": "E2",
+"chunk_id": 4675,
+"fact": [
+"mineralized structures",
+"расположено в",
+"karst formations",
+"These mineralized structures manifest as vein swarms with multi-metric extensions oriented ENE-WSW, WNW-ESE, and E-W, occurring in karst formations and fractures."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 37,
+"mode": "E2",
+"chunk_id": 470,
+"fact": [
+"натриевые метасоматиты",
+"образовано при",
+"ранней ассоциации",
+"В состав натриевых метасоматитов, помимо альбита, входят бурый биотит, карбонат (кальцит), доломит, пиро­ хлор, которые образуют раннюю ассоциацию."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 38,
+"mode": "E2",
+"chunk_id": 1484,
+"fact": [
+"Верхояно-Колымская зона растяжения-сдвига",
+"сменилось",
+"Момский рифт",
+"В начальный период геологической истории этой структуры (юра-нижний мел) здесь происходили субдукционные процессы, сопровождавшиеся надвиганием Колымо-Омолонского супертеррейна на Северо-Азиатский кратон, затем сжатие сменилось растяжением (Момский рифт), а в неогене произошли сдвиговые деформации (Тектоника..., 2001; Шахтыров, 2009; Юшманов, 2019). В гравитационных моделях, отражающих реологические свойства геологических сред, Верхояно-Колымская зона растяжения-сдвига проявлена минимумом плотностной контрастности в большинстве срезов µ z -модели (Петрищевский, Юшманов, 2021)."
+],
+"gold_correct": false,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 39,
+"mode": "E0",
+"chunk_id": 4223,
+"fact": [
+"Agbamu",
+"входит в",
+"Nigeria",
+"In Egypt's Qena City, Ahmed [25] reported uranium concentration in building materials in the range of 0.5 to 10ppm With in this context , the > 4.2 ppm uranium concentration observed around Agbamu, Oro and Ilorin are high in Nigeria of potential radiological concern."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+},
+{
+"id": 40,
+"mode": "E2",
+"chunk_id": 360,
+"fact": [
+"RMS",
+"связано с",
+"Nesvetaevsky andesite-dacite intrusive complex",
+"RMS of the central type are represented by clusters of small intrusions of the Nesvetaevsky andesite-dacite intrusive complex located inside isometric high-gradient positive magnetic field anomalies."
+],
+"gold_correct": true,
+"annotator": "claude-opus-5.5-annotator (blind to mode)"
+}
+],
+"precision": {
+"E2": {
+"correct": 9,
+"n": 25,
+"precision": 0.36,
+"ci95": [
+0.20247880774458224,
+0.5548150225183514
+]
+},
+"E0": {
+"correct": 5,
+"n": 8,
+"precision": 0.625,
+"ci95": [
+0.30574239460262737,
+0.8631557141764026
+]
+},
+"E1": {
+"correct": 4,
+"n": 8,
+"precision": 0.5,
+"ci95": [
+0.21521606221387757,
+0.7847839377861224
+]
+},
+"E0_pooled": {
+"correct": 22,
+"n": 33,
+"precision": 0.6666666666666666,
+"ci95": [
+0.4960789442780561,
+0.8024977232077931
+]
+},
+"E1_pooled": {
+"correct": 14,
+"n": 33,
+"precision": 0.42424242424242425,
+"ci95": [
+0.2723559663341021,
+0.5919273666268755
+]
+}
+},
+"note": "E0/E1 в выборке — маскировка режима и повторная проверка"
+}

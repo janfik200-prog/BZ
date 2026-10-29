@@ -20,4 +20,4 @@ provenance: отпечатки и смещения цитат,no,v14,verified,v1
 досье геолога + журнал правок,no,v14,verified (technical demo; no expert actions),v14,georag/evidence/dossier.py; georag/evidence/cli.py,python georag.py evidence dossier,tests/evidence/test_modules.py,research/v14/dossier,EXPERT_ACTIONS
 метрики FTR/coverage/risk + Wilson + cluster bootstrap,no,v14,verified,v14,georag/evidence/metrics.py,,tests/evidence,results/metrics.json; bootstrap.json,
 человеческая разметка (gold),no,v14,BLOCKED: single non-human annotator (Claude); expert review package ready,v14,research/v14/data/gold_annotations.csv,,metrics.check_gold,annotation/expert_review_sample.csv,NO_GEOLOGIST
-E2 Qwen3-8B на той же выборке,no,historical runs only,NOT_EVALUATED (live); historical only,v14,research/v14/results/e_summary.json,,,DB georag_b8v3,GPU_SWAP_NEEDS_PERMISSION
+E2 Qwen3-8B на той же выборке,no,v14,verified (live 29.10; negative result),v14,research/v14/experiments/run_e2.py,run_e2.py (builder on 8101),,results/raw_e2_live.jsonl; e2_precision_sample.json,

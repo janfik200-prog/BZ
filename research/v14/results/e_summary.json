@@ -149,5 +149,50 @@
    "wall_minutes": 6.3
   },
   "caveat": "исторические прогоны 27–28.10.2026; версия правил графа между ними могла отличаться (коммиты 065123e, fe4673c); голоса ставила сама модель-строитель — сравнение ориентировочное"
+ },
+ "live_e2": {
+  "model": "qwen3-8b",
+  "host": "http://127.0.0.1:8101",
+  "served_models": [
+   {
+    "id": "qwen3-8b",
+    "object": "model",
+    "created": 1793266491,
+    "owned_by": "vllm",
+    "root": "Qwen/Qwen3-8B-AWQ",
+    "parent": null,
+    "max_model_len": 12288,
+    "permission": [
+     {
+      "id": "modelperm-a478b86a5971f5e3",
+      "object": "model_permission",
+      "created": 1793266491,
+      "allow_create_engine": false,
+      "allow_sampling": true,
+      "allow_logprobs": true,
+      "allow_search_indices": false,
+      "allow_view": true,
+      "allow_fine_tuning": false,
+      "organization": "*",
+      "group": null,
+      "is_blocking": false
+     }
+    ]
+   }
+  ],
+  "n_chunks_sample": 100,
+  "calls": 72,
+  "errors": 0,
+  "facts": 776,
+  "rejected_by_code": 572,
+  "prompt_tokens": 157579,
+  "completion_tokens": 75389,
+  "latency_sum_s": 1119.2,
+  "wall_s": 157.3,
+  "e2_fact_keys": 769,
+  "shared_with_e1": 162,
+  "shared_with_e0": 67,
+  "e1_wall_note": "E0 и E1 шли одним пулом (wall_s_both); сравнение времени — по latency_sum_s",
+  "e1_latency_sum_s": 463.6
  }
 }

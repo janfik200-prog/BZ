@@ -78,6 +78,9 @@ S3 = support["support"]["by_threshold"]["3"]
 off = esum["offline"]
 live = esum["live"]
 h14, h8 = esum["historical_e2"]["georag_b14"], esum["historical_e2"]["georag_b8v3"]
+e2 = esum["live_e2"]
+e2p = J("e2_precision_sample.json")["precision"]
+e1_rej = sum(json.loads(x)["n_rejected"] for x in (RES / "raw_e_live.jsonl").open(encoding="utf-8") if json.loads(x)["mode"] == "E1")
 
 
 def frac(r: dict, k: str, n: str) -> str:
@@ -423,15 +426,17 @@ para("**Первый этап и модель-строитель.** Порог �
      f"токенов задания против {num(f'{live['by_mode']['E0']['prompt_tokens']:,}'.replace(',', ' '), 'токены E0', 'results/e_summary.json', 'live.by_mode.E0.prompt_tokens')} "
      f"и выписали {num(live['by_mode']['E1']['facts'], 'фактов E1', 'results/e_summary.json', 'live.by_mode.E1.facts')} фактов против "
      f"{num(live['by_mode']['E0']['facts'], 'фактов E0', 'results/e_summary.json', 'live.by_mode.E0.facts')}, но точность выписки до "
-     f"подтверждения на слепой выборке — {num(f'{eprec['E1']['correct']}/{eprec['E1']['n']}', 'точность E1', 'results/e_precision_sample.json', 'precision.E1')} "
-     f"против {num(f'{eprec['E0']['correct']}/{eprec['E0']['n']}', 'точность E0', 'results/e_precision_sample.json', 'precision.E0')}: "
+     f"подтверждения на слепых выборках — {num(f'{e2p['E1_pooled']['correct']}/{e2p['E1_pooled']['n']}', 'точность E1', 'results/e2_precision_sample.json', 'precision.E1_pooled')} "
+     f"против {num(f'{e2p['E0_pooled']['correct']}/{e2p['E0_pooled']['n']}', 'точность E0', 'results/e2_precision_sample.json', 'precision.E0_pooled')}: "
      "список предметов побуждает модель связывать всё названное. Это отрицательный результат для схемы первого этапа "
-     "в нынешнем виде. Модель-строитель Qwen3-8B (AWQ) на тех же 200 фрагментах в исторических прогонах выписала "
-     f"{num(h8['facts_by_model'][0]['facts'], 'фактов 8B', 'results/e_summary.json', 'historical_e2.georag_b8v3')} фактов за "
-     f"{num(dec(h8['wall_minutes'], 1), 'минут 8B', 'results/e_summary.json', 'historical_e2.georag_b8v3.wall_minutes')} мин против "
-     f"{num(h14['facts_by_model'][0]['facts'], 'фактов 14B', 'results/e_summary.json', 'historical_e2.georag_b14')} за "
-     f"{num(dec(h14['wall_minutes'], 1), 'минут 14B', 'results/e_summary.json', 'historical_e2.georag_b14.wall_minutes')} мин у Qwen3-14B; "
-     "версии правил между прогонами могли различаться, поэтому сравнение ориентировочное, а точность 8B не размечена.")
+     "в нынешнем виде. Замена модели-строителя на Qwen3-8B (AWQ) при тех же фрагментах, правилах и задании (E2) "
+     f"дала {num(e2['facts'], 'фактов E2', 'results/e_summary.json', 'live_e2.facts')} фактов, но код отбросил "
+     f"{num(e2['rejected_by_code'], 'отброшено кодом E2', 'results/e_summary.json', 'live_e2.rejected_by_code')} ответов модели "
+     f"(у Qwen3-14B — {num(e1_rej, 'отброшено кодом E1', 'results/raw_e_live.jsonl', 'sum n_rejected E1')}), ответ втрое длиннее "
+     f"({num(f'{e2['completion_tokens']:,}'.replace(',', ' '), 'токены ответа E2', 'results/e_summary.json', 'live_e2.completion_tokens')} "
+     f"токенов против {num(f'{live['by_mode']['E1']['completion_tokens']:,}'.replace(',', ' '), 'токены ответа E1', 'results/e_summary.json', 'live.by_mode.E1.completion_tokens')}), "
+     f"а точность выписки — {num(f'{e2p['E2']['correct']}/{e2p['E2']['n']}', 'точность E2', 'results/e2_precision_sample.json', 'precision.E2')}. "
+     "Выигрыша от меньшей модели на этой выборке нет.")
 para("**Цитаты и независимость.** Из "
      f"{num('13 739', 'фактов в аудите', 'results/provenance_audit.json', 'n_facts')} цитат графа по смещениям и отпечаткам "
      f"воспроизводятся {num(f'{prov['valid']:,}'.replace(',', ' '), 'воспроизводимых цитат', 'results/provenance_audit.json', 'valid')}; "
@@ -481,9 +486,7 @@ para("Результат показывает, что территориальн
      "выборка мала (20 тестовых вопросов с прямым ответом, 6 аналогов), поэтому преимущество над вариантом V2 не "
      "установлено. Квантор факта определяется по цитате плохо, и для вопросов о типичности метод опирается в основном "
      "на соотношение территорий. Статус применимости не говорит об истинности вывода статьи. Оценка сквозных ответов "
-     "выполнена по уровню статей. Модель-строитель Qwen3-8B живым прогоном на той же выборке не проверялась: на "
-     "видеокарте 16 ГБ две модели одновременно не помещаются, а остановка работающей модели ответов требует решения "
-     "владельца системы.")
+     "выполнена по уровню статей. Точность извлечения оценена на малых слепых выборках (25–33 факта на режим).")
 
 section("ЗАКЛЮЧЕНИЕ")
 para("В локальной базе знаний по рудной геологии проверка факта разделена на верность цитаты, поддержку связи и "

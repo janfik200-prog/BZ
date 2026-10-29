@@ -44,6 +44,7 @@ docker exec georag-db pg_restore -U georag -d georag_v14 /tmp/georag_prod_202610
 | независимая поддержка | `experiments/run_support_llm.py` | qwen3-14b | `raw_support_llm.jsonl`, `llm_calls.jsonl` | — |
 | правило поддержки (выбор на DEV) | `experiments/run_v_support.py` | нет | `raw_predictions_support.csv` | `support_rules.json` |
 | первый этап, E0/E1, E2-история | `experiments/run_e.py --live 100` | qwen3-14b | `prefilter_decisions.jsonl`, `raw_e_live.jsonl`, `llm_calls_e.jsonl` | `prefilter_sweep.csv`, `e_summary.json`, `e_precision_sample.json` |
+| E2 (Qwen3-8B): остановить `georag-llm`, `docker start georag-builder`, после — обратно | `experiments/run_e2.py` | qwen3-8b (порт 8101) | `raw_e2_live.jsonl`, `llm_calls_e2.jsonl` | `e_summary.json` (live_e2), `e2_precision_sample.json` |
 | независимость, противоречия | `experiments/run_fusion.py` | нет | `conflicts.jsonl` | `independence_report.json` |
 | аудит цитат | `python georag.py evidence audit` | нет | — | `provenance_audit.json` |
 | досье A/B | `experiments/build_dossiers.py` | нет | `dossier/A`, `dossier/B` (JSON/CSV/MD) | `dossier/summary.json`, `switches.csv` |
