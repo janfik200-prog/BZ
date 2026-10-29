@@ -203,6 +203,11 @@ def prepare(
     plan = make_plan(named.rest if named else question, history, settings, planner)
     if named:
         in_article(plan, named)
+    if settings.concepts and not plan.concepts:
+        from ..index import concepts
+
+        yield {"type": "status", "text": "выделяю ключевые понятия…"}
+        plan.concepts = concepts.extract(settings.client(), plan.main or question)
 
     # Вопрос о самом наборе статей («сколько статей про…», «перечисли статьи…») — по всей
     # базе, по названиям и тексту (catalog.py), а не по 8 фрагментам; через retrieve не идёт.

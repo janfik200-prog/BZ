@@ -128,12 +128,16 @@ def candidates(
     limit: int = WIDE,
     facts: bool = False,
     doc: str | None = None,
+    concepts: list[list[str]] | None = None,
 ) -> list[Any]:
     """Кандидаты для модели — не больше CANDIDATE_PER_DOC из одной статьи (лишние — в
     конец): одна подробная статья занимала 9 мест из 15, и модели не из чего было
     выбирать — ответ на составной вопрос шёл по одной статье. facts — с фрагментами,
-    которые привели факты графа (keep_facts). doc — только из этой статьи (Plan.article)."""
-    found = merged_search(conn, embedder, queries, cache, facts, doc)
+    которые привели факты графа (keep_facts). doc — только из этой статьи (Plan.article).
+    concepts — ключевые понятия вопроса (Plan.concepts): кандидаты с ними — выше."""
+    from ..index.concepts import rerank
+
+    found = rerank(merged_search(conn, embedder, queries, cache, facts, doc), concepts or [])
     close = [h for h in found if is_candidate(h)]
     return keep_facts(cap_per_doc(close, CANDIDATE_PER_DOC), limit)
 
@@ -335,6 +339,8 @@ def retrieve(
     wide = settings.wide if settings.notes or narrow else WIDE
     wide_part = max(WIDE_PART, wide // 2) if settings.notes else WIDE_PART
     multi = len(plan.parts) > 1
+    # Ключевые понятия (GEORAG_CONCEPTS) — только если выделены: без них вызов прежний.
+    by_concepts: dict[str, Any] = {"concepts": plan.concepts} if plan.concepts else {}
     if multi:
         # Все запросы вопроса — одной пачкой, одновременно (search_all): по частям
         # они шли бы по три, а каждая пачка ждала бы предыдущую.
@@ -346,10 +352,14 @@ def retrieve(
     if multi:
         for i, part in enumerate(plan.parts, start=1):
             asked = part.queries or [part.question]
-            add(candidates(conn, embedder, asked, cache, wide_part, facts, doc), i, 1)
-        add(candidates(conn, embedder, plan.queries, cache, wide_part, facts, doc), None, 1)
+            found = candidates(conn, embedder, asked, cache, wide_part, facts, doc, **by_concepts)
+            add(found, i, 1)
+        found = candidates(
+            conn, embedder, plan.queries, cache, wide_part, facts, doc, **by_concepts
+        )
+        add(found, None, 1)
     else:
-        add(candidates(conn, embedder, plan.queries, cache, wide, facts, doc), 1, 1)
+        add(candidates(conn, embedder, plan.queries, cache, wide, facts, doc, **by_concepts), 1, 1)
     # Ограничение — на весь набор: поиски по частям вопроса складываются, и одна статья
     # набирала 7 мест из 16. Других статей мало — лишние куски той же добирают места.
     for h, part, rnd in spare[: max(0, wide - len(pool))]:
@@ -363,7 +373,9 @@ def retrieve(
     # после основных и после добора кусков той же статьи: нужное на китайском или японском
     # приходит, а мест основной выдачи не занимает (иначе выпадала аннотация с ответом).
     if plan.translated:
-        translated = candidates(conn, embedder, plan.translated, cache, TRANSLATED, facts, doc)
+        translated = candidates(
+            conn, embedder, plan.translated, cache, TRANSLATED, facts, doc, **by_concepts
+        )
         add(translated, None if multi else 1, 1)
 
     fresh: list[dict[str, Any]] = list(pool)
@@ -421,7 +433,8 @@ def retrieve(
         plan.extra += queries
         rounds += 1
         yield {"type": "status", "text": "ищу недостающее: " + " · ".join(queries)}
-        fresh = add(candidates(conn, embedder, queries, cache, wide, facts, doc), None, rounds)
+        found = candidates(conn, embedder, queries, cache, wide, facts, doc, **by_concepts)
+        fresh = add(found, None, rounds)
         if not fresh and not missing:
             break
 

@@ -1,0 +1,95 @@
+# ПЕРЕВОДЫ ТЕРМИНОВ ДЛЯ КЛЮЧЕВЫХ ПОНЯТИЙ ВОПРОСА (index/concepts.py)
+#
+# Модель, выделяя из вопроса обязательные понятия, переводит их сама и ошибается:
+# «лиственитизация» → «lignitization», «отношение калия к торию» — на «калий» и «торий».
+# Если понятие есть здесь, английские написания берутся отсюда, а не от модели.
+#
+#   русское понятие: [английское написание, другое написание, сокращение]
+#
+# Падеж и число не важны. Правится Блокнотом, сохранять в UTF-8.
+# Записан 30.10.2026 до составления проверочных вопросов (research/v15).
+
+# --- изменения пород и метасоматоз ---
+гидротермальные изменения: [hydrothermal alteration, altered rocks, alteration zones]
+березитизация: [beresitization, beresite, berezite]
+березиты: [beresite, berezite]
+лиственитизация: [listvenitization, listvenite, listwaenite]
+листвениты: [listvenite, listwaenite]
+аргиллизация: [argillic alteration, argillization]
+пропилитизация: [propylitic alteration, propylitization]
+окварцевание: [silicification]
+серицитизация: [sericitization, sericitic alteration]
+хлоритизация: [chloritization, chloritic alteration]
+карбонатизация: [carbonatization, carbonate alteration]
+калиевый метасоматоз: [potassic alteration, potassium metasomatism]
+калиевые метасоматиты: [potassic alteration, potassium-rich metasomatites]
+скарны: [skarn]
+
+# --- признаки и показатели ---
+отношение калия к торию: [K/Th, K/eTh, potassium-thorium ratio, potassium to thorium ratio]
+F-параметр: [F-parameter]
+плотность линеаментов: [lineament density]
+линеаменты: [lineament]
+кольцевые структуры: [ring structure, circular structure]
+разломы: [fault]
+зоны сдвига: [shear zone]
+структурный контроль: [structural control]
+геохимические аномалии: [geochemical anomaly]
+магнитные аномалии: [magnetic anomaly]
+оксиды железа: [iron oxide, ferric iron]
+глинистые минералы: [clay minerals]
+минералы-индикаторы: [indicator minerals, pathfinder minerals]
+
+# --- методы ---
+аэрогамма-спектрометрия: [airborne gamma-ray spectrometry, gamma-ray spectrometry, radiometric]
+аэромагнитная съёмка: [aeromagnetic]
+аэромагнитные данные: [aeromagnetic]
+гравиразведка: [gravity, gravimetric]
+магниторазведка: [magnetic survey]
+метод Эйлера: [Euler deconvolution, Euler]
+деконволюция Эйлера: [Euler deconvolution]
+метод главных компонент: [principal component analysis, PCA]
+аналитический иерархический процесс: [analytic hierarchy process, analytical hierarchy process, AHP]
+машинное обучение: [machine learning]
+нейронные сети: [neural network]
+случайный лес: [random forest]
+неопределённость: [uncertainty]
+гиперспектральная съёмка: [hyperspectral]
+дистанционное зондирование: [remote sensing]
+отношения каналов: [band ratio]
+прогнозное картирование: [prospectivity mapping, prospectivity modelling, prospectivity modeling]
+
+# --- типы оруденения и полезные ископаемые ---
+россыпное золото: [placer gold, alluvial gold]
+коренной источник: [primary source, bedrock source, lode source]
+орогенные месторождения золота: [orogenic gold]
+золото-кварцевое оруденение: [gold-quartz, quartz vein gold]
+золото-сульфидное оруденение: [gold-sulfide, gold-sulphide]
+колчеданные месторождения: [VMS, volcanogenic massive sulfide, massive sulphide]
+редкометалльная минерализация: [rare metal mineralization, rare-metal]
+редкоземельные элементы: [rare earth elements, REE]
+порфировые месторождения: [porphyry]
+железорудные месторождения: [iron ore]
+гранитоиды: [granitoid]
+
+# --- места ---
+Сухой Лог: [Sukhoi Log, Sukhoy Log]
+Балтийский щит: [Baltic Shield, Fennoscandian Shield]
+Алтай: [Altai]
+Енисейский кряж: [Yenisei Ridge, Yenisey Ridge]
+Средний Урал: [Middle Urals, Central Urals]
+Урал: [Urals]
+Патомское нагорье: [Patom Highland, Patom Upland]
+Верхояно-Колымская складчатая система: [Verkhoyansk-Kolyma]
+Якутия: [Yakutia, Sakha]
+Магаданская область: [Magadan]
+Приамурье: [Amur]
+Сибирская платформа: [Siberian Platform, Siberian Craton]
+Анабарский щит: [Anabar Shield]
+Монголия: [Mongolia]
+Нигерия: [Nigeria]
+Египет: [Egypt]
+Марокко: [Morocco]
+Китай: [China]
+Индия: [India]
+Иран: [Iran]

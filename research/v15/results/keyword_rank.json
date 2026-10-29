@@ -1,0 +1,47 @@
+{
+ "pairs": {
+  "без места, главное да": {
+   "pairs": 124,
+   "useful": 63,
+   "share": 0.508
+  },
+  "без места, главное нет": {
+   "pairs": 153,
+   "useful": 53,
+   "share": 0.346
+  },
+  "место да, главное да": {
+   "pairs": 10,
+   "useful": 6,
+   "share": 0.6
+  },
+  "место да, главное нет": {
+   "pairs": 7,
+   "useful": 6,
+   "share": 0.857
+  },
+  "место нет, главное нет": {
+   "pairs": 10,
+   "useful": 0,
+   "share": 0.0
+  }
+ },
+ "ranked": {
+  "labelled": 60,
+  "useful": 33,
+  "share_useful_labelled": 0.55,
+  "unlabelled": 65
+ },
+ "ranked+graph": {
+  "labelled": 59,
+  "useful": 33,
+  "share_useful_labelled": 0.559,
+  "unlabelled": 66
+ },
+ "main_required": {
+  "labelled": 97,
+  "useful": 53,
+  "share_useful_labelled": 0.546,
+  "unlabelled": 28
+ }
+}

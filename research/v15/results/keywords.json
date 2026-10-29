@@ -1,0 +1,343 @@
+{
+ "1": [
+  [
+   "гидротермальные изменения",
+   "hydrothermal alterations",
+   "H-T alteration"
+  ],
+  [
+   "золото",
+   "gold",
+   "Au"
+  ],
+  [
+   "месторождения",
+   "deposits",
+   "mineral deposits"
+  ]
+ ],
+ "2": [
+  [
+   "гидротермальные изменения",
+   "hydrothermal alterations",
+   "H-T alteration"
+  ],
+  [
+   "снимки ASTER",
+   "ASTER images",
+   "ASTER"
+  ],
+  [
+   "выделение зон",
+   "zone delineation",
+   "delineation"
+  ]
+ ],
+ "3": [
+  [
+   "каналы Landsat 8",
+   "Landsat 8 bands",
+   "B1-B7, B10, B11"
+  ],
+  [
+   "оксиды железа",
+   "iron oxides",
+   "FeOx"
+  ],
+  [
+   "глинистые минералы",
+   "clay minerals",
+   "CLAY"
+  ]
+ ],
+ "4": [
+  [
+   "аэрогамма-спектрометрия",
+   "aerial gamma-ray spectrometry",
+   "AGRS"
+  ],
+  [
+   "калиевые метасоматиты",
+   "potassic metasomatic rocks",
+   "K-metasomatic rocks"
+  ]
+ ],
+ "5": [
+  [
+   "отношение калия к торию",
+   "potassium to thorium ratio",
+   "K/Th"
+  ]
+ ],
+ "6": [
+  [
+   "линеаменты",
+   "lineaments",
+   "L"
+  ],
+  [
+   "аэромагнитные данные",
+   "aeromagnetic data",
+   "AMT"
+  ],
+  [
+   "оруденение",
+   "ore mineralization",
+   "OM"
+  ]
+ ],
+ "7": [
+  [
+   "плотность линеаментов",
+   "lineament density",
+   "D_L"
+  ],
+  [
+   "перспективные на золото участки",
+   "gold prospective areas",
+   "GPA"
+  ]
+ ],
+ "8": [
+  [
+   "структура",
+   "structure",
+   "Str"
+  ],
+  [
+   "орогенное месторождение",
+   "orogenic deposit",
+   "OreDep"
+  ],
+  [
+   "золото",
+   "gold",
+   "Au"
+  ]
+ ],
+ "9": [
+  [
+   "разломы",
+   "faults",
+   "F"
+  ],
+  [
+   "золотое оруденение",
+   "gold mineralization",
+   "GM"
+  ]
+ ],
+ "10": [
+  [
+   "Метод Эйлера",
+   "Euler method",
+   "Euler",
+   "Eulerian method"
+  ]
+ ],
+ "11": [
+  [
+   "гравиразведка",
+   "gravity survey",
+   "ГР"
+  ],
+  [
+   "железорудные тела",
+   "iron ore bodies",
+   ""
+  ]
+ ],
+ "12": [
+  [
+   "машинное обучение",
+   "machine learning",
+   "ML"
+  ],
+  [
+   "прогнозное картирование",
+   "predictive mapping",
+   ""
+  ],
+  [
+   "рудоносность",
+   "mineral potential",
+   ""
+  ]
+ ],
+ "13": [
+  [
+   "неопределённость",
+   "uncertainty",
+   "U"
+  ],
+  [
+   "прогнозные карты",
+   "predictive maps",
+   "PM"
+  ],
+  [
+   "машинное обучение",
+   "machine learning",
+   "ML"
+  ]
+ ],
+ "14": [
+  [
+   "обучающие точки",
+   "training points",
+   "TP"
+  ],
+  [
+   "отрицательные примеры",
+   "negative examples",
+   "NE"
+  ],
+  [
+   "прогнозные модели",
+   "predictive models",
+   "PM"
+  ]
+ ],
+ "15": [
+  [
+   "минералы-индикаторы",
+   "indicator minerals",
+   "ИМ"
+  ],
+  [
+   "золото-кварцевое оруденение",
+   "gold-quartz ore deposit",
+   "ЗКО"
+  ],
+  [
+   "минерал",
+   "mineral",
+   "М"
+  ]
+ ],
+ "16": [
+  [
+   "березитизация",
+   "berzitization",
+   "Berzitization"
+  ],
+  [
+   "лиственитизация",
+   "lithification",
+   "Lithification"
+  ]
+ ],
+ "17": [
+  [
+   "Строение месторождения Сухой Лог",
+   "Structure of the Sukhoy Log deposit",
+   "Сухой Лог"
+  ],
+  [
+   "форма рудных тел",
+   "form of ore bodies",
+   "оруденение"
+  ]
+ ],
+ "18": [
+  [
+   "кольцевые структуры",
+   "ring structures",
+   "RS"
+  ],
+  [
+   "космоснимки",
+   "satellite images",
+   "SI"
+  ],
+  [
+   "золотое оруденение",
+   "gold mineralization",
+   "GM"
+  ]
+ ],
+ "19": [
+  [
+   "примеси",
+   "impurities",
+   "Imp"
+  ],
+  [
+   "россыпное золото",
+   "placer gold",
+   "Placer Au"
+  ],
+  [
+   "коренной источник",
+   "primary source",
+   "Primary source"
+  ]
+ ],
+ "20": [
+  [
+   "редкометалльная минерализация",
+   "rare metal mineralization",
+   "RMM"
+  ],
+  [
+   "гранитоиды",
+   "granitoids",
+   "G"
+  ]
+ ],
+ "21": [
+  [
+   "колчедан",
+   "sulfide",
+   "S"
+  ],
+  [
+   "Алтай",
+   "Altai",
+   "Alt"
+  ],
+  [
+   "условия формирования",
+   "formation conditions",
+   "FC"
+  ]
+ ],
+ "22": [
+  [
+   "гиперспектральная съёмка",
+   "hyperspectral survey",
+   "HS"
+  ],
+  [
+   "минералы изменённых пород",
+   "minerals of altered rocks",
+   "altered rock minerals"
+  ]
+ ],
+ "23": [
+  [
+   "метод главных компонент",
+   "principal component analysis",
+   "PCA"
+  ]
+ ],
+ "24": [
+  [
+   "аналитический иерархический процесс",
+   "analytic hierarchy process",
+   "AHP"
+  ]
+ ],
+ "25": [
+  [
+   "золото-урановое оруденение",
+   "gold-uranium mineralization",
+   "Au-U mineralization"
+  ],
+  [
+   "Балтийский щит",
+   "Baltic Shield",
+   "Baltic Shield"
+  ]
+ ]
+}

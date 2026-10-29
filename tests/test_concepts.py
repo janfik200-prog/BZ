@@ -1,0 +1,81 @@
+"""Ключевые понятия вопроса (georag/index/concepts.py): чистка ответа модели, словарь
+переводов, доля понятий во фрагменте и порядок кандидатов.
+
+python -m unittest discover -s tests — без базы и модели."""
+
+import unittest
+from dataclasses import dataclass
+
+from georag.index import concepts as C
+
+TABLE = {
+    C.name_key("лиственитизация"): ["listvenitization", "listvenite"],
+    C.name_key("Сухой Лог"): ["Sukhoi Log", "Sukhoy Log"],
+}
+
+
+@dataclass
+class Hit:
+    chunk_id: int
+    text: str
+
+
+class FakeLLM:
+    def __init__(self, answer):
+        self.answer = answer
+
+    def chat_json(self, system, user, **kw):
+        if isinstance(self.answer, Exception):
+            raise self.answer
+        return self.answer
+
+
+class CleanTests(unittest.TestCase):
+    def test_dictionary_replaces_model_translation(self):
+        got = C.clean([["лиственитизация", "lignitization", "Lg"]], TABLE)
+        self.assertEqual(got, [["лиственитизация", "listvenitization", "listvenite"]])
+
+    def test_short_and_generic_spellings_dropped(self):
+        got = C.clean([["месторождение", "deposit"], ["линеаменты", "lineaments", "L"]], TABLE)
+        self.assertEqual(got, [["линеаменты", "lineaments"]])
+
+    def test_concept_with_general_word_kept(self):
+        # «структурный контроль» — не общее слово, хотя «контроль» общее.
+        self.assertEqual(C.clean([["структурный контроль"]], {}), [["структурный контроль"]])
+
+    def test_at_most_three(self):
+        raw = [["кварц"], ["пирит"], ["галенит"], ["сфалерит"]]
+        self.assertEqual(len(C.clean(raw, {})), C.MAX_CONCEPTS)
+
+    def test_bad_answer_is_empty(self):
+        self.assertEqual(C.clean(None, {}), [])
+        self.assertEqual(C.extract(FakeLLM(RuntimeError("down")), "вопрос"), [])
+        self.assertEqual(C.extract(FakeLLM({"must": "не список"}), "вопрос"), [])
+
+
+class ShareTests(unittest.TestCase):
+    def test_any_form_and_language(self):
+        concepts = [["плотность линеаментов", "lineament density"], ["золото", "gold"]]
+        self.assertEqual(C.share(concepts, "Высокая плотность линеаментов на участке"), 0.5)
+        self.assertEqual(C.share(concepts, "Lineament density and gold occurrences"), 1.0)
+        self.assertEqual(C.share(concepts, "Список литературы"), 0.0)
+
+    def test_ratio_with_slash(self):
+        self.assertEqual(C.share([["K/Th"]], "the K/Th ratio map"), 1.0)
+        self.assertEqual(C.share([["K/Th"]], "potassium and thorium maps"), 0.0)
+
+
+class RerankTests(unittest.TestCase):
+    def test_concepts_first_ties_keep_order(self):
+        hits = [Hit(1, "общие слова"), Hit(2, "Euler deconvolution depth"), Hit(3, "тоже общее"),
+                Hit(4, "метод Эйлера")]
+        got = [h.chunk_id for h in C.rerank(hits, [["метод Эйлера", "Euler deconvolution"]])]
+        self.assertEqual(got, [2, 4, 1, 3])
+
+    def test_no_concepts_no_change(self):
+        hits = [Hit(1, "a"), Hit(2, "b")]
+        self.assertIs(C.rerank(hits, []), hits)
+
+
+if __name__ == "__main__":
+    unittest.main()

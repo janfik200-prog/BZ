@@ -1,0 +1,82 @@
+{
+ "search": {
+  "vector": {
+   "judged": 125,
+   "useful": 71,
+   "share_useful": 0.568,
+   "ci95": [
+    0.48,
+    0.652
+   ],
+   "precision_at_5_mean": 0.568,
+   "share_of_pooled_useful_found": 0.597,
+   "queries_without_results": 0
+  },
+  "text": {
+   "judged": 116,
+   "useful": 25,
+   "share_useful": 0.216,
+   "ci95": [
+    0.15,
+    0.299
+   ],
+   "precision_at_5_mean": 0.2,
+   "share_of_pooled_useful_found": 0.173,
+   "queries_without_results": 0
+  },
+  "hybrid": {
+   "judged": 125,
+   "useful": 63,
+   "share_useful": 0.504,
+   "ci95": [
+    0.418,
+    0.59
+   ],
+   "precision_at_5_mean": 0.504,
+   "share_of_pooled_useful_found": 0.485,
+   "queries_without_results": 0
+  },
+  "graph": {
+   "judged": 125,
+   "useful": 65,
+   "share_useful": 0.52,
+   "ci95": [
+    0.433,
+    0.606
+   ],
+   "precision_at_5_mean": 0.52,
+   "share_of_pooled_useful_found": 0.514,
+   "queries_without_results": 0
+  }
+ },
+ "facts": {
+  "judged": 120,
+  "correct": 104,
+  "precision": 0.867,
+  "ci95": [
+   0.794,
+   0.916
+  ],
+  "unjudged": 0
+ },
+ "latency_s": {
+  "vector": {
+   "median": 0.063,
+   "max": 23.818
+  },
+  "text": {
+   "median": 0.013,
+   "max": 0.108
+  },
+  "hybrid": {
+   "median": 0.074,
+   "max": 23.597
+  },
+  "graph": {
+   "median": 0.089,
+   "max": 23.961
+  }
+ },
+ "search_rows_judged": 304,
+ "search_rows_total": 304
+}

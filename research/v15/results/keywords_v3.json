@@ -1,0 +1,412 @@
+{
+ "1": [
+  [
+   "гидротермальные изменения",
+   "hydrothermal alteration",
+   "HTA"
+  ],
+  [
+   "золото",
+   "gold",
+   "Au"
+  ],
+  [
+   "месторождение",
+   "deposit",
+   "dep"
+  ]
+ ],
+ "2": [
+  [
+   "гидротермальные изменения",
+   "hydrothermal alteration",
+   "HTA"
+  ],
+  [
+   "ASTER",
+   "ASTER",
+   "ASTER"
+  ],
+  [
+   "снимки",
+   "imagery",
+   "imagery"
+  ]
+ ],
+ "3": [
+  [
+   "оксиды железа",
+   "iron oxides",
+   "FeOx"
+  ],
+  [
+   "глинистые минералы",
+   "clay minerals",
+   "Clays"
+  ],
+  [
+   "Landsat 8",
+   "Landsat 8",
+   "L8"
+  ]
+ ],
+ "4": [
+  [
+   "аэрогамма-спектрометрия",
+   "aerogamma spectrometry",
+   "AGS"
+  ],
+  [
+   "калиевые метасоматиты",
+   "potassic metasomatic rocks",
+   "KMS"
+  ],
+  [
+   "радиоактивность",
+   "radioactivity",
+   "RA"
+  ]
+ ],
+ "5": [
+  [
+   "калий",
+   "potassium",
+   "K"
+  ],
+  [
+   "торий",
+   "thorium",
+   "Th"
+  ],
+  [
+   "гидротермальные изменения",
+   "hydrothermal alteration",
+   "HTA"
+  ]
+ ],
+ "6": [
+  [
+   "линеамент",
+   "lineament",
+   "L"
+  ],
+  [
+   "аэромагнитные данные",
+   "aeromagnetic data",
+   "AM data"
+  ],
+  [
+   "оруденение",
+   "ore mineralization",
+   "OM"
+  ]
+ ],
+ "7": [
+  [
+   "плотность линеаментов",
+   "lineament density",
+   "LD"
+  ],
+  [
+   "перспективные на золото участки",
+   "gold prospective areas",
+   "GPA"
+  ],
+  [
+   "золото",
+   "gold",
+   "Au"
+  ]
+ ],
+ "8": [
+  [
+   "орогенные месторождения золота",
+   "orogenic gold deposits",
+   "OGD"
+  ],
+  [
+   "структурный контроль",
+   "structural control",
+   "SC"
+  ],
+  [
+   "золото",
+   "gold",
+   "Au"
+  ]
+ ],
+ "9": [
+  [
+   "разломы",
+   "faults",
+   "F"
+  ],
+  [
+   "золотое оруденение",
+   "gold mineralization",
+   "GM"
+  ],
+  [
+   "контролировать",
+   "control",
+   "C"
+  ]
+ ],
+ "10": [
+  [
+   "метод Эйлера",
+   "Euler method",
+   "EM"
+  ],
+  [
+   "глубина",
+   "depth",
+   "d"
+  ],
+  [
+   "магнитный источник",
+   "magnetic source",
+   "MS"
+  ]
+ ],
+ "11": [
+  [
+   "гравиразведка",
+   "gravity survey",
+   "ГР"
+  ],
+  [
+   "железорудные тела",
+   "iron ore bodies",
+   "ИРТ"
+  ],
+  [
+   "оконтуривание",
+   "contouring",
+   "ОК"
+  ]
+ ],
+ "12": [
+  [
+   "машинное обучение",
+   "machine learning",
+   "ML"
+  ],
+  [
+   "прогнозное картирование",
+   "predictive mapping",
+   ""
+  ],
+  [
+   "рудоносность",
+   "ore fertility",
+   ""
+  ]
+ ],
+ "13": [
+  [
+   "оценка неопределённости",
+   "uncertainty estimation",
+   "UE"
+  ],
+  [
+   "прогнозные карты",
+   "predictive maps",
+   "PM"
+  ],
+  [
+   "машинное обучение",
+   "machine learning",
+   "ML"
+  ]
+ ],
+ "14": [
+  [
+   "обучающие точки",
+   "training points",
+   "TP"
+  ],
+  [
+   "отрицательные примеры",
+   "negative examples",
+   "NE"
+  ],
+  [
+   "прогнозные модели",
+   "predictive models",
+   "PM"
+  ]
+ ],
+ "15": [
+  [
+   "пирит",
+   "pyrite",
+   "FeS2"
+  ],
+  [
+   "арсенопирит",
+   "arsenopyrite",
+   "FeAsS"
+  ],
+  [
+   "галенит",
+   "galena",
+   "PbS"
+  ]
+ ],
+ "16": [
+  [
+   "березитизация",
+   "berzitization",
+   "Bz"
+  ],
+  [
+   "лиственитизация",
+   "lignitization",
+   "Lg"
+  ],
+  [
+   "вмещающие породы",
+   "host rocks",
+   "Hr"
+  ]
+ ],
+ "17": [
+  [
+   "Сухой Лог",
+   "Sukhoy Log",
+   "СЛ"
+  ],
+  [
+   "рудное тело",
+   "ore body",
+   "ОТ"
+  ],
+  [
+   "строение месторождения",
+   "deposition structure",
+   "ДМ"
+  ]
+ ],
+ "18": [
+  [
+   "кольцевые структуры",
+   "ring structures",
+   "RS"
+  ],
+  [
+   "золотое оруденение",
+   "gold mineralization",
+   "GM"
+  ],
+  [
+   "космоснимки",
+   "satellite images",
+   "SI"
+  ]
+ ],
+ "19": [
+  [
+   "содержание примесей",
+   "content of impurities",
+   "C"
+  ],
+  [
+   "россыпное золото",
+   "placer gold",
+   "PG"
+  ],
+  [
+   "коренной источник",
+   "primary source",
+   "PS"
+  ]
+ ],
+ "20": [
+  [
+   "редкометалльная минерализация",
+   "rare metal mineralization",
+   "RMM"
+  ],
+  [
+   "гранитоиды",
+   "granitoids",
+   "GRT"
+  ]
+ ],
+ "21": [
+  [
+   "колчедан",
+   "sulfide",
+   "S"
+  ],
+  [
+   "Алтай",
+   "Altai",
+   "Alt"
+  ],
+  [
+   "формирование",
+   "formation",
+   "Fm"
+  ]
+ ],
+ "22": [
+  [
+   "гиперспектральная съёмка",
+   "hyperspectral survey",
+   "HS"
+  ],
+  [
+   "минерал",
+   "mineral",
+   "min"
+  ],
+  [
+   "изменённые породы",
+   "altered rocks",
+   "alt"
+  ]
+ ],
+ "23": [
+  [
+   "метод главных компонент",
+   "principal component analysis",
+   "PCA"
+  ]
+ ],
+ "24": [
+  [
+   "аналитический иерархический процесс",
+   "analytic hierarchy process",
+   "AHP"
+  ],
+  [
+   "перспективность",
+   "prospectivity",
+   "P"
+  ],
+  [
+   "картирование",
+   "mapping",
+   "M"
+  ]
+ ],
+ "25": [
+  [
+   "золото-урановое оруденение",
+   "gold-uranium mineralization",
+   "Au-U"
+  ],
+  [
+   "Балтийский щит",
+   "Baltic Shield",
+   "Baltic Shield"
+  ],
+  [
+   "уран",
+   "uranium",
+   "U"
+  ]
+ ]
+}

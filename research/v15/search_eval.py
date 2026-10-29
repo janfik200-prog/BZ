@@ -225,11 +225,11 @@ def _marks(ws, col: int) -> dict[int, int]:
     return out
 
 
-def score() -> None:
+def score(path: Path = SHEET) -> None:
     from openpyxl import load_workbook
 
     key = json.loads((RES / "search_key.json").read_text("utf-8"))
-    wb = load_workbook(SHEET, data_only=True)
+    wb = load_workbook(path, data_only=True)
     rel = _marks(wb["Поиск"], 5)
     ok = _marks(wb["Факты"], 7)
     judged = {(r["query"], r["chunk_id"]): rel[r["row"]] for r in key["search_rows"] if r["row"] in rel}
@@ -264,4 +264,7 @@ def score() -> None:
 
 
 if __name__ == "__main__":
-    {"sheet": sheet, "score": score}[sys.argv[1]]()
+    if sys.argv[1] == "score":
+        score(Path(sys.argv[2]) if len(sys.argv) > 2 else SHEET)
+    else:
+        sheet()

@@ -190,6 +190,9 @@ class Plan:
     # (retrieval.TRANSLATED): в общем списке запросов в AgentKB китайский запрос со словом
     # «DRASTIC» притягивал таблицы и вытеснял аннотацию с ответом.
     translated: list[str] = field(default_factory=list)
+    # Ключевые понятия вопроса (index/concepts.py, GEORAG_CONCEPTS=1): кандидаты, где они
+    # есть, — выше. Пусто — поиск как раньше.
+    concepts: list[list[str]] = field(default_factory=list)
     # Вопрос о названной статье («… используется ли X в этой статье?»): её doc_id —
     # поиск только во фрагментах этой статьи (article.py).
     article: str | None = None

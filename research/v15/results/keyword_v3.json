@@ -1,0 +1,18 @@
+{
+ "первая инструкция": {
+  "labelled": 82,
+  "useful": 59,
+  "share_useful_labelled": 0.72,
+  "unlabelled": 43,
+  "pairs_without_concepts": 112,
+  "useful_among_them": 11
+ },
+ "инструкция автора": {
+  "labelled": 75,
+  "useful": 54,
+  "share_useful_labelled": 0.72,
+  "unlabelled": 50,
+  "pairs_without_concepts": 75,
+  "useful_among_them": 10
+ }
+}
