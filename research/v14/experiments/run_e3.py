@@ -17,16 +17,16 @@ raw_e_live.jsonl.
            критерию CHOICE_RULE ниже (записан до прогона DEV) → e3_summary.json["dev"].
   test   — те же 100 фрагментов TEST, что в run_e.py (зерно 20261101, сверка с
            raw_e_live.jsonl — несовпадение останавливает прогон): E1′ и E1″, один прогон.
-  blind  — слепая выборка фактов на разметку: по ≥ 50 фактов на режим (E0, E1, E1′, E1″),
-           для E0/E1 — 33 уже размеченных (e_precision_sample.json, e2_precision_sample.json)
-           плюс добор; одинаковые факты (фрагмент, концы, связь, цитата) размечаются один раз;
-           перемешано, режим скрыт. Лист — в файл (аргумент), ключ режимов — в другой файл.
-  score  — сведение меток с режимами: точность (Wilson), затраты, «токены на верный факт»
-           → e3_precision_sample.json и e3_summary.json["test"].
+  costs  — затраты и факты по режимам на TEST-100 → e3_summary.json["test_costs"].
+  blind  — лист слепой разметки для человека: по ≥ 50 фактов на режим (E0, E1, E1′, E1″),
+           для E0/E1 — 33 прежних (e_precision_sample.json, e2_precision_sample.json) плюс
+           добор; одинаковый факт — одна строка; перемешано, режим скрыт, gold_correct пуст
+           → e3_precision_sample.json, ключ режимов → e3_blind_key.json. Агент и модель
+           метки не ставят.
+  score  — после разметки человеком: точность (Wilson), «токены на верный факт»
+           → e3_summary.json["test"].
 
-    .venv/Scripts/python.exe research/v14/experiments/run_e3.py dev|test
-    .venv/Scripts/python.exe research/v14/experiments/run_e3.py blind SHEET.json KEY.json
-    .venv/Scripts/python.exe research/v14/experiments/run_e3.py score LABELS.json KEY.json
+    .venv/Scripts/python.exe research/v14/experiments/run_e3.py dev|test|costs|blind|score
 """
 
 from __future__ import annotations
@@ -37,6 +37,7 @@ import math
 import os
 import random
 import sys
+import threading
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
@@ -66,7 +67,6 @@ BOOT_SEED = 20261103
 BOOT_N = 2000
 BLIND_SEED = 20261104
 PER_MODE = 50
-ANNOTATOR = "claude-agent-T9"
 MODES = {"E1p": 4, "E1pp": 3}  # E1′ и E1″: порог k, задание без списка предметов
 LABEL = {"E0": "E0", "E1": "E1", "E1p": "E1′", "E1pp": "E1″"}
 
@@ -148,33 +148,52 @@ def plan_for(sample, finder, reg, k: int) -> list[dict]:
     return [c for c in sample if kept(pf.decide(c["id"], c["text"]), k)]
 
 
+RAW = RES / "raw_e3_live.jsonl"
+RETRIES = 3  # сетевые сбои (сервер перезапускался) — повтор; невалидный JSON — окончательный ответ
+_raw_lock = threading.Lock()
+
+
+def read_raw() -> list[dict]:
+    return [json.loads(x) for x in RAW.open(encoding="utf-8") if x.strip()] if RAW.exists() else []
+
+
 def run_jobs(jobs: list[tuple[str, dict]], split: str, rules: str) -> list[dict]:
+    """Возобновляемо: каждый ответ сразу дописывается в raw_e3_live.jsonl; при перезапуске
+    готовые (split, режим, фрагмент) не повторяются. Вызов, который так и не дошёл до
+    сервера, не записывается — его пройдёт следующий запуск."""
     adapter = ModelAdapter(HOST, MODEL, log_path=RES / "llm_calls_e3.jsonl")
+    done = {(r["split"], r["mode"], r["chunk_id"]): r for r in read_raw()}
+    todo = [j for j in jobs if (split, j[0], j[1]["id"]) not in done]
+    print(f"{split}: готово {len(jobs) - len(todo)}, осталось {len(todo)}", file=sys.stderr)
 
     def one(job):
         mode, c = job
         system, user = F.messages(rules, c["text"], None)  # без списка предметов — как E0
-        r = adapter.chat_json(system, user, max_tokens=F.ANSWER_TOKENS, temperature=0.0, tag=f"{split}:{mode}:{c['id']}")
+        for attempt in range(RETRIES):
+            r = adapter.chat_json(system, user, max_tokens=F.ANSWER_TOKENS, temperature=0.0, tag=f"{split}:{mode}:{c['id']}")
+            if r.ok or (r.error or "").startswith("invalid JSON"):
+                break
+            time.sleep(30 * (attempt + 1))
+        else:
+            print(f"  не дошло: {mode}:{c['id']}: {r.error}", file=sys.stderr)
+            return None
         checked = F.check(r.data, c["text"]) if r.ok else F.Checked(rejected=[f"model error: {r.error}"])
-        return {"split": split, "mode": mode, "chunk_id": c["id"], "doc_id": c["doc_id"], "ok": r.ok, "error": r.error,
-                "prompt_tokens": r.prompt_tokens, "completion_tokens": r.completion_tokens, "latency_s": r.latency_s,
-                "n_facts": len(checked.facts), "n_rejected": len(checked.rejected), "prompt_sha256": r.prompt_sha256,
-                "facts": [[f.src, f.relation, f.dst, f.quote] for f in checked.facts], "model": r.model}
+        row = {"split": split, "mode": mode, "chunk_id": c["id"], "doc_id": c["doc_id"], "ok": r.ok, "error": r.error,
+               "prompt_tokens": r.prompt_tokens, "completion_tokens": r.completion_tokens, "latency_s": r.latency_s,
+               "n_facts": len(checked.facts), "n_rejected": len(checked.rejected), "prompt_sha256": r.prompt_sha256,
+               "facts": [[f.src, f.relation, f.dst, f.quote] for f in checked.facts], "model": r.model}
+        with _raw_lock, RAW.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+        return row
 
     t0 = time.monotonic()
     with ThreadPoolExecutor(WORKERS) as pool:
-        out = list(pool.map(one, jobs))
-    print(f"{split}: {len(out)} вызовов за {time.monotonic() - t0:.0f} с", file=sys.stderr)
-    return out
-
-
-def save_raw(rows: list[dict], split: str) -> None:
-    path = RES / "raw_e3_live.jsonl"
-    old = [json.loads(x) for x in path.open(encoding="utf-8")] if path.exists() else []
-    old = [r for r in old if r["split"] != split]
-    with path.open("w", encoding="utf-8") as f:
-        for r in old + rows:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+        fresh = list(pool.map(one, todo))
+    print(f"{split}: {sum(x is not None for x in fresh)} вызовов за {time.monotonic() - t0:.0f} с", file=sys.stderr)
+    if any(x is None for x in fresh):
+        raise SystemExit("не все вызовы дошли до сервера — запустите этап снова, продолжится с места")
+    done = {(r["split"], r["mode"], r["chunk_id"]): r for r in read_raw()}
+    return [done[(split, m, c["id"])] for m, c in jobs]
 
 
 def keys(rs) -> set:
@@ -214,7 +233,6 @@ def stage_dev() -> None:
     plans = {m: plan_for(sample, finder, reg, k) for m, k in MODES.items()}
     jobs = [("E0", c) for c in sample] + [(m, c) for m, p in plans.items() for c in p]
     out = run_jobs(jobs, "DEV", rules)
-    save_raw(out, "DEV")
     by = defaultdict(list)
     for r in out:
         by[r["mode"]].append(r)
@@ -271,7 +289,6 @@ def stage_test() -> None:
     sha_ok = sum(sha256_text("\n".join(F.messages(rules, c["text"], None))) == e0_sha[c["id"]] for c in sample)
     jobs = [(m, c) for m, p in plans.items() for c in p]
     out = run_jobs(jobs, "TEST", rules)
-    save_raw(out, "TEST")
     decisions = [json.loads(x) for x in (RES / "prefilter_decisions.jsonl").open(encoding="utf-8")]
     s["test_run"] = {"seed": TEST_SEED, "n_chunks": N, "sample_matches_raw_e_live": True,
                      "e1p_chunks_match_e1": True, "prompt_sha_equal_to_e0": f"{sha_ok}/{N}",
@@ -290,8 +307,7 @@ def test_rows() -> dict[str, list[dict]]:
     for r in (RES / "raw_e_live.jsonl").open(encoding="utf-8"):
         r = json.loads(r)
         by[r["mode"]].append(r)
-    for r in (RES / "raw_e3_live.jsonl").open(encoding="utf-8"):
-        r = json.loads(r)
+    for r in read_raw():
         if r["split"] == "TEST":
             by[r["mode"]].append(r)
     return by
@@ -311,7 +327,14 @@ def prior_labels() -> dict[str, bool]:
     return out
 
 
-def stage_blind(sheet: Path, key: Path) -> None:
+SHEET = RES / "e3_precision_sample.json"  # лист разметки: режим скрыт, gold_correct пуст
+KEY = RES / "e3_blind_key.json"  # ключ режимов — разметчику не открывать до конца разметки
+
+
+def stage_blind() -> None:
+    """Лист для человека-разметчика. Метки не ставятся ни агентом, ни моделью: gold_correct
+    пуст. Прежние слепые метки (E, E2; разметчик — модель) в лист не подставляются, а только
+    сохраняются в ключе для сравнения; одинаковый факт в разных режимах — одна строка."""
     by = test_rows()
     prior = prior_labels()
     rng = random.Random(BLIND_SEED)
@@ -321,79 +344,88 @@ def stage_blind(sheet: Path, key: Path) -> None:
         have = [x for x in pool if x in prior] if m in ("E0", "E1") else []
         rest = [x for x in pool if x not in set(have)]
         chosen[m] = have + rng.sample(rest, min(PER_MODE - len(have), len(rest)))
-    items = sorted({x for v in chosen.values() for x in v if x not in prior})
+    items = sorted({x for v in chosen.values() for x in v})
     rng.shuffle(items)
     texts = {c["id"]: c["text"] for c in E.load_corpus() if c["id"] in {json.loads(x)[0] for x in items}}
     blind = []
     for i, x in enumerate(items):
         cid, src, rel, dst, quote = json.loads(x)
-        blind.append({"bid": i, "fact": [src, rel, dst], "quote": quote, "chunk_text": texts[cid][:F.FRAGMENT_CHARS]})
-    sheet.write_text(json.dumps(blind, ensure_ascii=False, indent=1), "utf-8")
-    key.write_text(json.dumps({"items": items, "chosen": chosen}, ensure_ascii=False), "utf-8")
-    print(f"на разметку {len(blind)} фактов (ещё {sum(x in prior for v in chosen.values() for x in v)} мест — прежние метки)")
+        blind.append({"bid": i, "chunk_id": cid, "fact": [src, rel, dst], "quote": quote,
+                      "chunk_text": texts[cid][:F.FRAGMENT_CHARS], "gold_correct": None, "annotator_id": None, "notes": ""})
+    SHEET.write_text(json.dumps({
+        "instructions": ("Слепая разметка T9/E3. Режим скрыт. Для каждого факта: gold_correct = true, если связь "
+                         "«от — связь — к» верно сказана в цитате (оба конца названы, связь не искажена), иначе false; "
+                         "annotator_id — кто размечал (геолог / не эксперт). Ключ режимов — e3_blind_key.json, "
+                         "не открывать до конца разметки. Подсчёт: run_e3.py score."),
+        "seed": BLIND_SEED, "per_mode": PER_MODE, "items": blind}, ensure_ascii=False, indent=1), "utf-8")
+    KEY.write_text(json.dumps({"items": items, "chosen": chosen,
+                               "prior_labels_model_annotator": {x: prior[x] for x in items if x in prior}},
+                              ensure_ascii=False), "utf-8")
+    print(f"на разметку {len(blind)} фактов; в выборках режимов мест: "
+          + ", ".join(f"{LABEL[m]} {len(v)}" for m, v in chosen.items()))
 
 
-def stage_score(labels_path: Path, key_path: Path) -> None:
-    labels = json.loads(labels_path.read_text("utf-8"))  # {bid: true/false}
-    key = json.loads(key_path.read_text("utf-8"))
-    prior = prior_labels()
+def stage_score() -> None:
+    sheet = json.loads(SHEET.read_text("utf-8"))["items"]
+    missing = [x["bid"] for x in sheet if x["gold_correct"] is None]
+    if missing:
+        raise SystemExit(f"не размечено {len(missing)} фактов — подсчёт после полной разметки")
+    labels = {str(x["bid"]): x["gold_correct"] for x in sheet}
+    annot = {str(x["bid"]): x["annotator_id"] for x in sheet}
+    key = json.loads(KEY.read_text("utf-8"))
     by_item = {x: bool(labels[str(i)]) for i, x in enumerate(key["items"])}
-    by = test_rows()
-    out_labels, prec = [], {}
+    prec = {}
     for m, sel in key["chosen"].items():
-        ok = 0
-        for x in sel:
-            new = x in by_item
-            v = by_item[x] if new else prior[x]
-            ok += v
-            cid, *fact = json.loads(x)
-            out_labels.append({"mode": LABEL[m], "chunk_id": cid, "fact": fact, "gold_correct": v,
-                               "annotator": f"{ANNOTATOR} (не эксперт, режим скрыт)" if new else "claude-opus-5.5-annotator (blind to mode)",
-                               "source": "e3" if new else "e/e2"})
+        ok = sum(by_item[x] for x in sel)
         prec[m] = {"correct": ok, "n": len(sel), "precision": ok / len(sel), "ci95": list(wilson(ok, len(sel)))}
-    e0 = prec["E0"]
     s = load_summary()
-    table = {}
+    table = costs_table()
+    e0 = prec["E0"]
     for m in ("E0", "E1", "E1p", "E1pp"):
-        st = mode_stats(by[m])
-        p = prec[m]
-        tok = st["total_tokens"]
-        est = st["facts"] * p["precision"]
+        st, p = table[LABEL[m]], prec[m]
+        tok, est = st["total_tokens"], st["facts"] * p["precision"]
         lo, hi = p["ci95"]
         st.update({"precision": p, "est_correct_facts": est,
                    "tokens_per_correct_fact": tok / est if est else None,
                    "tokens_per_correct_fact_ci95": [tok / (st["facts"] * hi) if hi else None,
-                                                    tok / (st["facts"] * lo) if lo else None],
-                   "fact_keys": len(keys(by[m])), "e0_keys_recovered": len(keys(by["E0"]) & keys(by[m]))})
+                                                    tok / (st["facts"] * lo) if lo else None]})
         if m != "E0":
             d = newcombe(p["correct"], p["n"], e0["correct"], e0["n"])
             st["precision_minus_e0"] = {"diff": d[0], "ci95": [d[1], d[2]]}
-            st["accepted"] = bool(tok < mode_stats(by["E0"])["total_tokens"] and p["ci95"][1] >= e0["precision"])
-        table[LABEL[m]] = st
+            st["accepted"] = bool(tok < table["E0"]["total_tokens"] and hi >= e0["precision"])
     s["test"] = table
-    s["blind"] = {"seed": BLIND_SEED, "per_mode": PER_MODE, "new_labels": len(by_item),
-                  "reused_prior_labels": sum(x not in by_item for v in key["chosen"].values() for x in v),
-                  "annotator": ANNOTATOR, "note": "не эксперт-геолог; одинаковый факт в разных режимах — одна метка"}
+    s["blind"] = {"seed": BLIND_SEED, "per_mode": PER_MODE, "labels": len(by_item),
+                  "annotators": sorted({str(v) for v in annot.values()})}
     write_summary(s)
-    (RES / "e3_precision_sample.json").write_text(json.dumps({"labels": out_labels, "precision": {LABEL[m]: v for m, v in prec.items()}},
-                                                             ensure_ascii=False, indent=1), "utf-8")
-    print(json.dumps({k: {x: v[x] for x in ("calls", "total_tokens", "facts", "precision", "tokens_per_correct_fact",
-                                            "tokens_per_correct_fact_ci95")} for k, v in table.items()}, ensure_ascii=False, indent=1))
+    print(json.dumps(table, ensure_ascii=False, indent=1))
+
+
+def costs_table() -> dict:
+    """Затраты и факты по режимам на TEST-100 (без точности — она после разметки)."""
+    by = test_rows()
+    e0k = keys(by["E0"])
+    out = {}
+    for m in ("E0", "E1", "E1p", "E1pp"):
+        st = mode_stats(by[m])
+        mk = keys(by[m])
+        st.update({"fact_keys": len(mk), "e0_keys_recovered": len(e0k & mk),
+                   "e0_keys_in_dropped_chunks": len({x for x in e0k if x[0] not in {r["chunk_id"] for r in by[m]}})})
+        out[LABEL[m]] = st
+    return out
+
+
+def stage_costs() -> None:
+    s = load_summary()
+    s["test_costs"] = costs_table()
+    write_summary(s)
+    print(json.dumps(s["test_costs"], ensure_ascii=False, indent=1))
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=("dev", "test", "blind", "score"))
-    ap.add_argument("files", nargs="*", type=Path)
-    a = ap.parse_args()
-    if a.stage == "dev":
-        stage_dev()
-    elif a.stage == "test":
-        stage_test()
-    elif a.stage == "blind":
-        stage_blind(*a.files)
-    else:
-        stage_score(*a.files)
+    ap.add_argument("stage", choices=("dev", "test", "costs", "blind", "score"))
+    stage = ap.parse_args().stage
+    {"dev": stage_dev, "test": stage_test, "costs": stage_costs, "blind": stage_blind, "score": stage_score}[stage]()
 
 
 if __name__ == "__main__":
