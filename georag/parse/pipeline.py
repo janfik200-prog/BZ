@@ -39,6 +39,7 @@ from .models import (
     ParsedDoc,
     ParseInput,
     ValidationReport,
+    parser_version,
 )
 from .orchestrator import profile
 from .parsers.pymupdf import parse_with_pymupdf
@@ -99,6 +100,7 @@ class DocResult:
     attempts: list[str] = field(default_factory=list)
     variant: str = ""  # вариант документа по зонду (profile): скан, с переносами…
     cases: list[str] = field(default_factory=list)  # найденные оркестратором случаи
+    parser_version: str = ""  # «docling@2.140.0» — чем разобран (models.parser_version)
 
     def to_dict(self) -> dict[str, Any]:
         return {**asdict(self), "duration_sec": round(self.duration_sec, 2)}
@@ -205,6 +207,7 @@ def _process(
         attempts=[f"{p.parser}:{p.status}" for p, _ in tried],
         variant=kind.variant,
         cases=[f.short() for f in findings if f.found or f.error],
+        parser_version=parser_version(parsed.parser),
     )
     logger.log(
         inp.doc_id,

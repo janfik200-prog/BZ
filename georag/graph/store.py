@@ -233,7 +233,7 @@ def clear(conn: Any) -> None:
 MIN_VOTES = 3
 
 
-def accepted(min_votes: int = MIN_VOTES, alias: str = "f") -> str:
+def accepted(min_votes: int = MIN_VOTES, alias: str = "f", fresh: bool = False) -> str:
     """Условие SQL «факт идёт в граф» (план графа v2, А5 — буфер редких связей).
 
     В граф — факт, подтверждённый вопросами (не меньше min_votes из 4), или факт, чьи
@@ -243,15 +243,30 @@ def accepted(min_votes: int = MIN_VOTES, alias: str = "f") -> str:
 
     98,7 % пар в базе — из одной статьи (27.10.2026), поэтому порог только по числу
     статей опустошил бы граф; подтверждённая вопросами связь идёт и из одной. Концы
-    сравниваются по ключу без падежей (src_key, dst_key), без словаря синонимов."""
+    сравниваются по ключу без падежей (src_key, dst_key), без словаря синонимов.
+
+    fresh — без фактов, помеченных устаревшими (T13: цитаты нет в тексте фрагмента после
+    переразбора; index/db.py, recheck_facts): такой факт в граф не идёт и чужой факт
+    повтором не подтверждает. Только для базы с колонкой stale_since (has_stale)."""
     a = alias
-    return (
+    other = " AND o.stale_since IS NULL" if fresh else ""
+    cond = (
         # coalesce: у непроверенного votes — NULL, и NOT (NULL OR …) выкинуло бы его и
         # из кандидатов.
         f"(coalesce({a}.votes, 0) >= {int(min_votes)} OR EXISTS (SELECT 1 FROM facts o "
-        f"WHERE o.doc_id <> {a}.doc_id AND ((o.src_key = {a}.src_key AND o.dst_key = "
+        f"WHERE o.doc_id <> {a}.doc_id{other} AND ((o.src_key = {a}.src_key AND o.dst_key = "
         f"{a}.dst_key) OR (o.src_key = {a}.dst_key AND o.dst_key = {a}.src_key))))"
     )
+    # Устаревший факт — среди кандидатов (NOT accepted), а не в графе.
+    return f"({a}.stale_since IS NULL AND {cond})" if fresh else cond
+
+
+def has_stale(conn: Any) -> bool:
+    """Есть ли у фактов пометка «устарел» (T13, index/migrations/t13_provenance.sql).
+    База до миграции — нет, и граф строится как раньше."""
+    from ..index.db import STALE_COLUMNS, has_columns
+
+    return has_columns(conn, "facts", STALE_COLUMNS)
 
 
 def all_facts(
@@ -279,7 +294,10 @@ def all_facts(
 
     Тип связи и виды концов (kinds.py) — если их уже поставили: факт, которому тип
     поставлен как «не о геологии» (typed_at есть, rel_type нет), в граф не идёт. Колонок
-    типа может ещё не быть (база до 14.10.2026) — тогда граф как раньше, по словам статьи."""
+    типа может ещё не быть (база до 14.10.2026) — тогда граф как раньше, по словам статьи.
+
+    Факт, помеченный устаревшим (T13, has_stale), в граф не идёт — он среди кандидатов."""
+    fresh = has_stale(conn)
     typed = (
         "f.rel_type, f.rel_flip, f.src_kind, f.dst_kind, f.typed_at"
         if has_types(conn)
@@ -303,7 +321,7 @@ def all_facts(
                    d.title, d.year, d.url, d.doi, f.votes, {typed}, c.pages
             FROM facts f JOIN documents d ON d.doc_id = f.doc_id
                          JOIN chunks c ON c.id = f.chunk_id
-            WHERE {"NOT " if candidates else ""}{accepted(min_votes)} AND f.id > %s
+            WHERE {"NOT " if candidates else ""}{accepted(min_votes, fresh=fresh)} AND f.id > %s
                   AND (%s::bigint IS NULL OR f.id <= %s){extra}
             ORDER BY f.id
             """,
@@ -342,15 +360,16 @@ def spellings(conn: Any, keys: list[str]) -> dict[str, Counter[str]]:
     # Те же факты, что у всего графа (all_facts): без помеченных «не о геологии»; и тот же
     # порядок при равных частотах — по первому факту (Counter помнит порядок вставки).
     geo = " AND NOT (f.typed_at IS NOT NULL AND f.rel_type IS NULL)" if has_types(conn) else ""
+    taken = accepted(fresh=has_stale(conn))
     with conn.cursor() as cur:
         cur.execute(
             f"""
             SELECT key, raw, count(*), min(id) FROM (
                 SELECT f.id, f.src_key AS key, f.src AS raw FROM facts f
-                WHERE f.src_key = ANY(%s) AND {accepted()}{geo}
+                WHERE f.src_key = ANY(%s) AND {taken}{geo}
                 UNION ALL
                 SELECT f.id, f.dst_key, f.dst FROM facts f
-                WHERE f.dst_key = ANY(%s) AND {accepted()}{geo}
+                WHERE f.dst_key = ANY(%s) AND {taken}{geo}
             ) x GROUP BY key, raw ORDER BY 4
             """,
             (keys, keys),
@@ -371,13 +390,14 @@ def count_facts(conn: Any) -> int:
 def top_keys(conn: Any, limit: int) -> list[tuple[str, int, int]]:
     """Ключи имён, о которых больше всего статей: (ключ, статей, фактов). Для большого
     графа — что показать на карте и в списке датасетов вместо всего (api, А6)."""
+    taken = accepted(fresh=has_stale(conn))
     with conn.cursor() as cur:
         cur.execute(
             f"""
             SELECT key, count(DISTINCT doc_id), count(*) FROM (
-                SELECT f.src_key AS key, f.doc_id FROM facts f WHERE {accepted()}
+                SELECT f.src_key AS key, f.doc_id FROM facts f WHERE {taken}
                 UNION ALL
-                SELECT f.dst_key, f.doc_id FROM facts f WHERE {accepted()}
+                SELECT f.dst_key, f.doc_id FROM facts f WHERE {taken}
             ) x GROUP BY key ORDER BY 2 DESC, 3 DESC, 1 LIMIT %s
             """,
             (limit,),

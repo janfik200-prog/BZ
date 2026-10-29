@@ -74,6 +74,10 @@ class IngestReport:
     forgotten: int = 0
     formulas: int = 0  # формул записано (index/formulas.py)
     figures: int = 0  # рисунков записано (index/figures.py)
+    # Переразбор (T13): факты, чьей цитаты нет в новом тексте фрагмента, — помечены
+    # устаревшими; чья цитата снова нашлась — пометка снята (db.replace_chunks).
+    facts_stale: int = 0
+    facts_unstale: int = 0
     errors: list[str] = field(default_factory=list)
 
 
@@ -95,6 +99,14 @@ def _document_row(meta: dict[str, Any]) -> dict[str, Any]:
         "accuracy": float(meta.get("accuracy") or 0.0),
         "fetched_at": meta.get("fetched_at") or "",
     }
+
+
+def parser_version(meta: dict[str, Any]) -> str:
+    """Версия парсера статьи — как её записала добыча (parse/models.py: parser_version,
+    «docling@2.140.0»). Статья добыта до T13 и версии в метаданных нет — «docling@unrecorded»:
+    установленная сейчас версия не подставляется, разбирали, может быть, другой."""
+    recorded = str(meta.get("parser_version") or "").strip()
+    return recorded or f"{meta.get('parser') or 'unknown'}@unrecorded"
 
 
 def _clean(text: Any) -> str:
@@ -199,7 +211,13 @@ def ingest_dir(
         try:
             vectors = embedder.encode(texts, progress=verbose)
             db.upsert_document(conn, _document_row(meta))
-            written = db.replace_chunks(conn, doc_id, _chunk_rows(doc_id, chunks, vectors))
+            rows = _chunk_rows(doc_id, chunks, vectors)
+            version = parser_version(meta)
+            stale: dict[str, list[int]] = {}
+            written = db.replace_chunks(conn, doc_id, rows, parser_version=version, stale=stale)
+            # Версия парсера и отпечаток разбора — у статьи (T13): по ним снимок статьи
+            # (evidence/provenance.py) и аудит цитат видят, каким разбором она в базе.
+            db.record_parse(conn, doc_id, rows, version)
             described = embedder.encode([f["description"] for f in found]) if found else []
             report.formulas += formulas.store(conn, doc_id, found, where, described)
             # Рисунки — заново вместе с фрагментами: ссылки на них идут к новым фрагментам.
@@ -212,9 +230,13 @@ def ingest_dir(
 
         report.indexed += 1
         report.chunks += written
+        report.facts_stale += len(stale.get("marked", []))
+        report.facts_unstale += len(stale.get("cleared", []))
         if verbose:
             title = (meta.get("title") or doc_id)[:60]
-            print(f"  + {title} — {written} чанков")
+            marked = len(stale.get("marked", []))
+            note = f", фактов устарело {marked}" if marked else ""
+            print(f"  + {title} — {written} чанков{note}")
 
     return report
 
@@ -266,6 +288,8 @@ def tidy_indexed(conn: Any, embedder: Any, verbose: bool = True) -> TidyReport:
             if locate_quote(quote, c["text"]) is None
         ]
         db.tidy_chunks(conn, drop, updates, stale)
+        # Текст статьи в базе другой — и отпечаток разбора другой; версия парсера прежняя.
+        db.record_parse(conn, doc_id, [{"ord": c["index"], "text": c["text"]} for c in cleaned.chunks])
         conn.commit()
         report.documents += 1
         report.dropped += len(drop)

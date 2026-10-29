@@ -575,6 +575,7 @@ def _acquire_one(
         fetched_at=fetched.fetched_at,
         tried_urls=tried,
         parser=doc_result.parser,
+        parser_version=doc_result.parser_version,
         accuracy=doc_result.accuracy,
         pages=doc_result.pages,
         sections=doc_result.sections,
