@@ -1,0 +1,109 @@
+{
+ "dsn_db": "georag_v14",
+ "corpus": {
+  "documents": 114,
+  "pages": 2101,
+  "years": [
+   2009,
+   2026
+  ],
+  "parsers": {
+   "pymupdf4llm": 1,
+   "docling": 113
+  },
+  "chunks": 4272,
+  "chunks_with_table": 514,
+  "tokens_median": 389.0,
+  "tokens_max": 566,
+  "chunk_language": {
+   "ru": 959,
+   "en": 3232,
+   "mixed": 81
+  }
+ },
+ "graph": {
+  "facts_total": 13739,
+  "fragments_with_facts": 1330,
+  "documents_with_facts": 107,
+  "accepted": 7403,
+  "candidates": 6336,
+  "hedged_accepted": 440,
+  "rejected_by_code": 8479,
+  "rel_types": {
+   "—": 3638,
+   "локализовано в": 1060,
+   "сопровождается": 471,
+   "содержит": 450,
+   "сложено": 399,
+   "входит в": 351,
+   "генетически связано с": 250,
+   "относится к": 201,
+   "указывает на": 122,
+   "контролируется": 121,
+   "образовано при": 88,
+   "выявлено методом": 87,
+   "пересекает": 85,
+   "ассоциирует с": 42,
+   "сменяется": 38
+  },
+  "kinds": {
+   "объект": 3245,
+   "порода": 2640,
+   "структура": 1821,
+   "процесс": 1692,
+   "null": 1518,
+   "признак": 1069,
+   "оруденение": 893,
+   "минерал": 879,
+   "метод": 712,
+   "элемент": 337
+  },
+  "name_keys": 9445,
+  "nodes_after_synonyms": 9357,
+  "edges": 7257,
+  "entity_names": 9439,
+  "auto_synonyms": 74,
+  "synonym_dictionary": 108,
+  "with_auto": 182,
+  "in_graph": 3818
+ },
+ "clusters": {
+  "entities": 4856,
+  "clusters": 412,
+  "clustered": 2932,
+  "modularity": 0.965
+ },
+ "prefilter": {
+  "chunks": 4272,
+  "by_decision": {
+   "to_model": 3020,
+   "captions": 95,
+   "sparse": 1151,
+   "duplicate": 6
+  },
+  "facts_in_dropped": {
+   "to_model": 13292,
+   "captions": 60,
+   "sparse": 387,
+   "duplicate": 0
+  },
+  "graph_facts_in_dropped": {
+   "to_model": 3748,
+   "captions": 12,
+   "sparse": 58,
+   "duplicate": 0
+  },
+  "min_terms": 3,
+  "dup_similarity": 0.8,
+  "seconds": 227.2
+ },
+ "graph_only": {
+  "facts": 3818,
+  "documents": 103,
+  "spellings": 4896,
+  "nodes": 4856,
+  "pairs": 3737,
+  "pairs_multi": 45,
+  "hedged": 218
+ }
+}
