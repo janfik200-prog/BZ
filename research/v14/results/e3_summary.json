@@ -196,5 +196,105 @@
   "chosen_mode": "E1pp",
   "chosen_k": 3,
   "note": "критерий не выполнен ни одним вариантом"
+ },
+ "test_run": {
+  "seed": 20261101,
+  "n_chunks": 100,
+  "sample_matches_raw_e_live": true,
+  "e1p_chunks_match_e1": true,
+  "prompt_sha_equal_to_e0": "100/100",
+  "calls": {
+   "E1′": 72,
+   "E1″": 77
+  },
+  "offline_loss_full_test": {
+   "k4": {
+    "k": 4,
+    "n_chunks": 2839,
+    "n_docs": 75,
+    "ref_facts": 4838,
+    "ref_lost": 261,
+    "loss": 0.053947912360479536,
+    "ci95": [
+     0.03078817733990148,
+     0.08396764985727878
+    ]
+   },
+   "k3": {
+    "k": 3,
+    "n_chunks": 2839,
+    "n_docs": 75,
+    "ref_facts": 4838,
+    "ref_lost": 158,
+    "loss": 0.032658123191401406,
+    "ci95": [
+     0.017464557222108074,
+     0.05315203955500618
+    ]
+   }
+  },
+  "at": "2026-10-29T23:54:46"
+ },
+ "test_costs": {
+  "E0": {
+   "calls": 100,
+   "errors": 0,
+   "facts": 289,
+   "rejected_by_code": 295,
+   "prompt_tokens": 201955,
+   "completion_tokens": 19774,
+   "total_tokens": 221729,
+   "facts_per_call": 2.89,
+   "prompt_tokens_per_call": 2019.55,
+   "latency_sum_s": 435.2,
+   "fact_keys": 289,
+   "e0_keys_recovered": 289,
+   "e0_keys_in_dropped_chunks": 0
+  },
+  "E1": {
+   "calls": 72,
+   "errors": 0,
+   "facts": 695,
+   "rejected_by_code": 188,
+   "prompt_tokens": 157579,
+   "completion_tokens": 24821,
+   "total_tokens": 182400,
+   "facts_per_call": 9.652777777777779,
+   "prompt_tokens_per_call": 2188.597222222222,
+   "latency_sum_s": 463.6,
+   "fact_keys": 694,
+   "e0_keys_recovered": 88,
+   "e0_keys_in_dropped_chunks": 0
+  },
+  "E1′": {
+   "calls": 72,
+   "errors": 0,
+   "facts": 303,
+   "rejected_by_code": 220,
+   "prompt_tokens": 147115,
+   "completion_tokens": 16924,
+   "total_tokens": 164039,
+   "facts_per_call": 4.208333333333333,
+   "prompt_tokens_per_call": 2043.263888888889,
+   "latency_sum_s": 403.8,
+   "fact_keys": 302,
+   "e0_keys_recovered": 199,
+   "e0_keys_in_dropped_chunks": 0
+  },
+  "E1″": {
+   "calls": 77,
+   "errors": 0,
+   "facts": 315,
+   "rejected_by_code": 216,
+   "prompt_tokens": 157931,
+   "completion_tokens": 16660,
+   "total_tokens": 174591,
+   "facts_per_call": 4.090909090909091,
+   "prompt_tokens_per_call": 2051.051948051948,
+   "latency_sum_s": 353.6,
+   "fact_keys": 315,
+   "e0_keys_recovered": 193,
+   "e0_keys_in_dropped_chunks": 0
+  }
  }
 }
