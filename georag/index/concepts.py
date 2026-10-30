@@ -11,17 +11,25 @@
 
 Модель переводит термины сама и ошибается; где понятие есть в словаре
 config/term-translations.yaml, английские написания берутся оттуда.
+
+Место вопроса (район, месторождение, рудное поле) модель называет отдельно. Его написание
+сверяется с названиями, которые есть в базе (resolve: ключ транслитерации и близость
+векторов названий), и поиск идёт в два слоя: сначала статьи, где это место упомянуто
+(place_docs), потом ответ — только в них. Статей о месте нет — поиск по всей базе.
+Проверка на 20 новых вопросах (research/v15/search_eval2.py) — до этих правок: 0,37 → 0,49.
 """
 
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 from ..paths import ROOT
-from ..text import name_key
+from ..text import name_key, translit_key
 
 TRANSLATIONS = ROOT / "config" / "term-translations.yaml"
 MAX_CONCEPTS = 3
@@ -34,17 +42,41 @@ SYSTEM = (
     "места. Общие слова («признак», «участок», «месторождение», «связь», «формирование», "
     "«картирование», «метод», «как выделяют») обязательными не бывают. Для каждого понятия дай "
     "написания: русское, английское, общепринятые сокращения. Не придумывай сокращений, которых нет в "
-    "литературе. Не дроби понятие на части и не заменяй его частными примерами.\n"
+    "литературе. Не дроби понятие на части и не заменяй его частными примерами. Написания — "
+    "короткие, в одно–три слова, как их пишут в статьях.\n"
+    "Название места (район, месторождение, рудное поле, щит, массив) — отдельно, в поле place, "
+    "в must его не повторяй; места в вопросе нет — place: null.\n"
     "Примеры:\n"
     "«Отношение калия к торию как признак изменений» → "
-    '{"must": [["отношение калия к торию", "K/Th", "potassium-thorium ratio"]]}\n'
+    '{"place": null, "must": [["отношение калия к торию", "K/Th", "potassium-thorium ratio"]]}\n'
     "«Минералы-индикаторы золото-кварцевого оруденения» → "
-    '{"must": [["минералы-индикаторы", "indicator minerals"], ["золото-кварцевое оруденение", '
-    '"gold-quartz"]]}\n'
+    '{"place": null, "must": [["минералы-индикаторы", "indicator minerals"], '
+    '["золото-кварцевое оруденение", "gold-quartz"]]}\n'
     "«Колчеданные месторождения Алтая» → "
-    '{"must": [["колчеданные месторождения", "VMS", "massive sulfide"], ["Алтай", "Altai"]]}\n'
-    'Ответ — только JSON: {"must": [["написание", "написание", ...], ...]}'
+    '{"place": ["Алтай", "Altai"], "must": [["колчеданные месторождения", "VMS", '
+    '"massive sulfide"]]}\n'
+    'Ответ — только JSON: {"place": ["написание", ...] или null, '
+    '"must": [["написание", "написание", ...], ...]}'
 )
+
+# Сверка названия места с базой (resolve) — по отличительной части названия, без «щит»,
+# «массив», «Shield»: иначе «Anabar Shield» сходился с «Guiana Shield» (вектор 0,8+).
+# Проверено 30.10.2026: «Колдар» → Koldar (ключ 1,0), «Camacau» → Camaquã (ключ 0,69,
+# вектор 0,68), а «Ludzyn» с «Lead-Zinc» — ключ 0,71 при далёком векторе: нужны оба.
+PLACE_KEY = 0.85  # одного ключа транслитерации довольно
+PLACE_BOTH = 0.6  # или ключ и вектор, оба не ниже этого
+PLACE_NAMES = 3
+PLACE_WORDS = {
+    "щит", "shield", "массив", "massif", "кряж", "ridge", "поле", "field", "рудное", "ore",
+    "район", "district", "region", "area", "область", "province", "провинция", "пояс", "belt",
+    "горы", "mountains", "mountain", "хребет", "range", "бассейн", "basin", "зона", "zone",
+    "месторождение", "deposit", "рудник", "mine", "участок", "site", "узел", "cluster",
+    "республика", "republic", "автономная", "autonomous", "северный", "northern", "южный",
+    "southern", "восточный", "eastern", "западный", "western", "центральный", "central",
+    "средний", "middle", "the", "of", "do", "de",
+}  # fmt: skip
+CACHE = ROOT / ".local" / "cache"
+_PROPER = re.compile(r"\b[A-ZА-ЯЁ][\w’'-]+(?:[ -][A-ZА-ЯЁ][\w’'-]+)*")
 
 # Общие слова: понятие из одних таких слов отбрасывается (основы, как в _stem).
 GENERIC = {
@@ -107,19 +139,50 @@ def clean(raw: Any, table: dict[str, list[str]] | None = None) -> list[list[str]
     return out[:MAX_CONCEPTS]
 
 
-def extract(llm: Any, question: str) -> list[list[str]]:
-    """Понятия вопроса; модель молчит или ответ не разобрать — пусто (поиск как раньше)."""
+@dataclass
+class Parsed:
+    """Разбор вопроса: понятия (с местом — для порядка кандидатов) и само место."""
+
+    must: list[list[str]] = field(default_factory=list)
+    place: list[str] = field(default_factory=list)
+
+    @property
+    def concepts(self) -> list[list[str]]:
+        return ([self.place] if self.place else []) + self.must
+
+
+def parse(llm: Any, question: str) -> Parsed:
+    """Понятия и место вопроса; модель молчит или ответ не разобрать — пусто."""
     try:
         data = llm.chat_json(SYSTEM, question, temperature=0.0, max_tokens=400)
     except Exception:  # noqa: BLE001 — без понятий поиск работает как прежде
-        return []
-    return clean(data.get("must") if isinstance(data, dict) else None)
+        return Parsed()
+    if not isinstance(data, dict):
+        return Parsed()
+    place = clean([data.get("place")]) if data.get("place") else []
+    return Parsed(clean(data.get("must"))[: MAX_CONCEPTS - bool(place)], place[0] if place else [])
+
+
+def extract(llm: Any, question: str) -> list[list[str]]:
+    """Понятия вопроса вместе с местом (для порядка кандидатов)."""
+    return parse(llm, question).concepts
+
+
+def _main(spelling: str) -> list[str]:
+    """Основы главных слов написания: без общих («deposits») и служебных («of»)."""
+    parts = [_stem(w) for w in _WORD.findall(spelling) if len(w) > 2 or "/" in w]
+    main = [p for p in parts if not _generic(p)]
+    return main or parts
 
 
 def has(spelling: str, words: list[str]) -> bool:
-    """Все слова написания есть в тексте (по началу слова)."""
-    parts = [_stem(w) for w in _WORD.findall(spelling)]
-    return bool(parts) and all(any(t.startswith(p) for t in words) for p in parts)
+    """Написание есть в тексте (по началу слова). В длинном (три главных слова и больше)
+    одно слово может не совпасть: «large-scale gold ore deposits» пишут и без «scale»."""
+    parts = _main(spelling)
+    if not parts:
+        return False
+    found = sum(any(t.startswith(p) for t in words) for p in parts)
+    return found >= (len(parts) - 1 if len(parts) >= 3 else len(parts))
 
 
 def share(concepts: list[list[str]], text: str) -> float:
@@ -136,3 +199,120 @@ def rerank(hits: list[Any], concepts: list[list[str]]) -> list[Any]:
         return hits
     scored = [(share(concepts, h.text), i, h) for i, h in enumerate(hits)]
     return [h for _, _, h in sorted(scored, key=lambda x: (-x[0], x[1]))]
+
+
+# --- место вопроса: сверка с базой и статьи о нём ---------------------------------------
+
+
+def _distinct(name: str) -> str:
+    """Отличительная часть названия: «Anabar Shield» → «Anabar», «массив Колдар» → «Колдар»."""
+    kept = [w for w in re.split(r"[\s\-]+", name) if w and _stem(w) not in
+            {_stem(x) for x in PLACE_WORDS}]
+    return " ".join(kept) or name
+
+
+@dataclass
+class _Base:
+    """Что о местах знает база: названия и слова каждой статьи; векторы названий —
+    по первой нужде (vectors), с записью на диск: считаются около минуты."""
+
+    stamp: tuple[Any, ...]
+    names: list[str]
+    keys: list[str]
+    docs: dict[str, set[str]]  # статья → слова названия, заголовков и текста
+    _vectors: Any = None
+
+    def vectors(self, embedder: Any) -> Any:
+        import numpy as np
+
+        if self._vectors is not None:
+            return self._vectors
+        path = CACHE / f"place-names-{self.stamp[0]}-{self.stamp[1]}.npy"
+        if path.exists():
+            self._vectors = np.load(path)
+        else:
+            v = np.array(embedder.encode([_distinct(n) for n in self.names]))
+            self._vectors = v / np.linalg.norm(v, axis=1, keepdims=True)
+            try:
+                CACHE.mkdir(parents=True, exist_ok=True)
+                np.save(path, self._vectors)
+            except OSError:
+                pass  # без записи — посчитается снова в следующий раз
+        return self._vectors
+
+
+_BASE: dict[tuple[Any, ...], _Base] = {}
+
+
+def _base(conn: Any, embedder: Any) -> _Base:
+    """Названия из заголовков статей и разделов и из графа; пересчёт — если база выросла."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT count(*), coalesce(max(id), 0) FROM chunks")
+        stamp = tuple(cur.fetchone())
+        if stamp in _BASE:
+            return _BASE[stamp]
+        cur.execute(
+            "SELECT d.doc_id, d.title, c.headings, c.text FROM chunks c "
+            "JOIN documents d ON d.doc_id = c.doc_id"
+        )
+        rows = cur.fetchall()
+        cur.execute("SELECT to_regclass('entity_names') IS NOT NULL")
+        graph: list[str] = []
+        if cur.fetchone()[0]:
+            cur.execute("SELECT name FROM entity_names")
+            graph = [n for (n,) in cur.fetchall()]
+    docs: dict[str, set[str]] = {}
+    found: set[str] = set()
+    for doc_id, title, headings, text in rows:
+        heads = " ".join(headings or [])
+        words = docs.setdefault(doc_id, set(_words(title)))
+        words.update(_words(heads), _words(text))
+        for source in (title or "", heads):
+            found.update(m.group() for m in _PROPER.finditer(source))
+    for name in graph:
+        found.update(m.group() for m in _PROPER.finditer(name or ""))
+    names = sorted(found)
+    _BASE.clear()
+    _BASE[stamp] = _Base(stamp, names, [translit_key(_distinct(n)) for n in names], docs)
+    return _BASE[stamp]
+
+
+def _in(spelling: str, words: set[str]) -> bool:
+    """has() для множества слов статьи: по началу слова."""
+    parts = _main(spelling)
+    if not parts:
+        return False
+    found = sum(any(w.startswith(p) for w in words) for p in parts)
+    return found >= (len(parts) - 1 if len(parts) >= 3 else len(parts))
+
+
+def resolve(conn: Any, embedder: Any, place: list[str]) -> list[str]:
+    """Написания места, которые есть в базе: свои — если встречаются в статьях, иначе
+    ближайшие названия базы (ключ транслитерации и близость векторов). «Minas do Camacau»
+    → «Minas do Camaquã». Ничего похожего — пусто: о месте в базе нет статей."""
+    import numpy as np
+
+    base = _base(conn, embedder)
+    present = [p for p in place if any(_in(p, w) for w in base.docs.values())]
+    if present or not base.names:
+        return present
+    best: dict[str, float] = {}
+    vectors = base.vectors(embedder)
+    for spelling in place:
+        key = translit_key(_distinct(spelling))
+        v = np.array(embedder.encode_one(_distinct(spelling)))
+        sims = vectors @ (v / np.linalg.norm(v))
+        for i, name in enumerate(base.names):
+            f = SequenceMatcher(None, key, base.keys[i]).ratio()
+            vs = float(sims[i])
+            if f >= PLACE_KEY or (f >= PLACE_BOTH and vs >= PLACE_BOTH):
+                best[name] = max(best.get(name, 0.0), f + vs)
+    return sorted(best, key=lambda n: -best[n])[:PLACE_NAMES]
+
+
+def place_docs(conn: Any, embedder: Any, names: list[str]) -> list[str]:
+    """Статьи, где место упомянуто — в названии, заголовке раздела или тексте."""
+    if not names:
+        return []
+    base = _base(conn, embedder)
+    return sorted(d for d, words in base.docs.items() if any(_in(n, words) for n in names))

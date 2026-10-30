@@ -1,0 +1,1671 @@
+{
+ "seed": 20261101,
+ "sets": {
+  "set1": {
+   "1": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "гидротермальные изменения",
+      "hydrothermal alteration",
+      "altered rocks",
+      "alteration zones"
+     ],
+     [
+      "золоторудные месторождения",
+      "gold deposits"
+     ]
+    ],
+    "top": [
+     2375,
+     4094,
+     4472,
+     5492,
+     25
+    ]
+   },
+   "2": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "гидротермальные изменения",
+      "hydrothermal alteration",
+      "altered rocks",
+      "alteration zones"
+     ],
+     [
+      "снимки ASTER",
+      "ASTER images"
+     ]
+    ],
+    "top": [
+     4663,
+     5823,
+     4522,
+     4516,
+     5840
+    ]
+   },
+   "3": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "отношения каналов Landsat 8",
+      "Landsat 8 band ratios"
+     ],
+     [
+      "оксиды железа",
+      "iron oxide",
+      "ferric iron"
+     ],
+     [
+      "глинистые минералы",
+      "clay minerals"
+     ]
+    ],
+    "top": [
+     5664,
+     4311,
+     4320,
+     5811,
+     5812
+    ]
+   },
+   "4": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "аэрогамма-спектрометрия",
+      "airborne gamma-ray spectrometry",
+      "gamma-ray spectrometry",
+      "radiometric"
+     ],
+     [
+      "калиевые метасоматиты",
+      "potassic alteration",
+      "potassium-rich metasomatites"
+     ]
+    ],
+    "top": [
+     6469,
+     6795,
+     6448,
+     4101,
+     6868
+    ]
+   },
+   "5": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "отношение калия к торию",
+      "K/Th",
+      "K/eTh",
+      "potassium-thorium ratio",
+      "potassium to thorium ratio"
+     ],
+     [
+      "гидротермальные изменения",
+      "hydrothermal alteration",
+      "altered rocks",
+      "alteration zones"
+     ]
+    ],
+    "top": [
+     6946,
+     6945,
+     5280,
+     6431,
+     4443
+    ]
+   },
+   "6": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "линеаменты",
+      "lineament"
+     ],
+     [
+      "аэромагнитные данные",
+      "aeromagnetic"
+     ]
+    ],
+    "top": [
+     4776,
+     6138,
+     4286,
+     7033,
+     118
+    ]
+   },
+   "7": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "плотность линеаментов",
+      "lineament density"
+     ],
+     [
+      "перспективные на золото участки",
+      "gold-prospective areas"
+     ]
+    ],
+    "top": [
+     6446,
+     7019,
+     6445,
+     6051,
+     6605
+    ]
+   },
+   "8": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "структура",
+      "structure"
+     ],
+     [
+      "орогенные месторождения золота",
+      "orogenic gold"
+     ]
+    ],
+    "top": [
+     4875,
+     7032,
+     6225,
+     6226,
+     6604
+    ]
+   },
+   "9": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "разломы",
+      "fault"
+     ],
+     [
+      "золотое оруденение",
+      "gold mineralization",
+      "gold ore"
+     ]
+    ],
+    "top": [
+     6589,
+     6031,
+     170,
+     6284,
+     6316
+    ]
+   },
+   "10": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "метод Эйлера",
+      "Euler deconvolution",
+      "Euler"
+     ],
+     [
+      "глубина магнитных источников",
+      "depth of magnetic sources",
+      "magnetic source depth"
+     ]
+    ],
+    "top": [
+     5306,
+     6151,
+     6910,
+     6384,
+     6416
+    ]
+   },
+   "11": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "гравиразведка",
+      "gravity",
+      "gravimetric"
+     ],
+     [
+      "железорудные тела",
+      "iron ore bodies"
+     ]
+    ],
+    "top": [
+     6773,
+     4571,
+     6771,
+     5338,
+     1566
+    ]
+   },
+   "12": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "машинное обучение",
+      "machine learning"
+     ],
+     [
+      "прогнозное картирование",
+      "prospectivity mapping",
+      "prospectivity modelling",
+      "prospectivity modeling"
+     ],
+     [
+      "рудоносность",
+      "mineral potential"
+     ]
+    ],
+    "top": [
+     5359,
+     4372,
+     2697,
+     2565,
+     2672
+    ]
+   },
+   "13": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "неопределённость",
+      "uncertainty"
+     ],
+     [
+      "прогнозные карты",
+      "predictive maps"
+     ],
+     [
+      "машинное обучение",
+      "machine learning"
+     ]
+    ],
+    "top": [
+     6490,
+     2622,
+     2654,
+     6520,
+     4371
+    ]
+   },
+   "14": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "обучающие точки",
+      "training points"
+     ],
+     [
+      "отрицательные примеры",
+      "negative examples"
+     ],
+     [
+      "прогнозные модели",
+      "predictive models"
+     ]
+    ],
+    "top": [
+     2626,
+     6493,
+     4051,
+     5372,
+     4044
+    ]
+   },
+   "15": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "минералы-индикаторы",
+      "indicator minerals",
+      "pathfinder minerals"
+     ],
+     [
+      "золото-кварцевое оруденение",
+      "gold-quartz",
+      "quartz vein gold"
+     ]
+    ],
+    "top": [
+     4675,
+     6591,
+     6608,
+     5068,
+     6324
+    ]
+   },
+   "16": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "березитизация",
+      "beresitization",
+      "beresite",
+      "berezite"
+     ],
+     [
+      "лиственитизация",
+      "listvenitization",
+      "listvenite",
+      "listwaenite"
+     ],
+     [
+      "вмещающие породы",
+      "host rocks"
+     ]
+    ],
+    "top": [
+     6180,
+     6185,
+     470,
+     6320,
+     4401
+    ]
+   },
+   "17": {
+    "place": [
+     "Сухой Лог",
+     "Sukhoi Log",
+     "Sukhoy Log"
+    ],
+    "names": [
+     "Сухой Лог",
+     "Sukhoi Log",
+     "Sukhoy Log"
+    ],
+    "docs": 3,
+    "concepts": [
+     [
+      "Сухой Лог",
+      "Sukhoi Log",
+      "Sukhoy Log"
+     ],
+     [
+      "строение месторождения",
+      "ore deposit structure"
+     ],
+     [
+      "форма рудных тел",
+      "ore body shape"
+     ]
+    ],
+    "top": [
+     5091,
+     5090,
+     5117,
+     5148,
+     5092
+    ]
+   },
+   "18": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "кольцевые структуры",
+      "ring structure",
+      "circular structure"
+     ],
+     [
+      "золотое оруденение",
+      "gold mineralization"
+     ]
+    ],
+    "top": [
+     559,
+     560,
+     2235,
+     6216,
+     2234
+    ]
+   },
+   "19": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "состав примесей",
+      "composition of impurities"
+     ],
+     [
+      "россыпное золото",
+      "placer gold",
+      "alluvial gold"
+     ],
+     [
+      "коренной источник",
+      "primary source",
+      "bedrock source",
+      "lode source"
+     ]
+    ],
+    "top": [
+     6070,
+     6989,
+     6039,
+     6089,
+     6090
+    ]
+   },
+   "20": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "редкометалльная минерализация",
+      "rare metal mineralization",
+      "rare-metal"
+     ],
+     [
+      "гранитоиды",
+      "granitoid"
+     ]
+    ],
+    "top": [
+     6237,
+     4198,
+     6227,
+     4203,
+     5870
+    ]
+   },
+   "21": {
+    "place": [
+     "Алтай",
+     "Altai"
+    ],
+    "names": [
+     "Алтай",
+     "Altai"
+    ],
+    "docs": 7,
+    "concepts": [
+     [
+      "Алтай",
+      "Altai"
+     ],
+     [
+      "колчеданные месторождения",
+      "VMS",
+      "volcanogenic massive sulfide",
+      "massive sulphide"
+     ],
+     [
+      "условия формирования",
+      "formation conditions"
+     ]
+    ],
+    "top": [
+     6367,
+     6361,
+     5868,
+     5857,
+     471
+    ]
+   },
+   "22": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "гиперспектральная съёмка",
+      "hyperspectral"
+     ],
+     [
+      "минералы изменённых пород",
+      "altered rock minerals"
+     ]
+    ],
+    "top": [
+     5634,
+     4334,
+     239,
+     254,
+     5949
+    ]
+   },
+   "23": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "метод главных компонент",
+      "principal component analysis",
+      "PCA"
+     ]
+    ],
+    "top": [
+     1598,
+     1580,
+     2549,
+     4475,
+     2073
+    ]
+   },
+   "24": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "аналитический иерархический процесс",
+      "analytic hierarchy process",
+      "analytical hierarchy process",
+      "AHP"
+     ],
+     [
+      "картирование перспективности",
+      "prospectivity mapping"
+     ]
+    ],
+    "top": [
+     6895,
+     6892,
+     1619,
+     1639,
+     156
+    ]
+   },
+   "25": {
+    "place": [
+     "Балтийский щит",
+     "Baltic Shield",
+     "Fennoscandian Shield"
+    ],
+    "names": [
+     "Балтийский щит",
+     "Baltic Shield",
+     "Fennoscandian Shield"
+    ],
+    "docs": 1,
+    "concepts": [
+     [
+      "Балтийский щит",
+      "Baltic Shield",
+      "Fennoscandian Shield"
+     ],
+     [
+      "золото-урановое оруденение",
+      "gold-uranium mineralization"
+     ]
+    ],
+    "top": [
+     444,
+     443,
+     499,
+     502,
+     459
+    ]
+   }
+  },
+  "set2": {
+   "1": {
+    "place": [
+     "Нубийский щит",
+     "Nubian Shield"
+    ],
+    "names": [
+     "Nubian Shield"
+    ],
+    "docs": 10,
+    "concepts": [
+     [
+      "Нубийский щит",
+      "Nubian Shield"
+     ],
+     [
+      "разломы",
+      "fault"
+     ],
+     [
+      "зоны сдвига",
+      "shear zone"
+     ]
+    ],
+    "top": [
+     4887,
+     4762,
+     4806,
+     4758,
+     4808
+    ]
+   },
+   "2": {
+    "place": [
+     "Уругвай",
+     "Uruguay",
+     "Минас-ду-Камакуан",
+     "Minas do Camacuã"
+    ],
+    "names": [
+     "Uruguay",
+     "Minas do Camacuã"
+    ],
+    "docs": 1,
+    "concepts": [
+     [
+      "Уругвай",
+      "Uruguay",
+      "Минас-ду-Камакуан",
+      "Minas do Camacuã"
+     ],
+     [
+      "гидротермальные изменения",
+      "hydrothermal alteration",
+      "altered rocks",
+      "alteration zones"
+     ]
+    ],
+    "top": [
+     203,
+     237,
+     233,
+     194,
+     223
+    ]
+   },
+   "3": {
+    "place": [
+     "Сухой Лог",
+     "Sukhoi Log",
+     "Sukhoy Log"
+    ],
+    "names": [
+     "Сухой Лог",
+     "Sukhoi Log",
+     "Sukhoy Log"
+    ],
+    "docs": 3,
+    "concepts": [
+     [
+      "Сухой Лог",
+      "Sukhoi Log",
+      "Sukhoy Log"
+     ],
+     [
+      "структура геофизических полей",
+      "geophysical field structure",
+      "geophysical structure"
+     ]
+    ],
+    "top": [
+     5110,
+     5085,
+     5117,
+     5156,
+     5091
+    ]
+   },
+   "4": {
+    "place": [
+     "Средний Урал",
+     "Middle Urals",
+     "Central Urals"
+    ],
+    "names": [
+     "Средний Урал",
+     "Middle Urals",
+     "Central Urals"
+    ],
+    "docs": 8,
+    "concepts": [
+     [
+      "Средний Урал",
+      "Middle Urals",
+      "Central Urals"
+     ],
+     [
+      "гидротермально-метасоматические процессы",
+      "hydrothermal-metasomatic processes"
+     ],
+     [
+      "золотое оруденение",
+      "gold mineralization"
+     ]
+    ],
+    "top": [
+     6164,
+     6168,
+     6968,
+     5884,
+     6969
+    ]
+   },
+   "5": {
+    "place": [
+     "Енисейский кряж",
+     "Yenisei Ridge",
+     "Yenisey Ridge"
+    ],
+    "names": [
+     "Енисейский кряж",
+     "Yenisei Ridge",
+     "Yenisey Ridge"
+    ],
+    "docs": 3,
+    "concepts": [
+     [
+      "Енисейский кряж",
+      "Yenisei Ridge",
+      "Yenisey Ridge"
+     ],
+     [
+      "крупнообъёмные золоторудные месторождения",
+      "large-scale gold ore deposits",
+      "large gold deposits"
+     ]
+    ],
+    "top": [
+     15,
+     29,
+     2315,
+     2284,
+     6213
+    ]
+   },
+   "6": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [],
+    "top": [
+     6311,
+     6216,
+     6324,
+     6227,
+     497
+    ]
+   },
+   "7": {
+    "place": [
+     "Колдар",
+     "Koldar"
+    ],
+    "names": [
+     "Koldar"
+    ],
+    "docs": 1,
+    "concepts": [
+     [
+      "Колдар",
+      "Koldar"
+     ],
+     [
+      "медное оруденение",
+      "copper mineralization"
+     ]
+    ],
+    "top": [
+     5163,
+     5172,
+     5165,
+     5197,
+     5199
+    ]
+   },
+   "8": {
+    "place": [
+     "Букантау",
+     "Bukantau"
+    ],
+    "names": [
+     "Букантау",
+     "Bukantau"
+    ],
+    "docs": 2,
+    "concepts": [
+     [
+      "Букантау",
+      "Bukantau"
+     ],
+     [
+      "кольцевые структуры",
+      "ring structure",
+      "circular structure"
+     ],
+     [
+      "золотое оруденение",
+      "gold mineralization"
+     ]
+    ],
+    "top": [
+     563,
+     545,
+     6006,
+     6012,
+     548
+    ]
+   },
+   "9": {
+    "place": [
+     "Восточный Донбасс",
+     "Eastern Donbass"
+    ],
+    "names": [
+     "Восточный Донбасс",
+     "Eastern Donbass"
+    ],
+    "docs": 2,
+    "concepts": [
+     [
+      "Восточный Донбасс",
+      "Eastern Donbass"
+     ],
+     [
+      "рудно-магматические системы",
+      "ore-magmatic systems",
+      "ore-magmatic system"
+     ]
+    ],
+    "top": [
+     376,
+     358,
+     313,
+     312,
+     375
+    ]
+   },
+   "10": {
+    "place": [
+     "Северный Вьетнам",
+     "Northern Vietnam"
+    ],
+    "names": [
+     "Северный Вьетнам",
+     "Northern Vietnam"
+    ],
+    "docs": 1,
+    "concepts": [
+     [
+      "Северный Вьетнам",
+      "Northern Vietnam"
+     ],
+     [
+      "металлогеническая зональность",
+      "metallogenetic zonation",
+      "metallogenetic zonality"
+     ]
+    ],
+    "top": [
+     515,
+     521,
+     519,
+     516,
+     538
+    ]
+   },
+   "11": {
+    "place": [
+     "Нахичеванская автономная республика",
+     "Nakhchivan Autonomous Republic"
+    ],
+    "names": [
+     "Нахичеванская автономная республика",
+     "Nakhchivan Autonomous Republic"
+    ],
+    "docs": 2,
+    "concepts": [
+     [
+      "Нахичеванская автономная республика",
+      "Nakhchivan Autonomous Republic"
+     ],
+     [
+      "россыпи золота",
+      "gold placer",
+      "placer gold"
+     ],
+     [
+      "коренные источники",
+      "primary source",
+      "bedrock source",
+      "lode source"
+     ]
+    ],
+    "top": [
+     6070,
+     6029,
+     6362,
+     6364,
+     6040
+    ]
+   },
+   "12": {
+    "place": [
+     "Лудзин",
+     "Ludzyn"
+    ],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "Лудзин",
+      "Ludzyn"
+     ],
+     [
+      "тектоническая эволюция",
+      "tectonic evolution"
+     ],
+     [
+      "урановое рудное поле",
+      "uranium ore field"
+     ]
+    ],
+    "top": [
+     4534,
+     4531,
+     2235,
+     444,
+     5091
+    ]
+   },
+   "13": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "геофизические признаки",
+      "geophysical indicators"
+     ],
+     [
+      "эпитермальное золотое месторождение",
+      "epithermal gold deposit"
+     ]
+    ],
+    "top": [
+     2240,
+     2216,
+     6610,
+     6245,
+     6615
+    ]
+   },
+   "14": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "радарная съёмка",
+      "radar survey"
+     ],
+     [
+      "изменённые породы",
+      "altered rocks"
+     ],
+     [
+      "тропические районы",
+      "tropical regions"
+     ]
+    ],
+    "top": [
+     1997,
+     1996,
+     6534,
+     6537,
+     4361
+    ]
+   },
+   "15": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "прогнозное картирование",
+      "prospectivity mapping",
+      "prospectivity modelling",
+      "prospectivity modeling"
+     ],
+     [
+      "дисбаланс обучающих данных",
+      "class imbalance"
+     ]
+    ],
+    "top": [
+     4042,
+     4073,
+     2580,
+     1946,
+     88
+    ]
+   },
+   "16": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "источник обломочного золота",
+      "source of placer gold"
+     ],
+     [
+      "состав примесей",
+      "composition of impurities"
+     ]
+    ],
+    "top": [
+     6070,
+     6989,
+     6976,
+     6036,
+     6304
+    ]
+   },
+   "17": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "золотое оруденение карлинского типа",
+      "Carlin-type gold deposit"
+     ],
+     [
+      "терригенно-карбонатные толщи",
+      "terrigeneous-carbonate sequences"
+     ]
+    ],
+    "top": [
+     6020,
+     6005,
+     6194,
+     6285,
+     6255
+    ]
+   },
+   "18": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "редкоземельные элементы",
+      "rare earth elements",
+      "REE"
+     ],
+     [
+      "оловоносные граниты",
+      "tin-bearing granites"
+     ]
+    ],
+    "top": [
+     4203,
+     6380,
+     5600,
+     4198,
+     5857
+    ]
+   },
+   "19": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "разделение потенциальных полей",
+      "potential field separation",
+      "potential field decomposition"
+     ],
+     [
+      "региональная составляющая",
+      "regional component",
+      "regional anomaly"
+     ],
+     [
+      "локальная составляющая",
+      "local component",
+      "local anomaly"
+     ]
+    ],
+    "top": [
+     291,
+     286,
+     5787,
+     1569,
+     276
+    ]
+   },
+   "20": {
+    "place": [],
+    "names": [],
+    "docs": 0,
+    "concepts": [
+     [
+      "радиоактивность",
+      "radioactivity"
+     ],
+     [
+      "редкометалльных месторождений",
+      "rare metal deposits"
+     ]
+    ],
+    "top": [
+     5849,
+     5869,
+     5066,
+     5067,
+     6247
+    ]
+   }
+  }
+ },
+ "rows": [
+  {
+   "row": 2,
+   "set": "set1",
+   "query": 21,
+   "chunk_id": 5868
+  },
+  {
+   "row": 3,
+   "set": "set2",
+   "query": 13,
+   "chunk_id": 6245
+  },
+  {
+   "row": 4,
+   "set": "set1",
+   "query": 12,
+   "chunk_id": 2565
+  },
+  {
+   "row": 5,
+   "set": "set1",
+   "query": 22,
+   "chunk_id": 254
+  },
+  {
+   "row": 6,
+   "set": "set2",
+   "query": 2,
+   "chunk_id": 194
+  },
+  {
+   "row": 7,
+   "set": "set2",
+   "query": 4,
+   "chunk_id": 6969
+  },
+  {
+   "row": 8,
+   "set": "set2",
+   "query": 2,
+   "chunk_id": 237
+  },
+  {
+   "row": 9,
+   "set": "set1",
+   "query": 24,
+   "chunk_id": 6895
+  },
+  {
+   "row": 10,
+   "set": "set2",
+   "query": 16,
+   "chunk_id": 6976
+  },
+  {
+   "row": 11,
+   "set": "set1",
+   "query": 5,
+   "chunk_id": 6945
+  },
+  {
+   "row": 12,
+   "set": "set1",
+   "query": 7,
+   "chunk_id": 6446
+  },
+  {
+   "row": 13,
+   "set": "set1",
+   "query": 4,
+   "chunk_id": 6868
+  },
+  {
+   "row": 14,
+   "set": "set2",
+   "query": 4,
+   "chunk_id": 6968
+  },
+  {
+   "row": 15,
+   "set": "set1",
+   "query": 2,
+   "chunk_id": 4516
+  },
+  {
+   "row": 16,
+   "set": "set1",
+   "query": 15,
+   "chunk_id": 4675
+  },
+  {
+   "row": 17,
+   "set": "set2",
+   "query": 9,
+   "chunk_id": 312
+  },
+  {
+   "row": 18,
+   "set": "set2",
+   "query": 7,
+   "chunk_id": 5199
+  },
+  {
+   "row": 19,
+   "set": "set2",
+   "query": 12,
+   "chunk_id": 5091
+  },
+  {
+   "row": 20,
+   "set": "set1",
+   "query": 14,
+   "chunk_id": 4044
+  },
+  {
+   "row": 21,
+   "set": "set2",
+   "query": 11,
+   "chunk_id": 6362
+  },
+  {
+   "row": 22,
+   "set": "set1",
+   "query": 3,
+   "chunk_id": 4320
+  },
+  {
+   "row": 23,
+   "set": "set1",
+   "query": 6,
+   "chunk_id": 7033
+  },
+  {
+   "row": 24,
+   "set": "set1",
+   "query": 20,
+   "chunk_id": 5870
+  },
+  {
+   "row": 25,
+   "set": "set2",
+   "query": 18,
+   "chunk_id": 5857
+  },
+  {
+   "row": 26,
+   "set": "set2",
+   "query": 12,
+   "chunk_id": 444
+  },
+  {
+   "row": 27,
+   "set": "set1",
+   "query": 19,
+   "chunk_id": 6039
+  },
+  {
+   "row": 28,
+   "set": "set2",
+   "query": 15,
+   "chunk_id": 2580
+  },
+  {
+   "row": 29,
+   "set": "set1",
+   "query": 12,
+   "chunk_id": 2697
+  },
+  {
+   "row": 30,
+   "set": "set1",
+   "query": 22,
+   "chunk_id": 5949
+  },
+  {
+   "row": 31,
+   "set": "set2",
+   "query": 2,
+   "chunk_id": 223
+  },
+  {
+   "row": 32,
+   "set": "set2",
+   "query": 12,
+   "chunk_id": 2235
+  },
+  {
+   "row": 33,
+   "set": "set2",
+   "query": 1,
+   "chunk_id": 4808
+  },
+  {
+   "row": 34,
+   "set": "set1",
+   "query": 21,
+   "chunk_id": 5857
+  },
+  {
+   "row": 35,
+   "set": "set2",
+   "query": 14,
+   "chunk_id": 6537
+  },
+  {
+   "row": 36,
+   "set": "set2",
+   "query": 14,
+   "chunk_id": 6534
+  },
+  {
+   "row": 37,
+   "set": "set1",
+   "query": 2,
+   "chunk_id": 4522
+  },
+  {
+   "row": 38,
+   "set": "set1",
+   "query": 19,
+   "chunk_id": 6090
+  },
+  {
+   "row": 39,
+   "set": "set2",
+   "query": 13,
+   "chunk_id": 6615
+  },
+  {
+   "row": 40,
+   "set": "set1",
+   "query": 14,
+   "chunk_id": 5372
+  },
+  {
+   "row": 41,
+   "set": "set2",
+   "query": 5,
+   "chunk_id": 6213
+  },
+  {
+   "row": 42,
+   "set": "set2",
+   "query": 5,
+   "chunk_id": 2315
+  },
+  {
+   "row": 43,
+   "set": "set2",
+   "query": 2,
+   "chunk_id": 233
+  },
+  {
+   "row": 44,
+   "set": "set1",
+   "query": 12,
+   "chunk_id": 4372
+  },
+  {
+   "row": 45,
+   "set": "set2",
+   "query": 3,
+   "chunk_id": 5156
+  },
+  {
+   "row": 46,
+   "set": "set1",
+   "query": 5,
+   "chunk_id": 6946
+  },
+  {
+   "row": 47,
+   "set": "set2",
+   "query": 10,
+   "chunk_id": 516
+  },
+  {
+   "row": 48,
+   "set": "set1",
+   "query": 10,
+   "chunk_id": 6416
+  },
+  {
+   "row": 49,
+   "set": "set1",
+   "query": 10,
+   "chunk_id": 6384
+  },
+  {
+   "row": 50,
+   "set": "set2",
+   "query": 7,
+   "chunk_id": 5197
+  },
+  {
+   "row": 51,
+   "set": "set1",
+   "query": 8,
+   "chunk_id": 4875
+  },
+  {
+   "row": 52,
+   "set": "set1",
+   "query": 11,
+   "chunk_id": 1566
+  },
+  {
+   "row": 53,
+   "set": "set1",
+   "query": 24,
+   "chunk_id": 6892
+  },
+  {
+   "row": 54,
+   "set": "set2",
+   "query": 8,
+   "chunk_id": 6012
+  },
+  {
+   "row": 55,
+   "set": "set2",
+   "query": 17,
+   "chunk_id": 6285
+  },
+  {
+   "row": 56,
+   "set": "set2",
+   "query": 1,
+   "chunk_id": 4806
+  },
+  {
+   "row": 57,
+   "set": "set2",
+   "query": 11,
+   "chunk_id": 6364
+  },
+  {
+   "row": 58,
+   "set": "set2",
+   "query": 11,
+   "chunk_id": 6070
+  },
+  {
+   "row": 59,
+   "set": "set2",
+   "query": 9,
+   "chunk_id": 375
+  },
+  {
+   "row": 60,
+   "set": "set2",
+   "query": 15,
+   "chunk_id": 1946
+  },
+  {
+   "row": 61,
+   "set": "set1",
+   "query": 12,
+   "chunk_id": 2672
+  },
+  {
+   "row": 62,
+   "set": "set1",
+   "query": 18,
+   "chunk_id": 2235
+  },
+  {
+   "row": 63,
+   "set": "set1",
+   "query": 1,
+   "chunk_id": 5492
+  },
+  {
+   "row": 64,
+   "set": "set1",
+   "query": 11,
+   "chunk_id": 5338
+  },
+  {
+   "row": 65,
+   "set": "set1",
+   "query": 1,
+   "chunk_id": 25
+  },
+  {
+   "row": 66,
+   "set": "set1",
+   "query": 8,
+   "chunk_id": 6226
+  },
+  {
+   "row": 67,
+   "set": "set2",
+   "query": 19,
+   "chunk_id": 5787
+  },
+  {
+   "row": 68,
+   "set": "set2",
+   "query": 10,
+   "chunk_id": 538
+  },
+  {
+   "row": 69,
+   "set": "set2",
+   "query": 8,
+   "chunk_id": 6006
+  },
+  {
+   "row": 70,
+   "set": "set1",
+   "query": 8,
+   "chunk_id": 7032
+  },
+  {
+   "row": 71,
+   "set": "set1",
+   "query": 8,
+   "chunk_id": 6225
+  },
+  {
+   "row": 72,
+   "set": "set2",
+   "query": 1,
+   "chunk_id": 4758
+  },
+  {
+   "row": 73,
+   "set": "set1",
+   "query": 21,
+   "chunk_id": 471
+  },
+  {
+   "row": 74,
+   "set": "set1",
+   "query": 14,
+   "chunk_id": 4051
+  },
+  {
+   "row": 75,
+   "set": "set1",
+   "query": 3,
+   "chunk_id": 5811
+  },
+  {
+   "row": 76,
+   "set": "set1",
+   "query": 3,
+   "chunk_id": 5664
+  },
+  {
+   "row": 77,
+   "set": "set1",
+   "query": 3,
+   "chunk_id": 5812
+  },
+  {
+   "row": 78,
+   "set": "set2",
+   "query": 4,
+   "chunk_id": 5884
+  },
+  {
+   "row": 79,
+   "set": "set1",
+   "query": 7,
+   "chunk_id": 7019
+  },
+  {
+   "row": 80,
+   "set": "set1",
+   "query": 6,
+   "chunk_id": 118
+  }
+ ]
+}

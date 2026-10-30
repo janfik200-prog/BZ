@@ -315,6 +315,8 @@ def retrieve(
 
     # Вопрос о названной статье — все кандидаты из неё: ограничение на статью не ставится.
     doc = plan.article
+    # Где искать: в названной статье, в статьях о месте вопроса (два слоя) или везде.
+    where: Any = doc or plan.place_docs or None
 
     def add(hits: Any, part: Any, rnd: Any, capped: bool = doc is None) -> list[dict[str, Any]]:
         new = []
@@ -345,21 +347,21 @@ def retrieve(
         # Все запросы вопроса — одной пачкой, одновременно (search_all): по частям
         # они шли бы по три, а каждая пачка ждала бы предыдущую.
         everything = [q for p in plan.parts for q in (p.queries or [p.question])]
-        merged_search(conn, embedder, everything + list(plan.queries), cache, facts, doc)
+        merged_search(conn, embedder, everything + list(plan.queries), cache, facts, where)
     # Фрагменты о предмете вопроса из графа — первыми: порога близости у них нет,
     # они найдены не по похожести, а по фактам.
     add(extra or [], None if multi else 1, 1, capped=False)
     if multi:
         for i, part in enumerate(plan.parts, start=1):
             asked = part.queries or [part.question]
-            found = candidates(conn, embedder, asked, cache, wide_part, facts, doc, **by_concepts)
+            found = candidates(conn, embedder, asked, cache, wide_part, facts, where, **by_concepts)
             add(found, i, 1)
         found = candidates(
-            conn, embedder, plan.queries, cache, wide_part, facts, doc, **by_concepts
+            conn, embedder, plan.queries, cache, wide_part, facts, where, **by_concepts
         )
         add(found, None, 1)
     else:
-        add(candidates(conn, embedder, plan.queries, cache, wide, facts, doc, **by_concepts), 1, 1)
+        add(candidates(conn, embedder, plan.queries, cache, wide, facts, where, **by_concepts), 1, 1)
     # Ограничение — на весь набор: поиски по частям вопроса складываются, и одна статья
     # набирала 7 мест из 16. Других статей мало — лишние куски той же добирают места.
     for h, part, rnd in spare[: max(0, wide - len(pool))]:
@@ -374,7 +376,7 @@ def retrieve(
     # приходит, а мест основной выдачи не занимает (иначе выпадала аннотация с ответом).
     if plan.translated:
         translated = candidates(
-            conn, embedder, plan.translated, cache, TRANSLATED, facts, doc, **by_concepts
+            conn, embedder, plan.translated, cache, TRANSLATED, facts, where, **by_concepts
         )
         add(translated, None if multi else 1, 1)
 
@@ -433,7 +435,7 @@ def retrieve(
         plan.extra += queries
         rounds += 1
         yield {"type": "status", "text": "ищу недостающее: " + " · ".join(queries)}
-        found = candidates(conn, embedder, queries, cache, wide, facts, doc, **by_concepts)
+        found = candidates(conn, embedder, queries, cache, wide, facts, where, **by_concepts)
         fresh = add(found, None, rounds)
         if not fresh and not missing:
             break

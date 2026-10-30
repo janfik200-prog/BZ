@@ -77,5 +77,36 @@ class RerankTests(unittest.TestCase):
         self.assertIs(C.rerank(hits, []), hits)
 
 
+
+class PlaceTests(unittest.TestCase):
+    def test_distinct_part_of_name(self):
+        self.assertEqual(C._distinct("Anabar Shield"), "Anabar")
+        self.assertEqual(C._distinct("массив Колдар"), "Колдар")
+        self.assertEqual(C._distinct("Shield"), "Shield")  # одно общее слово — как есть
+
+    def test_long_spelling_by_main_words(self):
+        words = C._words("Prospects for large gold ore deposits of the Yenisei Ridge")
+        self.assertTrue(C.has("large-scale gold ore deposits", words))  # без «scale»
+        self.assertFalse(C.has("tin-bearing granites", C._words("granites of the area")))
+
+    def test_parse_splits_place(self):
+        llm = FakeLLM({"place": ["Алтай", "Altai"], "must": [["колчеданные месторождения", "VMS"]]})
+        parsed = C.parse(llm, "Колчеданные месторождения Алтая")
+        self.assertEqual(parsed.place[:1], ["Алтай"])
+        self.assertEqual(parsed.concepts[0][:1], ["Алтай"])
+        self.assertEqual(C.parse(FakeLLM({"place": None, "must": []}), "x").place, [])
+
+
+class FilterTests(unittest.TestCase):
+    def test_doc_list(self):
+        from georag.index.search import _filters
+
+        clause, params = _filters(None, None, ["a", "b"])
+        self.assertIn("ANY", clause)
+        self.assertEqual(params["doc_id"], ["a", "b"])
+        clause, params = _filters(None, None, "a")
+        self.assertIn("= %(doc_id)s", clause)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -77,9 +77,10 @@ SELECT_FIELDS = """
 
 
 def _filters(
-    year_from: int | None, source: str | None, doc_id: str | None = None
+    year_from: int | None, source: str | None, doc_id: Any = None
 ) -> tuple[str, dict[str, Any]]:
-    """doc_id — только фрагменты одной статьи (вопрос о названной статье, chat/article.py)."""
+    """doc_id — только фрагменты одной статьи (вопрос о названной статье, chat/article.py)
+    или нескольких (список: статьи о месте вопроса, index/concepts.py)."""
     where: list[str] = []
     params: dict[str, Any] = {}
     if year_from:
@@ -88,7 +89,10 @@ def _filters(
     if source:
         where.append("d.source = %(source)s")
         params["source"] = source
-    if doc_id:
+    if doc_id and isinstance(doc_id, (list, tuple)):
+        where.append("c.doc_id = ANY(%(doc_id)s)")
+        params["doc_id"] = list(doc_id)
+    elif doc_id:
         where.append("c.doc_id = %(doc_id)s")
         params["doc_id"] = doc_id
     return (" AND " + " AND ".join(where) if where else ""), params

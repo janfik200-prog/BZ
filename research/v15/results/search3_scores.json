@@ -1,0 +1,73 @@
+{
+ "set1": {
+  "hybrid": {
+   "returned": 125,
+   "judged": 125,
+   "useful": 63,
+   "share_useful": 0.504,
+   "ci95": [
+    0.418,
+    0.59
+   ],
+   "unjudged": 0
+  },
+  "place": {
+   "returned": 125,
+   "judged": 83,
+   "useful": 63,
+   "share_useful": 0.759,
+   "ci95": [
+    0.657,
+    0.838
+   ],
+   "unjudged": 42
+  },
+  "vs_hybrid": {
+   "queries": 6,
+   "better": 4,
+   "worse": 0,
+   "same": 2
+  }
+ },
+ "set2": {
+  "hybrid": {
+   "returned": 100,
+   "judged": 100,
+   "useful": 37,
+   "share_useful": 0.37,
+   "ci95": [
+    0.282,
+    0.468
+   ],
+   "unjudged": 0
+  },
+  "place": {
+   "returned": 100,
+   "judged": 63,
+   "useful": 42,
+   "share_useful": 0.667,
+   "ci95": [
+    0.544,
+    0.771
+   ],
+   "unjudged": 37
+  },
+  "concepts": {
+   "returned": 100,
+   "judged": 100,
+   "useful": 49,
+   "share_useful": 0.49,
+   "ci95": [
+    0.394,
+    0.587
+   ],
+   "unjudged": 0
+  },
+  "vs_concepts": {
+   "queries": 2,
+   "better": 0,
+   "worse": 0,
+   "same": 2
+  }
+ }
+}

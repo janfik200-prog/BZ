@@ -207,7 +207,12 @@ def prepare(
         from ..index import concepts
 
         yield {"type": "status", "text": "выделяю ключевые понятия…"}
-        plan.concepts = concepts.extract(settings.client(), plan.main or question)
+        parsed = concepts.parse(settings.client(), plan.main or question)
+        plan.concepts = parsed.concepts
+        if parsed.place and db.is_real(conn) and not plan.article:
+            # Место вопроса — сначала статьи о нём, ответ ищется только в них.
+            names = concepts.resolve(conn, embedder, parsed.place)
+            plan.place_docs = concepts.place_docs(conn, embedder, names)
 
     # Вопрос о самом наборе статей («сколько статей про…», «перечисли статьи…») — по всей
     # базе, по названиям и тексту (catalog.py), а не по 8 фрагментам; через retrieve не идёт.

@@ -1,0 +1,115 @@
+{
+ "rows_judged": 195,
+ "rows_total": 195,
+ "latency_s": {
+  "vector": 0.086,
+  "hybrid": 0.076,
+  "concepts_llm": 1.347
+ },
+ "all": {
+  "vector": {
+   "judged": 100,
+   "useful": 39,
+   "share_useful": 0.39,
+   "ci95": [
+    0.3,
+    0.488
+   ],
+   "share_of_pooled_useful_found": 0.561
+  },
+  "hybrid": {
+   "judged": 100,
+   "useful": 37,
+   "share_useful": 0.37,
+   "ci95": [
+    0.282,
+    0.468
+   ],
+   "share_of_pooled_useful_found": 0.547
+  },
+  "concepts": {
+   "judged": 100,
+   "useful": 49,
+   "share_useful": 0.49,
+   "ci95": [
+    0.394,
+    0.587
+   ],
+   "share_of_pooled_useful_found": 0.712
+  }
+ },
+ "places": {
+  "vector": {
+   "judged": 60,
+   "useful": 20,
+   "share_useful": 0.333,
+   "ci95": [
+    0.227,
+    0.459
+   ],
+   "share_of_pooled_useful_found": 0.49
+  },
+  "hybrid": {
+   "judged": 60,
+   "useful": 22,
+   "share_useful": 0.367,
+   "ci95": [
+    0.256,
+    0.493
+   ],
+   "share_of_pooled_useful_found": 0.55
+  },
+  "concepts": {
+   "judged": 60,
+   "useful": 26,
+   "share_useful": 0.433,
+   "ci95": [
+    0.316,
+    0.559
+   ],
+   "share_of_pooled_useful_found": 0.652
+  }
+ },
+ "themes": {
+  "vector": {
+   "judged": 40,
+   "useful": 19,
+   "share_useful": 0.475,
+   "ci95": [
+    0.329,
+    0.625
+   ],
+   "share_of_pooled_useful_found": 0.658
+  },
+  "hybrid": {
+   "judged": 40,
+   "useful": 15,
+   "share_useful": 0.375,
+   "ci95": [
+    0.242,
+    0.53
+   ],
+   "share_of_pooled_useful_found": 0.544
+  },
+  "concepts": {
+   "judged": 40,
+   "useful": 23,
+   "share_useful": 0.575,
+   "ci95": [
+    0.422,
+    0.715
+   ],
+   "share_of_pooled_useful_found": 0.794
+  }
+ },
+ "concepts_minus_hybrid": {
+  "diff": 0.12,
+  "ci95": [
+   0.04,
+   0.22
+  ],
+  "better": 7,
+  "worse": 0,
+  "same": 13
+ }
+}

@@ -193,6 +193,8 @@ class Plan:
     # Ключевые понятия вопроса (index/concepts.py, GEORAG_CONCEPTS=1): кандидаты, где они
     # есть, — выше. Пусто — поиск как раньше.
     concepts: list[list[str]] = field(default_factory=list)
+    # Статьи о месте вопроса (concepts.place_docs): поиск — только в них, в два слоя.
+    place_docs: list[str] = field(default_factory=list)
     # Вопрос о названной статье («… используется ли X в этой статье?»): её doc_id —
     # поиск только во фрагментах этой статьи (article.py).
     article: str | None = None
