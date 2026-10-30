@@ -1,0 +1,637 @@
+{
+ "seed": 20261102,
+ "sets": {
+  "set1": {
+   "1": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     2375,
+     4094,
+     4472,
+     5492,
+     25
+    ],
+    "changed": false
+   },
+   "2": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     4663,
+     5823,
+     4522,
+     4516,
+     5840
+    ],
+    "changed": false
+   },
+   "3": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     5664,
+     4311,
+     4320,
+     5811,
+     5812
+    ],
+    "changed": false
+   },
+   "4": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     6469,
+     6795,
+     6448,
+     4101,
+     6868
+    ],
+    "changed": false
+   },
+   "5": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     6946,
+     6945,
+     5280,
+     6431,
+     4443
+    ],
+    "changed": false
+   },
+   "6": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     4776,
+     6138,
+     4286,
+     7033,
+     118
+    ],
+    "changed": false
+   },
+   "7": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     6446,
+     7019,
+     6445,
+     6051,
+     6605
+    ],
+    "changed": false
+   },
+   "8": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     4875,
+     7032,
+     6225,
+     6226,
+     6604
+    ],
+    "changed": false
+   },
+   "9": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     6589,
+     6031,
+     170,
+     6284,
+     6316
+    ],
+    "changed": false
+   },
+   "10": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     5306,
+     6151,
+     6910,
+     6384,
+     6416
+    ],
+    "changed": false
+   },
+   "11": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     6773,
+     4571,
+     6771,
+     5338,
+     1566
+    ],
+    "changed": false
+   },
+   "12": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     5359,
+     4372,
+     2697,
+     2565,
+     2672
+    ],
+    "changed": false
+   },
+   "13": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     6490,
+     2622,
+     2654,
+     6520,
+     4371
+    ],
+    "changed": false
+   },
+   "14": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     2626,
+     6493,
+     4051,
+     5372,
+     4044
+    ],
+    "changed": false
+   },
+   "15": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     4675,
+     6591,
+     6608,
+     5068,
+     6324
+    ],
+    "changed": false
+   },
+   "16": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     6180,
+     6185,
+     470,
+     6320,
+     4401
+    ],
+    "changed": false
+   },
+   "17": {
+    "names": [
+     "Сухой Лог",
+     "Sukhoi Log",
+     "Sukhoy Log"
+    ],
+    "docs": 3,
+    "top": [
+     5091,
+     5090,
+     5117,
+     5148,
+     5092
+    ],
+    "changed": false
+   },
+   "18": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     559,
+     560,
+     2235,
+     6216,
+     2234
+    ],
+    "changed": false
+   },
+   "19": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     6070,
+     6989,
+     6039,
+     6089,
+     6090
+    ],
+    "changed": false
+   },
+   "20": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     6237,
+     4198,
+     6227,
+     4203,
+     5870
+    ],
+    "changed": false
+   },
+   "21": {
+    "names": [
+     "Алтай",
+     "Altai",
+     "Altai Mountains",
+     "Восточный Алтай",
+     "Рудный Алтай"
+    ],
+    "docs": 7,
+    "top": [
+     6367,
+     6361,
+     5868,
+     5857,
+     471
+    ],
+    "changed": false
+   },
+   "22": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     5634,
+     4334,
+     239,
+     254,
+     5949
+    ],
+    "changed": false
+   },
+   "23": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     1598,
+     1580,
+     2549,
+     4475,
+     2073
+    ],
+    "changed": false
+   },
+   "24": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     6895,
+     6892,
+     1619,
+     1639,
+     156
+    ],
+    "changed": false
+   },
+   "25": {
+    "names": [
+     "Балтийский щит",
+     "Baltic Shield",
+     "Fennoscandian Shield"
+    ],
+    "docs": 1,
+    "top": [
+     444,
+     443,
+     499,
+     502,
+     459
+    ],
+    "changed": false
+   }
+  },
+  "set2": {
+   "1": {
+    "names": [
+     "Nubian Shield",
+     "Nubian"
+    ],
+    "docs": 10,
+    "top": [
+     4887,
+     4762,
+     4806,
+     4758,
+     4808
+    ],
+    "changed": false
+   },
+   "2": {
+    "names": [
+     "Uruguay",
+     "Minas do Camacuã",
+     "Uruguay Mine",
+     "The Uruguay Mine",
+     "MINAS DO CAMAQUÃ DISTRICT"
+    ],
+    "docs": 1,
+    "top": [
+     203,
+     237,
+     233,
+     194,
+     223
+    ],
+    "changed": false
+   },
+   "3": {
+    "names": [
+     "Сухой Лог",
+     "Sukhoi Log",
+     "Sukhoy Log"
+    ],
+    "docs": 3,
+    "top": [
+     5110,
+     5085,
+     5117,
+     5156,
+     5091
+    ],
+    "changed": false
+   },
+   "4": {
+    "names": [
+     "Средний Урал",
+     "Middle Urals",
+     "Central Urals",
+     "Урал",
+     "Ural"
+    ],
+    "docs": 8,
+    "top": [
+     6164,
+     6168,
+     6968,
+     5884,
+     6969
+    ],
+    "changed": false
+   },
+   "5": {
+    "names": [
+     "Енисейский кряж",
+     "Yenisei Ridge",
+     "Yenisey Ridge",
+     "Енисейский"
+    ],
+    "docs": 4,
+    "top": [
+     15,
+     29,
+     2315,
+     2284,
+     6213
+    ],
+    "changed": false
+   },
+   "6": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     6311,
+     6216,
+     6324,
+     6227,
+     497
+    ],
+    "changed": false
+   },
+   "7": {
+    "names": [
+     "Koldar",
+     "Koldar Massif"
+    ],
+    "docs": 1,
+    "top": [
+     5163,
+     5172,
+     5165,
+     5197,
+     5199
+    ],
+    "changed": false
+   },
+   "8": {
+    "names": [
+     "Букантау",
+     "Bukantau",
+     "The Bukantau Mountains"
+    ],
+    "docs": 2,
+    "top": [
+     563,
+     545,
+     6006,
+     6012,
+     548
+    ],
+    "changed": false
+   },
+   "9": {
+    "names": [
+     "Восточный Донбасс",
+     "Eastern Donbass",
+     "Донбасс",
+     "Donbass"
+    ],
+    "docs": 2,
+    "top": [
+     376,
+     358,
+     313,
+     312,
+     375
+    ],
+    "changed": false
+   },
+   "10": {
+    "names": [
+     "Северный Вьетнам",
+     "Northern Vietnam",
+     "Вьетнама"
+    ],
+    "docs": 1,
+    "top": [
+     515,
+     521,
+     519,
+     516,
+     538
+    ],
+    "changed": false
+   },
+   "11": {
+    "names": [
+     "Нахичеванская автономная республика",
+     "Nakhchivan Autonomous Republic",
+     "Нахчывана",
+     "Нахчыванская",
+     "Nakhchivan AR"
+    ],
+    "docs": 1,
+    "top": [
+     6070,
+     6029,
+     6040,
+     6068,
+     6039
+    ],
+    "changed": true
+   },
+   "12": {
+    "names": [
+     "Lujing"
+    ],
+    "docs": 1,
+    "top": [
+     4534,
+     4531,
+     4535,
+     4532,
+     4538
+    ],
+    "changed": true
+   },
+   "13": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     2240,
+     2216,
+     6610,
+     6245,
+     6615
+    ],
+    "changed": false
+   },
+   "14": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     1997,
+     1996,
+     6534,
+     6537,
+     4361
+    ],
+    "changed": false
+   },
+   "15": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     4042,
+     4073,
+     2580,
+     1946,
+     88
+    ],
+    "changed": false
+   },
+   "16": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     6070,
+     6989,
+     6976,
+     6036,
+     6304
+    ],
+    "changed": false
+   },
+   "17": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     6020,
+     6005,
+     6194,
+     6285,
+     6255
+    ],
+    "changed": false
+   },
+   "18": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     4203,
+     6380,
+     5600,
+     4198,
+     5857
+    ],
+    "changed": false
+   },
+   "19": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     291,
+     286,
+     5787,
+     1569,
+     276
+    ],
+    "changed": false
+   },
+   "20": {
+    "names": [],
+    "docs": 0,
+    "top": [
+     5849,
+     5869,
+     5066,
+     5067,
+     6247
+    ],
+    "changed": false
+   }
+  }
+ },
+ "rows": [
+  {
+   "row": 2,
+   "set": "set2",
+   "query": 12,
+   "chunk_id": 4535
+  },
+  {
+   "row": 3,
+   "set": "set2",
+   "query": 12,
+   "chunk_id": 4538
+  },
+  {
+   "row": 4,
+   "set": "set2",
+   "query": 12,
+   "chunk_id": 4532
+  },
+  {
+   "row": 5,
+   "set": "set2",
+   "query": 11,
+   "chunk_id": 6039
+  }
+ ]
+}

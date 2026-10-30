@@ -323,13 +323,15 @@ def _cyr(text: str) -> bool:
     return bool(re.search("[а-яё]", text, re.I))
 
 
-def _close_enough(spelling: str, name: str, key: float) -> bool:
+def _close_enough(spelling: str, name: str, key: float, strict: bool = False) -> bool:
     """Название того же алфавита — только почти то же написание: «Кольский» и «Колымский»,
-    «Хакасия» и «Якутия» — разные места; другой алфавит — по общим правилам."""
-    return _cyr(spelling) != _cyr(name) or key >= PLACE_KEY
+    «Хакасия» и «Якутия» — разные места; другой алфавит — по общим правилам.
+    strict — место уже нашлось в статьях своим написанием: тогда и другой алфавит —
+    только почти то же («Koldar» → «Кульдур» не годится, «Букантау» → Bukantau — да)."""
+    return key >= PLACE_KEY or (not strict and _cyr(spelling) != _cyr(name))
 
 
-def _phonetic_matches(base: _Base, place: list[str]) -> dict[str, float]:
+def _phonetic_matches(base: _Base, place: list[str], strict: bool = False) -> dict[str, float]:
     """Названия базы, близкие к месту по звучанию (Symphonym) и по ключу написания."""
     model = _symphonym(str(SYMPHONYM)) if SYMPHONYM.exists() else None
     if model is None or not base.names:
@@ -342,7 +344,8 @@ def _phonetic_matches(base: _Base, place: list[str]) -> dict[str, float]:
         key = translit_key(_distinct(spelling))
         for i in sims.argsort()[::-1][:5]:
             f = SequenceMatcher(None, key, base.keys[i]).ratio()
-            if sims[i] >= SYM_MIN and f >= SYM_KEY and _close_enough(spelling, base.names[i], f):
+            ok = _close_enough(spelling, base.names[i], f, strict)
+            if sims[i] >= SYM_MIN and f >= SYM_KEY and ok:
                 out[base.names[i]] = max(out.get(base.names[i], 0.0), float(sims[i]) + f)
     return out
 
@@ -359,7 +362,8 @@ def resolve(conn: Any, embedder: Any, place: list[str]) -> list[str]:
     present = [p for p in place if any(_in(p, w) for w in base.docs.values())]
     if not base.names:
         return present
-    best: dict[str, float] = dict(_phonetic_matches(base, place))
+    strict = bool(present)
+    best: dict[str, float] = dict(_phonetic_matches(base, place, strict))
     vectors = base.vectors(embedder)
     for spelling in place:
         key = translit_key(_distinct(spelling))
@@ -369,7 +373,7 @@ def resolve(conn: Any, embedder: Any, place: list[str]) -> list[str]:
             f = SequenceMatcher(None, key, base.keys[i]).ratio()
             vs = float(sims[i])
             if (f >= PLACE_KEY or (f >= PLACE_BOTH and vs >= PLACE_BOTH)) and _close_enough(
-                spelling, name, f
+                spelling, name, f, strict
             ):
                 best[name] = max(best.get(name, 0.0), f + vs)
     found = sorted(best, key=lambda n: -best[n])[:PLACE_NAMES]
