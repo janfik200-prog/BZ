@@ -1,0 +1,81 @@
+{
+ "model": "BAAI/bge-reranker-v2-m3",
+ "device": "cpu",
+ "pairs": {
+  "n": 578,
+  "useful": 246,
+  "seconds_per_pair_cpu": 0.447,
+  "set1": {
+   "auc_reranker": 0.816,
+   "auc_vector": 0.742,
+   "auc_concepts": 0.857
+  },
+  "set2": {
+   "auc_reranker": 0.858,
+   "auc_vector": 0.769,
+   "auc_concepts": 0.807
+  },
+  "all": {
+   "auc_reranker": 0.829,
+   "auc_vector": 0.742,
+   "auc_concepts": 0.837
+  }
+ },
+ "ranking": {
+  "set1": {
+   "place": {
+    "judged": 125,
+    "useful": 95,
+    "share_useful_judged": 0.76,
+    "unjudged": 0
+   },
+   "rerank": {
+    "judged": 80,
+    "useful": 69,
+    "share_useful_judged": 0.863,
+    "unjudged": 45
+   },
+   "place+rerank": {
+    "judged": 87,
+    "useful": 72,
+    "share_useful_judged": 0.828,
+    "unjudged": 38
+   },
+   "place+tags": {
+    "judged": 100,
+    "useful": 82,
+    "share_useful_judged": 0.82,
+    "unjudged": 25
+   }
+  },
+  "set2": {
+   "place": {
+    "judged": 100,
+    "useful": 56,
+    "share_useful_judged": 0.56,
+    "unjudged": 0
+   },
+   "rerank": {
+    "judged": 68,
+    "useful": 52,
+    "share_useful_judged": 0.765,
+    "unjudged": 32
+   },
+   "place+rerank": {
+    "judged": 73,
+    "useful": 54,
+    "share_useful_judged": 0.74,
+    "unjudged": 27
+   },
+   "place+tags": {
+    "judged": 79,
+    "useful": 51,
+    "share_useful_judged": 0.646,
+    "unjudged": 21
+   }
+  }
+ },
+ "rerank_seconds_per_question_cpu": 9.1,
+ "fragments_with_graph_tags": 1330,
+ "total_minutes": 12.0
+}
