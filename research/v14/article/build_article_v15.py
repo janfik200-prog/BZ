@@ -96,8 +96,8 @@ def _facts() -> dict:
 
 FACTS = _facts()
 TEMPLATE = ROOT / ".local" / "logs" / "Статья_ИПУЗ_2026_база_знаний_v13_шаблон.docx"
-OUT = ART / "Статья_ИПУЗ_2026_база_знаний_v15.3.docx"
-DOWNLOADS = Path.home() / "Downloads" / "Статья_ИПУЗ_2026_база_знаний_v15.3.docx"
+OUT = ART / "Статья_ИПУЗ_2026_база_знаний_итог.docx"
+DOWNLOADS = Path.home() / "Downloads" / "Статья_ИПУЗ_2026_база_знаний_итог.docx"
 
 doc = docx.Document(str(TEMPLATE))
 body = doc.element.body
@@ -179,9 +179,9 @@ def table(caption: str, header: list[str], rows: list[list[str]], widths: list[f
 
 # --------------------------------------------------------------------------------- шапка
 para("УДК 004.912:550.8", align=L.LEFT, bold=True, indent=False)
-para("[Фамилия И. О. — состав и порядок авторов подтвердить перед подачей]", align=L.RIGHT, size=11.5, indent=False)
+para("[Фамилия И. О.]", align=L.RIGHT, size=11.5, indent=False)
 para("Научно-исследовательский центр искусственного интеллекта, Государственный университет «Дубна», г. Дубна, "
-     "Россия [аффилиацию и e-mail подтвердить]", align=L.RIGHT, size=11.5, indent=False)
+     "Россия", align=L.RIGHT, size=11.5, indent=False)
 para("ЛОКАЛЬНАЯ БАЗА ЗНАНИЙ ПО РУДНОЙ ГЕОЛОГИИ ДЛЯ ИНФОРМАЦИОННОЙ ПОДДЕРЖКИ ПРОГНОЗА РУДОНОСНОСТИ",
      align=L.CENTER, bold=True, indent=False)
 para("Признаки, по которым геологи выделяют рудные узлы и месторождения, — структурный контроль, плотность "
@@ -632,8 +632,8 @@ for i, r in enumerate(refs, 1):
     para(f"{i}. {r}", "References")
 
 # --------------------------------------------------------------------------------- английская аннотация
-para("[Author name], Research Center for Artificial Intelligence, Dubna State University, Dubna, Russia [to be confirmed]. "
-     "[Other authors and e-mail to be confirmed]", "EN Abstract")
+para("[Author name], Research Center for Artificial Intelligence, Dubna State University, Dubna, Russia",
+     "EN Abstract")
 para("A LOCAL KNOWLEDGE BASE ON ORE GEOLOGY FOR INFORMATION SUPPORT OF MINERAL PROSPECTIVITY FORECASTING",
      "EN Abstract", bold=True)
 para("The criteria by which geologists delineate ore clusters and deposits — structural control, lineament density, "
@@ -653,7 +653,7 @@ para("KEYWORDS: knowledge base, ore geology, mineral prospectivity, processing o
      "extraction, knowledge graph, hybrid search, language models.", "EN Abstract")
 
 doc.core_properties.title = "Локальная база знаний по рудной геологии для информационной поддержки прогноза рудоносности"
-doc.core_properties.author = "[авторы — подтвердить]"
+doc.core_properties.author = ""
 doc.save(str(OUT))
 shutil.copyfile(OUT, DOWNLOADS)
 chars = sum(len(p.text) for p in doc.paragraphs)
