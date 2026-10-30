@@ -108,5 +108,16 @@ class FilterTests(unittest.TestCase):
         self.assertIn("= %(doc_id)s", clause)
 
 
+class PlaceMatchTests(unittest.TestCase):
+    def test_same_alphabet_needs_close_spelling(self):
+        self.assertFalse(C._close_enough("Хакасия", "Якутия", 0.7))
+        self.assertTrue(C._close_enough("Лудзин", "Lujing", 0.67))
+
+    def test_place_named_in_full(self):
+        words = set(C._words("ore deposits of the field"))
+        self.assertFalse(C._named("Seligdar Ore Field", words))
+        self.assertTrue(C._named("Seligdar Ore Field", set(C._words("Seligdar deposits"))))
+
+
 if __name__ == "__main__":
     unittest.main()

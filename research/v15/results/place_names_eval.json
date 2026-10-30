@@ -1,0 +1,470 @@
+{
+ "cases": {
+  "Лудзин": {
+   "expected": "Lujing",
+   "current": {
+    "top": [],
+    "ok": false
+   },
+   "symphonym": {
+    "top": [
+     "Lujing",
+     "Allogenic",
+     "Locations"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [],
+    "ok": false
+   }
+  },
+  "Минас-ду-Камакуан": {
+   "expected": "Camaquã",
+   "current": {
+    "top": [
+     "MINAS DO CAMAQUÃ DISTRICT"
+    ],
+    "ok": true
+   },
+   "symphonym": {
+    "top": [
+     "Mahakoshal",
+     "Mn",
+     "Mission Creek"
+    ],
+    "ok": false
+   },
+   "geonames": {
+    "top": [],
+    "ok": false
+   }
+  },
+  "Колдар": {
+   "expected": "Koldar",
+   "current": {
+    "top": [
+     "Koldar",
+     "Koldar Massif",
+     "Кульдур"
+    ],
+    "ok": true
+   },
+   "symphonym": {
+    "top": [
+     "Koldar Massif",
+     "Koldar",
+     "Kular"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [
+     "Koldar"
+    ],
+    "ok": true
+   }
+  },
+  "Букантау": {
+   "expected": "Bukantau",
+   "current": {
+    "top": [
+     "Букантау"
+    ],
+    "ok": false
+   },
+   "symphonym": {
+    "top": [
+     "The Bukantau Mountains",
+     "Bastnaesite",
+     "Based"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [],
+    "ok": false
+   }
+  },
+  "Нахичевань": {
+   "expected": "Nakhchivan",
+   "current": {
+    "top": [
+     "Нахчывана",
+     "Нахчыванская",
+     "Нахчыванчай"
+    ],
+    "ok": false
+   },
+   "symphonym": {
+    "top": [
+     "Nakhchivan AR",
+     "NNE-SSW High",
+     "Indosinian-Yanshanian"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [
+     "Nakhchivan AR"
+    ],
+    "ok": true
+   }
+  },
+  "Селигдар": {
+   "expected": "Seligdar",
+   "current": {
+    "top": [
+     "Селигдар"
+    ],
+    "ok": false
+   },
+   "symphonym": {
+    "top": [
+     "Seligdar Ore Field",
+     "Slide Mountain",
+     "Almeida"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [
+     "Seligdar Ore Field"
+    ],
+    "ok": true
+   }
+  },
+  "Северный Вьетнам": {
+   "expected": "Northern Vietnam",
+   "current": {
+    "top": [
+     "Северный Вьетнам"
+    ],
+    "ok": false
+   },
+   "symphonym": {
+    "top": [
+     "Northern Vietnam",
+     "NE Tohamiyam Area",
+     "Wheaton"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [
+     "FEATURES OF METALLOGENIC ZONING OF NORTHERN VIETNAM",
+     "Northern Vietnam"
+    ],
+    "ok": true
+   }
+  },
+  "Восточный Донбасс": {
+   "expected": "Eastern Donbass",
+   "current": {
+    "top": [
+     "Восточный Донбасс"
+    ],
+    "ok": false
+   },
+   "symphonym": {
+    "top": [
+     "Donbass",
+     "Eastern Donbass",
+     "Dungash"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [],
+    "ok": false
+   }
+  },
+  "Манкаян": {
+   "expected": "Mankayan",
+   "current": {
+    "top": [
+     "Mankayan",
+     "Mankayan Mineral District"
+    ],
+    "ok": true
+   },
+   "symphonym": {
+    "top": [
+     "Mankayan",
+     "Mankayan Mineral District",
+     "Machine"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [],
+    "ok": false
+   }
+  },
+  "Джалалабад": {
+   "expected": "Jalalabad",
+   "current": {
+    "top": [
+     "Jalal Abad",
+     "Jalalabad Iron Mine"
+    ],
+    "ok": true
+   },
+   "symphonym": {
+    "top": [
+     "Jalalabad Iron Mine",
+     "Kalba",
+     "Western Kalba"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [
+     "Jalalabad Iron Mine"
+    ],
+    "ok": true
+   }
+  },
+  "Кадуна": {
+   "expected": "Kaduna",
+   "current": {
+    "top": [
+     "Kaduna"
+    ],
+    "ok": true
+   },
+   "symphonym": {
+    "top": [
+     "Kaduna",
+     "Kaduna State",
+     "Cadad-anan"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [
+     "Kaduna State",
+     "Kaduna"
+    ],
+    "ok": true
+   }
+  },
+  "Насарава": {
+   "expected": "Nasarawa",
+   "current": {
+    "top": [
+     "Nasarawa",
+     "Nasarawa State",
+     "Насирваз"
+    ],
+    "ok": true
+   },
+   "symphonym": {
+    "top": [
+     "Nasarawa",
+     "Nasarawa State",
+     "Asubulak"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [
+     "Nasarawa State",
+     "Nasarawa"
+    ],
+    "ok": true
+   }
+  },
+  "Жакобина": {
+   "expected": "Jacobina",
+   "current": {
+    "top": [
+     "Jacobina",
+     "Jacobina Basin",
+     "Jacobina Range"
+    ],
+    "ok": true
+   },
+   "symphonym": {
+    "top": [
+     "Jacobina Basin",
+     "Jacobina Range",
+     "Jacobina"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [
+     "Jacobina"
+    ],
+    "ok": true
+   }
+  },
+  "Оканаган": {
+   "expected": "Okanagan",
+   "current": {
+    "top": [
+     "Okanagan",
+     "Okanagan Fault",
+     "Okanagan Valley's"
+    ],
+    "ok": true
+   },
+   "symphonym": {
+    "top": [
+     "Okanagan",
+     "Okanagan Fault",
+     "Okanagan Valley's"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [],
+    "ok": false
+   }
+  },
+  "Джеральдтон": {
+   "expected": "Geraldton",
+   "current": {
+    "top": [
+     "Geraldton Area"
+    ],
+    "ok": true
+   },
+   "symphonym": {
+    "top": [
+     "Geraldton Area",
+     "Early Cretaceous",
+     "Arylyakh"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [
+     "Geraldton Area"
+    ],
+    "ok": true
+   }
+  },
+  "Саньшаньдао": {
+   "expected": "Sanshandao",
+   "current": {
+    "top": [
+     "Саншандао",
+     "Sanshandao-Haiyu",
+     "Sanshandao Fault"
+    ],
+    "ok": true
+   },
+   "symphonym": {
+    "top": [
+     "Sanshandao-Haiyu",
+     "Sand",
+     "Shabazi"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [],
+    "ok": false
+   }
+  },
+  "Леймэньгоу": {
+   "expected": "Leimengou",
+   "current": {
+    "top": [
+     "Leimengou",
+     "Leimengou Mo",
+     "Leimengou Giant Mo Deposit"
+    ],
+    "ok": true
+   },
+   "symphonym": {
+    "top": [
+     "Leimengou",
+     "Leimengou Mo",
+     "Leimengou Giant Mo Deposit"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [],
+    "ok": false
+   }
+  },
+  "Бангка-Белитунг": {
+   "expected": "Bangka",
+   "current": {
+    "top": [
+     "Bangka Belitung",
+     "The Bangka Belitung Tin",
+     "Bangka"
+    ],
+    "ok": true
+   },
+   "symphonym": {
+    "top": [
+     "The Bangka Belitung Tin",
+     "Bangka Belitung",
+     "The Bangka Belitung Tin-Granite System"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [],
+    "ok": false
+   }
+  },
+  "Камерун": {
+   "expected": "Cameroon",
+   "current": {
+    "top": [
+     "Камерун"
+    ],
+    "ok": false
+   },
+   "symphonym": {
+    "top": [
+     "Cameroon",
+     "Cameron",
+     "Skarn"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [
+     "Cameron",
+     "Cameroon"
+    ],
+    "ok": true
+   }
+  },
+  "Пиндвара": {
+   "expected": "Pindwara",
+   "current": {
+    "top": [
+     "Pindwara"
+    ],
+    "ok": true
+   },
+   "symphonym": {
+    "top": [
+     "Pindwara",
+     "Ifewara",
+     "JCBN8"
+    ],
+    "ok": true
+   },
+   "geonames": {
+    "top": [],
+    "ok": false
+   }
+  }
+ },
+ "current": 13,
+ "symphonym": 19,
+ "geonames": 10,
+ "any": 20,
+ "n": 20,
+ "minutes": 1.3
+}

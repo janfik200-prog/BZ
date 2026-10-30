@@ -65,7 +65,14 @@ SYSTEM = (
 # вектор 0,68), а «Ludzyn» с «Lead-Zinc» — ключ 0,71 при далёком векторе: нужны оба.
 PLACE_KEY = 0.85  # одного ключа транслитерации довольно
 PLACE_BOTH = 0.6  # или ключ и вектор, оба не ниже этого
-PLACE_NAMES = 3
+PLACE_NAMES = 4
+# Фонетические векторы Symphonym v8 (CC-BY-4.0, .local/external/symphonym/v8; нет папки —
+# без них). Проверка 30.10.2026 (research/v15/place_names_eval.py): по русскому написанию
+# нашли латинское в 19 случаях из 20 («Лудзин» → Lujing, 0,96), но и выдуманным сходствам
+# дают 0,85–0,95 («Кольский полуостров» → False Color Composite) — поэтому ещё и ключ.
+SYMPHONYM = ROOT / ".local" / "external" / "symphonym" / "v8"
+SYM_MIN = 0.9
+SYM_KEY = 0.62  # «Лудзин» — Lujing: 0,67; «Тыва» — Tarkwa: около 0,6
 PLACE_WORDS = {
     "щит", "shield", "массив", "massif", "кряж", "ridge", "поле", "field", "рудное", "ore",
     "район", "district", "region", "area", "область", "province", "провинция", "пояс", "belt",
@@ -73,7 +80,7 @@ PLACE_WORDS = {
     "месторождение", "deposit", "рудник", "mine", "участок", "site", "узел", "cluster",
     "республика", "republic", "автономная", "autonomous", "северный", "northern", "южный",
     "southern", "восточный", "eastern", "западный", "western", "центральный", "central",
-    "средний", "middle", "the", "of", "do", "de",
+    "средний", "middle", "полуостров", "peninsula", "остров", "island", "the", "of", "do", "de",
 }  # fmt: skip
 CACHE = ROOT / ".local" / "cache"
 _PROPER = re.compile(r"\b[A-ZА-ЯЁ][\w’'-]+(?:[ -][A-ZА-ЯЁ][\w’'-]+)*")
@@ -221,6 +228,14 @@ class _Base:
     keys: list[str]
     docs: dict[str, set[str]]  # статья → слова названия, заголовков и текста
     _vectors: Any = None
+    _phonetic: Any = None
+
+    def phonetic(self, model: Any) -> Any:
+        """Фонетические векторы названий (Symphonym), по первой нужде."""
+        if self._phonetic is None:
+            items = [(_distinct(n), "ru" if re.search("[а-яё]", n, re.I) else "en") for n in self.names]
+            self._phonetic = model.batch_embed(items)
+        return self._phonetic
 
     def vectors(self, embedder: Any) -> Any:
         import numpy as np
@@ -286,17 +301,65 @@ def _in(spelling: str, words: set[str]) -> bool:
     return found >= (len(parts) - 1 if len(parts) >= 3 else len(parts))
 
 
+@lru_cache(maxsize=1)
+def _symphonym(path: str) -> Any:
+    """Модель Symphonym из скачанной папки; нет папки или torch — None."""
+    import importlib.util
+    from functools import partial
+
+    try:
+        spec = importlib.util.spec_from_file_location("symphonym_inference", Path(path) / "inference.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        # Словари модели — в UTF-8, а её код открывает их в кодировке системы (в Windows
+        # это cp1251): open внутри модуля — с явной кодировкой.
+        module.open = partial(open, encoding="utf-8")
+        return module.SymphonymModel(model_dir=path)
+    except Exception:  # noqa: BLE001 — без фонетики сверка идёт как раньше
+        return None
+
+
+def _cyr(text: str) -> bool:
+    return bool(re.search("[а-яё]", text, re.I))
+
+
+def _close_enough(spelling: str, name: str, key: float) -> bool:
+    """Название того же алфавита — только почти то же написание: «Кольский» и «Колымский»,
+    «Хакасия» и «Якутия» — разные места; другой алфавит — по общим правилам."""
+    return _cyr(spelling) != _cyr(name) or key >= PLACE_KEY
+
+
+def _phonetic_matches(base: _Base, place: list[str]) -> dict[str, float]:
+    """Названия базы, близкие к месту по звучанию (Symphonym) и по ключу написания."""
+    model = _symphonym(str(SYMPHONYM)) if SYMPHONYM.exists() else None
+    if model is None or not base.names:
+        return {}
+    vectors = base.phonetic(model)
+    out: dict[str, float] = {}
+    for spelling in place:
+        lang = "ru" if re.search("[а-яё]", spelling, re.I) else "en"
+        sims = vectors @ model.embed(_distinct(spelling), lang)
+        key = translit_key(_distinct(spelling))
+        for i in sims.argsort()[::-1][:5]:
+            f = SequenceMatcher(None, key, base.keys[i]).ratio()
+            if sims[i] >= SYM_MIN and f >= SYM_KEY and _close_enough(spelling, base.names[i], f):
+                out[base.names[i]] = max(out.get(base.names[i], 0.0), float(sims[i]) + f)
+    return out
+
+
 def resolve(conn: Any, embedder: Any, place: list[str]) -> list[str]:
-    """Написания места, которые есть в базе: свои — если встречаются в статьях, иначе
-    ближайшие названия базы (ключ транслитерации и близость векторов). «Minas do Camacau»
-    → «Minas do Camaquã». Ничего похожего — пусто: о месте в базе нет статей."""
+    """Написания места, которые есть в базе: свои, если встречаются в статьях, и
+    ближайшие названия базы — по ключу транслитерации и векторам BGE-M3, по звучанию
+    (Symphonym). «Лудзин» → Lujing, «Букантау» → и Букантау, и Bukantau: английские статьи
+    о месте находятся и тогда, когда русское написание уже есть в русских.
+    Ничего похожего — пусто: о месте в базе нет статей."""
     import numpy as np
 
     base = _base(conn, embedder)
     present = [p for p in place if any(_in(p, w) for w in base.docs.values())]
-    if present or not base.names:
+    if not base.names:
         return present
-    best: dict[str, float] = {}
+    best: dict[str, float] = dict(_phonetic_matches(base, place))
     vectors = base.vectors(embedder)
     for spelling in place:
         key = translit_key(_distinct(spelling))
@@ -305,9 +368,19 @@ def resolve(conn: Any, embedder: Any, place: list[str]) -> list[str]:
         for i, name in enumerate(base.names):
             f = SequenceMatcher(None, key, base.keys[i]).ratio()
             vs = float(sims[i])
-            if f >= PLACE_KEY or (f >= PLACE_BOTH and vs >= PLACE_BOTH):
+            if (f >= PLACE_KEY or (f >= PLACE_BOTH and vs >= PLACE_BOTH)) and _close_enough(
+                spelling, name, f
+            ):
                 best[name] = max(best.get(name, 0.0), f + vs)
-    return sorted(best, key=lambda n: -best[n])[:PLACE_NAMES]
+    found = sorted(best, key=lambda n: -best[n])[:PLACE_NAMES]
+    return list(dict.fromkeys(present + found))
+
+
+def _named(name: str, words: set[str]) -> bool:
+    """Место упомянуто: все слова отличительной части названия есть в статье. Без поблажки
+    has(): у «Seligdar Ore Field» совпали бы одни «ore» и «field»."""
+    parts = [_stem(w) for w in _WORD.findall(_distinct(name)) if len(w) > 2]
+    return bool(parts) and all(any(w.startswith(p) for w in words) for p in parts)
 
 
 def place_docs(conn: Any, embedder: Any, names: list[str]) -> list[str]:
@@ -315,4 +388,4 @@ def place_docs(conn: Any, embedder: Any, names: list[str]) -> list[str]:
     if not names:
         return []
     base = _base(conn, embedder)
-    return sorted(d for d, words in base.docs.items() if any(_in(n, words) for n in names))
+    return sorted(d for d, words in base.docs.items() if any(_named(n, words) for n in names))
