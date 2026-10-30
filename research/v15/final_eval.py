@@ -12,7 +12,9 @@
 (Codex), — чтобы посчитать согласие разметчиков. Лист «Факты» — те же 120 случайных связей
 графа, что в первом листе. Способ и происхождение строк скрыты (ключ — results/final_key.json).
 
-    final_eval.py sheet <xlsx проверки Codex>   — research/v15/Разметка_статья.xlsx
+    final_eval.py sheet <xlsx проверки Codex>   — прогон и research/v15/Разметка_статья.xlsx
+    final_eval.py graded                         — тот же лист по мягкой шкале 0/1/2 и лист
+                                                   «Вопросы» → Разметка_статья_мягкая.xlsx
     final_eval.py score <xlsx автора> <xlsx первого листа Codex> <xlsx проверки Codex>
 """
 
@@ -187,58 +189,178 @@ def _paired(diffs: list[float]) -> list[float]:
     return [round(statistics.mean(diffs), 3), round(boot[250], 3), round(boot[9750], 3)]
 
 
+GRADED = HERE / "Разметка_статья_мягкая.xlsx"
+COVER = ("да", "частично", "нет")
+
+
+def _grades(ws, col: int, top: int = 2) -> dict[int, int]:
+    """Оценки 0…top из столбца; пустые и прочее — не в счёт."""
+    out = {}
+    for r in range(2, ws.max_row + 1):
+        v = str(ws.cell(r, col).value).strip()
+        if v in {str(i) for i in range(top + 1)}:
+            out[r] = int(v)
+    return out
+
+
+def graded_sheet() -> None:
+    """Тот же лист, что sheet(), в том же порядке строк, но поиск — по мягкой шкале 0/1/2,
+    и лист «Вопросы»: есть ли в базе статьи по вопросу (для вопросов без статей оценивается,
+    нашла ли система хотя бы близкое)."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+
+    key = json.loads(KEYFILE.read_text("utf-8"))
+    k2 = json.loads((RES / "search2_key.json").read_text("utf-8"))
+    with connect(E.DSN) as conn:
+        info = E._chunk_info(conn, sorted({r["chunk_id"] for r in key["search_rows"]}))
+        ids = {r["fact_id"] for r in key["fact_rows"]}
+        facts = {f["id"]: f for f in store.all_facts(conn) if f["id"] in ids}
+    qtext = {}
+    for r in key["search_rows"]:
+        source = key["queries"] if r["kind"] == "new" else k2["queries"]
+        qtext[(r["kind"], r["query"])] = source[r["query"] - 1]
+    wb = Workbook()
+    head, wrap = Font(bold=True), Alignment(wrap_text=True, vertical="top")
+    fill = PatternFill("solid", fgColor="FFF2CC")
+    ws = wb.active
+    ws.title = "Как размечать"
+    for line in [
+        "Разметка для статьи. Три листа: «Поиск», «Факты», «Вопросы». Заполняются только жёлтые столбцы.",
+        "Не уверены — оставьте клетку пустой: строка в расчёт не войдёт. Спорные случаи — в «Комментарий».",
+        "",
+        "ЛИСТ «ПОИСК» — мягкая шкала. В строке — вопрос и фрагмент статьи, найденный поиском (способ не указан).",
+        "2 — фрагмент отвечает на вопрос или содержит сведения, нужные для ответа.",
+        "1 — близко по теме и может помочь: тот же метод или признак в другом районе, похожий тип оруденения,",
+        "    частичный ответ, общие сведения о том же объекте. Особенно если по вопросу в базе статей нет,",
+        "    а найдено ближайшее похожее.",
+        "0 — не по теме: тот же термин в другом значении, общие слова, только ссылки на литературу.",
+        "",
+        "ЛИСТ «ФАКТЫ». В строке — связь из графа знаний и предложение статьи, из которого она извлечена.",
+        "1 — предложение утверждает эту связь (смысл и направление верные); 0 — не утверждает или искажено.",
+        "",
+        "ЛИСТ «ВОПРОСЫ». Для каждого из 25 вопросов: есть ли в базе статьи именно по нему — «да», «частично»",
+        "или «нет». Заполняйте после листа «Поиск», по тому, что увидели. Вопросы без статей в базе в статье",
+        "оцениваются отдельно: нашла ли система хотя бы близкий материал.",
+        "",
+        "Файл ключа (research/v15/results/final_key.json) до конца разметки не открывать.",
+    ]:
+        ws.append([line])
+    ws.column_dimensions["A"].width = 120
+    ws = wb.create_sheet("Поиск")
+    ws.append(["№", "Вопрос", "Статья", "Фрагмент", "Оценка (2/1/0)", "Комментарий"])
+    for i, r in enumerate(key["search_rows"], 1):
+        title, text = info[r["chunk_id"]]
+        ws.append([i, qtext[(r["kind"], r["query"])], title, text, None, None])
+    for col, w in zip("ABCDEF", (6, 34, 30, 110, 12, 30)):
+        ws.column_dimensions[col].width = w
+    ws = wb.create_sheet("Факты")
+    ws.append(["№", "Предмет", "Связь", "Предмет", "Предложение статьи", "Статья", "Верно (1/0)", "Комментарий"])
+    for i, r in enumerate(key["fact_rows"], 1):
+        f = facts[r["fact_id"]]
+        ws.append([i, f["src"], f["relation"], f["dst"], f["quote"], f["title"], None, None])
+    for col, w in zip("ABCDEFGH", (6, 24, 18, 24, 90, 30, 11, 30)):
+        ws.column_dimensions[col].width = w
+    ws = wb.create_sheet("Вопросы")
+    ws.append(["№", "Вопрос", "В базе есть статьи по вопросу (да / частично / нет)", "Комментарий"])
+    for i, q in enumerate(key["queries"], 1):
+        ws.append([i, q, None, None])
+    for col, w in zip("ABCD", (6, 70, 22, 40)):
+        ws.column_dimensions[col].width = w
+    for ws, mark in ((wb["Поиск"], 5), (wb["Факты"], 7), (wb["Вопросы"], 3)):
+        for cell in ws[1]:
+            cell.font = head
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                cell.alignment = wrap
+        for r in range(1, ws.max_row + 1):
+            ws.cell(r, mark).fill = fill
+        ws.freeze_panes = "A2"
+    wb.save(GRADED)
+    print(f"{GRADED}: поиск {len(key['search_rows'])}, факты {len(key['fact_rows'])}, вопросы {len(key['queries'])}")
+
+
+def _strict(g: int) -> bool:
+    return g == 2
+
+
+def _lenient(g: int) -> bool:
+    return g >= 1
+
+
 def score(author: str, codex_first: str, codex_check: str) -> None:
+    """Строго (только 2) и мягко (2 и 1) — по способам поиска; вопросы, по которым в базе
+    статей нет, — отдельно (там важна мягкая доля: нашла ли система хотя бы близкое)."""
     from openpyxl import load_workbook
 
     key = json.loads(KEYFILE.read_text("utf-8"))
     wb = load_workbook(author, data_only=True)
-    sm, fm = E._marks(wb["Поиск"], 5), E._marks(wb["Факты"], 7)
+    sm, fm = _grades(wb["Поиск"], 5), _grades(wb["Факты"], 7, 1)
+    cover = {}
+    for r in range(2, wb["Вопросы"].max_row + 1):
+        v = str(wb["Вопросы"].cell(r, 3).value or "").strip().lower()
+        if v in COVER:
+            cover[r - 1] = v
     lab = {(r["query"], r["chunk_id"]): sm[r["row"]] for r in key["search_rows"]
            if r["kind"] == "new" and r["row"] in sm}
     res: dict = {"search_rows": len(key["search_rows"]), "search_judged": len(sm), "facts_judged": len(fm),
+                 "coverage": {c: sorted(q for q, v in cover.items() if v == c) for c in COVER},
                  "seconds_extra_median": key["seconds_extra_median"]}
-    for part, qs in (("all", None), ("places", PLACES), ("themes", set(range(14, 26)))):
+    parts = {"all": None, "places": PLACES, "themes": set(range(14, 26)),
+             "covered": {q for q, v in cover.items() if v != "нет"},
+             "not_in_base": {q for q, v in cover.items() if v == "нет"}}
+    for part, qs in parts.items():
+        if qs is not None and not qs:
+            continue
         res[part] = {}
-        per_q: dict[str, dict[int, float]] = {m: {} for m in MODES}
-        for m in MODES:
-            vals = []
-            for q, out in key["runs"].items():
-                if qs and int(q) not in qs:
-                    continue
-                v = [lab[(int(q), c)] for c in out[m] if (int(q), c) in lab]
-                vals += v
-                if len(v) == len(out[m]) and v:
-                    per_q[m][int(q)] = sum(v) / len(v)
-            res[part][m] = {"judged": len(vals), "useful": sum(vals),
-                            "share_useful": round(sum(vals) / len(vals), 3) if vals else None,
-                            "ci95": E.wilson(sum(vals), len(vals))}
-        common = sorted(set(per_q["system"]) & set(per_q["hybrid"]) & set(per_q["vector"]))
-        if common:
-            res[part]["system_minus_hybrid"] = _paired([per_q["system"][q] - per_q["hybrid"][q] for q in common])
-            res[part]["system_minus_vector"] = _paired([per_q["system"][q] - per_q["vector"][q] for q in common])
-            res[part]["questions"] = len(common)
+        for level, ok in (("strict", _strict), ("lenient", _lenient)):
+            per_q: dict[str, dict[int, float]] = {m: {} for m in MODES}
+            res[part][level] = {}
+            for m in MODES:
+                vals = []
+                for q, out in key["runs"].items():
+                    if qs is not None and int(q) not in qs:
+                        continue
+                    v = [int(ok(lab[(int(q), c)])) for c in out[m] if (int(q), c) in lab]
+                    vals += v
+                    if v and len(v) == len(out[m]):
+                        per_q[m][int(q)] = sum(v) / len(v)
+                res[part][level][m] = {"judged": len(vals), "useful": sum(vals),
+                                       "share": round(sum(vals) / len(vals), 3) if vals else None,
+                                       "ci95": E.wilson(sum(vals), len(vals))}
+            common = sorted(set(per_q["system"]) & set(per_q["hybrid"]) & set(per_q["vector"]))
+            if len(common) > 1:
+                res[part][level]["system_minus_hybrid"] = _paired(
+                    [per_q["system"][q] - per_q["hybrid"][q] for q in common])
+                res[part][level]["system_minus_vector"] = _paired(
+                    [per_q["system"][q] - per_q["vector"][q] for q in common])
+                res[part][level]["questions"] = len(common)
     k = sum(fm.values())
     res["facts"] = {"judged": len(fm), "correct": k, "precision": round(k / len(fm), 3) if fm else None,
                     "ci95": E.wilson(k, len(fm))}
-    # Согласие с Codex: контрольные пары поиска и те же 120 фактов.
+    # Согласие с Codex (у него шкала 1/0): автор «2» против Codex «1» — строго, «2 или 1» — мягко.
     k2 = json.loads((RES / "search2_key.json").read_text("utf-8"))
     cm = E._marks(load_workbook(codex_check, data_only=True)["Поиск"], 5)
     codex2 = {(r["query"], r["chunk_id"]): cm[r["row"]] for r in k2["rows"] if r["row"] in cm}
-    pairs = [(sm[r["row"]], codex2[(r["query"], r["chunk_id"])]) for r in key["search_rows"]
-             if r["kind"] == "control" and r["row"] in sm and (r["query"], r["chunk_id"]) in codex2]
+    ctrl = [(sm[r["row"]], codex2[(r["query"], r["chunk_id"])]) for r in key["search_rows"]
+            if r["kind"] == "control" and r["row"] in sm and (r["query"], r["chunk_id"]) in codex2]
     cf = E._marks(load_workbook(codex_first, data_only=True)["Факты"], 7)
     fpairs = [(fm[r], cf[r]) for r in fm if r in cf]
 
-    def agree(p):
-        if not p:
+    def agree(pairs):
+        if not pairs:
             return None
-        n = len(p)
-        po = sum(a == b for a, b in p) / n
-        pa, pb = sum(a for a, _ in p) / n, sum(b for _, b in p) / n
+        n = len(pairs)
+        po = sum(a == b for a, b in pairs) / n
+        pa, pb = sum(a for a, _ in pairs) / n, sum(b for _, b in pairs) / n
         pe = pa * pb + (1 - pa) * (1 - pb)
         return {"n": n, "agreement": round(po, 3), "kappa": round((po - pe) / (1 - pe), 3) if pe < 1 else None}
 
-    res["agreement_with_codex"] = {"search": agree(pairs), "facts": agree(fpairs)}
+    res["agreement_with_codex"] = {
+        "search_strict": agree([(int(a == 2), b) for a, b in ctrl]),
+        "search_lenient": agree([(int(a >= 1), b) for a, b in ctrl]),
+        "facts": agree(fpairs),
+    }
     (RES / "final_scores.json").write_text(json.dumps(res, ensure_ascii=False, indent=1), "utf-8")
     print(json.dumps(res, ensure_ascii=False, indent=1))
 
@@ -246,5 +368,7 @@ def score(author: str, codex_first: str, codex_check: str) -> None:
 if __name__ == "__main__":
     if sys.argv[1] == "sheet":
         sheet(sys.argv[2])
+    elif sys.argv[1] == "graded":
+        graded_sheet()
     else:
         score(sys.argv[2], sys.argv[3], sys.argv[4])
