@@ -212,10 +212,13 @@ def rerank(hits: list[Any], concepts: list[list[str]]) -> list[Any]:
 
 
 def _distinct(name: str) -> str:
-    """Отличительная часть названия: «Anabar Shield» → «Anabar», «массив Колдар» → «Колдар»."""
+    """Отличительная часть названия: «Anabar Shield» → «Anabar», «массив Колдар» → «Колдар».
+    Осталось короче пяти букв — название целиком: от «Mountain Pass» одно «Pass» нашлось бы
+    в 33 статьях из 114."""
     kept = [w for w in re.split(r"[\s\-]+", name) if w and _stem(w) not in
             {_stem(x) for x in PLACE_WORDS}]
-    return " ".join(kept) or name
+    short = sum(len(w) for w in kept) < 5
+    return name if short or not kept else " ".join(kept)
 
 
 @dataclass

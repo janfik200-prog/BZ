@@ -1,0 +1,3402 @@
+{
+ "seed": 20261103,
+ "queries": [
+  "Картирование минералов изменённых пород в районе Маунтин-Пасс",
+  "Гиперспектральное картирование изменений в районе Куприт (Невада)",
+  "Золотоносность супергруппы Рорайма в Гайане",
+  "Литологические и структурные признаки золотого оруденения зеленокаменного пояса Менге",
+  "Контроль медного оруденения в районе Китуи (Кения)",
+  "Геологическое строение месторождения Арылах",
+  "Прогноз золоторудных проявлений Баягского рудного поля",
+  "Геологическое картирование золоторудного узла Олон-Овоот по космоснимкам",
+  "История разведки и потенциал свинцово-цинкового района Центральной Арктики (Нунавут)",
+  "Радиоактивность как поисковый признак месторождений Восточного Казахстана",
+  "Золотоносность терригенно-карбонатных толщ Алмалыкского рудного района",
+  "Строение Кировоградской и Звенигородско-Братской зон разломов Украинского щита",
+  "Геофизические поиски эпитермального золота в бассейне Кастро",
+  "Генеративно-состязательные сети в прогнозном картировании",
+  "Инверсия гравиметрических данных ансамблевым фильтром Калмана",
+  "Квантовые акселерометры для спутниковой гравиметрии",
+  "Сейсмическая визуализация для оконтуривания рудных объектов",
+  "Палеороссыпная модель золота в метаконгломератах",
+  "Спектральные признаки железа и алюминия по снимкам Sentinel-2",
+  "Гиперспектральные снимки PRISMA для картирования изменённых пород",
+  "Геохимическая зональность эндогенного оруденения по вторичным ореолам",
+  "Критерии эпитермального кислотно-сульфатного оруденения",
+  "Тепловой поток и разуплотнение коры в рифтовых и плюмовых структурах",
+  "Морфология и состав самородного золота",
+  "Оценка ресурсов полезных ископаемых с помощью дистанционного зондирования и ГИС"
+ ],
+ "runs": {
+  "1": {
+   "vector": [
+    4398,
+    4349,
+    4680,
+    277,
+    6537
+   ],
+   "hybrid": [
+    4398,
+    6017,
+    4349,
+    5040,
+    6351
+   ],
+   "system": [
+    4398,
+    4337,
+    6545,
+    1595,
+    1618
+   ]
+  },
+  "2": {
+   "vector": [
+    2323,
+    2322,
+    2358,
+    2340,
+    5177
+   ],
+   "hybrid": [
+    2323,
+    6351,
+    2322,
+    6355,
+    5040
+   ],
+   "system": [
+    2322,
+    2320,
+    2340,
+    2353,
+    2673
+   ]
+  },
+  "3": {
+   "vector": [
+    3941,
+    3944,
+    5133,
+    4010,
+    4006
+   ],
+   "hybrid": [
+    3941,
+    6063,
+    3944,
+    6064,
+    2389
+   ],
+   "system": [
+    3941,
+    3944,
+    4010,
+    4006,
+    3943
+   ]
+  },
+  "4": {
+   "vector": [
+    2237,
+    2238,
+    5727,
+    5717,
+    185
+   ],
+   "hybrid": [
+    5079,
+    5080,
+    6216,
+    6607,
+    6605
+   ],
+   "system": [
+    5727,
+    5729,
+    5711,
+    5728,
+    5713
+   ]
+  },
+  "5": {
+   "vector": [
+    6096,
+    6104,
+    5724,
+    5717,
+    5411
+   ],
+   "hybrid": [
+    6096,
+    5063,
+    6104,
+    5079,
+    6216
+   ],
+   "system": [
+    6134,
+    6129,
+    6095,
+    6101,
+    6102
+   ]
+  },
+  "6": {
+   "vector": [
+    6626,
+    6625,
+    6339,
+    5889,
+    2294
+   ],
+   "hybrid": [
+    6626,
+    6625,
+    6339,
+    5889,
+    2294
+   ],
+   "system": [
+    6620,
+    6626,
+    2295,
+    2291,
+    6625
+   ]
+  },
+  "7": {
+   "vector": [
+    79,
+    112,
+    6236,
+    6253,
+    6288
+   ],
+   "hybrid": [
+    80,
+    79,
+    6236,
+    6253,
+    6288
+   ],
+   "system": [
+    80,
+    89,
+    4629,
+    2403,
+    2391
+   ]
+  },
+  "8": {
+   "vector": [
+    2391,
+    2379,
+    6221,
+    548,
+    545
+   ],
+   "hybrid": [
+    2392,
+    2379,
+    6267,
+    2227,
+    89
+   ],
+   "system": [
+    2403,
+    2392,
+    6211,
+    6232,
+    6200
+   ]
+  },
+  "9": {
+   "vector": [
+    2158,
+    2160,
+    6263,
+    6264,
+    505
+   ],
+   "hybrid": [
+    6264,
+    500,
+    2158,
+    6363,
+    2160
+   ],
+   "system": [
+    2161,
+    2159,
+    2280,
+    6263,
+    6270
+   ]
+  },
+  "10": {
+   "vector": [
+    5877,
+    5876,
+    6553,
+    6348,
+    4211
+   ],
+   "hybrid": [
+    5877,
+    5876,
+    6553,
+    6348,
+    4211
+   ],
+   "system": [
+    5877,
+    5876,
+    6553,
+    6335,
+    6550
+   ]
+  },
+  "11": {
+   "vector": [
+    6020,
+    6014,
+    6285,
+    6225,
+    6289
+   ],
+   "hybrid": [
+    6020,
+    6014,
+    6285,
+    6225,
+    6289
+   ],
+   "system": [
+    6020,
+    6014,
+    5858,
+    5868,
+    6220
+   ]
+  },
+  "12": {
+   "vector": [
+    5518,
+    5519,
+    452,
+    446,
+    295
+   ],
+   "hybrid": [
+    295,
+    5520,
+    5522,
+    343,
+    499
+   ],
+   "system": [
+    295,
+    5517,
+    294,
+    5520,
+    367
+   ]
+  },
+  "13": {
+   "vector": [
+    5514,
+    5489,
+    2217,
+    2312,
+    6610
+   ],
+   "hybrid": [
+    6610,
+    5514,
+    6591,
+    5489,
+    6041
+   ],
+   "system": [
+    5490,
+    5514,
+    5793,
+    5767,
+    4411
+   ]
+  },
+  "14": {
+   "vector": [
+    144,
+    299,
+    97,
+    5649,
+    101
+   ],
+   "hybrid": [
+    144,
+    143,
+    115,
+    2303,
+    1611
+   ],
+   "system": [
+    5649,
+    144,
+    143,
+    115,
+    2303
+   ]
+  },
+  "15": {
+   "vector": [
+    4584,
+    4572,
+    1462,
+    1527,
+    4589
+   ],
+   "hybrid": [
+    1527,
+    4584,
+    144,
+    4572,
+    2228
+   ],
+   "system": [
+    4584,
+    4581,
+    1527,
+    144,
+    2228
+   ]
+  },
+  "16": {
+   "vector": [
+    1385,
+    1390,
+    1455,
+    1457,
+    1389
+   ],
+   "hybrid": [
+    1385,
+    1583,
+    1390,
+    85,
+    121
+   ],
+   "system": [
+    1390,
+    1438,
+    1583,
+    85,
+    121
+   ]
+  },
+  "17": {
+   "vector": [
+    5650,
+    2334,
+    2242,
+    2229,
+    2337
+   ],
+   "hybrid": [
+    2229,
+    5650,
+    524,
+    2334,
+    491
+   ],
+   "system": [
+    491,
+    165,
+    5657,
+    2040,
+    5091
+   ]
+  },
+  "18": {
+   "vector": [
+    6176,
+    6173,
+    6056,
+    3935,
+    3874
+   ],
+   "hybrid": [
+    6616,
+    6610,
+    7,
+    2300,
+    6295
+   ],
+   "system": [
+    3874,
+    3933,
+    6616,
+    6610,
+    7
+   ]
+  },
+  "19": {
+   "vector": [
+    4389,
+    4717,
+    2398,
+    4391,
+    5535
+   ],
+   "hybrid": [
+    2398,
+    4386,
+    4485,
+    2397,
+    4483
+   ],
+   "system": [
+    6563,
+    4717,
+    5535,
+    5542,
+    6562
+   ]
+  },
+  "20": {
+   "vector": [
+    2323,
+    2320,
+    253,
+    5174,
+    4393
+   ],
+   "hybrid": [
+    2329,
+    2318,
+    5174,
+    6017,
+    6016
+   ],
+   "system": [
+    2329,
+    5174,
+    2320,
+    5973,
+    2350
+   ]
+  },
+  "21": {
+   "vector": [
+    165,
+    188,
+    6602,
+    6604,
+    2244
+   ],
+   "hybrid": [
+    165,
+    188,
+    6602,
+    6604,
+    2244
+   ],
+   "system": [
+    165,
+    188,
+    6602,
+    6604,
+    2244
+   ]
+  },
+  "22": {
+   "vector": [
+    2244,
+    2240,
+    17,
+    6610,
+    2301
+   ],
+   "hybrid": [
+    2240,
+    2215,
+    17,
+    6610,
+    2301
+   ],
+   "system": [
+    2240,
+    2215,
+    6610,
+    6245,
+    2545
+   ]
+  },
+  "23": {
+   "vector": [
+    1509,
+    1475,
+    1546,
+    5464,
+    1548
+   ],
+   "hybrid": [
+    1509,
+    1475,
+    1546,
+    1545,
+    5464
+   ],
+   "system": [
+    1496,
+    1556,
+    1509,
+    1546,
+    556
+   ]
+  },
+  "24": {
+   "vector": [
+    6294,
+    6295,
+    6957,
+    6959,
+    6058
+   ],
+   "hybrid": [
+    6280,
+    481,
+    6294,
+    6957,
+    6959
+   ],
+   "system": [
+    6280,
+    481,
+    6294,
+    6957,
+    6959
+   ]
+  },
+  "25": {
+   "vector": [
+    5638,
+    5629,
+    2019,
+    2018,
+    1632
+   ],
+   "hybrid": [
+    5650,
+    1627,
+    6568,
+    6572,
+    6532
+   ],
+   "system": [
+    5629,
+    5631,
+    1627,
+    2010,
+    2037
+   ]
+  }
+ },
+ "info": {
+  "1": {
+   "place": [
+    "Маунтин-Пасс",
+    "Mountain Pass"
+   ],
+   "names": [
+    "Mountain Pass"
+   ],
+   "docs": 8,
+   "concepts": [
+    [
+     "Маунтин-Пасс",
+     "Mountain Pass"
+    ],
+    [
+     "минералы изменённых пород",
+     "altered rock minerals"
+    ]
+   ],
+   "seconds_extra": 4.11
+  },
+  "2": {
+   "place": [
+    "Куприт",
+    "Cuprite",
+    "Cuprite (Nevada)"
+   ],
+   "names": [
+    "Куприт",
+    "Cuprite",
+    "Cuprite (Nevada)"
+   ],
+   "docs": 7,
+   "concepts": [
+    [
+     "Куприт",
+     "Cuprite",
+     "Cuprite (Nevada)"
+    ],
+    [
+     "гиперспектральное картирование",
+     "hyperspectral mapping"
+    ]
+   ],
+   "seconds_extra": 1.12
+  },
+  "3": {
+   "place": [
+    "Рорайма",
+    "Roraima"
+   ],
+   "names": [
+    "Roraima",
+    "Roraima Basin"
+   ],
+   "docs": 1,
+   "concepts": [
+    [
+     "Рорайма",
+     "Roraima"
+    ],
+    [
+     "золотоносность",
+     "gold-bearing",
+     "gold content"
+    ],
+    [
+     "супергруппа",
+     "supergroup"
+    ]
+   ],
+   "seconds_extra": 0.91
+  },
+  "4": {
+   "place": [
+    "Менге",
+    "Mengé"
+   ],
+   "names": [
+    "Mengé",
+    "Menge",
+    "Menge District"
+   ],
+   "docs": 1,
+   "concepts": [
+    [
+     "Менге",
+     "Mengé"
+    ],
+    [
+     "литологические и структурные признаки",
+     "lithological and structural features"
+    ],
+    [
+     "золотое оруденение",
+     "gold mineralization"
+    ]
+   ],
+   "seconds_extra": 1.23
+  },
+  "5": {
+   "place": [
+    "Китуи",
+    "Kitui"
+   ],
+   "names": [
+    "Kitui",
+    "Kitui West"
+   ],
+   "docs": 1,
+   "concepts": [
+    [
+     "Китуи",
+     "Kitui"
+    ],
+    [
+     "медное оруденение",
+     "copper mineralization"
+    ]
+   ],
+   "seconds_extra": 0.7
+  },
+  "6": {
+   "place": [
+    "Арылах",
+    "Arylakh"
+   ],
+   "names": [
+    "Арылах",
+    "Arylakh",
+    "Arylyakh",
+    "Сарылах"
+   ],
+   "docs": 2,
+   "concepts": [
+    [
+     "Арылах",
+     "Arylakh"
+    ],
+    [
+     "геологическое строение",
+     "geological structure",
+     "geostructure"
+    ],
+    [
+     "ore deposit"
+    ]
+   ],
+   "seconds_extra": 0.97
+  },
+  "7": {
+   "place": [
+    "Баягское рудное поле",
+    "Bayag ore field"
+   ],
+   "names": [
+    "Баягское рудное поле",
+    "Bayag ore field",
+    "Bayag"
+   ],
+   "docs": 4,
+   "concepts": [
+    [
+     "Баягское рудное поле",
+     "Bayag ore field"
+    ],
+    [
+     "золоторудные проявления",
+     "gold showings",
+     "gold ore manifestations"
+    ]
+   ],
+   "seconds_extra": 0.88
+  },
+  "8": {
+   "place": [],
+   "names": [],
+   "docs": 0,
+   "concepts": [
+    [
+     "геологическое картирование",
+     "geological mapping"
+    ],
+    [
+     "золоторудный узел",
+     "gold ore cluster"
+    ],
+    [
+     "космоснимки",
+     "satellite images"
+    ]
+   ],
+   "seconds_extra": 0.74
+  },
+  "9": {
+   "place": [
+    "Центральная Арктика",
+    "Central Arctic"
+   ],
+   "names": [
+    "Центральная Арктика",
+    "Central Arctic",
+    "Arctic",
+    "Arctic Belt",
+    "Арктики",
+    "АРКТИКИ"
+   ],
+   "docs": 11,
+   "concepts": [
+    [
+     "Центральная Арктика",
+     "Central Arctic"
+    ],
+    [
+     "свинцово-цинковое район",
+     "lead-zinc district",
+     "Pb-Zn district"
+    ],
+    [
+     "разведка",
+     "exploration",
+     "prospecting"
+    ]
+   ],
+   "seconds_extra": 1.43
+  },
+  "10": {
+   "place": [
+    "Восточный Казахстан",
+    "East Kazakhstan"
+   ],
+   "names": [
+    "Восточный Казахстан",
+    "East Kazakhstan",
+    "Eastern Kazakhstan",
+    "Kazakhstan"
+   ],
+   "docs": 7,
+   "concepts": [
+    [
+     "Восточный Казахстан",
+     "East Kazakhstan"
+    ],
+    [
+     "радиоактивность",
+     "radioactivity",
+     "rad"
+    ]
+   ],
+   "seconds_extra": 0.77
+  },
+  "11": {
+   "place": [
+    "Алмалыкский рудный район",
+    "Almalyk ore district"
+   ],
+   "names": [
+    "Алмалыкский рудный район",
+    "Almalyk ore district",
+    "Алмалыкский",
+    "Almalyk Ore Region"
+   ],
+   "docs": 9,
+   "concepts": [
+    [
+     "Алмалыкский рудный район",
+     "Almalyk ore district"
+    ],
+    [
+     "золотоносность",
+     "gold-bearing"
+    ],
+    [
+     "терригенно-карбонатные толщи",
+     "terrigeneous-carbonate sequences"
+    ]
+   ],
+   "seconds_extra": 1.19
+  },
+  "12": {
+   "place": [
+    "Украинский щит",
+    "Ukrainian Shield"
+   ],
+   "names": [
+    "Украинский щит",
+    "Ukrainian Shield",
+    "Украинский"
+   ],
+   "docs": 3,
+   "concepts": [
+    [
+     "Украинский щит",
+     "Ukrainian Shield"
+    ],
+    [
+     "строение разломов",
+     "structure of faults",
+     "fault structure"
+    ],
+    [
+     "Кировоградская зона разломов",
+     "Kirovograd Fault Zone"
+    ]
+   ],
+   "seconds_extra": 1.54
+  },
+  "13": {
+   "place": [
+    "бассейн Кастро",
+    "Castro Basin"
+   ],
+   "names": [
+    "Castro Basin"
+   ],
+   "docs": 4,
+   "concepts": [
+    [
+     "бассейн Кастро",
+     "Castro Basin"
+    ],
+    [
+     "геофизические поиски",
+     "geophysical exploration"
+    ],
+    [
+     "эпитермальное золото",
+     "epithermal gold"
+    ]
+   ],
+   "seconds_extra": 0.98
+  },
+  "14": {
+   "place": [],
+   "names": [],
+   "docs": 0,
+   "concepts": [
+    [
+     "генеративно-состязательные сети",
+     "generative adversarial networks",
+     "GANs"
+    ],
+    [
+     "прогнозное картирование",
+     "prospectivity mapping",
+     "prospectivity modelling",
+     "prospectivity modeling"
+    ]
+   ],
+   "seconds_extra": 0.75
+  },
+  "15": {
+   "place": [],
+   "names": [],
+   "docs": 0,
+   "concepts": [
+    [
+     "инверсия гравиметрических данных",
+     "gravity inversion",
+     "gravitational inversion"
+    ],
+    [
+     "ансамблевый фильтр Калмана",
+     "ensemble Kalman filter",
+     "EnKF"
+    ]
+   ],
+   "seconds_extra": 0.9
+  },
+  "16": {
+   "place": [],
+   "names": [],
+   "docs": 0,
+   "concepts": [
+    [
+     "квантовые акселерометры",
+     "quantum accelerometers"
+    ],
+    [
+     "спутниковая гравиметрия",
+     "satellite gravimetry"
+    ]
+   ],
+   "seconds_extra": 0.69
+  },
+  "17": {
+   "place": [],
+   "names": [],
+   "docs": 0,
+   "concepts": [
+    [
+     "сейсмическая визуализация",
+     "seismic imaging"
+    ],
+    [
+     "рудные объекты",
+     "ore bodies"
+    ]
+   ],
+   "seconds_extra": 0.57
+  },
+  "18": {
+   "place": [],
+   "names": [],
+   "docs": 0,
+   "concepts": [
+    [
+     "палеороссыпная модель",
+     "paleoplacer model"
+    ],
+    [
+     "золото",
+     "gold"
+    ],
+    [
+     "метаконгломераты",
+     "metaconglomerates"
+    ]
+   ],
+   "seconds_extra": 0.77
+  },
+  "19": {
+   "place": [],
+   "names": [],
+   "docs": 0,
+   "concepts": [
+    [
+     "спектральные признаки железа",
+     "iron spectral features"
+    ],
+    [
+     "спектральные признаки алюминия",
+     "aluminum spectral features"
+    ],
+    [
+     "Sentinel-2"
+    ]
+   ],
+   "seconds_extra": 0.83
+  },
+  "20": {
+   "place": [],
+   "names": [],
+   "docs": 0,
+   "concepts": [
+    [
+     "гиперспектральные снимки PRISMA",
+     "PRISMA hyperspectral images"
+    ],
+    [
+     "картирование изменённых пород",
+     "mapping of altered rocks"
+    ]
+   ],
+   "seconds_extra": 0.74
+  },
+  "21": {
+   "place": [],
+   "names": [],
+   "docs": 0,
+   "concepts": [
+    [
+     "геохимическая зональность",
+     "geochemical zonation"
+    ],
+    [
+     "эндогенное оруденение",
+     "endogenic mineralization"
+    ],
+    [
+     "вторичные ореолы",
+     "secondary aureoles"
+    ]
+   ],
+   "seconds_extra": 0.86
+  },
+  "22": {
+   "place": [],
+   "names": [],
+   "docs": 0,
+   "concepts": [
+    [
+     "критерии эпитермального кислотно-сульфатного оруденения",
+     "criteria for epithermal acid-sulfate mineralization",
+     "epithermal acid-sulfate mineralization criteria"
+    ],
+    [
+     "эпитермальное оруденение",
+     "epithermal mineralization"
+    ],
+    [
+     "кислотно-сульфатное оруденение",
+     "acid-sulfate mineralization"
+    ]
+   ],
+   "seconds_extra": 1.51
+  },
+  "23": {
+   "place": [],
+   "names": [],
+   "docs": 0,
+   "concepts": [
+    [
+     "тепловой поток",
+     "thermal flow",
+     "heat flow"
+    ],
+    [
+     "разуплотнение коры",
+     "crustal relaxation",
+     "crustal thinning"
+    ],
+    [
+     "рифтовые и плюмовые структуры",
+     "rift and plume structures"
+    ]
+   ],
+   "seconds_extra": 1.04
+  },
+  "24": {
+   "place": [],
+   "names": [],
+   "docs": 0,
+   "concepts": [
+    [
+     "морфология самородного золота",
+     "morphology of native gold"
+    ],
+    [
+     "состав самородного золота",
+     "composition of native gold"
+    ]
+   ],
+   "seconds_extra": 0.71
+  },
+  "25": {
+   "place": [],
+   "names": [],
+   "docs": 0,
+   "concepts": [
+    [
+     "оценка ресурсов полезных ископаемых",
+     "mineral resource assessment"
+    ],
+    [
+     "дистанционное зондирование",
+     "remote sensing"
+    ],
+    [
+     "ГИС",
+     "GIS",
+     "geographic information system"
+    ]
+   ],
+   "seconds_extra": 0.88
+  }
+ },
+ "search_rows": [
+  {
+   "row": 2,
+   "kind": "new",
+   "query": 6,
+   "chunk_id": 6625
+  },
+  {
+   "row": 3,
+   "kind": "control",
+   "query": 5,
+   "chunk_id": 29
+  },
+  {
+   "row": 4,
+   "kind": "new",
+   "query": 17,
+   "chunk_id": 2337
+  },
+  {
+   "row": 5,
+   "kind": "new",
+   "query": 19,
+   "chunk_id": 5535
+  },
+  {
+   "row": 6,
+   "kind": "new",
+   "query": 22,
+   "chunk_id": 2244
+  },
+  {
+   "row": 7,
+   "kind": "new",
+   "query": 7,
+   "chunk_id": 6288
+  },
+  {
+   "row": 8,
+   "kind": "new",
+   "query": 1,
+   "chunk_id": 6351
+  },
+  {
+   "row": 9,
+   "kind": "new",
+   "query": 20,
+   "chunk_id": 2350
+  },
+  {
+   "row": 10,
+   "kind": "new",
+   "query": 14,
+   "chunk_id": 143
+  },
+  {
+   "row": 11,
+   "kind": "new",
+   "query": 18,
+   "chunk_id": 7
+  },
+  {
+   "row": 12,
+   "kind": "new",
+   "query": 5,
+   "chunk_id": 5724
+  },
+  {
+   "row": 13,
+   "kind": "new",
+   "query": 23,
+   "chunk_id": 556
+  },
+  {
+   "row": 14,
+   "kind": "new",
+   "query": 16,
+   "chunk_id": 1438
+  },
+  {
+   "row": 15,
+   "kind": "new",
+   "query": 5,
+   "chunk_id": 5079
+  },
+  {
+   "row": 16,
+   "kind": "new",
+   "query": 23,
+   "chunk_id": 1546
+  },
+  {
+   "row": 17,
+   "kind": "new",
+   "query": 4,
+   "chunk_id": 2237
+  },
+  {
+   "row": 18,
+   "kind": "new",
+   "query": 25,
+   "chunk_id": 6572
+  },
+  {
+   "row": 19,
+   "kind": "new",
+   "query": 16,
+   "chunk_id": 1389
+  },
+  {
+   "row": 20,
+   "kind": "new",
+   "query": 7,
+   "chunk_id": 79
+  },
+  {
+   "row": 21,
+   "kind": "control",
+   "query": 2,
+   "chunk_id": 4514
+  },
+  {
+   "row": 22,
+   "kind": "new",
+   "query": 2,
+   "chunk_id": 2673
+  },
+  {
+   "row": 23,
+   "kind": "control",
+   "query": 4,
+   "chunk_id": 5056
+  },
+  {
+   "row": 24,
+   "kind": "new",
+   "query": 25,
+   "chunk_id": 2019
+  },
+  {
+   "row": 25,
+   "kind": "new",
+   "query": 14,
+   "chunk_id": 2303
+  },
+  {
+   "row": 26,
+   "kind": "new",
+   "query": 20,
+   "chunk_id": 2318
+  },
+  {
+   "row": 27,
+   "kind": "new",
+   "query": 2,
+   "chunk_id": 2323
+  },
+  {
+   "row": 28,
+   "kind": "new",
+   "query": 24,
+   "chunk_id": 6058
+  },
+  {
+   "row": 29,
+   "kind": "new",
+   "query": 10,
+   "chunk_id": 5877
+  },
+  {
+   "row": 30,
+   "kind": "new",
+   "query": 1,
+   "chunk_id": 6017
+  },
+  {
+   "row": 31,
+   "kind": "new",
+   "query": 20,
+   "chunk_id": 6017
+  },
+  {
+   "row": 32,
+   "kind": "new",
+   "query": 5,
+   "chunk_id": 5063
+  },
+  {
+   "row": 33,
+   "kind": "new",
+   "query": 12,
+   "chunk_id": 5517
+  },
+  {
+   "row": 34,
+   "kind": "new",
+   "query": 22,
+   "chunk_id": 6245
+  },
+  {
+   "row": 35,
+   "kind": "new",
+   "query": 15,
+   "chunk_id": 2228
+  },
+  {
+   "row": 36,
+   "kind": "new",
+   "query": 12,
+   "chunk_id": 5518
+  },
+  {
+   "row": 37,
+   "kind": "new",
+   "query": 15,
+   "chunk_id": 4572
+  },
+  {
+   "row": 38,
+   "kind": "new",
+   "query": 4,
+   "chunk_id": 5080
+  },
+  {
+   "row": 39,
+   "kind": "new",
+   "query": 10,
+   "chunk_id": 4211
+  },
+  {
+   "row": 40,
+   "kind": "new",
+   "query": 17,
+   "chunk_id": 2242
+  },
+  {
+   "row": 41,
+   "kind": "new",
+   "query": 25,
+   "chunk_id": 2010
+  },
+  {
+   "row": 42,
+   "kind": "new",
+   "query": 22,
+   "chunk_id": 2240
+  },
+  {
+   "row": 43,
+   "kind": "new",
+   "query": 3,
+   "chunk_id": 5133
+  },
+  {
+   "row": 44,
+   "kind": "new",
+   "query": 13,
+   "chunk_id": 5490
+  },
+  {
+   "row": 45,
+   "kind": "new",
+   "query": 14,
+   "chunk_id": 299
+  },
+  {
+   "row": 46,
+   "kind": "control",
+   "query": 11,
+   "chunk_id": 6068
+  },
+  {
+   "row": 47,
+   "kind": "new",
+   "query": 4,
+   "chunk_id": 5079
+  },
+  {
+   "row": 48,
+   "kind": "new",
+   "query": 10,
+   "chunk_id": 5876
+  },
+  {
+   "row": 49,
+   "kind": "new",
+   "query": 8,
+   "chunk_id": 6211
+  },
+  {
+   "row": 50,
+   "kind": "new",
+   "query": 3,
+   "chunk_id": 4006
+  },
+  {
+   "row": 51,
+   "kind": "new",
+   "query": 16,
+   "chunk_id": 1455
+  },
+  {
+   "row": 52,
+   "kind": "new",
+   "query": 1,
+   "chunk_id": 5040
+  },
+  {
+   "row": 53,
+   "kind": "new",
+   "query": 19,
+   "chunk_id": 6563
+  },
+  {
+   "row": 54,
+   "kind": "new",
+   "query": 8,
+   "chunk_id": 545
+  },
+  {
+   "row": 55,
+   "kind": "control",
+   "query": 11,
+   "chunk_id": 5891
+  },
+  {
+   "row": 56,
+   "kind": "control",
+   "query": 20,
+   "chunk_id": 4429
+  },
+  {
+   "row": 57,
+   "kind": "new",
+   "query": 15,
+   "chunk_id": 144
+  },
+  {
+   "row": 58,
+   "kind": "new",
+   "query": 17,
+   "chunk_id": 524
+  },
+  {
+   "row": 59,
+   "kind": "new",
+   "query": 8,
+   "chunk_id": 2379
+  },
+  {
+   "row": 60,
+   "kind": "new",
+   "query": 4,
+   "chunk_id": 185
+  },
+  {
+   "row": 61,
+   "kind": "new",
+   "query": 9,
+   "chunk_id": 2161
+  },
+  {
+   "row": 62,
+   "kind": "new",
+   "query": 17,
+   "chunk_id": 5650
+  },
+  {
+   "row": 63,
+   "kind": "new",
+   "query": 4,
+   "chunk_id": 5717
+  },
+  {
+   "row": 64,
+   "kind": "control",
+   "query": 12,
+   "chunk_id": 4534
+  },
+  {
+   "row": 65,
+   "kind": "new",
+   "query": 1,
+   "chunk_id": 277
+  },
+  {
+   "row": 66,
+   "kind": "new",
+   "query": 18,
+   "chunk_id": 3874
+  },
+  {
+   "row": 67,
+   "kind": "new",
+   "query": 12,
+   "chunk_id": 343
+  },
+  {
+   "row": 68,
+   "kind": "new",
+   "query": 12,
+   "chunk_id": 5519
+  },
+  {
+   "row": 69,
+   "kind": "new",
+   "query": 19,
+   "chunk_id": 4485
+  },
+  {
+   "row": 70,
+   "kind": "new",
+   "query": 11,
+   "chunk_id": 6014
+  },
+  {
+   "row": 71,
+   "kind": "new",
+   "query": 2,
+   "chunk_id": 2353
+  },
+  {
+   "row": 72,
+   "kind": "new",
+   "query": 23,
+   "chunk_id": 5464
+  },
+  {
+   "row": 73,
+   "kind": "new",
+   "query": 6,
+   "chunk_id": 6626
+  },
+  {
+   "row": 74,
+   "kind": "control",
+   "query": 1,
+   "chunk_id": 4889
+  },
+  {
+   "row": 75,
+   "kind": "new",
+   "query": 24,
+   "chunk_id": 6280
+  },
+  {
+   "row": 76,
+   "kind": "new",
+   "query": 7,
+   "chunk_id": 6236
+  },
+  {
+   "row": 77,
+   "kind": "new",
+   "query": 1,
+   "chunk_id": 4349
+  },
+  {
+   "row": 78,
+   "kind": "control",
+   "query": 12,
+   "chunk_id": 6323
+  },
+  {
+   "row": 79,
+   "kind": "new",
+   "query": 9,
+   "chunk_id": 2160
+  },
+  {
+   "row": 80,
+   "kind": "control",
+   "query": 16,
+   "chunk_id": 6295
+  },
+  {
+   "row": 81,
+   "kind": "new",
+   "query": 5,
+   "chunk_id": 6134
+  },
+  {
+   "row": 82,
+   "kind": "new",
+   "query": 9,
+   "chunk_id": 6264
+  },
+  {
+   "row": 83,
+   "kind": "new",
+   "query": 12,
+   "chunk_id": 446
+  },
+  {
+   "row": 84,
+   "kind": "new",
+   "query": 23,
+   "chunk_id": 1548
+  },
+  {
+   "row": 85,
+   "kind": "new",
+   "query": 11,
+   "chunk_id": 6289
+  },
+  {
+   "row": 86,
+   "kind": "new",
+   "query": 4,
+   "chunk_id": 2238
+  },
+  {
+   "row": 87,
+   "kind": "control",
+   "query": 11,
+   "chunk_id": 6971
+  },
+  {
+   "row": 88,
+   "kind": "new",
+   "query": 4,
+   "chunk_id": 6605
+  },
+  {
+   "row": 89,
+   "kind": "new",
+   "query": 13,
+   "chunk_id": 4411
+  },
+  {
+   "row": 90,
+   "kind": "new",
+   "query": 18,
+   "chunk_id": 2300
+  },
+  {
+   "row": 91,
+   "kind": "new",
+   "query": 6,
+   "chunk_id": 2295
+  },
+  {
+   "row": 92,
+   "kind": "new",
+   "query": 12,
+   "chunk_id": 5520
+  },
+  {
+   "row": 93,
+   "kind": "new",
+   "query": 14,
+   "chunk_id": 97
+  },
+  {
+   "row": 94,
+   "kind": "new",
+   "query": 25,
+   "chunk_id": 2018
+  },
+  {
+   "row": 95,
+   "kind": "new",
+   "query": 15,
+   "chunk_id": 4581
+  },
+  {
+   "row": 96,
+   "kind": "new",
+   "query": 8,
+   "chunk_id": 6267
+  },
+  {
+   "row": 97,
+   "kind": "new",
+   "query": 9,
+   "chunk_id": 500
+  },
+  {
+   "row": 98,
+   "kind": "new",
+   "query": 9,
+   "chunk_id": 6363
+  },
+  {
+   "row": 99,
+   "kind": "new",
+   "query": 5,
+   "chunk_id": 6104
+  },
+  {
+   "row": 100,
+   "kind": "control",
+   "query": 11,
+   "chunk_id": 6079
+  },
+  {
+   "row": 101,
+   "kind": "new",
+   "query": 21,
+   "chunk_id": 6602
+  },
+  {
+   "row": 102,
+   "kind": "new",
+   "query": 25,
+   "chunk_id": 5629
+  },
+  {
+   "row": 103,
+   "kind": "new",
+   "query": 19,
+   "chunk_id": 4483
+  },
+  {
+   "row": 104,
+   "kind": "new",
+   "query": 14,
+   "chunk_id": 1611
+  },
+  {
+   "row": 105,
+   "kind": "new",
+   "query": 7,
+   "chunk_id": 89
+  },
+  {
+   "row": 106,
+   "kind": "new",
+   "query": 8,
+   "chunk_id": 6221
+  },
+  {
+   "row": 107,
+   "kind": "new",
+   "query": 12,
+   "chunk_id": 295
+  },
+  {
+   "row": 108,
+   "kind": "new",
+   "query": 25,
+   "chunk_id": 5631
+  },
+  {
+   "row": 109,
+   "kind": "new",
+   "query": 1,
+   "chunk_id": 4680
+  },
+  {
+   "row": 110,
+   "kind": "new",
+   "query": 8,
+   "chunk_id": 548
+  },
+  {
+   "row": 111,
+   "kind": "control",
+   "query": 5,
+   "chunk_id": 385
+  },
+  {
+   "row": 112,
+   "kind": "new",
+   "query": 2,
+   "chunk_id": 2322
+  },
+  {
+   "row": 113,
+   "kind": "control",
+   "query": 10,
+   "chunk_id": 519
+  },
+  {
+   "row": 114,
+   "kind": "new",
+   "query": 5,
+   "chunk_id": 6095
+  },
+  {
+   "row": 115,
+   "kind": "control",
+   "query": 14,
+   "chunk_id": 1643
+  },
+  {
+   "row": 116,
+   "kind": "new",
+   "query": 13,
+   "chunk_id": 6610
+  },
+  {
+   "row": 117,
+   "kind": "new",
+   "query": 1,
+   "chunk_id": 1595
+  },
+  {
+   "row": 118,
+   "kind": "new",
+   "query": 19,
+   "chunk_id": 2398
+  },
+  {
+   "row": 119,
+   "kind": "new",
+   "query": 1,
+   "chunk_id": 6545
+  },
+  {
+   "row": 120,
+   "kind": "new",
+   "query": 19,
+   "chunk_id": 4389
+  },
+  {
+   "row": 121,
+   "kind": "new",
+   "query": 19,
+   "chunk_id": 2397
+  },
+  {
+   "row": 122,
+   "kind": "new",
+   "query": 22,
+   "chunk_id": 17
+  },
+  {
+   "row": 123,
+   "kind": "new",
+   "query": 4,
+   "chunk_id": 5713
+  },
+  {
+   "row": 124,
+   "kind": "new",
+   "query": 2,
+   "chunk_id": 6355
+  },
+  {
+   "row": 125,
+   "kind": "new",
+   "query": 13,
+   "chunk_id": 5489
+  },
+  {
+   "row": 126,
+   "kind": "new",
+   "query": 24,
+   "chunk_id": 481
+  },
+  {
+   "row": 127,
+   "kind": "new",
+   "query": 4,
+   "chunk_id": 6216
+  },
+  {
+   "row": 128,
+   "kind": "new",
+   "query": 8,
+   "chunk_id": 2391
+  },
+  {
+   "row": 129,
+   "kind": "control",
+   "query": 15,
+   "chunk_id": 2656
+  },
+  {
+   "row": 130,
+   "kind": "new",
+   "query": 5,
+   "chunk_id": 6096
+  },
+  {
+   "row": 131,
+   "kind": "control",
+   "query": 8,
+   "chunk_id": 563
+  },
+  {
+   "row": 132,
+   "kind": "new",
+   "query": 20,
+   "chunk_id": 5174
+  },
+  {
+   "row": 133,
+   "kind": "new",
+   "query": 1,
+   "chunk_id": 6537
+  },
+  {
+   "row": 134,
+   "kind": "new",
+   "query": 15,
+   "chunk_id": 1462
+  },
+  {
+   "row": 135,
+   "kind": "new",
+   "query": 20,
+   "chunk_id": 5973
+  },
+  {
+   "row": 136,
+   "kind": "new",
+   "query": 11,
+   "chunk_id": 6020
+  },
+  {
+   "row": 137,
+   "kind": "new",
+   "query": 25,
+   "chunk_id": 1632
+  },
+  {
+   "row": 138,
+   "kind": "new",
+   "query": 21,
+   "chunk_id": 165
+  },
+  {
+   "row": 139,
+   "kind": "new",
+   "query": 19,
+   "chunk_id": 5542
+  },
+  {
+   "row": 140,
+   "kind": "new",
+   "query": 6,
+   "chunk_id": 2294
+  },
+  {
+   "row": 141,
+   "kind": "new",
+   "query": 24,
+   "chunk_id": 6294
+  },
+  {
+   "row": 142,
+   "kind": "new",
+   "query": 18,
+   "chunk_id": 6173
+  },
+  {
+   "row": 143,
+   "kind": "new",
+   "query": 7,
+   "chunk_id": 2403
+  },
+  {
+   "row": 144,
+   "kind": "new",
+   "query": 2,
+   "chunk_id": 2340
+  },
+  {
+   "row": 145,
+   "kind": "new",
+   "query": 13,
+   "chunk_id": 2217
+  },
+  {
+   "row": 146,
+   "kind": "new",
+   "query": 24,
+   "chunk_id": 6295
+  },
+  {
+   "row": 147,
+   "kind": "new",
+   "query": 17,
+   "chunk_id": 491
+  },
+  {
+   "row": 148,
+   "kind": "new",
+   "query": 23,
+   "chunk_id": 1496
+  },
+  {
+   "row": 149,
+   "kind": "new",
+   "query": 4,
+   "chunk_id": 6607
+  },
+  {
+   "row": 150,
+   "kind": "control",
+   "query": 18,
+   "chunk_id": 6172
+  },
+  {
+   "row": 151,
+   "kind": "new",
+   "query": 7,
+   "chunk_id": 4629
+  },
+  {
+   "row": 152,
+   "kind": "new",
+   "query": 20,
+   "chunk_id": 2329
+  },
+  {
+   "row": 153,
+   "kind": "new",
+   "query": 12,
+   "chunk_id": 367
+  },
+  {
+   "row": 154,
+   "kind": "new",
+   "query": 13,
+   "chunk_id": 2312
+  },
+  {
+   "row": 155,
+   "kind": "new",
+   "query": 2,
+   "chunk_id": 5177
+  },
+  {
+   "row": 156,
+   "kind": "new",
+   "query": 14,
+   "chunk_id": 101
+  },
+  {
+   "row": 157,
+   "kind": "new",
+   "query": 3,
+   "chunk_id": 6063
+  },
+  {
+   "row": 158,
+   "kind": "new",
+   "query": 4,
+   "chunk_id": 5729
+  },
+  {
+   "row": 159,
+   "kind": "new",
+   "query": 11,
+   "chunk_id": 6225
+  },
+  {
+   "row": 160,
+   "kind": "new",
+   "query": 16,
+   "chunk_id": 121
+  },
+  {
+   "row": 161,
+   "kind": "new",
+   "query": 14,
+   "chunk_id": 144
+  },
+  {
+   "row": 162,
+   "kind": "new",
+   "query": 15,
+   "chunk_id": 4589
+  },
+  {
+   "row": 163,
+   "kind": "control",
+   "query": 17,
+   "chunk_id": 6255
+  },
+  {
+   "row": 164,
+   "kind": "new",
+   "query": 16,
+   "chunk_id": 1385
+  },
+  {
+   "row": 165,
+   "kind": "new",
+   "query": 9,
+   "chunk_id": 2159
+  },
+  {
+   "row": 166,
+   "kind": "new",
+   "query": 9,
+   "chunk_id": 2280
+  },
+  {
+   "row": 167,
+   "kind": "new",
+   "query": 18,
+   "chunk_id": 6056
+  },
+  {
+   "row": 168,
+   "kind": "new",
+   "query": 10,
+   "chunk_id": 6553
+  },
+  {
+   "row": 169,
+   "kind": "new",
+   "query": 22,
+   "chunk_id": 2301
+  },
+  {
+   "row": 170,
+   "kind": "new",
+   "query": 2,
+   "chunk_id": 5040
+  },
+  {
+   "row": 171,
+   "kind": "control",
+   "query": 2,
+   "chunk_id": 203
+  },
+  {
+   "row": 172,
+   "kind": "new",
+   "query": 5,
+   "chunk_id": 6102
+  },
+  {
+   "row": 173,
+   "kind": "new",
+   "query": 12,
+   "chunk_id": 499
+  },
+  {
+   "row": 174,
+   "kind": "new",
+   "query": 1,
+   "chunk_id": 1618
+  },
+  {
+   "row": 175,
+   "kind": "new",
+   "query": 16,
+   "chunk_id": 1390
+  },
+  {
+   "row": 176,
+   "kind": "new",
+   "query": 21,
+   "chunk_id": 2244
+  },
+  {
+   "row": 177,
+   "kind": "new",
+   "query": 25,
+   "chunk_id": 6568
+  },
+  {
+   "row": 178,
+   "kind": "new",
+   "query": 11,
+   "chunk_id": 5858
+  },
+  {
+   "row": 179,
+   "kind": "new",
+   "query": 13,
+   "chunk_id": 5514
+  },
+  {
+   "row": 180,
+   "kind": "new",
+   "query": 5,
+   "chunk_id": 5411
+  },
+  {
+   "row": 181,
+   "kind": "new",
+   "query": 23,
+   "chunk_id": 1509
+  },
+  {
+   "row": 182,
+   "kind": "new",
+   "query": 20,
+   "chunk_id": 2323
+  },
+  {
+   "row": 183,
+   "kind": "new",
+   "query": 5,
+   "chunk_id": 5717
+  },
+  {
+   "row": 184,
+   "kind": "new",
+   "query": 17,
+   "chunk_id": 2040
+  },
+  {
+   "row": 185,
+   "kind": "control",
+   "query": 9,
+   "chunk_id": 296
+  },
+  {
+   "row": 186,
+   "kind": "new",
+   "query": 11,
+   "chunk_id": 6220
+  },
+  {
+   "row": 187,
+   "kind": "new",
+   "query": 10,
+   "chunk_id": 6348
+  },
+  {
+   "row": 188,
+   "kind": "new",
+   "query": 8,
+   "chunk_id": 2403
+  },
+  {
+   "row": 189,
+   "kind": "new",
+   "query": 16,
+   "chunk_id": 85
+  },
+  {
+   "row": 190,
+   "kind": "new",
+   "query": 4,
+   "chunk_id": 5728
+  },
+  {
+   "row": 191,
+   "kind": "new",
+   "query": 23,
+   "chunk_id": 1556
+  },
+  {
+   "row": 192,
+   "kind": "new",
+   "query": 20,
+   "chunk_id": 253
+  },
+  {
+   "row": 193,
+   "kind": "control",
+   "query": 7,
+   "chunk_id": 6225
+  },
+  {
+   "row": 194,
+   "kind": "new",
+   "query": 6,
+   "chunk_id": 6339
+  },
+  {
+   "row": 195,
+   "kind": "new",
+   "query": 8,
+   "chunk_id": 6232
+  },
+  {
+   "row": 196,
+   "kind": "new",
+   "query": 13,
+   "chunk_id": 5793
+  },
+  {
+   "row": 197,
+   "kind": "new",
+   "query": 19,
+   "chunk_id": 6562
+  },
+  {
+   "row": 198,
+   "kind": "control",
+   "query": 7,
+   "chunk_id": 5079
+  },
+  {
+   "row": 199,
+   "kind": "new",
+   "query": 18,
+   "chunk_id": 6176
+  },
+  {
+   "row": 200,
+   "kind": "new",
+   "query": 8,
+   "chunk_id": 6200
+  },
+  {
+   "row": 201,
+   "kind": "new",
+   "query": 1,
+   "chunk_id": 4398
+  },
+  {
+   "row": 202,
+   "kind": "new",
+   "query": 4,
+   "chunk_id": 5727
+  },
+  {
+   "row": 203,
+   "kind": "new",
+   "query": 24,
+   "chunk_id": 6959
+  },
+  {
+   "row": 204,
+   "kind": "new",
+   "query": 13,
+   "chunk_id": 6591
+  },
+  {
+   "row": 205,
+   "kind": "new",
+   "query": 7,
+   "chunk_id": 6253
+  },
+  {
+   "row": 206,
+   "kind": "new",
+   "query": 3,
+   "chunk_id": 2389
+  },
+  {
+   "row": 207,
+   "kind": "new",
+   "query": 25,
+   "chunk_id": 5638
+  },
+  {
+   "row": 208,
+   "kind": "new",
+   "query": 8,
+   "chunk_id": 89
+  },
+  {
+   "row": 209,
+   "kind": "new",
+   "query": 19,
+   "chunk_id": 4386
+  },
+  {
+   "row": 210,
+   "kind": "new",
+   "query": 14,
+   "chunk_id": 5649
+  },
+  {
+   "row": 211,
+   "kind": "new",
+   "query": 16,
+   "chunk_id": 1457
+  },
+  {
+   "row": 212,
+   "kind": "new",
+   "query": 7,
+   "chunk_id": 80
+  },
+  {
+   "row": 213,
+   "kind": "new",
+   "query": 25,
+   "chunk_id": 5650
+  },
+  {
+   "row": 214,
+   "kind": "control",
+   "query": 14,
+   "chunk_id": 5040
+  },
+  {
+   "row": 215,
+   "kind": "new",
+   "query": 9,
+   "chunk_id": 505
+  },
+  {
+   "row": 216,
+   "kind": "new",
+   "query": 9,
+   "chunk_id": 6263
+  },
+  {
+   "row": 217,
+   "kind": "control",
+   "query": 18,
+   "chunk_id": 5869
+  },
+  {
+   "row": 218,
+   "kind": "new",
+   "query": 2,
+   "chunk_id": 2358
+  },
+  {
+   "row": 219,
+   "kind": "new",
+   "query": 17,
+   "chunk_id": 5091
+  },
+  {
+   "row": 220,
+   "kind": "control",
+   "query": 14,
+   "chunk_id": 1997
+  },
+  {
+   "row": 221,
+   "kind": "new",
+   "query": 21,
+   "chunk_id": 188
+  },
+  {
+   "row": 222,
+   "kind": "new",
+   "query": 7,
+   "chunk_id": 2391
+  },
+  {
+   "row": 223,
+   "kind": "new",
+   "query": 25,
+   "chunk_id": 2037
+  },
+  {
+   "row": 224,
+   "kind": "new",
+   "query": 23,
+   "chunk_id": 1545
+  },
+  {
+   "row": 225,
+   "kind": "new",
+   "query": 18,
+   "chunk_id": 6295
+  },
+  {
+   "row": 226,
+   "kind": "new",
+   "query": 19,
+   "chunk_id": 4391
+  },
+  {
+   "row": 227,
+   "kind": "new",
+   "query": 3,
+   "chunk_id": 3943
+  },
+  {
+   "row": 228,
+   "kind": "new",
+   "query": 3,
+   "chunk_id": 3944
+  },
+  {
+   "row": 229,
+   "kind": "control",
+   "query": 9,
+   "chunk_id": 2616
+  },
+  {
+   "row": 230,
+   "kind": "new",
+   "query": 13,
+   "chunk_id": 5767
+  },
+  {
+   "row": 231,
+   "kind": "new",
+   "query": 17,
+   "chunk_id": 2334
+  },
+  {
+   "row": 232,
+   "kind": "new",
+   "query": 17,
+   "chunk_id": 165
+  },
+  {
+   "row": 233,
+   "kind": "new",
+   "query": 21,
+   "chunk_id": 6604
+  },
+  {
+   "row": 234,
+   "kind": "new",
+   "query": 2,
+   "chunk_id": 6351
+  },
+  {
+   "row": 235,
+   "kind": "new",
+   "query": 12,
+   "chunk_id": 5522
+  },
+  {
+   "row": 236,
+   "kind": "new",
+   "query": 6,
+   "chunk_id": 5889
+  },
+  {
+   "row": 237,
+   "kind": "control",
+   "query": 3,
+   "chunk_id": 5148
+  },
+  {
+   "row": 238,
+   "kind": "new",
+   "query": 10,
+   "chunk_id": 6335
+  },
+  {
+   "row": 239,
+   "kind": "control",
+   "query": 13,
+   "chunk_id": 27
+  },
+  {
+   "row": 240,
+   "kind": "new",
+   "query": 15,
+   "chunk_id": 4584
+  },
+  {
+   "row": 241,
+   "kind": "new",
+   "query": 12,
+   "chunk_id": 294
+  },
+  {
+   "row": 242,
+   "kind": "new",
+   "query": 18,
+   "chunk_id": 6610
+  },
+  {
+   "row": 243,
+   "kind": "new",
+   "query": 11,
+   "chunk_id": 5868
+  },
+  {
+   "row": 244,
+   "kind": "new",
+   "query": 24,
+   "chunk_id": 6957
+  },
+  {
+   "row": 245,
+   "kind": "new",
+   "query": 22,
+   "chunk_id": 2215
+  },
+  {
+   "row": 246,
+   "kind": "control",
+   "query": 12,
+   "chunk_id": 25
+  },
+  {
+   "row": 247,
+   "kind": "new",
+   "query": 8,
+   "chunk_id": 2392
+  },
+  {
+   "row": 248,
+   "kind": "new",
+   "query": 19,
+   "chunk_id": 4717
+  },
+  {
+   "row": 249,
+   "kind": "control",
+   "query": 20,
+   "chunk_id": 5066
+  },
+  {
+   "row": 250,
+   "kind": "new",
+   "query": 16,
+   "chunk_id": 1583
+  },
+  {
+   "row": 251,
+   "kind": "new",
+   "query": 5,
+   "chunk_id": 6101
+  },
+  {
+   "row": 252,
+   "kind": "control",
+   "query": 18,
+   "chunk_id": 6380
+  },
+  {
+   "row": 253,
+   "kind": "new",
+   "query": 15,
+   "chunk_id": 1527
+  },
+  {
+   "row": 254,
+   "kind": "new",
+   "query": 23,
+   "chunk_id": 1475
+  },
+  {
+   "row": 255,
+   "kind": "new",
+   "query": 20,
+   "chunk_id": 2320
+  },
+  {
+   "row": 256,
+   "kind": "control",
+   "query": 19,
+   "chunk_id": 111
+  },
+  {
+   "row": 257,
+   "kind": "new",
+   "query": 18,
+   "chunk_id": 6616
+  },
+  {
+   "row": 258,
+   "kind": "new",
+   "query": 3,
+   "chunk_id": 4010
+  },
+  {
+   "row": 259,
+   "kind": "new",
+   "query": 22,
+   "chunk_id": 6610
+  },
+  {
+   "row": 260,
+   "kind": "control",
+   "query": 13,
+   "chunk_id": 2240
+  },
+  {
+   "row": 261,
+   "kind": "new",
+   "query": 11,
+   "chunk_id": 6285
+  },
+  {
+   "row": 262,
+   "kind": "control",
+   "query": 5,
+   "chunk_id": 505
+  },
+  {
+   "row": 263,
+   "kind": "new",
+   "query": 3,
+   "chunk_id": 6064
+  },
+  {
+   "row": 264,
+   "kind": "new",
+   "query": 17,
+   "chunk_id": 2229
+  },
+  {
+   "row": 265,
+   "kind": "new",
+   "query": 9,
+   "chunk_id": 2158
+  },
+  {
+   "row": 266,
+   "kind": "new",
+   "query": 6,
+   "chunk_id": 6620
+  },
+  {
+   "row": 267,
+   "kind": "new",
+   "query": 18,
+   "chunk_id": 3935
+  },
+  {
+   "row": 268,
+   "kind": "new",
+   "query": 5,
+   "chunk_id": 6216
+  },
+  {
+   "row": 269,
+   "kind": "control",
+   "query": 2,
+   "chunk_id": 4305
+  },
+  {
+   "row": 270,
+   "kind": "new",
+   "query": 20,
+   "chunk_id": 6016
+  },
+  {
+   "row": 271,
+   "kind": "control",
+   "query": 6,
+   "chunk_id": 6230
+  },
+  {
+   "row": 272,
+   "kind": "control",
+   "query": 12,
+   "chunk_id": 6211
+  },
+  {
+   "row": 273,
+   "kind": "new",
+   "query": 7,
+   "chunk_id": 112
+  },
+  {
+   "row": 274,
+   "kind": "control",
+   "query": 19,
+   "chunk_id": 276
+  },
+  {
+   "row": 275,
+   "kind": "new",
+   "query": 8,
+   "chunk_id": 2227
+  },
+  {
+   "row": 276,
+   "kind": "control",
+   "query": 7,
+   "chunk_id": 5172
+  },
+  {
+   "row": 277,
+   "kind": "new",
+   "query": 1,
+   "chunk_id": 4337
+  },
+  {
+   "row": 278,
+   "kind": "new",
+   "query": 25,
+   "chunk_id": 1627
+  },
+  {
+   "row": 279,
+   "kind": "new",
+   "query": 12,
+   "chunk_id": 452
+  },
+  {
+   "row": 280,
+   "kind": "new",
+   "query": 22,
+   "chunk_id": 2545
+  },
+  {
+   "row": 281,
+   "kind": "new",
+   "query": 10,
+   "chunk_id": 6550
+  },
+  {
+   "row": 282,
+   "kind": "new",
+   "query": 17,
+   "chunk_id": 5657
+  },
+  {
+   "row": 283,
+   "kind": "new",
+   "query": 5,
+   "chunk_id": 6129
+  },
+  {
+   "row": 284,
+   "kind": "new",
+   "query": 3,
+   "chunk_id": 3941
+  },
+  {
+   "row": 285,
+   "kind": "new",
+   "query": 13,
+   "chunk_id": 6041
+  },
+  {
+   "row": 286,
+   "kind": "new",
+   "query": 14,
+   "chunk_id": 115
+  },
+  {
+   "row": 287,
+   "kind": "new",
+   "query": 9,
+   "chunk_id": 6270
+  },
+  {
+   "row": 288,
+   "kind": "new",
+   "query": 6,
+   "chunk_id": 2291
+  },
+  {
+   "row": 289,
+   "kind": "new",
+   "query": 25,
+   "chunk_id": 6532
+  },
+  {
+   "row": 290,
+   "kind": "new",
+   "query": 4,
+   "chunk_id": 5711
+  },
+  {
+   "row": 291,
+   "kind": "new",
+   "query": 2,
+   "chunk_id": 2320
+  },
+  {
+   "row": 292,
+   "kind": "new",
+   "query": 18,
+   "chunk_id": 3933
+  },
+  {
+   "row": 293,
+   "kind": "new",
+   "query": 20,
+   "chunk_id": 4393
+  }
+ ],
+ "fact_rows": [
+  {
+   "row": 2,
+   "fact_id": 12315
+  },
+  {
+   "row": 3,
+   "fact_id": 6834
+  },
+  {
+   "row": 4,
+   "fact_id": 17054
+  },
+  {
+   "row": 5,
+   "fact_id": 9893
+  },
+  {
+   "row": 6,
+   "fact_id": 15826
+  },
+  {
+   "row": 7,
+   "fact_id": 11757
+  },
+  {
+   "row": 8,
+   "fact_id": 8540
+  },
+  {
+   "row": 9,
+   "fact_id": 5595
+  },
+  {
+   "row": 10,
+   "fact_id": 8883
+  },
+  {
+   "row": 11,
+   "fact_id": 8952
+  },
+  {
+   "row": 12,
+   "fact_id": 8625
+  },
+  {
+   "row": 13,
+   "fact_id": 13868
+  },
+  {
+   "row": 14,
+   "fact_id": 17468
+  },
+  {
+   "row": 15,
+   "fact_id": 11308
+  },
+  {
+   "row": 16,
+   "fact_id": 10198
+  },
+  {
+   "row": 17,
+   "fact_id": 8817
+  },
+  {
+   "row": 18,
+   "fact_id": 14150
+  },
+  {
+   "row": 19,
+   "fact_id": 19405
+  },
+  {
+   "row": 20,
+   "fact_id": 19483
+  },
+  {
+   "row": 21,
+   "fact_id": 17071
+  },
+  {
+   "row": 22,
+   "fact_id": 18212
+  },
+  {
+   "row": 23,
+   "fact_id": 14333
+  },
+  {
+   "row": 24,
+   "fact_id": 7657
+  },
+  {
+   "row": 25,
+   "fact_id": 15654
+  },
+  {
+   "row": 26,
+   "fact_id": 9096
+  },
+  {
+   "row": 27,
+   "fact_id": 13758
+  },
+  {
+   "row": 28,
+   "fact_id": 12981
+  },
+  {
+   "row": 29,
+   "fact_id": 12699
+  },
+  {
+   "row": 30,
+   "fact_id": 6005
+  },
+  {
+   "row": 31,
+   "fact_id": 10522
+  },
+  {
+   "row": 32,
+   "fact_id": 17643
+  },
+  {
+   "row": 33,
+   "fact_id": 18180
+  },
+  {
+   "row": 34,
+   "fact_id": 12543
+  },
+  {
+   "row": 35,
+   "fact_id": 13096
+  },
+  {
+   "row": 36,
+   "fact_id": 11449
+  },
+  {
+   "row": 37,
+   "fact_id": 6225
+  },
+  {
+   "row": 38,
+   "fact_id": 16916
+  },
+  {
+   "row": 39,
+   "fact_id": 8303
+  },
+  {
+   "row": 40,
+   "fact_id": 9285
+  },
+  {
+   "row": 41,
+   "fact_id": 9067
+  },
+  {
+   "row": 42,
+   "fact_id": 19294
+  },
+  {
+   "row": 43,
+   "fact_id": 8057
+  },
+  {
+   "row": 44,
+   "fact_id": 11433
+  },
+  {
+   "row": 45,
+   "fact_id": 6737
+  },
+  {
+   "row": 46,
+   "fact_id": 8234
+  },
+  {
+   "row": 47,
+   "fact_id": 17927
+  },
+  {
+   "row": 48,
+   "fact_id": 10774
+  },
+  {
+   "row": 49,
+   "fact_id": 11002
+  },
+  {
+   "row": 50,
+   "fact_id": 5379
+  },
+  {
+   "row": 51,
+   "fact_id": 9726
+  },
+  {
+   "row": 52,
+   "fact_id": 10674
+  },
+  {
+   "row": 53,
+   "fact_id": 12723
+  },
+  {
+   "row": 54,
+   "fact_id": 15833
+  },
+  {
+   "row": 55,
+   "fact_id": 8532
+  },
+  {
+   "row": 56,
+   "fact_id": 13430
+  },
+  {
+   "row": 57,
+   "fact_id": 17108
+  },
+  {
+   "row": 58,
+   "fact_id": 10201
+  },
+  {
+   "row": 59,
+   "fact_id": 12610
+  },
+  {
+   "row": 60,
+   "fact_id": 5603
+  },
+  {
+   "row": 61,
+   "fact_id": 16226
+  },
+  {
+   "row": 62,
+   "fact_id": 14935
+  },
+  {
+   "row": 63,
+   "fact_id": 6828
+  },
+  {
+   "row": 64,
+   "fact_id": 11874
+  },
+  {
+   "row": 65,
+   "fact_id": 14903
+  },
+  {
+   "row": 66,
+   "fact_id": 6077
+  },
+  {
+   "row": 67,
+   "fact_id": 14775
+  },
+  {
+   "row": 68,
+   "fact_id": 9264
+  },
+  {
+   "row": 69,
+   "fact_id": 12513
+  },
+  {
+   "row": 70,
+   "fact_id": 8147
+  },
+  {
+   "row": 71,
+   "fact_id": 7491
+  },
+  {
+   "row": 72,
+   "fact_id": 19316
+  },
+  {
+   "row": 73,
+   "fact_id": 13848
+  },
+  {
+   "row": 74,
+   "fact_id": 17387
+  },
+  {
+   "row": 75,
+   "fact_id": 17906
+  },
+  {
+   "row": 76,
+   "fact_id": 16217
+  },
+  {
+   "row": 77,
+   "fact_id": 15452
+  },
+  {
+   "row": 78,
+   "fact_id": 13736
+  },
+  {
+   "row": 79,
+   "fact_id": 8713
+  },
+  {
+   "row": 80,
+   "fact_id": 17608
+  },
+  {
+   "row": 81,
+   "fact_id": 6310
+  },
+  {
+   "row": 82,
+   "fact_id": 19194
+  },
+  {
+   "row": 83,
+   "fact_id": 18374
+  },
+  {
+   "row": 84,
+   "fact_id": 7172
+  },
+  {
+   "row": 85,
+   "fact_id": 19311
+  },
+  {
+   "row": 86,
+   "fact_id": 17884
+  },
+  {
+   "row": 87,
+   "fact_id": 9395
+  },
+  {
+   "row": 88,
+   "fact_id": 17734
+  },
+  {
+   "row": 89,
+   "fact_id": 10706
+  },
+  {
+   "row": 90,
+   "fact_id": 13416
+  },
+  {
+   "row": 91,
+   "fact_id": 7899
+  },
+  {
+   "row": 92,
+   "fact_id": 17125
+  },
+  {
+   "row": 93,
+   "fact_id": 14256
+  },
+  {
+   "row": 94,
+   "fact_id": 17508
+  },
+  {
+   "row": 95,
+   "fact_id": 12973
+  },
+  {
+   "row": 96,
+   "fact_id": 18475
+  },
+  {
+   "row": 97,
+   "fact_id": 10618
+  },
+  {
+   "row": 98,
+   "fact_id": 19514
+  },
+  {
+   "row": 99,
+   "fact_id": 15883
+  },
+  {
+   "row": 100,
+   "fact_id": 17383
+  },
+  {
+   "row": 101,
+   "fact_id": 17342
+  },
+  {
+   "row": 102,
+   "fact_id": 17213
+  },
+  {
+   "row": 103,
+   "fact_id": 5474
+  },
+  {
+   "row": 104,
+   "fact_id": 12965
+  },
+  {
+   "row": 105,
+   "fact_id": 5719
+  },
+  {
+   "row": 106,
+   "fact_id": 17604
+  },
+  {
+   "row": 107,
+   "fact_id": 10544
+  },
+  {
+   "row": 108,
+   "fact_id": 8730
+  },
+  {
+   "row": 109,
+   "fact_id": 13618
+  },
+  {
+   "row": 110,
+   "fact_id": 7793
+  },
+  {
+   "row": 111,
+   "fact_id": 5613
+  },
+  {
+   "row": 112,
+   "fact_id": 5818
+  },
+  {
+   "row": 113,
+   "fact_id": 5431
+  },
+  {
+   "row": 114,
+   "fact_id": 14873
+  },
+  {
+   "row": 115,
+   "fact_id": 6284
+  },
+  {
+   "row": 116,
+   "fact_id": 10567
+  },
+  {
+   "row": 117,
+   "fact_id": 8105
+  },
+  {
+   "row": 118,
+   "fact_id": 11791
+  },
+  {
+   "row": 119,
+   "fact_id": 16310
+  },
+  {
+   "row": 120,
+   "fact_id": 16223
+  },
+  {
+   "row": 121,
+   "fact_id": 7996
+  }
+ ],
+ "seconds_extra_median": 0.88
+}
