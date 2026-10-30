@@ -13,20 +13,20 @@
   },
   "place": {
    "returned": 125,
-   "judged": 83,
-   "useful": 63,
-   "share_useful": 0.759,
+   "judged": 125,
+   "useful": 95,
+   "share_useful": 0.76,
    "ci95": [
-    0.657,
-    0.838
+    0.678,
+    0.826
    ],
-   "unjudged": 42
+   "unjudged": 0
   },
   "vs_hybrid": {
-   "queries": 6,
-   "better": 4,
-   "worse": 0,
-   "same": 2
+   "queries": 25,
+   "better": 17,
+   "worse": 1,
+   "same": 7
   }
  },
  "set2": {
@@ -43,14 +43,14 @@
   },
   "place": {
    "returned": 100,
-   "judged": 63,
-   "useful": 42,
-   "share_useful": 0.667,
+   "judged": 100,
+   "useful": 56,
+   "share_useful": 0.56,
    "ci95": [
-    0.544,
-    0.771
+    0.462,
+    0.653
    ],
-   "unjudged": 37
+   "unjudged": 0
   },
   "concepts": {
    "returned": 100,
@@ -64,10 +64,10 @@
    "unjudged": 0
   },
   "vs_concepts": {
-   "queries": 2,
-   "better": 0,
-   "worse": 0,
-   "same": 2
+   "queries": 20,
+   "better": 7,
+   "worse": 4,
+   "same": 9
   }
  }
 }
