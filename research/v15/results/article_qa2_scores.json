@@ -1,271 +1,272 @@
 {
  "questions_generated": 113,
- "checked_by_author": false,
- "questions_used": 113,
- "seconds_extra_median": 1.09,
+ "checked_by_author": true,
+ "questions_checked": 106,
+ "questions_used": 84,
+ "seconds_extra_median": 1.12,
  "all": {
-  "n": 113,
+  "n": 84,
   "hybrid": {
-   "top5": 0.708,
-   "first": 0.416,
-   "frag": 0.496
+   "top5": 0.726,
+   "first": 0.429,
+   "frag": 0.524
   },
   "hybrid+place": {
-   "top5": 0.832,
-   "first": 0.699,
-   "frag": 0.655
+   "top5": 0.857,
+   "first": 0.726,
+   "frag": 0.679
   },
   "hybrid+concepts": {
-   "top5": 0.832,
-   "first": 0.673,
-   "frag": 0.593
+   "top5": 0.869,
+   "first": 0.702,
+   "frag": 0.619
   },
   "hybrid+place+concepts": {
-   "top5": 0.894,
-   "first": 0.805,
-   "frag": 0.699
+   "top5": 0.929,
+   "first": 0.845,
+   "frag": 0.714
   },
   "vector": {
-   "top5": 0.867,
-   "first": 0.77,
+   "top5": 0.905,
+   "first": 0.81,
    "frag": 0.619
   },
   "vector+place": {
-   "top5": 0.894,
-   "first": 0.832,
-   "frag": 0.717
+   "top5": 0.929,
+   "first": 0.881,
+   "frag": 0.726
   },
   "vector+concepts": {
-   "top5": 0.903,
-   "first": 0.735,
-   "frag": 0.646
+   "top5": 0.94,
+   "first": 0.774,
+   "frag": 0.655
   },
   "vector+place+concepts": {
-   "top5": 0.92,
-   "first": 0.823,
-   "frag": 0.735
+   "top5": 0.94,
+   "first": 0.869,
+   "frag": 0.726
   },
   "vector+place - vector": {
    "top5": [
-    0.027,
-    -0.009,
+    0.024,
+    -0.024,
     0.071
    ],
    "first": [
-    0.062,
-    0.018,
-    0.115
+    0.071,
+    0.012,
+    0.143
    ],
    "frag": [
-    0.097,
-    0.035,
-    0.159
+    0.107,
+    0.036,
+    0.179
    ]
   },
   "vector+place - hybrid+place+concepts": {
    "top5": [
     0,
-    -0.044,
-    0.044
+    -0.048,
+    0.048
    ],
    "first": [
-    0.027,
-    -0.027,
-    0.08
+    0.036,
+    -0.024,
+    0.095
    ],
    "frag": [
-    0.018,
-    -0.071,
-    0.106
+    0.012,
+    -0.095,
+    0.119
    ]
   },
   "vector+concepts - vector": {
    "top5": [
-    0.035,
-    -0.018,
-    0.088
+    0.036,
+    -0.012,
+    0.095
    ],
    "first": [
-    -0.035,
-    -0.106,
-    0.035
+    -0.036,
+    -0.119,
+    0.036
    ],
    "frag": [
-    0.027,
-    -0.062,
-    0.115
+    0.036,
+    -0.06,
+    0.131
    ]
   },
   "hybrid+place+concepts - vector": {
    "top5": [
-    0.027,
-    -0.027,
-    0.088
+    0.024,
+    -0.036,
+    0.095
    ],
    "first": [
-    0.035,
-    -0.035,
-    0.106
+    0.036,
+    -0.048,
+    0.119
    ],
    "frag": [
-    0.08,
-    -0.027,
-    0.186
+    0.095,
+    -0.024,
+    0.214
    ]
   }
  },
  "place": {
-  "n": 77,
+  "n": 62,
   "hybrid": {
-   "top5": 0.753,
-   "first": 0.429,
-   "frag": 0.506
+   "top5": 0.758,
+   "first": 0.452,
+   "frag": 0.516
   },
   "hybrid+place": {
    "top5": 0.935,
-   "first": 0.844,
-   "frag": 0.74
+   "first": 0.855,
+   "frag": 0.726
   },
   "hybrid+concepts": {
-   "top5": 0.883,
-   "first": 0.727,
-   "frag": 0.623
+   "top5": 0.903,
+   "first": 0.726,
+   "frag": 0.645
   },
   "hybrid+place+concepts": {
-   "top5": 0.974,
-   "first": 0.922,
-   "frag": 0.779
+   "top5": 0.984,
+   "first": 0.919,
+   "frag": 0.774
   },
   "vector": {
-   "top5": 0.948,
-   "first": 0.883,
-   "frag": 0.649
+   "top5": 0.952,
+   "first": 0.871,
+   "frag": 0.629
   },
   "vector+place": {
-   "top5": 0.987,
-   "first": 0.974,
-   "frag": 0.792
+   "top5": 0.984,
+   "first": 0.968,
+   "frag": 0.774
   },
   "vector+concepts": {
-   "top5": 0.948,
-   "first": 0.805,
-   "frag": 0.662
+   "top5": 0.984,
+   "first": 0.806,
+   "frag": 0.694
   },
   "vector+place+concepts": {
-   "top5": 0.974,
+   "top5": 0.984,
    "first": 0.935,
-   "frag": 0.792
+   "frag": 0.79
   },
   "vector+place - vector": {
    "top5": [
-    0.039,
-    -0.013,
-    0.104
+    0.032,
+    -0.032,
+    0.097
    ],
    "first": [
-    0.091,
-    0.026,
-    0.169
+    0.097,
+    0.016,
+    0.194
    ],
    "frag": [
-    0.143,
-    0.065,
-    0.234
+    0.145,
+    0.048,
+    0.242
    ]
   },
   "vector+place - hybrid+place+concepts": {
    "top5": [
-    0.013,
     0,
-    0.039
+    0,
+    0
    ],
    "first": [
-    0.052,
-    0.013,
-    0.104
+    0.048,
+    0,
+    0.113
    ],
    "frag": [
-    0.013,
-    -0.091,
-    0.13
+    0,
+    -0.129,
+    0.129
    ]
   },
   "vector+concepts - vector": {
    "top5": [
+    0.032,
     0,
-    -0.052,
-    0.052
+    0.081
    ],
    "first": [
-    -0.078,
-    -0.156,
-    0
+    -0.065,
+    -0.145,
+    0.016
    ],
    "frag": [
-    0.013,
-    -0.091,
-    0.117
+    0.065,
+    -0.048,
+    0.177
    ]
   },
   "hybrid+place+concepts - vector": {
    "top5": [
-    0.026,
-    -0.039,
-    0.091
+    0.032,
+    -0.032,
+    0.097
    ],
    "first": [
-    0.039,
-    -0.039,
-    0.13
+    0.048,
+    -0.048,
+    0.145
    ],
    "frag": [
-    0.13,
-    0,
-    0.26
+    0.145,
+    -0.016,
+    0.29
    ]
   }
  },
  "noplace": {
-  "n": 36,
+  "n": 22,
   "hybrid": {
-   "top5": 0.611,
-   "first": 0.389,
-   "frag": 0.472
+   "top5": 0.636,
+   "first": 0.364,
+   "frag": 0.545
   },
   "hybrid+place": {
-   "top5": 0.611,
-   "first": 0.389,
-   "frag": 0.472
+   "top5": 0.636,
+   "first": 0.364,
+   "frag": 0.545
   },
   "hybrid+concepts": {
-   "top5": 0.722,
-   "first": 0.556,
-   "frag": 0.528
+   "top5": 0.773,
+   "first": 0.636,
+   "frag": 0.545
   },
   "hybrid+place+concepts": {
-   "top5": 0.722,
-   "first": 0.556,
-   "frag": 0.528
+   "top5": 0.773,
+   "first": 0.636,
+   "frag": 0.545
   },
   "vector": {
-   "top5": 0.694,
-   "first": 0.528,
-   "frag": 0.556
+   "top5": 0.773,
+   "first": 0.636,
+   "frag": 0.591
   },
   "vector+place": {
-   "top5": 0.694,
-   "first": 0.528,
-   "frag": 0.556
+   "top5": 0.773,
+   "first": 0.636,
+   "frag": 0.591
   },
   "vector+concepts": {
-   "top5": 0.806,
-   "first": 0.583,
-   "frag": 0.611
+   "top5": 0.818,
+   "first": 0.682,
+   "frag": 0.545
   },
   "vector+place+concepts": {
-   "top5": 0.806,
-   "first": 0.583,
-   "frag": 0.611
+   "top5": 0.818,
+   "first": 0.682,
+   "frag": 0.545
   },
   "vector+place - vector": {
    "top5": [
@@ -286,53 +287,53 @@
   },
   "vector+place - hybrid+place+concepts": {
    "top5": [
-    -0.028,
-    -0.139,
-    0.083
+    0,
+    -0.182,
+    0.182
    ],
    "first": [
-    -0.028,
-    -0.139,
-    0.083
+    0,
+    -0.182,
+    0.182
    ],
    "frag": [
-    0.028,
-    -0.111,
-    0.167
+    0.045,
+    -0.136,
+    0.227
    ]
   },
   "vector+concepts - vector": {
    "top5": [
-    0.111,
-    0,
-    0.25
+    0.045,
+    -0.091,
+    0.182
    ],
    "first": [
-    0.056,
-    -0.083,
-    0.194
+    0.045,
+    -0.091,
+    0.182
    ],
    "frag": [
-    0.056,
-    -0.083,
-    0.222
+    -0.045,
+    -0.227,
+    0.136
    ]
   },
   "hybrid+place+concepts - vector": {
    "top5": [
-    0.028,
-    -0.083,
-    0.139
+    0,
+    -0.182,
+    0.182
    ],
    "first": [
-    0.028,
-    -0.083,
-    0.139
+    0,
+    -0.182,
+    0.182
    ],
    "frag": [
-    -0.028,
-    -0.167,
-    0.111
+    -0.045,
+    -0.227,
+    0.136
    ]
   }
  }
