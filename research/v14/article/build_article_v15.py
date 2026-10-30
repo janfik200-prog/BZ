@@ -626,7 +626,7 @@ refs = [
     "Chen J., Xiao S., Zhang P., et al. M3-Embedding: Multi-Linguality, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation // Findings of ACL 2024. 2024. P. 2318–2335. DOI: 10.18653/v1/2024.findings-acl.137.",
     "Malkov Yu. A., Yashunin D. A. Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs // IEEE Transactions on Pattern Analysis and Machine Intelligence. 2020. Vol. 42, No. 4. P. 824–836. DOI: 10.1109/TPAMI.2018.2889473.",
     "Cormack G. V., Clarke C. L. A., Büttcher S. Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods // Proc. 32nd International ACM SIGIR Conference. 2009. P. 758–759. DOI: 10.1145/1571941.1572114.",
-    "Gadd S. Symphonym: Universal Phonetic Embeddings for Cross-Script Name Matching. 2026. arXiv: 2601.06932.",
+    "Gadd S. Symphonym: Universal Phonetic Embeddings for Cross-Script Toponym Matching. 2026. arXiv: 2601.06932.",
 ]
 for i, r in enumerate(refs, 1):
     para(f"{i}. {r}", "References")
