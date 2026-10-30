@@ -1,0 +1,160 @@
+{
+ "questions_generated": 113,
+ "questions_used": 113,
+ "all": {
+  "n": 113,
+  "vector": {
+   "article_in_top5": 0.894,
+   "article_ci95": [
+    0.824,
+    0.938
+   ],
+   "fragment_in_top5": 0.726,
+   "fragment_ci95": [
+    0.637,
+    0.799
+   ],
+   "mrr_article": 0.773
+  },
+  "hybrid": {
+   "article_in_top5": 0.655,
+   "article_ci95": [
+    0.563,
+    0.736
+   ],
+   "fragment_in_top5": 0.504,
+   "fragment_ci95": [
+    0.414,
+    0.595
+   ],
+   "mrr_article": 0.461
+  },
+  "system": {
+   "article_in_top5": 0.903,
+   "article_ci95": [
+    0.834,
+    0.945
+   ],
+   "fragment_in_top5": 0.752,
+   "fragment_ci95": [
+    0.665,
+    0.823
+   ],
+   "mrr_article": 0.813
+  },
+  "system_minus_hybrid_article": [
+   0.248,
+   0.159,
+   0.336
+  ],
+  "system_minus_vector_article": [
+   0.009,
+   -0.027,
+   0.044
+  ]
+ },
+ "with_place": {
+  "n": 91,
+  "vector": {
+   "article_in_top5": 0.945,
+   "article_ci95": [
+    0.878,
+    0.976
+   ],
+   "fragment_in_top5": 0.78,
+   "fragment_ci95": [
+    0.685,
+    0.853
+   ],
+   "mrr_article": 0.851
+  },
+  "hybrid": {
+   "article_in_top5": 0.703,
+   "article_ci95": [
+    0.603,
+    0.787
+   ],
+   "fragment_in_top5": 0.549,
+   "fragment_ci95": [
+    0.447,
+    0.648
+   ],
+   "mrr_article": 0.51
+  },
+  "system": {
+   "article_in_top5": 0.945,
+   "article_ci95": [
+    0.878,
+    0.976
+   ],
+   "fragment_in_top5": 0.813,
+   "fragment_ci95": [
+    0.721,
+    0.88
+   ],
+   "mrr_article": 0.879
+  },
+  "system_minus_hybrid_article": [
+   0.242,
+   0.143,
+   0.341
+  ],
+  "system_minus_vector_article": [
+   0,
+   -0.044,
+   0.044
+  ]
+ },
+ "without_place": {
+  "n": 22,
+  "vector": {
+   "article_in_top5": 0.682,
+   "article_ci95": [
+    0.473,
+    0.836
+   ],
+   "fragment_in_top5": 0.5,
+   "fragment_ci95": [
+    0.307,
+    0.693
+   ],
+   "mrr_article": 0.452
+  },
+  "hybrid": {
+   "article_in_top5": 0.455,
+   "article_ci95": [
+    0.269,
+    0.653
+   ],
+   "fragment_in_top5": 0.318,
+   "fragment_ci95": [
+    0.164,
+    0.527
+   ],
+   "mrr_article": 0.258
+  },
+  "system": {
+   "article_in_top5": 0.727,
+   "article_ci95": [
+    0.518,
+    0.868
+   ],
+   "fragment_in_top5": 0.5,
+   "fragment_ci95": [
+    0.307,
+    0.693
+   ],
+   "mrr_article": 0.542
+  },
+  "system_minus_hybrid_article": [
+   0.273,
+   0.091,
+   0.455
+  ],
+  "system_minus_vector_article": [
+   0.045,
+   0,
+   0.136
+  ]
+ }
+}

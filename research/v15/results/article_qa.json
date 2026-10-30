@@ -1,0 +1,906 @@
+[
+ {
+  "doc_id": "10.1007_s00126-023-01220-9",
+  "chunk_id": 3891,
+  "title": "A modified paleoplacer model for the metaconglomerate-hosted gold deposits at Jacobina, Brazil",
+  "terms": 27,
+  "question": "Какие минералы определяют окраску пород в рудном поле Кайенна?",
+  "answer": "Окраска пород в рудном поле Кайенна определяется пропорциями минералов, таких как турмалин, пирит, гематит и гидроксиды железа, что придаёт породам оттенки серого, зелёного, красного и коричневого цветов."
+ },
+ {
+  "doc_id": "10.1007_s00126-025-01395-3",
+  "chunk_id": 3972,
+  "title": "Gold potential of the Roraima Supergroup in Guyana",
+  "terms": 17,
+  "question": "Какие признаки свидетельствуют о гидротермальном влиянии в бассейне Рорайма?",
+  "answer": "Наличие хлорита, пирита, кальцитовых жил и микрокристаллического фторапатита указывает на гидротермальную инфильтрацию."
+ },
+ {
+  "doc_id": "10.1007_s10791-026-10192-z",
+  "chunk_id": 4027,
+  "title": "Mineral prospectivity mapping under extreme imbalance using contrastive embeddings balanced learning and integrated uncertainty analysis",
+  "terms": 10,
+  "question": "Какие породы характеризуют архейский и палеопротерозойский фундамент в западной Лапландии?",
+  "answer": "Архейский фундамент включает парагнейсы, гнейсы TTG, мигматиты и вулканические породы, а палеопротерозойские формации — карбонаты, кварциты, парагнейсы, граниты и магматические породы среднего и основного состава."
+ },
+ {
+  "doc_id": "10.1007_s11053-025-10468-z",
+  "chunk_id": 2711,
+  "title": "Class Label Representativeness in Machine Learning-Based Mineral Prospectivity Mapping",
+  "terms": 13,
+  "question": "Какой тип рудоносности был выбран в качестве целевой переменной в классификации из-за четкого геологического различия с другими стилями?",
+  "answer": "В качестве целевой переменной был выбран стиль рудоносности типа Миссисипи-Валли (MVT) цинк-свинец, отличающийся от магматических и карбонатитовых стилей."
+ },
+ {
+  "doc_id": "10.1007_s42461-026-01551-x",
+  "chunk_id": 4095,
+  "title": "Prospectivity analysis of the Maru Schist Belt mineralization, NW Nigeria",
+  "terms": 17,
+  "question": "Какие геологические факторы влияют на образование рудных месторождений в зоне Мару Шист в северной Нигерии?",
+  "answer": "Геологические формации, их проницаемость, пористость, структурные особенности, а также гидротермальные изменения и интрузии играют ключевую роль в формировании рудных месторождений в зоне Мару Шист."
+ },
+ {
+  "doc_id": "10.1007_s43994-025-00234-5",
+  "chunk_id": 4126,
+  "title": "Study of rare metal mineralization of granitoids at South Um Ara-Wadi Murrah area, Southeastern Desert, Egypt: implications for a characterization of mineral paragenesis",
+  "terms": 15,
+  "question": "Какие условия способствуют образованию редкометалльной минерализации в щелочных гидротермальных растворах?",
+  "answer": "Высокая температура (300–350 °C) и щелочной pH способствуют образованию редкометалльной минерализации в гидротермальных растворах."
+ },
+ {
+  "doc_id": "10.1007_s44274-025-00346-z",
+  "chunk_id": 4212,
+  "title": "Geospatial distributions of natural radioactivity in kwara state, nigeria using airborne gamma ray spectrometry data",
+  "terms": 11,
+  "question": "Какие геологические образования и структуры характерны для Квары в Нигерии и как они связаны с минерализацией?",
+  "answer": "В Кваре преобладают древние базитовые породы, такие как гранит, гнейс и сланец, а также осадочные породы кайнозоя, которые формируют сложные структуры, включая разломы и зоны сдвигов, часто ассоциированные с минерализацией."
+ },
+ {
+  "doc_id": "10.1007_s44288-025-00202-w",
+  "chunk_id": 4248,
+  "title": "Data driven frequency ratio modeling for iron-ore exploration using aster and aeromagnetic datasets in parts of Nasarawa, Northcentral Nigeria",
+  "terms": 29,
+  "question": "Какие геологические процессы и породы определяют рудоносность в Насараве?",
+  "answer": "Рудоносность в Насараве обусловлена панафриканскими тектоническими событиями, а также присутствием железных руд, связанных с гнейсами и сланцами, и влиянием разломов и зон сдвигов."
+ },
+ {
+  "doc_id": "10.1007_s44288-026-00567-6",
+  "chunk_id": 4304,
+  "title": "Mapping hydrothermal alterations for mineral potential using band ratio and principal component analysis on Landsat 8 imagery over Nasarawa, North-Central Nigeria",
+  "terms": 23,
+  "question": "Какие полезные ископаемые и геологические формации характерны для района Насарава и Кадуны в северной Нигерии?",
+  "answer": "В районе Насарава и Кадуны в северной Нигерии распространены полезные ископаемые, такие как золото, барит, свинец, цинк, и геологические формации, включая гранит, гнейс, сланец, а также осадочные породы мезозойского, кайнозойского и фанерозойского возрастов."
+ },
+ {
+  "doc_id": "10.1007_s44288-026-00632-0",
+  "chunk_id": 4334,
+  "title": "Application of multisensor remote sensing and Machine Learning for mapping alteration minerals in the Mountain Pass District, California, USA",
+  "terms": 34,
+  "question": "Какие минералы служат спектральными индикаторами гидротермальных рудных систем, включая руды меди, золота, железа, свинца и цинка?",
+  "answer": "Алунит, хлорит, диккит, эпидот, джаросит, каолинит и серицит служат ключевыми спектральными индикаторами гидротермальных рудных систем."
+ },
+ {
+  "doc_id": "10.1007_s44288-026-00647-7",
+  "chunk_id": 4433,
+  "title": "Integrated aeromagnetic and radiometric analysis for litho-structural and hydrothermal alteration mapping in the Mandjap I Area, Cameroon",
+  "terms": 18,
+  "question": "Какие геологические образования характерны для региона Манджап I в составе Ньонгского комплекса?",
+  "answer": "Регион Манджап I включает метапелиты, метавулканические породы, гранитоиды и синтектонические сиениты, а также мигматиты и ТТГ-породы, указывающие на частичное плавление."
+ },
+ {
+  "doc_id": "10.1029_2024ea003630",
+  "chunk_id": 1428,
+  "title": "The Benefits of Future Quantum Accelerometers for Satellite Gravimetry",
+  "terms": 4,
+  "question": "Как влияет размер бассейна на точность геофизических измерений в разных сценариях?",
+  "answer": "Точность измерений увеличивается с ростом размера бассейна, вероятно, из-за сферических гармоник и ограничения пространственного разрешения метода."
+ },
+ {
+  "doc_id": "10.1038_s41598-023-34531-y",
+  "chunk_id": 4471,
+  "title": "Towards better delineation of hydrothermal alterations via multi-sensor remote sensing and airborne geophysical data",
+  "terms": 18,
+  "question": "Какие признаки геологии характерны для района Gabal El Rukham-Gabal Mueilha в Египте?",
+  "answer": "Район характеризуется разнообразными литологиями, связанными с тектоническими процессами панафриканской орогенези, а также наличием рудных местностей и благоприятными условиями для гидротермальных изменений и минерализаций."
+ },
+ {
+  "doc_id": "10.1038_s41598-024-56644-8",
+  "chunk_id": 1927,
+  "title": "Geologically-constrained GANomaly network for mineral prospectivity mapping through frequency domain training data",
+  "terms": 30,
+  "question": "Какие геологические структуры и элементы определяют рудоносность района Фейзабад в северо-восточном Иране?",
+  "answer": "Рудоносность района Фейзабад определяется гранодиоритами, диоритами, габброидами, а также нарушениями, такими как дарунихская разрывная зона, и петрологическими элементами, такими как Au, Cu, Sb, Zn и Pb."
+ },
+ {
+  "doc_id": "10.1038_s41598-024-57253-1",
+  "chunk_id": 1464,
+  "title": "Geophysical survey based on hybrid gravimetry using relative measurements and an atomic gravimeter as an absolute reference",
+  "terms": 5,
+  "question": "Какие геологические структуры могут быть выявлены по гравитационным аномалиям в районе геотермального резервуара?",
+  "answer": "Гравитационные аномалии могут указывать на наличие зон разломов, служащих путем для движения флюидов из геотермального резервуара к поверхности."
+ },
+ {
+  "doc_id": "10.1038_s41598-025-11307-0",
+  "chunk_id": 4536,
+  "title": "Tectonic evolution and mineralization exploration of Lujing uranium ore field, South China",
+  "terms": 24,
+  "question": "Какие породы и геологические условия характерны для ураноносных образований в рудном поле Луцзин?",
+  "answer": "Ураноносные породы включают нижнокембрийские и среднекембрийские формации, а также индосинскую гранитную интрузию, сопровождаемую магматической активностью и осадочными отложениями."
+ },
+ {
+  "doc_id": "10.1038_s41598-025-30141-y",
+  "chunk_id": 4629,
+  "title": "Regularized ensemble Kalman inversion for robust and efficient gravity data modeling to identify mineral and ore deposits",
+  "terms": 14,
+  "question": "Какие признаки указывают на наличие рудных тел в районе Mundiyawas-Khera?",
+  "answer": "В районе Mundiyawas-Khera наблюдаются сложные, перекрывающиеся аномалии, выявленные аэрогравиметрическими съемками, что указывает на наличие рудных тел на различных глубинах."
+ },
+ {
+  "doc_id": "10.1038_s41598-025-99402-0",
+  "chunk_id": 4675,
+  "title": "Remote sensing mapping of structural and hydrothermal alteration in the mougueur inlier, Eastern high atlas, Morocco",
+  "terms": 25,
+  "question": "Какие минералы служат индикаторами рудных зон в районе месторождения?",
+  "answer": "Ключевыми индикаторами являются вторичные минералы, такие как церуссит, малахит, азурит и оксиды железа, а также глинистые и железистые минералы в зонах выветривания."
+ },
+ {
+  "doc_id": "10.1038_s41598-026-36349-w",
+  "chunk_id": 4701,
+  "title": "Integration of β-VAE, DWT, and GMM for Sentinel-2-based mapping of hydrothermal alteration and iron speciation in the Zafarghand area, Iran",
+  "terms": 25,
+  "question": "Какие интрузии в районе Ардестана способствовали гидротермальному изменению и образованию рудных месторождений?",
+  "answer": "Интрузии среднего и позднего эоцена, а также олигоцена-раннего миоцена, привели к гидротермальному изменению и образованию рудных месторождений с медью, молибденом, золотом и др."
+ },
+ {
+  "doc_id": "10.1038_s41598-026-40125-1",
+  "chunk_id": 1956,
+  "title": "Ensemble machine learning strategies for mineral prospectivity mapping under data scarcity",
+  "terms": 21,
+  "question": "Какие геологические условия способствовали образованию Pb-Zn руд в районе Дехақ?",
+  "answer": "Метаморфические, магматические и вулканические процессы в триас-юрский и крейдовый периоды создали идеальные условия для минерализации, а также роль доломитизации, трещин и осадочных пород."
+ },
+ {
+  "doc_id": "10.1038_s41598-026-45708-6",
+  "chunk_id": 4762,
+  "title": "Delineation of shear zone-hosted mineral targets within the Arabian-Nubian Shield, Egypt, using aeromagnetic data",
+  "terms": 21,
+  "question": "Какие типы рудных месторождений изучаются в восточной пустыне Египта с использованием магнитных данных?",
+  "answer": "В восточной пустыне Египта изучаются орогеническое золото, вулканические massive sulfide (VMS) медно-цинковые и редкоземельные элементы, связанные с гранитными интрузиями и зонами сдвигов."
+ },
+ {
+  "doc_id": "10.1038_s41598-026-52061-1",
+  "chunk_id": 4865,
+  "title": "Integration of geophysical and remote sensing data for structural analysis and delineation of gold, fluorite, and barite mineralization in the Dawi shear belt, Egypt",
+  "terms": 27,
+  "question": "Какие геологические условия контролируют образование золотых россыпей в районе Кифт-Кусейр в Дауи-шейер-поясе?",
+  "answer": "Золотые россыпи в районе Кифт-Кусейр контролируются разломами и зонами сдвигов с ориентацией NW-SE и NE-SW, а также связаны с гранитными интрузиями в ультрабазитах и метабазальтах."
+ },
+ {
+  "doc_id": "10.1038_s41598-026-60088-7",
+  "chunk_id": 4888,
+  "title": "Structural controls on gold deposits in the Egyptian Nubian Shield: insights from the Atalla-Sid Shear Belt, Central Eastern Desert, Egypt",
+  "terms": 17,
+  "question": "Какие структурные особенности региона Центральной Восточной пустыни Египта способствовали образованию золотых месторождений?",
+  "answer": "Наличие структурных разрывов, таких как приподнятые зоны сдвигов и умеренно наклонные тектонические плиты, способствовало внедрению калько-алкалинных гранитоидов и формированию золотых месторождений."
+ },
+ {
+  "doc_id": "10.1088_1755-1315_71_1_012021",
+  "chunk_id": 2004,
+  "title": "Identification of Altered Minerals Based on Synthetic Aperture Radar (SAR) For Mineral Exploration in a Tropical Area",
+  "terms": 13,
+  "question": "Какие минералы характерны для зон продвинутой аргиллитовой альтернации в районе Цизеути?",
+  "answer": "В зонах продвинутой аргиллитовой альтернации характерны каолинит-диккит, диспор, алюмит, аморфный кремнезем, слегка корунд и пирофиллит."
+ },
+ {
+  "doc_id": "10.1109_access.2020.3022626",
+  "chunk_id": 2030,
+  "title": "Deposit Location Identification Based on Feature Decomposition of High-Resolution Remote Sensing Images",
+  "terms": 24,
+  "question": "Какие типы рудных тел и минералов характерны для полиметаллического месторождения Картика?",
+  "answer": "Рудные тела включают медные, медно-молибденовые, железные и другие, с преобладанием медных руд. Основные минералы — халкопирит, молибденит, пирит и магнетит."
+ },
+ {
+  "doc_id": "10.1109_lgrs.2026.3734396",
+  "chunk_id": 2045,
+  "title": "A Hybrid Seismic Imaging Condition for Enhancing Target Delineation in Mineral Exploration",
+  "terms": 4,
+  "question": "Как определяется полярность промежуточного изображения при группировке частичных изображений?",
+  "answer": "Полярность промежуточного изображения определяется из суммы частичных изображений в каждой группе, а амплитуды сохраняются по модулю."
+ },
+ {
+  "doc_id": "10.1134_s1075701525600574",
+  "chunk_id": 4943,
+  "title": "Orogenic Gold Deposits: Geodynamics and Systematics (25 Years—Some Results)",
+  "terms": 26,
+  "question": "Какие типы орогенные золотоносные месторождения выделяются по минералогическому и геохимическому признакам?",
+  "answer": "Выделяются четыре типа: орогенное золото-мышьяково-сульфидное, орогенное золото-кварцевое, орогенное золото-висмутовое и золото-серебро-кварцевое позднеорогенное."
+ },
+ {
+  "doc_id": "10.12789_geocanj.2023.50.202",
+  "chunk_id": 4979,
+  "title": "Trace Element Composition of Placer Gold Across the Okanagan Fault, Kelowna, British Columbia, Canada",
+  "terms": 28,
+  "question": "Какие типы рудных проявлений и минералов известны в бассейне реки Лэмбли?",
+  "answer": "В бассейне реки Лэмбли известны кварцевые жилы с золотом и серебром, полиметаллические жилы с свинцом, цинком и медью, а также проявления, связанные с скирнами и низким содержанием сульфидов."
+ },
+ {
+  "doc_id": "10.12912_27197050_218151",
+  "chunk_id": 2094,
+  "title": "Green exploration for hydrothermal alterations and mineral targeting via selective principal component analysis on ASTER data: A case study from the northern Siroua Massif, central Anti-Atlas, Morocco",
+  "terms": 20,
+  "question": "Какие признаки аргилизации наблюдаются в зоне Згounder?",
+  "answer": "Аргилизация в зоне Згounder характеризуется замещением гидротермального кварца, плагиоклаза и магматических минералов глинистыми минералами, а также присутствием каолинита и пирофиллита."
+ },
+ {
+  "doc_id": "10.1344_geologicaacta2025.23.4",
+  "chunk_id": 2117,
+  "title": "Integrated remote sensing, petrographic and mineralogical techniques for mapping of marble deposits in the vicinity of the ophiolite sequence in North Pakistan",
+  "terms": 10,
+  "question": "Какие признаки позволяют идентифицировать известняковые месторождения в Нортвест Моманд Дистрикт, Пакистан?",
+  "answer": "Использование данных ASTER с применением методов IARR, PCA, MNF и SAM, а также подтверждение XRD и петрографического анализа показывает наличие доломита и кальцита."
+ },
+ {
+  "doc_id": "10.14430_arctic290",
+  "chunk_id": 2163,
+  "title": "Exploration History and Mineral Potential of the Central Arctic Zn-Pb District, Nunavut",
+  "terms": 12,
+  "question": "Какие типы рудных зон и их особенности характерны для рудного поля Поларис?",
+  "answer": "Рудное поле Поларис включает зоны P1, P2, K1, K2 и K3, отличающиеся по текстуре, минеральному составу и содержанию железа, такие как массовые замещающие руды, тонкие вертикальные жилы и сложные пересекающиеся жилы."
+ },
+ {
+  "doc_id": "10.17223_25421379_31_5",
+  "chunk_id": 5053,
+  "title": "Основные этапы формирования золотого и редкометалльного оруденения Восточного Забайкалья и связанного с ним магматизма: новые U-Pb и Ar-Ar данные",
+  "terms": 44,
+  "question": "Какие породы образуют Лугиинское месторождение и как они связаны с рудоносным комплексом?",
+  "answer": "Лугиинское месторождение состоит из вулканических и интрузивных пород шадоронского комплекса, которые прорываются дайками гранит-порфиров и гранодиоритов щахтаминского рудоносного комплекса."
+ },
+ {
+  "doc_id": "10.17308_geology.2018.1_1447",
+  "chunk_id": 24,
+  "title": "Перспективы выявления новых крупнообъемных золоторудных месторождений на Енисейском кряже",
+  "terms": 27,
+  "question": "Какое месторождение является эталонным аналогом для рудопроявлений Южное и Буре-минское?",
+  "answer": "Эталонным аналогом для рудопроявлений Южное и Буре-минское является месторождение Олимпиаднинское."
+ },
+ {
+  "doc_id": "10.18799_24131830_2022_2_2926",
+  "chunk_id": 39,
+  "title": "ПАЛЕОГЕОГРАФИЯ ТЮМЕНСКОЙ СВИТЫ В ПРЕДЕЛАХ УСТЬ-БАЛЫК-МАМОНТОВСКОГО ВАЛА",
+  "terms": 14,
+  "question": "Какие пласты юрского комплекса Западной Сибири характеризуются фрагментарной изученностью и литологической неоднородностью?",
+  "answer": "Пласты Ю2-9 тюменской свиты нижней-средней юры отличаются резкой фациальной изменчивостью и неполной изученностью."
+ },
+ {
+  "doc_id": "10.18799_24131830_2022_8_3708",
+  "chunk_id": 2224,
+  "title": "СТРУКТУРНЫЕ, ГЕОФИЗИЧЕСКИЕ И ГЕОХИМИЧЕСКИЕ КРИТЕРИИ ЭПИТЕРМАЛЬНОГО КИСЛОТНО-СУЛЬФАТНОГО ЗОЛОТОГО ОРУДЕНЕНИЯ НА ПРИМЕРЕ РУДНОГО ПОЛЯ СВЕТЛОЕ (ХАБАРОВСКИЙ КРАЙ)",
+  "terms": 34,
+  "question": "Какие породы и геологические структуры характеризуют рудное поле Светлое?",
+  "answer": "Рудное поле Светлое включает в себя андезибазальты, дациты, риолиты, штоки, дайки, а также зоны разломов и зону вторичных кварцитов и аргиллизитов."
+ },
+ {
+  "doc_id": "10.18799_24131830_2024_12_4577",
+  "chunk_id": 89,
+  "title": "Technology for geostructural forecasting of gold ore occurrences using the example of a section of the Verkhoyansk-Kolyma fold system (Bayag ore field, Yakutia)",
+  "terms": 23,
+  "question": "Какие геологические объекты характеризуются ассоциацией золота с оловом в Баягском рудном поле?",
+  "answer": "В Баягском рудном поле локальные рудопроявления характеризуются ассоциацией золота с оловом и находятся на экзоконтакте гранодиоритовых и диоритовых массивов."
+ },
+ {
+  "doc_id": "10.18799_24131830_2025_10_5304",
+  "chunk_id": 5100,
+  "title": "Золоторудное месторождение Сухой Лог (Патомское нагорье). Часть II. Структура геофизических и радиогеохимических полей",
+  "terms": 19,
+  "question": "Какие геологические процессы влияют на магнитное поле вблизи Константиновского массива?",
+  "answer": "Контактовый метаморфизм и сложнодислоцированные складчатые структуры создают неоднородное магнитное поле в этой области."
+ },
+ {
+  "doc_id": "10.18799_24131830_2025_7_5053",
+  "chunk_id": 5129,
+  "title": "Золоторудное месторождение Сухой Лог (Патомское нагорье). Часть I. Постановка проблемы, геодинамическая обстановка и геологическое строение.",
+  "terms": 30,
+  "question": "Какие геологические процессы связаны с аномально высоким содержанием железа в осадочных породах морского бассейна?",
+  "answer": "Аномально высокое содержание железа связано с подводной вулканической деятельностью, сопутствующей рифтогенным процессам."
+ },
+ {
+  "doc_id": "10.20944_preprints202506.1483.v1",
+  "chunk_id": 5171,
+  "title": "Integrated Prospectivity Mapping for Copper Mineralization in the Koldar Massif, Kazakhstan",
+  "terms": 27,
+  "question": "Какие геологические структуры контролируют местоположение рудного поля Актогай в Кольдарском интрузивном массиве?",
+  "answer": "Рудное поле Актогай контролируется подширотной глубокой разломом Актогай и находится в зоне пересечения структурно-формационных зон."
+ },
+ {
+  "doc_id": "10.21203_rs.3.rs-10216943_v1",
+  "chunk_id": 5209,
+  "title": "Subsurface Structure and Mineral Prospectivity of the Wamba Transition Zone, North- Central Nigeria using Airborne Magnetic and Radiometric interpretation",
+  "terms": 18,
+  "question": "Какие тектонические процессы определяют распределение руд в районе Ванбы, Насарава?",
+  "answer": "В районе Ванбы, Насарава, распределение руд определяется сочетанием эбурнских, панафриканских и мезозойских тектонических процессов, формирующих многократно реактивную структуру, благоприятную для минерализации."
+ },
+ {
+  "doc_id": "10.21203_rs.3.rs-10344585_v1",
+  "chunk_id": 5300,
+  "title": "Integrated Gravity–Magnetic Interpretation for Litho-Structural Mapping and Mineralisation Targeting in the Eastern Part of Son Valley Region, Central India",
+  "terms": 31,
+  "question": "Какие породы и формации в районе Дудхи содержат россыпные золотоносные зоны?",
+  "answer": "Россыпные золотоносные зоны в районе Дудхи находятся в сдвиговых зонах формаций Агори и Парсои."
+ },
+ {
+  "doc_id": "10.21203_rs.3.rs-5384377_v1",
+  "chunk_id": 5370,
+  "title": "Orogenic Gold Mineral Prospectivity Mapping (MPM) of the Geraldton Area, Ontario",
+  "terms": 19,
+  "question": "Какие геологические объекты и условия определяют золотоносность в районе Onaman-Tashota Belt?",
+  "answer": "Золотоносность в районе Onaman-Tashota Belt связана с кварцевыми жилами в вулканических и гранитных породах, а также с зонами деформации, окружёнными зонами выветривания."
+ },
+ {
+  "doc_id": "10.21275_sr221122145054",
+  "chunk_id": 2271,
+  "title": "Identification of the Mineral Alteration Zones, Lithology and Structural Features using Remote Sensing and GIS Techniques in Pindwara - Swaroopganj Belt in Sirohi District of Rajasthan",
+  "terms": 26,
+  "question": "Какие признаки гидротермальных изменений можно выявить в районе Аджари с использованием спутниковых данных?",
+  "answer": "Гидротермальные изменения, такие как филические, аргиллитовые и госсаны, можно выявить с помощью спектральных отношений ASTER и полей тени."
+ },
+ {
+  "doc_id": "10.21285_2686-9993-2026-49-2-7",
+  "chunk_id": 5449,
+  "title": "Magmatogenic-hydrothermal formation model of fluid dynamic structures and rare metal brine deposits in Siberian Platform cover",
+  "terms": 14,
+  "question": "Какие геологические объекты контролируют образование рудных узлов в Ангаро-Ленском артезианском бассейне?",
+  "answer": "Рудоконтролирующие коровые разломы фундамента и зоны магматических ареалов формируют основу для концентрации редкометалльных рассолов в осадочном чехле."
+ },
+ {
+  "doc_id": "10.22564_brjg.v43i1.2335",
+  "chunk_id": 5493,
+  "title": "Integration of Airborne and Ground Geophysical Prospecting Applied to an Epithermal Gold Deposit in the Castro Basin, Southern Brazil",
+  "terms": 29,
+  "question": "Какие породы и структуры в бассейне Кастро связаны с золотоносной минерализацией?",
+  "answer": "Золотоносная минерализация в бассейне Кастро ассоциирована с кварцевыми жилами, риолитовыми куполами и гидротермально измененными глинами, а также с вулканическими кислыми породами и брекчиями."
+ },
+ {
+  "doc_id": "10.24028_gj.v47i2.322500",
+  "chunk_id": 5521,
+  "title": "Internal structure and kinematics of the Kirovohrad and Zvenyhorod-Bratsk fault zones of the Ukrainian Shield and assessment of their prospects for mineral resources",
+  "terms": 10,
+  "question": "Какие структурные элементы характерны для золоторудных участков Станкуватского рудного поля?",
+  "answer": "Характерными структурными элементами являются системы трещин скольжения и отрыва, которые в некоторых случаях совпадают с элементами залегания горных пород или пересекают их."
+ },
+ {
+  "doc_id": "10.24411_0869-5997-2018-00003",
+  "chunk_id": 149,
+  "title": "Проблемы организации и производства опережающих геолого-геофизических и прогнозно-минерагенических исследований в отдалённых районах Сибири и Арктики",
+  "terms": 11,
+  "question": "Какие минералы необходимо изучать в поисковых пробах Сибирской платформы для выявления золотых и редкоземельных месторождений?",
+  "answer": "В поисковых пробах Сибирской платформы необходимо изучать индикаторные минералы, такие как пирохлор, колумбит и монацит, для выявления месторождений золота, платиноидов, редких металлов и редких земель."
+ },
+ {
+  "doc_id": "10.24411_0869-7175-2019-10008",
+  "chunk_id": 167,
+  "title": "Выявление геохимической зональности эндогенного оруденения по вторичным ореолам рассеяния на примере Зыгыркольской зоны (северный фланг Тырныаузского рудного узла)",
+  "terms": 24,
+  "question": "Какие элементы определяют пространственное положение рудоносной Зыгыркольской зоны в Гитче-Тырныаузском рудном поле?",
+  "answer": "Пространственное положение зоны определяется такими элементами, как Au, Sn, Bi, W, Cu, Zn, Ag, As, Pb, Sb, Mn, Co, Cr и Ni, с разной степенью зависимости от тектонических зон и геологических образований."
+ },
+ {
+  "doc_id": "10.2478_minrv-2026-0042",
+  "chunk_id": 5528,
+  "title": "Bauxite Residues as a Source of Spectral Signatures for Fe and Al Exploration Using Machine Learning and Sentinel-2 Data",
+  "terms": 15,
+  "question": "Какие минералы содержатся в Дом Боско Синклине в Бразилии?",
+  "answer": "В Дом Боско Синклине содержатся золото, железо, марганец, топаз и алюминий."
+ },
+ {
+  "doc_id": "10.24857_rgsa.v18n8-085",
+  "chunk_id": 205,
+  "title": "Hydrothermal Alteration Zones Mapping Using Sentinel 2 MSI and Terra Aster Data in The Uruguay Mine, Minas do Camaquã District",
+  "terms": 22,
+  "question": "Какие методы дистанционного зондирования применяются для выявления зон гидротермального выветривания и минерализации в труднодоступных районах?",
+  "answer": "Используются методы отношения полос, техника Крости и анализ главных компонентов на данных ASTER, Landsat и Sentinel 2 для выявления зон гидротермального выветривания и минерализации в труднодоступных регионах."
+ },
+ {
+  "doc_id": "10.25236_ajets.2026.090201",
+  "chunk_id": 248,
+  "title": "Multi-Source Remote Sensing-Based Alteration Mineral Mapping and Exploration Potential Assessment of the Leimengou Giant Mo Deposit, Western Henan, China",
+  "terms": 36,
+  "question": "Какие типы рудных минералов и гидротермальные альтернации характерны для рудного месторождения Лэймэньгоу?",
+  "answer": "Основные рудные минералы — молибденит и пирит, а также второстепенные сульфиды. Гидротермальные альтернации включают калиевую, силификацию, серицитизацию, хлоритизацию и другие."
+ },
+ {
+  "doc_id": "10.25283_2223-4594-2017-2-62-75",
+  "chunk_id": 2283,
+  "title": "Exploration model disseminated gold-sulphide deposits of Arctic zone of Russia",
+  "terms": 25,
+  "question": "Каковы признаки золото-сульфидных руд ЗСМВР?",
+  "answer": "Руды обогащены As, Sb, Au, содержат тонкодисперсное золото, сульфиды в количестве 5-10%, кварц-антимонитовые жилы и характеризуются беризитизацией и аргиллизацией вмещающих пород."
+ },
+ {
+  "doc_id": "10.29017_lpmgb.60.2.2169",
+  "chunk_id": 5602,
+  "title": "An Evidence-Constrained Four-Domain Exploration Framework for Rare Earth Elements in The Bangka Belitung Tin-Granite System",
+  "terms": 14,
+  "question": "Какие факторы определяют извлекаемость редкоземельных элементов из гидротермальных отложений в Банке?",
+  "answer": "Извлекаемость редкоземельных элементов зависит от их минералогической формы, типа глинистых минералов, распределения LREE-HREE и условий выщелачивания."
+ },
+ {
+  "doc_id": "10.29150_jhrs.v10.2.p87-94",
+  "chunk_id": 2327,
+  "title": "Application of PRISMA satellite hyperspectral imagery to mineral alteration mapping at Cuprite, Nevada, USA",
+  "terms": 13,
+  "question": "Какие минералы преобладают в зонах гидротермального изменения в Куприте, Невада?",
+  "answer": "В зонах гидротермального изменения в Куприте, Невада, преобладают алюнит, каолинит и гидратированный кремнезем (опал и халцедон)."
+ },
+ {
+  "doc_id": "10.29150_jhrs.v7.4.p189-211",
+  "chunk_id": 2378,
+  "title": "The use of hyperspectral remote sensing for mineral exploration: a review",
+  "terms": 26,
+  "question": "Какие типы рудных месторождений активно изучаются с помощью гиперспектральной дистанционной съемки?",
+  "answer": "Гиперспектральная дистанционная съемка применяется для изучения таких месторождений, как кимберлиты, карбонатиты, порфировые, эпитерамные золото-серебряные, скарновые, вулканические massive sulfide (VHMS), орогенические золото, Карлин-типа золото, IOCG, SEDEX и др."
+ },
+ {
+  "doc_id": "10.30574_gjeta.2025.25.2.0334",
+  "chunk_id": 5657,
+  "title": "Integration of remote sensing and GIS for mineral exploration and resource estimation in complex geological terrains",
+  "terms": 26,
+  "question": "Какие признаки вулканических и гидротермальных областей помогают в поиске рудных месторождений в Андах?",
+  "answer": "Признаки включают зоны гидротермального выветривания, структурные линеаменты и геофизические аномалии, которые коррелируют с местами минерализации."
+ },
+ {
+  "doc_id": "10.30958_ajs.13-1-3",
+  "chunk_id": 5664,
+  "title": "Mapping Hydrothermal Alteration Minerals using Landsat 8 and ASTER Data: A Case Study from the Red Sea Hills, NE Sudan",
+  "terms": 19,
+  "question": "Какие зоны гидротермального выветривания выделяются в районе Красных Гор, Северо-Восточная Судан?",
+  "answer": "В районе Красных Гор выделяются три основные зоны гидротермального выветривания: филицевая (мусковит, иллит), аргиллитовая (каолинит, алюнит) и пропилитовая (эпидот, хлорит)."
+ },
+ {
+  "doc_id": "10.30967_ijcrset_bikila-argeta-ayele_210",
+  "chunk_id": 5713,
+  "title": "Lithological, Structural and Geochemical Characteristics of Gold Mineralization in the Menge Greenstone Belt, Western Ethiopia & Geochemical Signatures and Structural Controls of Gold Mineralization in the Menge District, Western Ethiopia",
+  "terms": 20,
+  "question": "Какие геологические условия способствуют образованию золотых месторождений в Менге, Эфиопия?",
+  "answer": "В Менге, Эфиопия, золотые месторождения образуются в зелёных поясах, где преобладают метаморфизованные вулканогенно-осадочные комплексы и син-тектонические интрузии, благоприятные для орогенической минерализации."
+ },
+ {
+  "doc_id": "10.31223_x5dj45",
+  "chunk_id": 5738,
+  "title": "Scale-Aware Uncertainty-Aware Machine Learning for Gold Prospectivity Mapping: Evidence-Range Audits for Exploration Targeting",
+  "terms": 14,
+  "question": "Какие критические минералы учитываются в контекстном слое, кроме золота?",
+  "answer": "В контекстном слое учитываются медь, литий, никель, кобальт, редкоземельные элементы, графит, уран, марганец и все критические минералы."
+ },
+ {
+  "doc_id": "10.31248_gjees2024.162",
+  "chunk_id": 5796,
+  "title": "The analysis of Landsat 8 OLI image for delineation of hydrothermal alteration zones in the Artoli Area, Berber Province, Northern Sudan",
+  "terms": 15,
+  "question": "Какие признаки гидротермальных изменений выявляются с помощью спектрального анализа Landsat 8 OLI в щитовых породах Аравийско-Нубийского щита?",
+  "answer": "Спектральный анализ Landsat 8 OLI выявляет гидротермальные изменения, такие как железистые, глинистые и феррические минералы, через отношения полос и компонентный анализ."
+ },
+ {
+  "doc_id": "10.31248_gjees2024.170",
+  "chunk_id": 5835,
+  "title": "Identification of hydrothermal alteration mapping using spectral analysis of ASTER Data in NE Tohamiyam Area, Red Sea Hills, NE Sudan",
+  "terms": 15,
+  "question": "Какие минералы используются для выявления аргиллитовых, пропилитовых и филицевых изменений в районе исследования?",
+  "answer": "Для выявления аргиллитовых изменений используются алюмит и каолинит, для пропилитовых — хлорит и малахит, для филицевых — мусковит и иллит."
+ },
+ {
+  "doc_id": "10.31431_1816-5524-2023-1-57-45-62",
+  "chunk_id": 1500,
+  "title": "HEAT FLOW AND RHEOLOGICAL DECOMPACTION OF THE CRUST AND UPPER MANTLE IN RIFT AND PLUME STRUCTURES ON THE EASTERN MARGIN OF ASIA",
+  "terms": 10,
+  "question": "Как проявляется сдвиговая составляющая в зоне растяжения Ченьжоу-Линву?",
+  "answer": "Сдвиговая составляющая проявляется изгибом глубинного разлома и дугообразной формой оси рифта, а также признаками косой субдукции и трансформного сдвига."
+ },
+ {
+  "doc_id": "10.31643_2028_6445.27",
+  "chunk_id": 5857,
+  "title": "Radioactivity as a prospecting indicator of rare earth, gold and polymetal deposits in eastern Kazakhstan and an indicator of increased radioecological hazard during their development",
+  "terms": 28,
+  "question": "Какие типы рудных месторождений выделяются в Кольжунском районе?",
+  "answer": "В Кольжунском районе выделяется гематит-магнетитовое вулканогенно-осадочное месторождение."
+ },
+ {
+  "doc_id": "10.31857_s0016777024050011",
+  "chunk_id": 5889,
+  "title": "Gold deposits of Central and North Asia",
+  "terms": 29,
+  "question": "Какие геологические условия и процессы способствовали образованию золоторудного месторождения Хангалас?",
+  "answer": "Образование месторождения Хангалас связано с деформациями в позднеорогенные периоды и участием флюидов из субконтинентальной мантии и коровых резервуаров."
+ },
+ {
+  "doc_id": "10.31857_s0203030623700141",
+  "chunk_id": 1551,
+  "title": "Geometry and Rheology of Plumes: Common Features in the Probabilistic Gravity Models",
+  "terms": 14,
+  "question": "Какие геологические структуры и месторождения характерны для Катазиатской СЦТ?",
+  "answer": "Катазиатская СЦТ ассоциирована с неопротерозойскими метаморфическими комплексами и месторождениями Ni, Cu, Mo и Ta-Nb, а также с тектоническими швами и разломами растяжения-сдвига."
+ },
+ {
+  "doc_id": "10.31857_s0205-96142019559-71",
+  "chunk_id": 2390,
+  "title": "Detailed geological mapping of the Olon-Ovoot gold-ore cluster (South Mongolia) based on the interpretation of satellite imagery of medium and high spatial resolution.",
+  "terms": 32,
+  "question": "Какие минералы и условия формирования характерны для стадии гидротермального минералообразования на месторождении Хуримт-Худук?",
+  "answer": "На месторождении Хуримт-Худук стадия гидротермального минералообразования до 280 °С характеризуется кварцевыми жилами с золотом и арсенопиритсодержащими березитами, развивающимися в нижнесилурийских терригенных породах."
+ },
+ {
+  "doc_id": "10.33271_mining20.03.010",
+  "chunk_id": 5902,
+  "title": "Machine learning-assisted hyperspectral targeting of orogenic and placer gold deposits at Wadi Umm Eish El-Zarqa, Egypt",
+  "terms": 25,
+  "question": "Какие зоны гидротермального выветривания указывают на наличие золотых россыпей в речных отложениях?",
+  "answer": "Зоны гидротермального выветривания, такие как пропилитовая, аргиллитовая, филицевая и калиевая, указывают на возможное наличие золотых россыпей в речных отложениях, особенно в излучинах и устьях рек."
+ },
+ {
+  "doc_id": "10.33411_ijist_1676",
+  "chunk_id": 5974,
+  "title": "Spectral Profiles to Minerals Identification: An Integrated Hyperspectral vs Multispectral Minerals Exploration of the Ophiolitic Belt of Qilla Saifullah District, Baluchistan",
+  "terms": 39,
+  "question": "Какие минералы характерны для зоны пропилитизации в рудном поле?",
+  "answer": "Для зоны пропилитизации характерны хлорит, эпидот, кальцит, альбит и гематит."
+ },
+ {
+  "doc_id": "10.33677_ggianas20250100142",
+  "chunk_id": 6009,
+  "title": "Comparative characteristics of the gold content in terrigenous-carbonate deposits of the Almalyk Ore Region with deposits of the Karlin Type",
+  "terms": 31,
+  "question": "Какие геологические признаки характерны для месторождения Кортец?",
+  "answer": "Месторождение Кортец приурочено к зонам разломов и горизонтам выщелачивания, субмикроскопическое золото содержится в халцедоне, кварце, лимонитизированном пирите и гидрослюдах."
+ },
+ {
+  "doc_id": "10.33677_ggianas20250100147",
+  "chunk_id": 6031,
+  "title": "Features of the distribution of gold placers and their primary sources in the territory of the Nakhchivan AR",
+  "terms": 36,
+  "question": "Какие рудные элементы связаны с Ордубадской зоной разломов в районе Пьязбашинского месторождения?",
+  "answer": "Ордубадская зона разломов контролирует размещение коренных месторождений и проявлений рудных элементов, включая Cu, Mo, Au, W и др."
+ },
+ {
+  "doc_id": "10.3389_feart.2026.1770354",
+  "chunk_id": 2411,
+  "title": "Integrating machine learning with numerical simulation for 3D mineral prospectivity modeling in the Sanshandao-Haiyu gold belt, Eastern China",
+  "terms": 15,
+  "question": "Какие геологические процессы способствовали образованию золотых россыпей на Жаодунском полуострове?",
+  "answer": "Мезозойская магматическая активность, связанная с утончением литосферы, обеспечила тепловую энергию, флюиды и материалы для золотообразования, особенно в зонах слабых разломов."
+ },
+ {
+  "doc_id": "10.3389_frsen.2025.1678991",
+  "chunk_id": 2452,
+  "title": "Geological mapping of copper deposits in the democratic republic of Congo through remote sensing data and machine learning",
+  "terms": 20,
+  "question": "Какие методы машинного обучения применяются для прогноза медных руд в районе Musonoi?",
+  "answer": "В районе Musonoi применяются методы машинного обучения, такие как Random Forest, для прогноза медных руд на основе данных дистанционного зондирования и геологических параметров."
+ },
+ {
+  "doc_id": "10.34078_1814-0998-2026-1-12-18",
+  "chunk_id": 6080,
+  "title": "Прогнозирование золоторудного месторождения в районе россыпи руч. Джалон Моготского рудно-россыпного узла Приамурской провинции",
+  "terms": 29,
+  "question": "Каков возраст Джалонского гранитного массива и какие признаки золотоносности в нём наблюдаются?",
+  "answer": "Возраст Джалонского гранитного массива составляет 152.7 ± 5.4 млн лет. В его пределах разведаны россыпи, включая россыпь ручья Джалон, и отмечены проявления золота в протолочных пробах гранитов."
+ },
+ {
+  "doc_id": "10.37284_eajenr.9.3.5322",
+  "chunk_id": 6114,
+  "title": "Lithological and Structural Controls of Copper Mineralisation in the Kwa Mutonga–Vonza Area, Kitui West, Kenya",
+  "terms": 22,
+  "question": "Какие признаки гидротермального выветривания указывают на зоны медной минерализации в районе Ква-Вонза-Мутонга?",
+  "answer": "Признаки включают окисление сульфидных пород, образование гематита, гидроксида и глинистых минералов, а также их аномальные зоны, связанные с флюидами, пересекающими разломы."
+ },
+ {
+  "doc_id": "10.4236_ojg.2017.79093",
+  "chunk_id": 2545,
+  "title": "The Introduction of Promising Mineral Zones Bidkhan Area Using Satellite Imagery",
+  "terms": 17,
+  "question": "Какие признаки магматизма указывают на потенциальную рудоносность в районе Орумие-Докатар?",
+  "answer": "Распространение вулканических и пирокластических образований, прорывы гранитоидных тел и сочетание кальк-алкалинного и алкалинного типов магмы создают условия для рудообразования, включая порфировые медные руды и эпитермальные золотые россыпи."
+ },
+ {
+  "doc_id": "10.4236_ojg.2021.118018",
+  "chunk_id": 1568,
+  "title": "Geophysical Study: Estimation of Deposit Depth Using Gravimetric Data and Euler Method (Jalalabad Iron Mine, Kerman Province of IRAN)",
+  "terms": 27,
+  "question": "Какие признаки указывают на магматизм и морскую среду в рудном поле Джалаабад?",
+  "answer": "Присутствие кислых и базальтовых вулканических пород с разрушением, а также карбонатных пород и яшмы указывают на биметаллический магматизм и морскую среду в рудном поле Джалаабад."
+ },
+ {
+  "doc_id": "10.4314_cps.v13i1.4",
+  "chunk_id": 2585,
+  "title": "A review of machine learning-based geochemical signature analysis for mineral prospectivity mapping",
+  "terms": 20,
+  "question": "Какие элементы наиболее важны для прогноза месторождений медно-молибденовых порфировых систем в Кермане?",
+  "answer": "Наиболее важными являются медь, вольфрам и золото, а также висмут, теллур и рений, отражающие глубокие магмато-гидротермальные процессы."
+ },
+ {
+  "doc_id": "10.46698_vnc.2021.23.67.003",
+  "chunk_id": 292,
+  "title": "The experience of dividing the potential fields of Donbass into background, residual and local components and some results of interpretation",
+  "terms": 14,
+  "question": "Какие рудопроявления золота выявлены в центральной части Донецкого складчатого сооружения?",
+  "answer": "В центральной части Донецкого складчатого сооружения выявлены рудопроявления Керчикское, Барило-Крепинское, Галутинское, Чернореченское и др., включая крупное золоторудное месторождение Керчикское с положительной оценкой обогатимости и рентабельности добычи."
+ },
+ {
+  "doc_id": "10.46698_vnc.2022.80.35.009",
+  "chunk_id": 338,
+  "title": "Some patterns of formation and distribution of reef buildups in Triassic deposits on the territory of the Eastern Fore-Caucasus in connection with oil-and-gas potential",
+  "terms": 9,
+  "question": "Какие геологические объекты определяют расположение триасовых вулканических построек в Восточном Предкавказье?",
+  "answer": "Триасовый вулканизм Восточного Предкавказья приурочен к глубинным тектоническим нарушениям, их узлам пересечения и границам региональных структур первого порядка."
+ },
+ {
+  "doc_id": "10.46698_vnc.2023.84.41.008",
+  "chunk_id": 365,
+  "title": "Ore-magmatic systems of Eastern Donbass",
+  "terms": 24,
+  "question": "Какие породы и минералы образуются в зонах экзоконтактов интрузивных тел в районе р. Несветай и Тузлов?",
+  "answer": "В зонах экзоконтактов интрузивных тел образуются биотитовые роговики, кварцево-серицито-хлоритовые метасоматиты, скарнированные известняки и пирит-пирротиновые образования с амфиболом и пироксеном."
+ },
+ {
+  "doc_id": "10.47390_ydif-y2026v2i12_n06",
+  "chunk_id": 2614,
+  "title": "ОКОЛОРУДНЫЕ МЕТАСОМАТИЧЕСКИЕ ИЗМЕНЕНИЯ И УСЛОВИЯ ЛОКАЛИЗАЦИИ ОРУДЕНЕНИЯ НА РУДОПРОЯВЛЕНИИ ТУКМАН (ЧАРМИТАНСКОЕ РУДНОЕ ПОЛЕ)",
+  "terms": 32,
+  "question": "Какие породы и процессы определяют рудоносность Тукманского рудопроявления Чармитанского рудного поля?",
+  "answer": "Рудоносность Тукманского рудопроявления связана с дебазифицированными граносиенитами, образовавшимися при взаимодействии ксенолитов габбро-диабазов с магмой Нуратинского батолита и степенью контаминации силлами и дайками джазбулакской свиты."
+ },
+ {
+  "doc_id": "10.47514_phyaccess.2026.6.2.013",
+  "chunk_id": 6142,
+  "title": "Integrated Aeromagnetic Structural Mapping and Magnetic Source Depth Estimation of the Kaduna Basement Complex, Northwestern Nigeria: Implications for Regional Tectonics and Mineral Exploration",
+  "terms": 22,
+  "question": "Какие геологические образования в Кадуне связаны с золотоносностью и как они структурированы?",
+  "answer": "В Кадуне преобладают гнейсовые купола и зигзагообразные гнейсовые пояса, а также синклинориальные структуры, связанные с золотоносностью."
+ },
+ {
+  "doc_id": "10.47765_0869-5997-2024-10017",
+  "chunk_id": 6173,
+  "title": "Polygenous and polychronous gold mineralization of the Middle Urals: Staging of appearance of the gold-bearing hydrothermal-metasomatic processes",
+  "terms": 36,
+  "question": "Какие породы и геологические структуры характерны для золоторудных месторождений Воронцовского региона?",
+  "answer": "В регионе Воронцовского золоторудного месторождения преобладают базальты, андезибазальты, дациты, габбро, граниты и другие магматические и метаморфические породы, а также развиты интрузивные комплексы и разломы."
+ },
+ {
+  "doc_id": "10.47765_0869-5997-2025-10005",
+  "chunk_id": 6251,
+  "title": "Gold mineralization of the Arctic Belt of the Russian Far East",
+  "terms": 36,
+  "question": "Какие типы рудных тел и минералов характерны для Кусьвеемского рудного поля?",
+  "answer": "В Кусьвеемском рудном поле известны штокверковые и брекчиевые рудные тела, стратиформные жилы кварца с примесью сульфидов и самородного золота, а также зоны окварцованных известняков, песчаников и сланцев с кварцевыми и кварц-карбонатными жилами, где возможны золотоносные джаспероиды."
+ },
+ {
+  "doc_id": "10.47765_0869-5997-2026-10006",
+  "chunk_id": 1587,
+  "title": "Application of the ASTER data and multivariate analysis techniques to forecasting porphyry copper mineralization within territories under significant sedimentary and vegetation cover: The case of the Kraichikovo copper occurrence, Middle Urals",
+  "terms": 30,
+  "question": "Какие породы крайчиковского гипабиссального комплекса связаны с медной минерализацией?",
+  "answer": "Диорит-порфириты и кварцевые диорит-порфириты первой фазы комплекса связаны с прожилково-вкрапленной медной минерализацией."
+ },
+ {
+  "doc_id": "10.47765_0869-7175-2024-10029",
+  "chunk_id": 6323,
+  "title": "Gold mineralization of the Chulkovsky Site of the Seligdar Ore Field, Republic of Sakha (Yakutia)",
+  "terms": 36,
+  "question": "Какие минералогические признаки характерны для рудных зон Лебединского рудного узла?",
+  "answer": "Интенсивная окисленность руд, ведущую роль играют минералы, такие как гётит, а также пирит-кварцевые прожилки и жилы."
+ },
+ {
+  "doc_id": "10.47765_0869-7175-2025-10017",
+  "chunk_id": 6334,
+  "title": "Some features of formation of VMS type deposits in the Greater Altai",
+  "terms": 26,
+  "question": "Какие породы образуют рудоносную формацию Лениногорского месторождения?",
+  "answer": "Рудоносная формация включает андезит-дацит-риолитовые породы, вулканогенно-осадочные, алевролиты, туффиты и алевропелиты, а также рудные тела с минерализацией пиритом и галенитом."
+ },
+ {
+  "doc_id": "10.51301_ejsu.2025.i6.04",
+  "chunk_id": 6377,
+  "title": "Structural controls on rare-metal mineralization: Depth-specific mapping of economic deposits in Nigeria Basement Complex",
+  "terms": 31,
+  "question": "Какие литологии преобладают в районе Кадуна-Насарава и какие минералы они содержат?",
+  "answer": "В районе Кадуна-Насарава преобладают мигматитовые гнейсы и кварц-мусковитовые сланцы, содержащие кварц, полевой шпат, биотит, гранат, стауrolит и кианит, а также железистые кварциты с богатыми железом слоями."
+ },
+ {
+  "doc_id": "10.51584_ijrias.2026.11010045",
+  "chunk_id": 6425,
+  "title": "Integration of Aeromagnetic and Radiometric Studies to Delineate Hydrothermal Alteration and Mineralized Zones in Effon-Alaaye and Its Environs, Southwestern Nigeria",
+  "terms": 28,
+  "question": "Какие признаки геологического строения характерны для района Effon-Alaaye?",
+  "answer": "Район Effon-Alaaye характеризуется гнейсовой полосчатостью, брекчированными структурами, зонами сдвигов и магматическими породами, образовавшимися в результате прокрустовской тектоники и гидротермальных процессов."
+ },
+ {
+  "doc_id": "10.5194_egusphere-2026-1293",
+  "chunk_id": 6504,
+  "title": "Uncertainty quantification of deep learning model for mineral prospectivity mapping",
+  "terms": 9,
+  "question": "Какие факторы контролируют образование золотых месторождений в западной части провинции Хэнань?",
+  "answer": "Образование золотых месторождений в западной части провинции Хэнань контролируется региональными разломами, интрузиями магматических пород и слоями пород групп Тайхуа и Сянэр."
+ },
+ {
+  "doc_id": "10.5194_gmd-19-8755-2026",
+  "chunk_id": 2639,
+  "title": "Uncertainty quantification of deep learning algorithms for mineral prospectivity mapping",
+  "terms": 10,
+  "question": "Какие факторы контролируют образование золотых месторождений в западной части провинции Хэнань?",
+  "answer": "Образование золотых месторождений в западной части провинции Хэнань контролируется региональными разломами, интрузиями южно-яншаньского периода и породами формаций Тайхуа и Сяньэр."
+ },
+ {
+  "doc_id": "10.5194_isprs-annals-x-5-w4-2025-269-2026",
+  "chunk_id": 6535,
+  "title": "Mapping of Potential Alteration Zones for Mineralization Prospects Using Remotely Sensed Data: Case of Mankayan Mineral District, Benguet in Cordillera Administrative Region (CAR), Philippines",
+  "terms": 16,
+  "question": "Какие геологические условия способствуют образованию медно-золотых порфировых месторождений в районе Фар-Северо-Восток в провинции Бенгует?",
+  "answer": "Образование медно-золотых порфировых месторождений в районе Фар-Северо-Восток связано с плиоценовыми диорит-дакитовыми интрузиями, залегающими в более древних эоценовых базальтах, что создает условия для зон выветривания и минерализации за пределами текущих границ месторождения."
+ },
+ {
+  "doc_id": "10.5194_isprs-archives-xlviii-5-w3-2025-89-2025",
+  "chunk_id": 6555,
+  "title": "Remote Sensing Technologies in the Search for Rare Metal Deposits in Eastern Kazakhstan",
+  "terms": 15,
+  "question": "Какие геологические образования доминируют в зоне Калба-Нарым и где расположен рудник Асубулак?",
+  "answer": "В зоне Калба-Нарым доминируют гранитоидные комплексы, а рудник Асубулак расположен в центре зоны в гранитном интрузии пермского возраста."
+ },
+ {
+  "doc_id": "10.52349_0869-7892_2024_100_147-164",
+  "chunk_id": 451,
+  "title": "Gold-Uranium mineralization in the Baltic Shield",
+  "terms": 32,
+  "question": "Какие геологические объекты и процессы определяют урановорудные проявления в Терскобережном районе?",
+  "answer": "Урановые руды локализованы в пегматитах и метасоматитах с низкотемпературными изменениями, а также в катаклазированных альбититах, сопровождаемые пиритом, галенитом и молибденитом."
+ },
+ {
+  "doc_id": "10.52349_0869-7892_2024_97_109-117",
+  "chunk_id": 534,
+  "title": "Features of metallogenic zoning of Northern Vietnam",
+  "terms": 39,
+  "question": "Какие типы медных руд и где они образуются в рудном районе Бан Фук?",
+  "answer": "В рудном районе Бан Фук образуются жильные медные руды в позднепермских вулканитах, медно-никелевые руды в основных-ультраосновных интрузивных массивах и медные руды в кембрийских зеленых сланцах и серицитовых сланцах."
+ },
+ {
+  "doc_id": "10.52349_0869-7892_2026_106_43-52",
+  "chunk_id": 548,
+  "title": "The Bukantau Mountains ring structures: Assessment of their role in gold ore mineralization prediction, based on remote sensing data interpretation",
+  "terms": 26,
+  "question": "Какие участки кольцевых структур в горах Букантау наиболее перспективны для золоторудной минерализации?",
+  "answer": "Наиболее перспективны периферийные и узловые части кольцевых структур, связанные с глубинными разломами, интрузивами и зонами гидротермальных изменений."
+ },
+ {
+  "doc_id": "10.54254_2755-2721_2025.gl27530",
+  "chunk_id": 6570,
+  "title": "Research on Mineral Exploration Applications Based on Remote Sensing Technology",
+  "terms": 13,
+  "question": "Какие признаки минерализации выделяются в высокогорных районах с помощью спектрального анализа и машинного обучения?",
+  "answer": "В высокогорных районах, таких как Западный Куньлунь, с помощью спектрального анализа и машинного обучения выделяются аномалии окиси железа и гидроксильных изменений, что позволяет выделить перспективные площади для поиска руд."
+ },
+ {
+  "doc_id": "10.55959_msu0579-9406-4-2025-64-4-71-83",
+  "chunk_id": 6595,
+  "title": "Prospecting geological-geochemical model of gold mineralization associated with intrusions",
+  "terms": 37,
+  "question": "Какие типы минерализации и их пространственные ассоциации характерны для Стадухинского рудно-россыпного района?",
+  "answer": "В Стадухинском рудно-россыпном районе выделяют кварц-молибденитовый, золото-редкометальный, золотокварцевый, серебро-полиметаллический и другие типы минерализации, ассоциированные с различными геологическими комплексами."
+ },
+ {
+  "doc_id": "10.56195_20793332-2025-25-5-49-54",
+  "chunk_id": 6624,
+  "title": "Geological and structural analysis of the Arylyakh deposit (Magadan region) and adaptation of mining technologies at the current stage",
+  "terms": 31,
+  "question": "Какие рудные тела и их характеристики характерны для Балыгычано-Сугойской структурно-металлогенической зоны?",
+  "answer": "В зоне развиты сульфидно-кварцевые жилы, приуроченные к сбросовым нарушениям, с высоким содержанием серебра и разной степенью окисления руд."
+ },
+ {
+  "doc_id": "10.56201_ijaes.vol.11.no11.2025.pg25.35",
+  "chunk_id": 6653,
+  "title": "Petrogenesis and Mineralization Potential of a Highly Evolved Post-Collisional Granitic Suite: Insights from the Pan-African Igbeti Granitoids, Southwestern Nigeria",
+  "terms": 14,
+  "question": "Какие геохимические признаки A-гранитов в районе Игбети указывают на их рудоносность редкоземельных элементов?",
+  "answer": "Геохимические исследования Igbeti granitoids показывают их потенциал к образованию руд редкоземельных элементов, что важно для поисков критических сырьевых материалов в Западной Африке."
+ },
+ {
+  "doc_id": "10.6084_m9.figshare.c.8387100.v1",
+  "chunk_id": 6683,
+  "title": "Constraining the source of detrital gold in the Duns area, Berwickshire, Scotland",
+  "terms": 26,
+  "question": "Какие признаки золотоносности характерны для районов Средних Упразднённых Линий Трансгрессии в Южных Утесах?",
+  "answer": "Характерны кварцево-пиритовые жилы с концентрацией золота 1–3 ppm, гидротермальные изменения и ассоциация с диоритовыми жилами и зонами сдвигов."
+ },
+ {
+  "doc_id": "10.62292_10.62292_njp.v34i3.2025.400",
+  "chunk_id": 6751,
+  "title": "Mineral Resource Exploration Potential in the Ado-Ekiti-Ilesa Region of Southwest, Nigeria using Aeromagnetic Survey",
+  "terms": 29,
+  "question": "Какие геологические структуры контролируют размещение руд в районе Илеса?",
+  "answer": "В районе Илеса руды контролируются тектоническими нарушениями, такими как разломы и зоны сдвигов, которые служат путями для гидротермальных флюидов и способствуют образованию минерализованных жил."
+ },
+ {
+  "doc_id": "10.62292_njp.v35_s_.2026.639",
+  "chunk_id": 6770,
+  "title": "Gravity Method for Delineation of Iron Ore Deposit Geometry in Oko, Southwestern Nigeria",
+  "terms": 8,
+  "question": "Какие породы преобладают в районе Око и где они расположены?",
+  "answer": "В районе Око преобладают мигматит-гнейсы, а также гнейсы с биотитом, расположенные в северо-западной части Огбомосхо, и кварциты, доминирующие в юго-восточной части Огбомосхо."
+ },
+ {
+  "doc_id": "10.62292_njp.v35i1.2026.473",
+  "chunk_id": 6795,
+  "title": "Geological Interpretation of Airborne Radiometric Data for Mineral Exploration Potential",
+  "terms": 15,
+  "question": "Какие геологические структуры контролируют распределение зон выветривания в юго-западной Нигерии?",
+  "answer": "В юго-западной Нигерии зоны выветривания контролируются структурами, такими как зоны сдвигов и систем разломов, которые служат путями для миграции флюидов и определяют пространственное расположение зон минерализации."
+ },
+ {
+  "doc_id": "10.62762_jgee.2026.309205",
+  "chunk_id": 6824,
+  "title": "A Machine Learning Framework for the Investigation of Energy-Critical Mineralized Geologic Structures from Gravity and Magnetic Datasets: Implications for Sustainable Exploration",
+  "terms": 15,
+  "question": "Какие признаки указывают на условия отложения и экономические перспективы Лайфи-формации в Дома и Шабу?",
+  "answer": "Низкоэнергетические условия отложения, наличие угольных пластов и глинистых интервалов указывают на ограниченные морские или озёрные условия, а также на наличие экономически значимых угольных и глиняных ресурсов."
+ },
+ {
+  "doc_id": "10.64252_6h0xw008",
+  "chunk_id": 1626,
+  "title": "Integrating AI With Remote Sensing For Mineral Prospectivity Mapping",
+  "terms": 18,
+  "question": "Какие методы машинного обучения применяются для прогноза рудоносности на основе данных дистанционного зондирования?",
+  "answer": "Для прогноза рудоносности используются методы машинного обучения, такие как случайный лес, машины опорных векторов и градиентный бустинг, которые эффективны при работе с шумными многоканальными данными и нелинейными связями."
+ },
+ {
+  "doc_id": "10.64290_bima.v10i2.1611",
+  "chunk_id": 6871,
+  "title": "Integrated Airborne Radiometric Analysis and Mineral Prospectivity Mapping Using Analytical Hierarchy Process in Bauchi Area, Northeastern Nigeria",
+  "terms": 21,
+  "question": "Какие признаки радиоактивных элементов помогают в поиске рудных месторождений в районе Баuchi?",
+  "answer": "Радиоактивные элементы, такие как калий, торий и уран, указывают на литологические границы, гидротермальные зоны и гранитные интрузии, связанные с рудными месторождениями в районе Баuchi."
+ },
+ {
+  "doc_id": "10.64751_ijdim.2026.v5.n2.1324",
+  "chunk_id": 2672,
+  "title": "REMOTE SENSING AND MACHINE LEARNING FOR MINERAL EXPLORATION AND MINE PLANNING",
+  "terms": 14,
+  "question": "Какие методы используются для прогноза рудоносности на больших территориях с минимальными полевыми исследованиями?",
+  "answer": "Для прогноза рудоносности применяются дистанционные методы съемки и машинное обучение, позволяющие анализировать спектральные данные и геологические показатели."
+ },
+ {
+  "doc_id": "10.70882_josrar.2026.v3i5.246",
+  "chunk_id": 6902,
+  "title": "Integrated Airborne Magnetic and Gamma-Ray Spectrometric Analysis for Mineral Prospectivity in Pategi, North Central Nigeria",
+  "terms": 19,
+  "question": "Какие признаки используются для выявления гидротермально изменённых зон в Бидаской бассейне?",
+  "answer": "Для выявления гидротермально изменённых зон в Бидаской бассейне используются аэрогеофизические методы, включая радиометрию и магнитную съёмку, а также анализ концентрации урана, тория и калия в поверхностных породах."
+ },
+ {
+  "doc_id": "10.7242_echo.2024.3.8",
+  "chunk_id": 1643,
+  "title": "НОВЫЕ ДАННЫЕ О ФИЗИЧЕСКИХ СВОЙСТВАХ ПОДРАБОТАННОГО МАССИВА, ПОЛУЧЕННЫЕ ПО ДАННЫМ ГРАВИМЕТРИИ (на примере Верхнекамского месторождения калийных солей)",
+  "terms": 10,
+  "question": "Как изменяется плотность пород в зоне сдвижения подработанного массива Верхнекамского месторождения?",
+  "answer": "Плотность пород наиболее понижена вблизи кровли выработанного пространства, а вверх по мере удаления от неё степень изменения первичной плотности уменьшается."
+ },
+ {
+  "doc_id": "openalex-w4414887451",
+  "chunk_id": 6943,
+  "title": "Integration of ASTER and Airborne Radiometric Data in the Exploration for Hydrothermal Alteration Zones Associated with Mineral Deposits in Igarra Schist Belt, Nigeria",
+  "terms": 14,
+  "question": "Какие геологические структуры и породы характерны для Игарра-шистового пояса?",
+  "answer": "В Игарра-шистовом поясе распространены слоистые метапелиты, складки и разломы, а также кварцевые жилы, ориентированные с северо-востока на юго-запад."
+ },
+ {
+  "doc_id": "openalex-w7213480904",
+  "chunk_id": 6966,
+  "title": "Особенности морфологии, внутреннего строения и состава самородного золота Мурзинской группы россыпей (Средний Урал): определения коренных источников и условий формирования россыпей золота",
+  "terms": 22,
+  "question": "Какие породы и геологические структуры характеризуют район Мурзинского рудного поля?",
+  "answer": "Район Мурзинского рудного поля включает метаморфические комплексы, интрузивные и вулканические породы, а также месторождения медно-цинковых руд VMS-типа в составе бимодальной вулканической ассоциации."
+ },
+ {
+  "doc_id": "openalex-w7218290360",
+  "chunk_id": 7002,
+  "title": "Advanced Integration of Aeromagnetic, Radiometric, and Multispectral Remote Sensing Data for Structural Characterization, Hydrothermal Alteration Mapping, and Mineral Prospectivity Modeling of Lithium–Cesium–Tantalum Pegmatites and Orogenic Gold in the Bo",
+  "terms": 27,
+  "question": "Какие геологические процессы в районе Боргу способствовали образованию рудных месторождений?",
+  "answer": "В районе Боргу геологические процессы, такие как деформация, метаморфизм и магматические интрузии, создали структурные особенности, способствовавшие накоплению гидротермальных флюидов и локализации руд."
+ }
+]
