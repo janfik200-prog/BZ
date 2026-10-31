@@ -5,14 +5,15 @@
 | ТЗ | Статус | Файлы |
 |---|---|---|
 | 1. Воронка отношений и 3 585 записей | выполнено | `results/relation_pipeline_audit.csv`, `docs/relation_pipeline_summary.md` |
-| 2. Ошибки извлечения, модальность, отрицания | частично: разбор ошибок готов, проверка правил ждёт разметки | `results/extraction_errors.csv`, `results/extraction_modality.json`, листы «Модальность» и «Отрицания» |
-| 3. Независимая оценка фильтра | лист готов, ждёт разметки | `Разметка_v16.xlsx` (лист «Фильтр»), `labeling_score.py` |
+| 2. Ошибки извлечения, модальность, отрицания | выполнено, кроме нового прохода извлечения с полями modality и polarity | `results/extraction_errors.csv`, `results/extraction_modality.json`, листы «Модальность» и «Отрицания» |
+| 3. Независимая оценка фильтра | выполнено | `results/prefilter_evaluation.csv`, `results/labeling_scores.json` |
 | 4. Контрольный набор специалистов | не выполнено (нужны специалисты) | — |
 | 5. Территория против простого фильтра | выполнено | `results/retrieval_results.csv`, `results/retrieval_summary.json` |
 | 6. Вклад графа | выполнено для поиска известного источника | `results/graph_ablation.csv` |
 | 7. Применимость знаний | не начато (третья очередь) | — |
 | Статья | правки внесены | `docs/article_updates.md`, `research/v14/article/Статья_ИПУЗ_2026_v16.docx` |
 
+- **Таблицы и рисунки для статьи:** `results/tables/`, `results/figures/` (`figures.py`).
 - **Воспроизведение:** `reproduce_results.py`.
 - **Методика:** `docs/methodology.md`.
 - **Ограничения:** `docs/limitations.md`.

@@ -16,6 +16,7 @@ from __future__ import annotations
 import csv
 import json
 import math
+import statistics
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -79,6 +80,40 @@ def main(path: str) -> None:
                     "missed_relations"])
         w.writerows(rows)
     out["filter_thresholds"] = rows
+    # Интервалы полноты: бутстрэп внутри групп (страты сохраняются), 10 000 повторов.
+    import random
+
+    rng = random.Random(1)
+    labels = defaultdict(list)
+    covered = defaultdict(list)  # фрагмент со связями: есть ли в нём связь графа
+    for i, v in fm.items():
+        item = key["filter"][i - 1]
+        b = "5+" if item["terms"] >= 5 else str(item["terms"])
+        labels[b].append(v)
+        if v:
+            covered[b].append(int(item["facts_graph"] > 0))
+    boots = defaultdict(list)
+    cov = []
+    for _ in range(10000):
+        sh = {b: statistics.mean(rng.choice(labels[b]) for _ in labels[b]) for b in BUCKETS}
+        rl = {b: pop.get(b, 0) * sh[b] for b in BUCKETS}
+        tot = sum(rl.values())
+        for t in (1, 2, 3, 4):
+            boots[t].append(1 - sum(rl[b] for b in BUCKETS if b != "5+" and int(b) < t) / tot)
+        cv = {b: statistics.mean(rng.choice(covered[b]) for _ in covered[b]) if covered[b] else 0.0 for b in BUCKETS}
+        cov.append(sum(rl[b] * cv[b] for b in BUCKETS) / tot)
+    out["filter_recall_ci"] = {t: [round(sorted(v)[250], 3), round(sorted(v)[9750], 3)] for t, v in boots.items()}
+    point = {b: statistics.mean(covered[b]) if covered[b] else 0.0 for b in BUCKETS}
+    out["graph_coverage_of_relation_chunks"] = {
+        "point": round(sum(rel[b] * point[b] for b in BUCKETS) / total_rel, 3),
+        "ci": [round(sorted(cov)[250], 3), round(sorted(cov)[9750], 3)],
+        "by_terms": {b: [sum(covered[b]), len(covered[b])] for b in BUCKETS}}
+    with (RES / "prefilter_evaluation.csv").open("w", encoding="utf-8", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["threshold", "filtered_chunks", "filtered_share", "token_saving", "relation_recall",
+                    "recall_ci_low", "recall_ci_high", "missed_relations"])
+        for r in rows:
+            w.writerow(r[:5] + out["filter_recall_ci"][r[0]] + r[5:])
     out["filter_missed_examples"] = examples
 
     for sheet, name, col in (("Типизация", "typing_wrongly_excluded", 7), ("Отрицания", "negation_correct", 7),
@@ -86,6 +121,13 @@ def main(path: str) -> None:
         m = _marks(wb[sheet], col)
         k, n = sum(m.values()), len(m)
         out[name] = {"labelled": n, "ones": k, "share": round(k / n, 3) if n else None, "ci": wilson(k, n)}
+    by_note = defaultdict(lambda: [0, 0])
+    for i, v in _marks(wb["Типизация"], 7).items():
+        note = key["typing"][i - 1]["type_note"] or ""
+        g = "виды концов не подходят к типу" if note.startswith("виды не подходят") else note
+        by_note[g][0] += v
+        by_note[g][1] += 1
+    out["typing_by_reason"] = dict(by_note)
     if out["typing_wrongly_excluded"]["share"] is not None:
         out["typing_wrongly_excluded"]["population"] = key["typing_population"]
     (RES / "labeling_scores.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), "utf-8")

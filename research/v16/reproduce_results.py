@@ -18,6 +18,7 @@ if "--with-sheet" in sys.argv:
     STEPS.append("labeling_sheet.py")
 if (HERE / "Разметка_v16_проверено.xlsx").exists():
     STEPS.append("labeling_score.py Разметка_v16_проверено.xlsx")
+    STEPS.append("figures.py")
 for step in STEPS:
     script, *args = step.split()
     print("==", step, flush=True)

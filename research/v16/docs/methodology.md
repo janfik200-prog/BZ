@@ -16,6 +16,7 @@
 | Задача 2. Ошибки извлечения | `extraction_errors.py` | `results/extraction_errors.csv`, `results/extraction_modality.json` |
 | Задачи 5–6. Территория и граф в поиске | `retrieval_eval.py` | `results/retrieval_results.csv`, `results/retrieval_summary.json`, `results/graph_ablation.csv` |
 | Задачи 1–3. Ручная разметка | `labeling_sheet.py`, затем `labeling_score.py` | `Разметка_v16.xlsx`, `results/labeling_key.json`; после разметки — `results/prefilter_evaluation.csv`, `results/labeling_scores.json` |
+| Таблицы и рисунки | `figures.py` | `results/tables/`, `results/figures/` |
 | Правки статьи | `article_fixes.py`, `article_retrieval.py` | итоговый DOCX |
 
 ## Задача 1. Воронка связей
