@@ -1,0 +1,70 @@
+{
+ "total": 4272,
+ "duplicates": 6,
+ "captions": 134,
+ "short_lt_200": 137,
+ "combinations": [
+  {
+   "duplicate": false,
+   "caption": false,
+   "short": false,
+   "chunks": 4009
+  },
+  {
+   "duplicate": false,
+   "caption": false,
+   "short": true,
+   "chunks": 123
+  },
+  {
+   "duplicate": false,
+   "caption": true,
+   "short": false,
+   "chunks": 120
+  },
+  {
+   "duplicate": false,
+   "caption": true,
+   "short": true,
+   "chunks": 14
+  },
+  {
+   "duplicate": true,
+   "caption": false,
+   "short": false,
+   "chunks": 6
+  }
+ ],
+ "excluded_any": 140,
+ "filter_domain": 4132,
+ "sampling_frame_v16": 4009,
+ "short_in_domain": 123,
+ "domain_by_terms": {
+  "5+": 2390,
+  "4": 305,
+  "2": 352,
+  "3": 325,
+  "1": 355,
+  "0": 405
+ },
+ "frame_by_terms": {
+  "5+": 2384,
+  "4": 302,
+  "2": 342,
+  "3": 317,
+  "1": 327,
+  "0": 337
+ },
+ "short_by_terms": {
+  "0": 68,
+  "1": 28,
+  "2": 10,
+  "3": 8,
+  "4": 3,
+  "5+": 6
+ },
+ "short_tokens": 6526,
+ "domain_tokens": 1463775,
+ "short_with_graph_facts": 1,
+ "short_with_stored_facts": 2
+}

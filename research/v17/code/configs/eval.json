@@ -1,0 +1,17 @@
+{
+ "database": "georag_v14 (копия рабочей базы; PostgreSQL 17 + pgvector, образ pgvector/pgvector:pg17, порт 5433)",
+ "dsn_env": "GEORAG_EVAL_DSN",
+ "extraction_model_in_db": "qwen3:14b (столбец facts.model, все 13 739 связей)",
+ "query_parsing_model": "Qwen/Qwen3-14B-AWQ через vLLM v0.30.0 (served name qwen3-14b, temperature 0, max-model-len 12288)",
+ "embeddings": "BAAI/bge-m3 (sentence-transformers 6.2.0), HNSW pgvector",
+ "terms_dictionary": "config/geo-terms.txt — 410 терминов (435 строк с комментариями)",
+ "prefilter": {"min_terms": 3, "minhash": {"shingle_words": 5, "num_perm": 64, "bands": 16, "similarity": 0.8}},
+ "graph_acceptance": {"min_votes": 3, "of": 4, "or": "концы связи связаны в другой статье"},
+ "retrieval": {"K": 5, "per_doc": 2, "candidates": 50, "rrf_k": 60, "fact_min_similarity": 0.6, "mrr_depth": 10},
+ "bootstrap": {"resamples": 10000, "seed": 1, "interval": "2.5–97.5 %", "grouping_for_combined_set": "doc_id"},
+ "question_sets": {
+  "set89": "research/v15/results/article_qa_runs.json + Разметка_вопросы_по_статьям_проверено.xlsx (1 в столбце F)",
+  "set84": "research/v15/results/article_qa2_runs.json + Разметка_вопросы_по_статьям_2_проверено.xlsx (1 в столбце F)"
+ },
+ "labeling_seed": 20261031
+}

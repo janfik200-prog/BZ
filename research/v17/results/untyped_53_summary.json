@@ -1,0 +1,56 @@
+{
+ "untyped_in_graph": 53,
+ "votes": {
+  "1": 15,
+  "0": 19,
+  "2": 19
+ },
+ "repeat_docs": {
+  "1": 45,
+  "2": 7,
+  "3": 1
+ },
+ "with_typed_partner_in_graph": 15,
+ "repeat_same_work_versions": 10,
+ "repeat_only_from_untyped": 31,
+ "name_rule_hits": 0,
+ "variants": {
+  "A": {
+   "relations": 3818,
+   "unique_triples": 3783,
+   "unique_typed_triples": 3738
+  },
+  "B": {
+   "relations": 3765,
+   "unique_triples": 3738,
+   "removed": 53,
+   "removed_triples": 45
+  },
+  "C": {
+   "relations": 3801,
+   "unique_triples": 3763,
+   "retyped": 36,
+   "rejected": 17,
+   "rejected_reasons": {
+    "виды не подходят к связи": 5,
+    "связь": 2,
+    "объект без названия": 5,
+    "не о геологии": 5
+   },
+   "types": {
+    "выявлено методом": 5,
+    "содержит": 11,
+    "ассоциирует с": 4,
+    "входит в": 1,
+    "локализовано в": 2,
+    "сопровождается": 3,
+    "сложено": 2,
+    "относится к": 1,
+    "контролируется": 5,
+    "генетически связано с": 2
+   },
+   "model": "qwen3-14b"
+  }
+ },
+ "manual": null
+}

@@ -1,0 +1,1167 @@
+{
+ "seed": 20261048,
+ "short": [
+  {
+   "chunk_id": 6093,
+   "doc_id": "10.34078_1814-0998-2026-1-12-18",
+   "terms": 3,
+   "n_tokens": 63,
+   "length": 74,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 251,
+   "doc_id": "10.25236_ajets.2026.090201",
+   "terms": 1,
+   "n_tokens": 49,
+   "length": 73,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1641,
+   "doc_id": "10.7242_echo.2024.3.8",
+   "terms": 0,
+   "n_tokens": 33,
+   "length": 137,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6864,
+   "doc_id": "10.62762_jgee.2026.309205",
+   "terms": 0,
+   "n_tokens": 23,
+   "length": 89,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 70,
+   "doc_id": "10.18799_24131830_2022_2_2926",
+   "terms": 1,
+   "n_tokens": 36,
+   "length": 90,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6800,
+   "doc_id": "10.62292_njp.v35i1.2026.473",
+   "terms": 0,
+   "n_tokens": 58,
+   "length": 190,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6685,
+   "doc_id": "10.6084_m9.figshare.c.8387100.v1",
+   "terms": 3,
+   "n_tokens": 59,
+   "length": 152,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2332,
+   "doc_id": "10.29150_jhrs.v7.4.p189-211",
+   "terms": 0,
+   "n_tokens": 77,
+   "length": 187,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6933,
+   "doc_id": "openalex-w4414887451",
+   "terms": 0,
+   "n_tokens": 41,
+   "length": 113,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5630,
+   "doc_id": "10.30574_gjeta.2025.25.2.0334",
+   "terms": 3,
+   "n_tokens": 30,
+   "length": 123,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2678,
+   "doc_id": "10.64751_ijdim.2026.v5.n2.1324",
+   "terms": 1,
+   "n_tokens": 36,
+   "length": 141,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 193,
+   "doc_id": "10.24857_rgsa.v18n8-085",
+   "terms": 0,
+   "n_tokens": 71,
+   "length": 103,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6952,
+   "doc_id": "openalex-w4414887451",
+   "terms": 3,
+   "n_tokens": 45,
+   "length": 199,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6483,
+   "doc_id": "10.51584_ijrias.2026.11010045",
+   "terms": 0,
+   "n_tokens": 51,
+   "length": 133,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6265,
+   "doc_id": "10.47765_0869-5997-2025-10005",
+   "terms": 3,
+   "n_tokens": 72,
+   "length": 127,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6898,
+   "doc_id": "10.70882_josrar.2026.v3i5.246",
+   "terms": 1,
+   "n_tokens": 27,
+   "length": 71,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5897,
+   "doc_id": "10.31857_s0016777024050011",
+   "terms": 1,
+   "n_tokens": 66,
+   "length": 161,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4208,
+   "doc_id": "10.1007_s44274-025-00346-z",
+   "terms": 0,
+   "n_tokens": 80,
+   "length": 129,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6735,
+   "doc_id": "10.6084_m9.figshare.c.8387100.v1",
+   "terms": 2,
+   "n_tokens": 41,
+   "length": 83,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 59,
+   "doc_id": "10.18799_24131830_2022_2_2926",
+   "terms": 0,
+   "n_tokens": 35,
+   "length": 149,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2175,
+   "doc_id": "10.14430_arctic290",
+   "terms": 0,
+   "n_tokens": 38,
+   "length": 139,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5997,
+   "doc_id": "10.33411_ijist_1676",
+   "terms": 0,
+   "n_tokens": 37,
+   "length": 172,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6481,
+   "doc_id": "10.51584_ijrias.2026.11010045",
+   "terms": 0,
+   "n_tokens": 28,
+   "length": 104,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5601,
+   "doc_id": "10.29017_lpmgb.60.2.2169",
+   "terms": 0,
+   "n_tokens": 40,
+   "length": 120,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5489,
+   "doc_id": "10.22564_brjg.v43i1.2335",
+   "terms": 0,
+   "n_tokens": 105,
+   "length": 187,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6617,
+   "doc_id": "10.55959_msu0579-9406-4-2025-64-4-71-83",
+   "terms": 2,
+   "n_tokens": 58,
+   "length": 178,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4588,
+   "doc_id": "10.1038_s41598-025-30141-y",
+   "terms": 0,
+   "n_tokens": 90,
+   "length": 172,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6640,
+   "doc_id": "10.56195_20793332-2025-25-5-49-54",
+   "terms": 0,
+   "n_tokens": 47,
+   "length": 159,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2561,
+   "doc_id": "10.4314_cps.v13i1.4",
+   "terms": 0,
+   "n_tokens": 74,
+   "length": 141,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2075,
+   "doc_id": "10.12912_27197050_218151",
+   "terms": 1,
+   "n_tokens": 45,
+   "length": 196,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2194,
+   "doc_id": "10.14430_arctic290",
+   "terms": 0,
+   "n_tokens": 37,
+   "length": 150,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2211,
+   "doc_id": "10.14430_arctic290",
+   "terms": 0,
+   "n_tokens": 20,
+   "length": 94,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2202,
+   "doc_id": "10.14430_arctic290",
+   "terms": 0,
+   "n_tokens": 14,
+   "length": 49,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2254,
+   "doc_id": "10.18799_24131830_2022_8_3708",
+   "terms": 4,
+   "n_tokens": 45,
+   "length": 147,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5380,
+   "doc_id": "10.21203_rs.3.rs-5384377_v1",
+   "terms": 2,
+   "n_tokens": 56,
+   "length": 173,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5321,
+   "doc_id": "10.21203_rs.3.rs-10344585_v1",
+   "terms": 1,
+   "n_tokens": 42,
+   "length": 107,
+   "facts_stored": 1,
+   "facts_graph": 1
+  },
+  {
+   "chunk_id": 5388,
+   "doc_id": "10.21203_rs.3.rs-5384377_v1",
+   "terms": 6,
+   "n_tokens": 63,
+   "length": 197,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4153,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 0,
+   "n_tokens": 83,
+   "length": 109,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5765,
+   "doc_id": "10.31223_x5dj45",
+   "terms": 1,
+   "n_tokens": 73,
+   "length": 179,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4822,
+   "doc_id": "10.1038_s41598-026-52061-1",
+   "terms": 2,
+   "n_tokens": 97,
+   "length": 191,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2198,
+   "doc_id": "10.14430_arctic290",
+   "terms": 0,
+   "n_tokens": 49,
+   "length": 175,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 7000,
+   "doc_id": "openalex-w7218290360",
+   "terms": 7,
+   "n_tokens": 45,
+   "length": 160,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 509,
+   "doc_id": "10.52349_0869-7892_2024_100_147-164",
+   "terms": 0,
+   "n_tokens": 70,
+   "length": 180,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 511,
+   "doc_id": "10.52349_0869-7892_2024_100_147-164",
+   "terms": 0,
+   "n_tokens": 81,
+   "length": 199,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2310,
+   "doc_id": "10.25283_2223-4594-2017-2-62-75",
+   "terms": 1,
+   "n_tokens": 73,
+   "length": 140,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2156,
+   "doc_id": "10.1344_geologicaacta2025.23.4",
+   "terms": 1,
+   "n_tokens": 25,
+   "length": 57,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2158,
+   "doc_id": "10.14430_arctic290",
+   "terms": 2,
+   "n_tokens": 67,
+   "length": 165,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6869,
+   "doc_id": "10.64290_bima.v10i2.1611",
+   "terms": 0,
+   "n_tokens": 31,
+   "length": 79,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5784,
+   "doc_id": "10.31223_x5dj45",
+   "terms": 0,
+   "n_tokens": 60,
+   "length": 197,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 512,
+   "doc_id": "10.52349_0869-7892_2024_100_147-164",
+   "terms": 0,
+   "n_tokens": 65,
+   "length": 172,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2204,
+   "doc_id": "10.14430_arctic290",
+   "terms": 1,
+   "n_tokens": 55,
+   "length": 193,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1993,
+   "doc_id": "10.1088_1755-1315_71_1_012021",
+   "terms": 0,
+   "n_tokens": 73,
+   "length": 156,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5389,
+   "doc_id": "10.21203_rs.3.rs-5384377_v1",
+   "terms": 7,
+   "n_tokens": 57,
+   "length": 150,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6475,
+   "doc_id": "10.51584_ijrias.2026.11010045",
+   "terms": 1,
+   "n_tokens": 39,
+   "length": 135,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6637,
+   "doc_id": "10.56195_20793332-2025-25-5-49-54",
+   "terms": 0,
+   "n_tokens": 50,
+   "length": 146,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2217,
+   "doc_id": "10.18799_24131830_2022_8_3708",
+   "terms": 3,
+   "n_tokens": 52,
+   "length": 160,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2618,
+   "doc_id": "10.47390_ydif-y2026v2i12_n06",
+   "terms": 0,
+   "n_tokens": 26,
+   "length": 71,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5761,
+   "doc_id": "10.31223_x5dj45",
+   "terms": 0,
+   "n_tokens": 41,
+   "length": 135,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6801,
+   "doc_id": "10.62292_njp.v35i1.2026.473",
+   "terms": 1,
+   "n_tokens": 64,
+   "length": 158,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2201,
+   "doc_id": "10.14430_arctic290",
+   "terms": 0,
+   "n_tokens": 35,
+   "length": 104,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4163,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 0,
+   "n_tokens": 44,
+   "length": 81,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 3940,
+   "doc_id": "10.1007_s00126-025-01395-3",
+   "terms": 0,
+   "n_tokens": 70,
+   "length": 168,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6959,
+   "doc_id": "openalex-w7213480904",
+   "terms": 4,
+   "n_tokens": 38,
+   "length": 124,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4446,
+   "doc_id": "10.1007_s44288-026-00647-7",
+   "terms": 1,
+   "n_tokens": 57,
+   "length": 174,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2197,
+   "doc_id": "10.14430_arctic290",
+   "terms": 0,
+   "n_tokens": 29,
+   "length": 109,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2178,
+   "doc_id": "10.14430_arctic290",
+   "terms": 0,
+   "n_tokens": 17,
+   "length": 65,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2009,
+   "doc_id": "10.1109_access.2020.3022626",
+   "terms": 0,
+   "n_tokens": 47,
+   "length": 189,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4251,
+   "doc_id": "10.1007_s44288-025-00202-w",
+   "terms": 1,
+   "n_tokens": 45,
+   "length": 187,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 239,
+   "doc_id": "10.25236_ajets.2026.090201",
+   "terms": 7,
+   "n_tokens": 85,
+   "length": 161,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6794,
+   "doc_id": "10.62292_njp.v35i1.2026.473",
+   "terms": 2,
+   "n_tokens": 37,
+   "length": 110,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5998,
+   "doc_id": "10.33411_ijist_1676",
+   "terms": 0,
+   "n_tokens": 32,
+   "length": 113,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5425,
+   "doc_id": "10.21203_rs.3.rs-5384377_v1",
+   "terms": 3,
+   "n_tokens": 55,
+   "length": 189,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1926,
+   "doc_id": "10.1038_s41598-024-56644-8",
+   "terms": 0,
+   "n_tokens": 42,
+   "length": 62,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 227,
+   "doc_id": "10.24857_rgsa.v18n8-085",
+   "terms": 1,
+   "n_tokens": 32,
+   "length": 78,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4140,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 0,
+   "n_tokens": 25,
+   "length": 73,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 572,
+   "doc_id": "10.52349_0869-7892_2026_106_43-52",
+   "terms": 0,
+   "n_tokens": 61,
+   "length": 178,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6639,
+   "doc_id": "10.56195_20793332-2025-25-5-49-54",
+   "terms": 0,
+   "n_tokens": 49,
+   "length": 130,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5480,
+   "doc_id": "10.21285_2686-9993-2026-49-2-7",
+   "terms": 0,
+   "n_tokens": 50,
+   "length": 114,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5749,
+   "doc_id": "10.31223_x5dj45",
+   "terms": 0,
+   "n_tokens": 44,
+   "length": 158,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2210,
+   "doc_id": "10.14430_arctic290",
+   "terms": 1,
+   "n_tokens": 44,
+   "length": 162,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6997,
+   "doc_id": "openalex-w7218290360",
+   "terms": 4,
+   "n_tokens": 141,
+   "length": 183,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6766,
+   "doc_id": "10.62292_njp.v35_s_.2026.639",
+   "terms": 2,
+   "n_tokens": 62,
+   "length": 192,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4151,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 0,
+   "n_tokens": 93,
+   "length": 194,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6636,
+   "doc_id": "10.56195_20793332-2025-25-5-49-54",
+   "terms": 0,
+   "n_tokens": 55,
+   "length": 138,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6748,
+   "doc_id": "10.62292_10.62292_njp.v34i3.2025.400",
+   "terms": 5,
+   "n_tokens": 35,
+   "length": 126,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4966,
+   "doc_id": "10.12789_geocanj.2023.50.202",
+   "terms": 0,
+   "n_tokens": 59,
+   "length": 184,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6907,
+   "doc_id": "10.70882_josrar.2026.v3i5.246",
+   "terms": 2,
+   "n_tokens": 37,
+   "length": 164,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 290,
+   "doc_id": "10.46698_vnc.2021.23.67.003",
+   "terms": 0,
+   "n_tokens": 70,
+   "length": 172,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2065,
+   "doc_id": "10.12912_27197050_218151",
+   "terms": 1,
+   "n_tokens": 53,
+   "length": 186,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5240,
+   "doc_id": "10.21203_rs.3.rs-10216943_v1",
+   "terms": 1,
+   "n_tokens": 56,
+   "length": 180,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4757,
+   "doc_id": "10.1038_s41598-026-45708-6",
+   "terms": 0,
+   "n_tokens": 72,
+   "length": 110,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2687,
+   "doc_id": "10.64751_ijdim.2026.v5.n2.1324",
+   "terms": 0,
+   "n_tokens": 66,
+   "length": 162,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4076,
+   "doc_id": "10.1007_s10791-026-10192-z",
+   "terms": 0,
+   "n_tokens": 45,
+   "length": 152,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6488,
+   "doc_id": "10.5194_egusphere-2026-1293",
+   "terms": 0,
+   "n_tokens": 79,
+   "length": 181,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2308,
+   "doc_id": "10.25283_2223-4594-2017-2-62-75",
+   "terms": 3,
+   "n_tokens": 75,
+   "length": 194,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1559,
+   "doc_id": "10.31857_s0203030623700141",
+   "terms": 1,
+   "n_tokens": 51,
+   "length": 106,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2092,
+   "doc_id": "10.12912_27197050_218151",
+   "terms": 2,
+   "n_tokens": 60,
+   "length": 184,
+   "facts_stored": 1,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1910,
+   "doc_id": "10.1007_s11004-023-10097-3",
+   "terms": 0,
+   "n_tokens": 42,
+   "length": 138,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6027,
+   "doc_id": "10.33677_ggianas20250100147",
+   "terms": 5,
+   "n_tokens": 61,
+   "length": 173,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5484,
+   "doc_id": "10.21285_2686-9993-2026-49-2-7",
+   "terms": 0,
+   "n_tokens": 68,
+   "length": 146,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6798,
+   "doc_id": "10.62292_njp.v35i1.2026.473",
+   "terms": 0,
+   "n_tokens": 39,
+   "length": 61,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2666,
+   "doc_id": "10.64751_ijdim.2026.v5.n2.1324",
+   "terms": 0,
+   "n_tokens": 73,
+   "length": 97,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 38,
+   "doc_id": "10.18799_24131830_2022_2_2926",
+   "terms": 1,
+   "n_tokens": 42,
+   "length": 86,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5534,
+   "doc_id": "10.2478_minrv-2026-0042",
+   "terms": 0,
+   "n_tokens": 47,
+   "length": 194,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5479,
+   "doc_id": "10.21285_2686-9993-2026-49-2-7",
+   "terms": 0,
+   "n_tokens": 57,
+   "length": 129,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2560,
+   "doc_id": "10.4314_cps.v13i1.4",
+   "terms": 0,
+   "n_tokens": 74,
+   "length": 141,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2153,
+   "doc_id": "10.1344_geologicaacta2025.23.4",
+   "terms": 1,
+   "n_tokens": 23,
+   "length": 56,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6797,
+   "doc_id": "10.62292_njp.v35i1.2026.473",
+   "terms": 2,
+   "n_tokens": 33,
+   "length": 140,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2195,
+   "doc_id": "10.14430_arctic290",
+   "terms": 0,
+   "n_tokens": 9,
+   "length": 28,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6765,
+   "doc_id": "10.62292_njp.v35_s_.2026.639",
+   "terms": 0,
+   "n_tokens": 83,
+   "length": 171,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5319,
+   "doc_id": "10.21203_rs.3.rs-10344585_v1",
+   "terms": 0,
+   "n_tokens": 54,
+   "length": 120,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1579,
+   "doc_id": "10.47765_0869-5997-2026-10006",
+   "terms": 1,
+   "n_tokens": 56,
+   "length": 134,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5802,
+   "doc_id": "10.31248_gjees2024.162",
+   "terms": 0,
+   "n_tokens": 47,
+   "length": 183,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 346,
+   "doc_id": "10.46698_vnc.2022.80.35.009",
+   "terms": 1,
+   "n_tokens": 67,
+   "length": 186,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6799,
+   "doc_id": "10.62292_njp.v35i1.2026.473",
+   "terms": 1,
+   "n_tokens": 41,
+   "length": 74,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 81,
+   "doc_id": "10.18799_24131830_2024_12_4577",
+   "terms": 1,
+   "n_tokens": 92,
+   "length": 139,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5691,
+   "doc_id": "10.30958_ajs.13-1-3",
+   "terms": 0,
+   "n_tokens": 34,
+   "length": 131,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6774,
+   "doc_id": "10.62292_njp.v35_s_.2026.639",
+   "terms": 0,
+   "n_tokens": 34,
+   "length": 142,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4633,
+   "doc_id": "10.1038_s41598-025-30141-y",
+   "terms": 0,
+   "n_tokens": 66,
+   "length": 123,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5733,
+   "doc_id": "10.31223_x5dj45",
+   "terms": 0,
+   "n_tokens": 25,
+   "length": 83,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4308,
+   "doc_id": "10.1007_s44288-026-00567-6",
+   "terms": 1,
+   "n_tokens": 71,
+   "length": 197,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5552,
+   "doc_id": "10.2478_minrv-2026-0042",
+   "terms": 1,
+   "n_tokens": 55,
+   "length": 149,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4884,
+   "doc_id": "10.1038_s41598-026-60088-7",
+   "terms": 0,
+   "n_tokens": 78,
+   "length": 115,
+   "facts_stored": 0,
+   "facts_graph": 0
+  }
+ ],
+ "untyped": [
+  15124,
+  16434,
+  15485,
+  12969,
+  15125,
+  15538,
+  17068,
+  12088,
+  15463,
+  11115,
+  17071,
+  16748,
+  15355,
+  13473,
+  9581,
+  17066,
+  9582,
+  16803,
+  15359,
+  15475,
+  16692,
+  13456,
+  17045,
+  9566,
+  13980,
+  17047,
+  9568,
+  18485,
+  10406,
+  12349,
+  15588,
+  15357,
+  15462,
+  10521,
+  12022,
+  12027,
+  18613,
+  15456,
+  17050,
+  6819,
+  17051,
+  15436,
+  16802,
+  8214,
+  17048,
+  17069,
+  18258,
+  7226,
+  13906,
+  12023,
+  15345,
+  17072,
+  8945
+ ]
+}

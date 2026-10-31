@@ -1,0 +1,13 @@
+{
+ "source_commit": "01c8fdf852fc5e0ca264040c26a6a0c2dbb99d95",
+ "os": "Windows 11 Pro 10.0.26100",
+ "python": "3.13.2 (.venv; полный список пакетов — code/requirements.txt)",
+ "key_packages": {"torch": "2.14.1+cu130", "sentence-transformers": "6.2.0", "psycopg": "3.3.6", "numpy": "2.5.4",
+                  "spacy": "3.8.18", "openpyxl": "3.1.5", "python-docx": "1.2.0", "matplotlib": "3.11.2"},
+ "database": {"name": "georag_v14 (копия рабочей базы, только чтение)", "server": "PostgreSQL 17.11",
+              "pgvector": "0.8.7", "image": "pgvector/pgvector:pg17", "port": 5433},
+ "llm": {"server": "vllm/vllm-openai:v0.30.0", "model": "Qwen/Qwen3-14B-AWQ (served name qwen3-14b)",
+         "used_for": "только повторная типизация 53 связей (untyped_audit.py, temperature 0); ответы в .cache/untyped_retype.json"},
+ "embeddings": "BAAI/bge-m3 через sentence-transformers 6.2.0; векторы связей без fact_vectors — .cache/fact_vectors_extra_6389_19592.npy",
+ "seeds": {"labeling_v16": 20261031, "labeling_v17": 20261048, "bootstrap": 1}
+}
