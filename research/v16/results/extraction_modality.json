@@ -1,0 +1,25 @@
+{
+ "sample": 120,
+ "correct": 104,
+ "errors_by_primary_category": {
+  "связь не геологического содержания": 2,
+  "обратное направление": 1,
+  "потеряна оговорка о предположительности": 6,
+  "неверный тип связи": 7
+ },
+ "lost_hedge_errors": 6,
+ "lost_hedge_fixed_by_current_rule": 0,
+ "lost_hedge_fixed_by_extended_rule": 6,
+ "correct_newly_marked_by_extended_rule": 0,
+ "negation_in_quote": 2,
+ "negation_in_quote_correct": 2,
+ "negation_kept_in_relation": 0,
+ "graph": {
+  "facts": 3818,
+  "marked_hedged": 218,
+  "hedge_in_quote_current_rule": 221,
+  "would_be_marked_extended": 101,
+  "negation_in_quote": 90,
+  "negation_in_quote_not_in_relation": 89
+ }
+}

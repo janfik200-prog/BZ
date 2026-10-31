@@ -1,0 +1,1658 @@
+{
+ "seed": 20261031,
+ "filter": [
+  {
+   "chunk_id": 4776,
+   "doc_id": "10.1038_s41598-026-45708-6",
+   "terms": 3,
+   "n_tokens": 326,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5130,
+   "doc_id": "10.18799_24131830_2025_7_5053",
+   "terms": 12,
+   "n_tokens": 201,
+   "facts_stored": 3,
+   "facts_graph": 1
+  },
+  {
+   "chunk_id": 4443,
+   "doc_id": "10.1007_s44288-026-00647-7",
+   "terms": 2,
+   "n_tokens": 263,
+   "facts_stored": 8,
+   "facts_graph": 3
+  },
+  {
+   "chunk_id": 4978,
+   "doc_id": "10.12789_geocanj.2023.50.202",
+   "terms": 2,
+   "n_tokens": 186,
+   "facts_stored": 3,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5244,
+   "doc_id": "10.21203_rs.3.rs-10216943_v1",
+   "terms": 8,
+   "n_tokens": 316,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4158,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 4,
+   "n_tokens": 220,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6779,
+   "doc_id": "10.62292_njp.v35_s_.2026.639",
+   "terms": 4,
+   "n_tokens": 257,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 305,
+   "doc_id": "10.46698_vnc.2021.23.67.003",
+   "terms": 2,
+   "n_tokens": 424,
+   "facts_stored": 4,
+   "facts_graph": 1
+  },
+  {
+   "chunk_id": 557,
+   "doc_id": "10.52349_0869-7892_2026_106_43-52",
+   "terms": 4,
+   "n_tokens": 442,
+   "facts_stored": 5,
+   "facts_graph": 3
+  },
+  {
+   "chunk_id": 4729,
+   "doc_id": "10.1038_s41598-026-36349-w",
+   "terms": 3,
+   "n_tokens": 416,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1394,
+   "doc_id": "10.1029_2024ea003630",
+   "terms": 0,
+   "n_tokens": 501,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5661,
+   "doc_id": "10.30574_gjeta.2025.25.2.0334",
+   "terms": 4,
+   "n_tokens": 206,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 119,
+   "doc_id": "10.18799_24131830_2024_12_4577",
+   "terms": 4,
+   "n_tokens": 476,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2112,
+   "doc_id": "10.12912_27197050_218151",
+   "terms": 5,
+   "n_tokens": 366,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 217,
+   "doc_id": "10.24857_rgsa.v18n8-085",
+   "terms": 4,
+   "n_tokens": 379,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6703,
+   "doc_id": "10.6084_m9.figshare.c.8387100.v1",
+   "terms": 4,
+   "n_tokens": 237,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6073,
+   "doc_id": "10.33677_ggianas20250100147",
+   "terms": 0,
+   "n_tokens": 482,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4597,
+   "doc_id": "10.1038_s41598-025-30141-y",
+   "terms": 0,
+   "n_tokens": 393,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6822,
+   "doc_id": "10.62762_jgee.2026.309205",
+   "terms": 4,
+   "n_tokens": 147,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 375,
+   "doc_id": "10.46698_vnc.2023.84.41.008",
+   "terms": 4,
+   "n_tokens": 480,
+   "facts_stored": 4,
+   "facts_graph": 4
+  },
+  {
+   "chunk_id": 6147,
+   "doc_id": "10.47514_phyaccess.2026.6.2.013",
+   "terms": 2,
+   "n_tokens": 248,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1398,
+   "doc_id": "10.1029_2024ea003630",
+   "terms": 1,
+   "n_tokens": 257,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6500,
+   "doc_id": "10.5194_egusphere-2026-1293",
+   "terms": 3,
+   "n_tokens": 203,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4215,
+   "doc_id": "10.1007_s44274-025-00346-z",
+   "terms": 1,
+   "n_tokens": 476,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4577,
+   "doc_id": "10.1038_s41598-025-30141-y",
+   "terms": 0,
+   "n_tokens": 482,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5785,
+   "doc_id": "10.31223_x5dj45",
+   "terms": 1,
+   "n_tokens": 173,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4477,
+   "doc_id": "10.1038_s41598-023-34531-y",
+   "terms": 3,
+   "n_tokens": 516,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1424,
+   "doc_id": "10.1029_2024ea003630",
+   "terms": 0,
+   "n_tokens": 358,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2207,
+   "doc_id": "10.14430_arctic290",
+   "terms": 3,
+   "n_tokens": 88,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 113,
+   "doc_id": "10.18799_24131830_2024_12_4577",
+   "terms": 4,
+   "n_tokens": 348,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 42,
+   "doc_id": "10.18799_24131830_2022_2_2926",
+   "terms": 0,
+   "n_tokens": 68,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 96,
+   "doc_id": "10.18799_24131830_2024_12_4577",
+   "terms": 3,
+   "n_tokens": 475,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6275,
+   "doc_id": "10.47765_0869-5997-2025-10005",
+   "terms": 0,
+   "n_tokens": 462,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4617,
+   "doc_id": "10.1038_s41598-025-30141-y",
+   "terms": 0,
+   "n_tokens": 522,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2196,
+   "doc_id": "10.14430_arctic290",
+   "terms": 1,
+   "n_tokens": 67,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4175,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 3,
+   "n_tokens": 363,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5773,
+   "doc_id": "10.31223_x5dj45",
+   "terms": 0,
+   "n_tokens": 100,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2731,
+   "doc_id": "10.1007_s11053-025-10468-z",
+   "terms": 0,
+   "n_tokens": 444,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4253,
+   "doc_id": "10.1007_s44288-025-00202-w",
+   "terms": 4,
+   "n_tokens": 475,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4137,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 3,
+   "n_tokens": 476,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6062,
+   "doc_id": "10.33677_ggianas20250100147",
+   "terms": 3,
+   "n_tokens": 525,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 152,
+   "doc_id": "10.24411_0869-5997-2018-00003",
+   "terms": 4,
+   "n_tokens": 477,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4182,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 0,
+   "n_tokens": 519,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5377,
+   "doc_id": "10.21203_rs.3.rs-5384377_v1",
+   "terms": 4,
+   "n_tokens": 430,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6549,
+   "doc_id": "10.5194_isprs-archives-xlviii-5-w3-2025-89-2025",
+   "terms": 2,
+   "n_tokens": 283,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4433,
+   "doc_id": "10.1007_s44288-026-00647-7",
+   "terms": 18,
+   "n_tokens": 508,
+   "facts_stored": 13,
+   "facts_graph": 6
+  },
+  {
+   "chunk_id": 332,
+   "doc_id": "10.46698_vnc.2022.80.35.009",
+   "terms": 3,
+   "n_tokens": 393,
+   "facts_stored": 12,
+   "facts_graph": 3
+  },
+  {
+   "chunk_id": 2737,
+   "doc_id": "10.1007_s11053-025-10468-z",
+   "terms": 4,
+   "n_tokens": 487,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1488,
+   "doc_id": "10.31431_1816-5524-2023-1-57-45-62",
+   "terms": 1,
+   "n_tokens": 334,
+   "facts_stored": 4,
+   "facts_graph": 2
+  },
+  {
+   "chunk_id": 2311,
+   "doc_id": "10.25283_2223-4594-2017-2-62-75",
+   "terms": 8,
+   "n_tokens": 506,
+   "facts_stored": 2,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4791,
+   "doc_id": "10.1038_s41598-026-45708-6",
+   "terms": 0,
+   "n_tokens": 514,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1518,
+   "doc_id": "10.31857_s0203030623700141",
+   "terms": 1,
+   "n_tokens": 126,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 465,
+   "doc_id": "10.52349_0869-7892_2024_100_147-164",
+   "terms": 12,
+   "n_tokens": 167,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2155,
+   "doc_id": "10.1344_geologicaacta2025.23.4",
+   "terms": 0,
+   "n_tokens": 102,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6333,
+   "doc_id": "10.47765_0869-7175-2025-10017",
+   "terms": 10,
+   "n_tokens": 435,
+   "facts_stored": 18,
+   "facts_graph": 5
+  },
+  {
+   "chunk_id": 128,
+   "doc_id": "10.18799_24131830_2024_12_4577",
+   "terms": 3,
+   "n_tokens": 512,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5152,
+   "doc_id": "10.18799_24131830_2025_7_5053",
+   "terms": 14,
+   "n_tokens": 479,
+   "facts_stored": 2,
+   "facts_graph": 1
+  },
+  {
+   "chunk_id": 496,
+   "doc_id": "10.52349_0869-7892_2024_100_147-164",
+   "terms": 19,
+   "n_tokens": 357,
+   "facts_stored": 12,
+   "facts_graph": 10
+  },
+  {
+   "chunk_id": 573,
+   "doc_id": "10.52349_0869-7892_2026_106_43-52",
+   "terms": 0,
+   "n_tokens": 86,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5329,
+   "doc_id": "10.21203_rs.3.rs-10344585_v1",
+   "terms": 1,
+   "n_tokens": 183,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2145,
+   "doc_id": "10.1344_geologicaacta2025.23.4",
+   "terms": 4,
+   "n_tokens": 412,
+   "facts_stored": 5,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6717,
+   "doc_id": "10.6084_m9.figshare.c.8387100.v1",
+   "terms": 3,
+   "n_tokens": 521,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4401,
+   "doc_id": "10.1007_s44288-026-00632-0",
+   "terms": 26,
+   "n_tokens": 449,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5628,
+   "doc_id": "10.29017_lpmgb.60.2.2169",
+   "terms": 2,
+   "n_tokens": 248,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5911,
+   "doc_id": "10.33271_mining20.03.010",
+   "terms": 1,
+   "n_tokens": 255,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1436,
+   "doc_id": "10.1029_2024ea003630",
+   "terms": 1,
+   "n_tokens": 291,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 513,
+   "doc_id": "10.52349_0869-7892_2024_100_147-164",
+   "terms": 1,
+   "n_tokens": 210,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1948,
+   "doc_id": "10.1038_s41598-026-40125-1",
+   "terms": 4,
+   "n_tokens": 205,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2135,
+   "doc_id": "10.1344_geologicaacta2025.23.4",
+   "terms": 2,
+   "n_tokens": 202,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4143,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 2,
+   "n_tokens": 281,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4187,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 0,
+   "n_tokens": 447,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4092,
+   "doc_id": "10.1007_s42461-026-01551-x",
+   "terms": 0,
+   "n_tokens": 131,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5404,
+   "doc_id": "10.21203_rs.3.rs-5384377_v1",
+   "terms": 3,
+   "n_tokens": 114,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6843,
+   "doc_id": "10.62762_jgee.2026.309205",
+   "terms": 4,
+   "n_tokens": 399,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 3960,
+   "doc_id": "10.1007_s00126-025-01395-3",
+   "terms": 4,
+   "n_tokens": 264,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2607,
+   "doc_id": "10.47390_ydif-y2026v2i12_n06",
+   "terms": 0,
+   "n_tokens": 204,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2567,
+   "doc_id": "10.4314_cps.v13i1.4",
+   "terms": 14,
+   "n_tokens": 504,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4305,
+   "doc_id": "10.1007_s44288-026-00567-6",
+   "terms": 10,
+   "n_tokens": 189,
+   "facts_stored": 2,
+   "facts_graph": 1
+  },
+  {
+   "chunk_id": 5465,
+   "doc_id": "10.21285_2686-9993-2026-49-2-7",
+   "terms": 5,
+   "n_tokens": 289,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6524,
+   "doc_id": "10.5194_egusphere-2026-1293",
+   "terms": 2,
+   "n_tokens": 300,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4510,
+   "doc_id": "10.1038_s41598-023-34531-y",
+   "terms": 11,
+   "n_tokens": 384,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2743,
+   "doc_id": "10.1007_s11053-025-10468-z",
+   "terms": 3,
+   "n_tokens": 336,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4910,
+   "doc_id": "10.1038_s41598-026-60088-7",
+   "terms": 2,
+   "n_tokens": 416,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4196,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 8,
+   "n_tokens": 503,
+   "facts_stored": 20,
+   "facts_graph": 13
+  },
+  {
+   "chunk_id": 6499,
+   "doc_id": "10.5194_egusphere-2026-1293",
+   "terms": 0,
+   "n_tokens": 163,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2478,
+   "doc_id": "10.3389_frsen.2025.1678991",
+   "terms": 1,
+   "n_tokens": 281,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5731,
+   "doc_id": "10.30967_ijcrset_bikila-argeta-ayele_210",
+   "terms": 19,
+   "n_tokens": 403,
+   "facts_stored": 15,
+   "facts_graph": 3
+  },
+  {
+   "chunk_id": 5793,
+   "doc_id": "10.31223_x5dj45",
+   "terms": 4,
+   "n_tokens": 277,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6804,
+   "doc_id": "10.62292_njp.v35i1.2026.473",
+   "terms": 4,
+   "n_tokens": 191,
+   "facts_stored": 6,
+   "facts_graph": 1
+  },
+  {
+   "chunk_id": 4145,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 3,
+   "n_tokens": 191,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4739,
+   "doc_id": "10.1038_s41598-026-36349-w",
+   "terms": 1,
+   "n_tokens": 518,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5872,
+   "doc_id": "10.31643_2028_6445.27",
+   "terms": 1,
+   "n_tokens": 193,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4593,
+   "doc_id": "10.1038_s41598-025-30141-y",
+   "terms": 0,
+   "n_tokens": 150,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6548,
+   "doc_id": "10.5194_isprs-annals-x-5-w4-2025-269-2026",
+   "terms": 3,
+   "n_tokens": 237,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2154,
+   "doc_id": "10.1344_geologicaacta2025.23.4",
+   "terms": 2,
+   "n_tokens": 473,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5698,
+   "doc_id": "10.30958_ajs.13-1-3",
+   "terms": 3,
+   "n_tokens": 54,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4584,
+   "doc_id": "10.1038_s41598-025-30141-y",
+   "terms": 0,
+   "n_tokens": 196,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 334,
+   "doc_id": "10.46698_vnc.2022.80.35.009",
+   "terms": 7,
+   "n_tokens": 506,
+   "facts_stored": 1,
+   "facts_graph": 1
+  },
+  {
+   "chunk_id": 2738,
+   "doc_id": "10.1007_s11053-025-10468-z",
+   "terms": 4,
+   "n_tokens": 468,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6355,
+   "doc_id": "10.47765_0869-7175-2025-10017",
+   "terms": 4,
+   "n_tokens": 392,
+   "facts_stored": 9,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4463,
+   "doc_id": "10.1038_s41598-023-34531-y",
+   "terms": 2,
+   "n_tokens": 86,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2691,
+   "doc_id": "10.64751_ijdim.2026.v5.n2.1324",
+   "terms": 1,
+   "n_tokens": 88,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4964,
+   "doc_id": "10.12789_geocanj.2023.50.202",
+   "terms": 4,
+   "n_tokens": 505,
+   "facts_stored": 10,
+   "facts_graph": 3
+  },
+  {
+   "chunk_id": 6733,
+   "doc_id": "10.6084_m9.figshare.c.8387100.v1",
+   "terms": 4,
+   "n_tokens": 521,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1971,
+   "doc_id": "10.1038_s41598-026-40125-1",
+   "terms": 2,
+   "n_tokens": 501,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5744,
+   "doc_id": "10.31223_x5dj45",
+   "terms": 1,
+   "n_tokens": 363,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6965,
+   "doc_id": "openalex-w7213480904",
+   "terms": 1,
+   "n_tokens": 282,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4146,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 2,
+   "n_tokens": 246,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2003,
+   "doc_id": "10.1088_1755-1315_71_1_012021",
+   "terms": 2,
+   "n_tokens": 490,
+   "facts_stored": 15,
+   "facts_graph": 1
+  },
+  {
+   "chunk_id": 1551,
+   "doc_id": "10.31857_s0203030623700141",
+   "terms": 14,
+   "n_tokens": 491,
+   "facts_stored": 9,
+   "facts_graph": 5
+  },
+  {
+   "chunk_id": 5769,
+   "doc_id": "10.31223_x5dj45",
+   "terms": 1,
+   "n_tokens": 118,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 230,
+   "doc_id": "10.24857_rgsa.v18n8-085",
+   "terms": 11,
+   "n_tokens": 422,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2715,
+   "doc_id": "10.1007_s11053-025-10468-z",
+   "terms": 1,
+   "n_tokens": 514,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2657,
+   "doc_id": "10.5194_gmd-19-8755-2026",
+   "terms": 1,
+   "n_tokens": 282,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6430,
+   "doc_id": "10.51584_ijrias.2026.11010045",
+   "terms": 2,
+   "n_tokens": 64,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6877,
+   "doc_id": "10.64290_bima.v10i2.1611",
+   "terms": 2,
+   "n_tokens": 180,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6181,
+   "doc_id": "10.47765_0869-5997-2024-10017",
+   "terms": 12,
+   "n_tokens": 507,
+   "facts_stored": 7,
+   "facts_graph": 1
+  },
+  {
+   "chunk_id": 4602,
+   "doc_id": "10.1038_s41598-025-30141-y",
+   "terms": 1,
+   "n_tokens": 466,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2623,
+   "doc_id": "10.5194_gmd-19-8755-2026",
+   "terms": 2,
+   "n_tokens": 302,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2584,
+   "doc_id": "10.4314_cps.v13i1.4",
+   "terms": 12,
+   "n_tokens": 381,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4155,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 3,
+   "n_tokens": 260,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5421,
+   "doc_id": "10.21203_rs.3.rs-5384377_v1",
+   "terms": 12,
+   "n_tokens": 354,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 267,
+   "doc_id": "10.25236_ajets.2026.090201",
+   "terms": 1,
+   "n_tokens": 117,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5393,
+   "doc_id": "10.21203_rs.3.rs-5384377_v1",
+   "terms": 3,
+   "n_tokens": 141,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5748,
+   "doc_id": "10.31223_x5dj45",
+   "terms": 3,
+   "n_tokens": 122,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4594,
+   "doc_id": "10.1038_s41598-025-30141-y",
+   "terms": 0,
+   "n_tokens": 521,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5498,
+   "doc_id": "10.22564_brjg.v43i1.2335",
+   "terms": 2,
+   "n_tokens": 482,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6294,
+   "doc_id": "10.47765_0869-7175-2024-10029",
+   "terms": 4,
+   "n_tokens": 283,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4543,
+   "doc_id": "10.1038_s41598-025-11307-0",
+   "terms": 0,
+   "n_tokens": 519,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6919,
+   "doc_id": "10.70882_josrar.2026.v3i5.246",
+   "terms": 2,
+   "n_tokens": 322,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2168,
+   "doc_id": "10.14430_arctic290",
+   "terms": 2,
+   "n_tokens": 414,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6782,
+   "doc_id": "10.62292_njp.v35_s_.2026.639",
+   "terms": 0,
+   "n_tokens": 396,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1478,
+   "doc_id": "10.31431_1816-5524-2023-1-57-45-62",
+   "terms": 1,
+   "n_tokens": 456,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5754,
+   "doc_id": "10.31223_x5dj45",
+   "terms": 1,
+   "n_tokens": 160,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1448,
+   "doc_id": "10.1029_2024ea003630",
+   "terms": 0,
+   "n_tokens": 516,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2462,
+   "doc_id": "10.3389_frsen.2025.1678991",
+   "terms": 3,
+   "n_tokens": 509,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5650,
+   "doc_id": "10.30574_gjeta.2025.25.2.0334",
+   "terms": 5,
+   "n_tokens": 468,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6666,
+   "doc_id": "10.56201_ijaes.vol.11.no11.2025.pg25.35",
+   "terms": 3,
+   "n_tokens": 328,
+   "facts_stored": 10,
+   "facts_graph": 4
+  },
+  {
+   "chunk_id": 7002,
+   "doc_id": "openalex-w7218290360",
+   "terms": 27,
+   "n_tokens": 503,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2086,
+   "doc_id": "10.12912_27197050_218151",
+   "terms": 3,
+   "n_tokens": 287,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2206,
+   "doc_id": "10.14430_arctic290",
+   "terms": 0,
+   "n_tokens": 119,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 3907,
+   "doc_id": "10.1007_s00126-023-01220-9",
+   "terms": 3,
+   "n_tokens": 236,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5763,
+   "doc_id": "10.31223_x5dj45",
+   "terms": 2,
+   "n_tokens": 194,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 2709,
+   "doc_id": "10.1007_s11053-025-10468-z",
+   "terms": 1,
+   "n_tokens": 148,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4152,
+   "doc_id": "10.1007_s43994-025-00234-5",
+   "terms": 2,
+   "n_tokens": 171,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5918,
+   "doc_id": "10.33271_mining20.03.010",
+   "terms": 3,
+   "n_tokens": 418,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 4004,
+   "doc_id": "10.1007_s00126-025-01395-3",
+   "terms": 2,
+   "n_tokens": 516,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 1606,
+   "doc_id": "10.47765_0869-5997-2026-10006",
+   "terms": 1,
+   "n_tokens": 106,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 5522,
+   "doc_id": "10.24028_gj.v47i2.322500",
+   "terms": 8,
+   "n_tokens": 499,
+   "facts_stored": 16,
+   "facts_graph": 10
+  },
+  {
+   "chunk_id": 2014,
+   "doc_id": "10.1109_access.2020.3022626",
+   "terms": 2,
+   "n_tokens": 246,
+   "facts_stored": 0,
+   "facts_graph": 0
+  }
+ ],
+ "filter_population": {
+  "5+": 2390,
+  "4": 305,
+  "2": 352,
+  "3": 325,
+  "1": 355,
+  "0": 405
+ },
+ "filter_tokens": {
+  "5+": 939972,
+  "4": 99781,
+  "2": 111387,
+  "3": 104382,
+  "1": 100250,
+  "0": 108003
+ },
+ "typing": [
+  {
+   "fact_id": 12694,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 14522,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 12980,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 6983,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 13239,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 14517,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 19112,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 18082,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 16719,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 5448,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 14672,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 15561,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 10148,
+   "type_note": "связь"
+  },
+  {
+   "fact_id": 9628,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 14769,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 16046,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 15811,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 16124,
+   "type_note": "не предмет"
+  },
+  {
+   "fact_id": 11954,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 9650,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 10128,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 15986,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 12414,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 11293,
+   "type_note": "виды не подходят к связи: ассоциирует с"
+  },
+  {
+   "fact_id": 8504,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 18204,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 15078,
+   "type_note": "виды не подходят к связи: сложено"
+  },
+  {
+   "fact_id": 14758,
+   "type_note": "связь"
+  },
+  {
+   "fact_id": 11208,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 9232,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 8227,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 7045,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 16177,
+   "type_note": "связь"
+  },
+  {
+   "fact_id": 16331,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 6491,
+   "type_note": "виды не подходят к связи: указывает на"
+  },
+  {
+   "fact_id": 15739,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 18427,
+   "type_note": "виды не подходят к связи: указывает на"
+  },
+  {
+   "fact_id": 11563,
+   "type_note": "виды не подходят к связи: контролируется"
+  },
+  {
+   "fact_id": 10189,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 13320,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 15400,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 19210,
+   "type_note": "виды не подходят к связи: ассоциирует с"
+  },
+  {
+   "fact_id": 19229,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 6359,
+   "type_note": "не предмет"
+  },
+  {
+   "fact_id": 19428,
+   "type_note": "не предмет"
+  },
+  {
+   "fact_id": 17787,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 17798,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 14086,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 17162,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 10469,
+   "type_note": "виды не подходят к связи: ассоциирует с"
+  },
+  {
+   "fact_id": 17767,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 10987,
+   "type_note": "виды не подходят к связи: содержит"
+  },
+  {
+   "fact_id": 17001,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 16258,
+   "type_note": "положение, а не предмет"
+  },
+  {
+   "fact_id": 14249,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 17241,
+   "type_note": "виды не подходят к связи: сопровождается"
+  },
+  {
+   "fact_id": 6643,
+   "type_note": "сторона или часть территории"
+  },
+  {
+   "fact_id": 16317,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 11977,
+   "type_note": "связь"
+  },
+  {
+   "fact_id": 11841,
+   "type_note": "не о геологии"
+  }
+ ],
+ "typing_population": 3585,
+ "negation": [
+  13541,
+  15064,
+  7865,
+  12957,
+  9765,
+  15500,
+  9003,
+  15501,
+  10102,
+  16019,
+  12133,
+  11650,
+  10347,
+  17978,
+  11918,
+  15973,
+  14775,
+  15463,
+  18212,
+  12134,
+  10023,
+  12027,
+  10349,
+  11558,
+  18211,
+  17928,
+  13037,
+  15972,
+  14514,
+  12076,
+  11444,
+  7797,
+  15779,
+  12290,
+  15063,
+  14577,
+  15496,
+  17998,
+  11490,
+  10328,
+  5373,
+  12132,
+  19301,
+  15089,
+  9603,
+  17977,
+  15029,
+  12958,
+  14477,
+  15014,
+  8796,
+  17996,
+  15462,
+  12084,
+  18210,
+  14649,
+  14774,
+  11651,
+  15461,
+  14515,
+  15951,
+  9425,
+  17886,
+  9604,
+  14750,
+  18284,
+  10329,
+  11435,
+  11443,
+  15967,
+  17997,
+  11649,
+  5405,
+  11652,
+  8797,
+  13036,
+  13057,
+  9461,
+  11968,
+  15170,
+  5807,
+  5372,
+  18213,
+  14749,
+  9766,
+  10348,
+  13850,
+  10057,
+  11919
+ ],
+ "modality": [
+  16958,
+  7163,
+  19577,
+  12367,
+  6641,
+  7162,
+  14256,
+  6117,
+  5982,
+  14369,
+  5361,
+  8666,
+  6310,
+  16892,
+  18161,
+  13758,
+  6667,
+  6617,
+  8654,
+  7300,
+  13727,
+  14541,
+  6642,
+  13739,
+  14364,
+  7105,
+  7981,
+  16895,
+  12290,
+  15907,
+  16893,
+  16538,
+  5510,
+  7453,
+  8700,
+  7845,
+  5675,
+  14341,
+  16956,
+  13263,
+  13736,
+  7846,
+  15131,
+  11712,
+  12217,
+  7491,
+  7843,
+  6246,
+  6666,
+  13785,
+  5676,
+  6459,
+  14368,
+  8029,
+  6190,
+  19183,
+  18616,
+  19520,
+  13786,
+  15000,
+  6189,
+  16820,
+  6616,
+  19184,
+  13057,
+  11106,
+  7490,
+  7863,
+  16729,
+  19461,
+  5630,
+  19313,
+  6188,
+  11108,
+  7501,
+  11098,
+  10674,
+  11107,
+  11097,
+  13729,
+  5815,
+  12419,
+  16728,
+  7299,
+  8657,
+  5810,
+  5516,
+  5530,
+  18160,
+  6618,
+  10324,
+  16957,
+  6639,
+  7125,
+  16822,
+  19478,
+  13753,
+  5471,
+  13011,
+  16825,
+  13791
+ ]
+}
