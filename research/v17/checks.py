@@ -135,7 +135,8 @@ def main() -> None:
         doc = Document(str(art))
         text = " ".join(p.text for p in doc.paragraphs) + " " + " ".join(
             c.text for t in doc.tables for r in t.rows for c in r.cells)
-        f3 = next(r for r in lab["filter_thresholds"] if r["population"] == "frame_ge200" and r["threshold"] == 3)
+        main_pop = "domain_all" if pop["short_complete"] else "frame_ge200"
+        f3 = next(r for r in lab["filter_thresholds"] if r["population"] == main_pop and r["threshold"] == 3)
         need = {
             "размечено из отобрано": f"{fs['labelled']} из {fs['selected']}",
             "потеря фильтра, порог 3": f"{100 * f3['lost_relation_share']:.1f} %".replace(".", ","),

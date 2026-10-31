@@ -126,7 +126,8 @@ def main() -> None:
                       "включить с типом (вариант C)" if lab == 1 else
                       "включить с типом (вариант C) после ручной проверки")
         elif r:
-            action = "исключить: " + (r.get("note") or "")
+            action = (("типизировать вручную: модель отклонила (" + (r.get("note") or "") +
+                       "), по разметке связь геологическая") if lab == 1 else "исключить: " + (r.get("note") or ""))
         else:
             action = "повторная типизация не выполнялась"
         out_rows.append({
@@ -190,8 +191,15 @@ def main() -> None:
         },
         "manual": ({"labelled": len(labels), "geological": sum(labels.values()),
                     "geological_among_retyped": sum(labels.get(f, 0) for f in c_add),
-                    "labelled_among_retyped": sum(1 for f in c_add if f in labels)} if labels else None),
+                    "labelled_among_retyped": sum(1 for f in c_add if f in labels),
+                    "geological_among_rejected": sum(v for f, v in labels.items() if f not in c_add),
+                    "labelled_among_rejected": sum(1 for f in labels if f not in c_add)} if labels else None),
     }
+    if labels and llm:  # C с ручной проверкой: тип от модели и связь верна по разметке
+        keep = {f: t for f, t in c_add.items() if labels.get(f) == 1}
+        tCm = triples(typed + [f for f in untyped if f["id"] in keep], keep)
+        summary["variants"]["C_manual"] = {"relations": len(typed) + len(keep), "unique_triples": len(tCm),
+                                           "added": len(keep)}
     (RES / "untyped_53_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1), "utf-8")
     print(json.dumps(summary, ensure_ascii=False, indent=1))
 

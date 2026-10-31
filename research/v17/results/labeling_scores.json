@@ -15,9 +15,9 @@
   "domain": 4132,
   "frame_ge200": 4009,
   "short_lt200": 123,
-  "short_labelled": 0,
-  "short_with_relations": 0,
-  "short_complete": false
+  "short_labelled": 123,
+  "short_with_relations": 14,
+  "short_complete": true
  },
  "filter_by_terms": {
   "0": {
@@ -30,7 +30,7 @@
    ],
    "population_frame": 337,
    "short": 68,
-   "short_with_relations": null
+   "short_with_relations": 3
   },
   "1": {
    "labelled": 25,
@@ -42,7 +42,7 @@
    ],
    "population_frame": 327,
    "short": 28,
-   "short_with_relations": null
+   "short_with_relations": 4
   },
   "2": {
    "labelled": 25,
@@ -54,7 +54,7 @@
    ],
    "population_frame": 342,
    "short": 10,
-   "short_with_relations": null
+   "short_with_relations": 3
   },
   "3": {
    "labelled": 24,
@@ -66,7 +66,7 @@
    ],
    "population_frame": 317,
    "short": 8,
-   "short_with_relations": null
+   "short_with_relations": 1
   },
   "4": {
    "labelled": 25,
@@ -78,7 +78,7 @@
    ],
    "population_frame": 302,
    "short": 3,
-   "short_with_relations": null
+   "short_with_relations": 1
   },
   "5+": {
    "labelled": 25,
@@ -90,7 +90,7 @@
    ],
    "population_frame": 2384,
    "short": 6,
-   "short_with_relations": null
+   "short_with_relations": 2
   }
  },
  "filter_thresholds": [
@@ -116,13 +116,13 @@
    "filtered_chunks": 405,
    "filtered_share": 0.098,
    "token_saving": 0.074,
-   "relation_recall": "",
-   "recall_ci_low": 0.958,
-   "recall_ci_high": 0.98,
-   "lost_relation_share": "",
-   "relation_share_among_filtered": "",
-   "missed_relations": "",
-   "status": "только границы точечной оценки: короткие фрагменты не размечены"
+   "relation_recall": 0.98,
+   "recall_ci_low": 0.961,
+   "recall_ci_high": 0.994,
+   "lost_relation_share": 0.02,
+   "relation_share_among_filtered": 0.141,
+   "missed_relations": 57,
+   "status": "оценка: выборка рамки + сплошная разметка коротких"
   },
   {
    "population": "frame_ge200",
@@ -146,13 +146,13 @@
    "filtered_chunks": 760,
    "filtered_share": 0.184,
    "token_saving": 0.142,
-   "relation_recall": "",
-   "recall_ci_low": 0.934,
-   "recall_ci_high": 0.966,
-   "lost_relation_share": "",
-   "relation_share_among_filtered": "",
-   "missed_relations": "",
-   "status": "только границы точечной оценки: короткие фрагменты не размечены"
+   "relation_recall": 0.964,
+   "recall_ci_low": 0.94,
+   "recall_ci_high": 0.984,
+   "lost_relation_share": 0.036,
+   "relation_share_among_filtered": 0.132,
+   "missed_relations": 100,
+   "status": "оценка: выборка рамки + сплошная разметка коротких"
   },
   {
    "population": "frame_ge200",
@@ -176,13 +176,13 @@
    "filtered_chunks": 1112,
    "filtered_share": 0.269,
    "token_saving": 0.218,
-   "relation_recall": "",
-   "recall_ci_low": 0.874,
-   "recall_ci_high": 0.907,
-   "lost_relation_share": "",
-   "relation_share_among_filtered": "",
-   "missed_relations": "",
-   "status": "только границы точечной оценки: короткие фрагменты не размечены"
+   "relation_recall": 0.904,
+   "recall_ci_low": 0.872,
+   "recall_ci_high": 0.935,
+   "lost_relation_share": 0.096,
+   "relation_share_among_filtered": 0.24,
+   "missed_relations": 267,
+   "status": "оценка: выборка рамки + сплошная разметка коротких"
   },
   {
    "population": "frame_ge200",
@@ -206,13 +206,13 @@
    "filtered_chunks": 1437,
    "filtered_share": 0.348,
    "token_saving": 0.29,
-   "relation_recall": "",
-   "recall_ci_low": 0.826,
-   "recall_ci_high": 0.859,
-   "lost_relation_share": "",
-   "relation_share_among_filtered": "",
-   "missed_relations": "",
-   "status": "только границы точечной оценки: короткие фрагменты не размечены"
+   "relation_recall": 0.856,
+   "recall_ci_low": 0.818,
+   "recall_ci_high": 0.892,
+   "lost_relation_share": 0.144,
+   "relation_share_among_filtered": 0.279,
+   "missed_relations": 400,
+   "status": "оценка: выборка рамки + сплошная разметка коротких"
   }
  ],
  "filter_recall_v16_original": {
@@ -424,6 +424,83 @@
    "chunk_id": 4004,
    "terms": 2,
    "relations": "В формациях Meamu и Unit IV зафиксировано Au по буровым интервалам. Из-за смещения полей таблицы не переносить численные содержания к скважинам без проверки строк."
+  },
+  {
+   "sheet": "Короткие",
+   "row": 7,
+   "chunk_id": 6685,
+   "terms": 3,
+   "relations": "Au >250 ppb в диагенетическом пирите рассматривается как возможный индикатор золоторудной продуктивности бассейна. Сохранить условие и вероятностный характер."
+  },
+  {
+   "sheet": "Короткие",
+   "row": 26,
+   "chunk_id": 6617,
+   "terms": 2,
+   "relations": "Золоторудные системы связаны с интрузиями. Окончание фразы об иных типах обрезано и не должно достраиваться."
+  },
+  {
+   "sheet": "Короткие",
+   "row": 36,
+   "chunk_id": 5321,
+   "terms": 1,
+   "relations": "Магнетитсодержащие образования вызывают локальное повышение магнитных значений под виндийским чехлом."
+  },
+  {
+   "sheet": "Короткие",
+   "row": 59,
+   "chunk_id": 6801,
+   "terms": 1,
+   "relations": "Высокий положительный параметр Ефимова интерпретируется как признак обеднения изменённых зон Th относительно K и U."
+  },
+  {
+   "sheet": "Короткие",
+   "row": 64,
+   "chunk_id": 4446,
+   "terms": 1,
+   "relations": "Эмбрехитовые гнейсы соответствуют участкам с повышенным содержанием Th."
+  },
+  {
+   "sheet": "Короткие",
+   "row": 83,
+   "chunk_id": 4151,
+   "terms": 0,
+   "relations": "Самарскит содержит Y, Th, Nb и REE; для исследованных зёрен приведены 32, 4, 24 и 18,9 мас.% соответственно."
+  },
+  {
+   "sheet": "Короткие",
+   "row": 86,
+   "chunk_id": 4966,
+   "terms": 0,
+   "relations": "Образование миоценовых палеороссыпей, подобных Winfield, связано с поднятием и эрозией пород восточнее разлома Okanagan."
+  },
+  {
+   "sheet": "Короткие",
+   "row": 97,
+   "chunk_id": 2092,
+   "terms": 2,
+   "relations": "На исследованных участках отмечены аргиллические, филлические, пропилитовые и калиевые изменения, а также окварцевание. Район уточняется по статье."
+  },
+  {
+   "sheet": "Короткие",
+   "row": 101,
+   "chunk_id": 6798,
+   "terms": 0,
+   "relations": "Высокое отношение K/Th рассматривается как индикатор калиевого обогащения."
+  },
+  {
+   "sheet": "Короткие",
+   "row": 108,
+   "chunk_id": 6797,
+   "terms": 2,
+   "relations": "При метасоматозе Th относительно неподвижен, тогда как K и U подвижны."
+  },
+  {
+   "sheet": "Короткие",
+   "row": 115,
+   "chunk_id": 6799,
+   "terms": 1,
+   "relations": "Повышенное отношение U/Th рассматривается как признак мобилизации урана."
   }
  ],
  "graph_coverage_of_relation_chunks": {

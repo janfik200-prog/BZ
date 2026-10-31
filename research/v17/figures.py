@@ -78,7 +78,9 @@ def main() -> None:
     lab = json.loads((RES / "labeling_scores.json").read_text("utf-8"))
     with (RES / "prefilter_evaluation.csv").open(encoding="utf-8") as fh:
         allrows = list(csv.DictReader(fh))
-    pre = [p for p in allrows if p["population"] == "frame_ge200"]  # оценка, к которой относится выборка
+    dom = [p for p in allrows if p["population"] == "domain_all"]
+    # рисунок — по всей области, если короткие размечены (есть точечная оценка), иначе по рамке выборки
+    pre = dom if all(p["relation_recall"] for p in dom) else [p for p in allrows if p["population"] == "frame_ge200"]
     write("table_prefilter_thresholds",
           ["Порог (терминов)", "Совокупность", "Отсеяно фрагментов", "Экономия токенов", "Полнота", "95 % интервал",
            "Теряется фрагментов со связями", "Отсеяно фрагментов со связями (оценка)"],
@@ -111,7 +113,7 @@ def main() -> None:
         for b, v in zip(bars, vals):
             ax.text(b.get_x() + b.get_width() / 2, v + 0.6, f"{v:.0f} %", ha="center", fontsize=8, color=INK)
     ax.set_xticks(th, [f"< {t}" for t in th])
-    ax.set_xlabel("порог: отсеивается фрагмент, где терминов меньше (рамка ≥ 200 знаков)")
+    ax.set_xlabel("порог: отсеивается фрагмент, где терминов меньше (" + ("вся область фильтра" if pre is dom else "рамка ≥ 200 знаков") + ")")
     ax.set_ylabel("%")
     ax.yaxis.grid(True, color=GRID, linewidth=0.6)
     ax.legend(frameon=False, fontsize=8, loc="upper left")

@@ -50,7 +50,19 @@
     "генетически связано с": 2
    },
    "model": "qwen3-14b"
+  },
+  "C_manual": {
+   "relations": 3788,
+   "unique_triples": 3755,
+   "added": 23
   }
  },
- "manual": null
+ "manual": {
+  "labelled": 53,
+  "geological": 33,
+  "geological_among_retyped": 23,
+  "labelled_among_retyped": 36,
+  "geological_among_rejected": 10,
+  "labelled_among_rejected": 17
+ }
 }
