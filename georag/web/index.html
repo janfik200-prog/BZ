@@ -101,6 +101,20 @@
   }
   @media (max-width: 420px) { .tab { padding: 8px 10px; } }
   .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--gpu); }
+  /* Словари: выбор словаря кнопками, алфавит, статьи списком */
+  .dict-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+  .dict-pick button { font: inherit; font-size: 14px; cursor: pointer; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 999px; padding: 6px 14px; }
+  .dict-pick button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+  .dict-pick small { opacity: .7; margin-left: 4px; }
+  .letters { display: flex; flex-wrap: wrap; gap: 2px; }
+  .letters button { font: inherit; font-size: 13px; cursor: pointer; background: none; border: none;
+    color: var(--muted); padding: 4px 7px; border-radius: 6px; }
+  .letters button[aria-pressed="true"] { color: var(--ink); background: var(--rule); }
+  .entry .term { font-family: var(--serif); font-size: 17px; font-weight: 600; }
+  .entry .en { color: var(--muted); font-style: italic; }
+  .entry .def { font-size: 14.5px; line-height: 1.5; }
+  .entry .etym { font-size: 13px; color: var(--muted); }
   .tab:hover { color: var(--ink); opacity: 1; }
   [hidden] { display: none !important; }
   .panel { display: flex; flex-direction: column; gap: 18px; }
@@ -267,6 +281,7 @@
     <button class="tab" id="tab-docs" role="tab" aria-selected="false" aria-controls="panel-docs">Статьи</button>
     <button class="tab" id="tab-chat" role="tab" aria-selected="false" aria-controls="panel-chat">Чат-бот</button>
     <button class="tab" id="tab-graph" role="tab" aria-selected="false" aria-controls="panel-graph">Граф связей</button>
+    <button class="tab" id="tab-dicts" role="tab" aria-selected="false" aria-controls="panel-dicts">Словари</button>
   </div>
 
   <!-- ============================== Поиск ============================== -->
@@ -362,6 +377,24 @@
     Нужно подробно или кратко — так и напишите в вопросе.
     Если в базе такой информации нет, статьи не показываются: бот так и пишет и предлагает
     спросить иначе. Граф связей — на своей вкладке.</p>
+  </div>
+
+  <!-- ============================== Словари ============================ -->
+  <div id="panel-dicts" class="panel" role="tabpanel" hidden>
+    <div class="dict-pick" id="dict-pick" role="group" aria-label="Словарь"></div>
+    <form id="dict-form">
+      <div class="row">
+        <input type="search" id="dict-q" placeholder="термин или слова из определения: адуляр, сорбция, shear zone…">
+        <button type="submit">Найти</button>
+      </div>
+    </form>
+    <div class="letters" id="dict-letters"></div>
+    <div class="state" id="dict-state"></div>
+    <div class="docs" id="dict-list"></div>
+    <div class="row"><button type="button" id="dict-more" hidden>Показать ещё</button></div>
+    <p class="legend">Справочные словари разбираются из PDF командой
+    <code>python georag.py dict import файл.pdf</code> и хранятся в папке <code>dictionaries</code>
+    и в базе. Рабочие словари проекта (термины, синонимы, переводы) — файлы в папке <code>config</code>.</p>
   </div>
 
   <!-- ============================== Граф связей ======================== -->
@@ -1557,7 +1590,7 @@ function renderDoc(doc) {
 
 // -- вкладки ------------------------------------------------------------------ //
 function showTab(which) {
-  for (const name of ["search", "docs", "chat", "graph"]) {
+  for (const name of ["search", "docs", "chat", "graph", "dicts"]) {
     $("panel-" + name).hidden = name !== which;
     $("tab-" + name).setAttribute("aria-selected", String(name === which));
   }
@@ -1570,11 +1603,142 @@ function showTab(which) {
     net.loading = loadNetwork(false);
     $("net-search").focus();
   }
+  if (which === "dicts") loadDicts();
 }
 $("tab-search").addEventListener("click", () => showTab("search"));
 $("tab-docs").addEventListener("click", () => showTab("docs"));
 $("tab-chat").addEventListener("click", () => showTab("chat"));
 $("tab-graph").addEventListener("click", () => showTab("graph"));
+$("tab-dicts").addEventListener("click", () => showTab("dicts"));
+
+// -- словари ------------------------------------------------------------------- //
+const dictView = { list: null, id: "", q: "", letter: "", offset: 0, total: 0 };
+const DICT_LETTERS = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ".split("");
+
+async function loadDicts() {
+  if (dictView.list) return;
+  $("dict-state").textContent = "загружаю словари…";
+  try {
+    const r = await fetch("/api/dicts");
+    const data = await r.json();
+    dictView.list = data.dicts || [];
+  } catch (e) {
+    $("dict-state").textContent = "словари не загрузились: " + e;
+    return;
+  }
+  const pick = $("dict-pick");
+  pick.textContent = "";
+  for (const d of dictView.list) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.id = d.id;
+    b.title = d.source || "";
+    b.append(d.title);
+    const n = document.createElement("small");
+    n.textContent = d.entries.toLocaleString("ru-RU");
+    b.append(n);
+    b.addEventListener("click", () => chooseDict(d.id));
+    pick.append(b);
+  }
+  if (!dictView.list.length) {
+    $("dict-state").textContent = "Словарей пока нет.";
+    return;
+  }
+  chooseDict(dictView.list[0].id);
+}
+
+function chooseDict(id) {
+  dictView.id = id;
+  dictView.q = "";
+  dictView.letter = "";
+  $("dict-q").value = "";
+  for (const b of $("dict-pick").children) b.setAttribute("aria-pressed", String(b.dataset.id === id));
+  const ref = (dictView.list.find((d) => d.id === id) || {}).kind === "reference";
+  const bar = $("dict-letters");
+  bar.textContent = "";
+  bar.hidden = !ref;
+  if (ref) {
+    for (const ch of DICT_LETTERS) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = ch;
+      b.addEventListener("click", () => {
+        dictView.letter = dictView.letter === ch ? "" : ch;
+        dictView.q = "";
+        $("dict-q").value = "";
+        for (const x of bar.children) x.setAttribute("aria-pressed", String(x.textContent === dictView.letter));
+        fetchDict(false);
+      });
+      bar.append(b);
+    }
+  }
+  fetchDict(false);
+}
+
+async function fetchDict(more) {
+  dictView.offset = more ? dictView.offset + 50 : 0;
+  const params = new URLSearchParams({ id: dictView.id, q: dictView.q, letter: dictView.letter,
+                                       offset: String(dictView.offset) });
+  $("dict-state").textContent = "ищу…";
+  let data;
+  try {
+    const r = await fetch("/api/dict?" + params);
+    data = await r.json();
+    if (data.error) throw new Error(data.error);
+  } catch (e) {
+    $("dict-state").textContent = "не получилось: " + e.message;
+    return;
+  }
+  const list = $("dict-list");
+  if (!more) list.textContent = "";
+  for (const e of data.entries) list.append(dictEntry(e));
+  dictView.total = data.total;
+  const shown = list.children.length;
+  $("dict-state").textContent = data.total
+    ? `Найдено: ${data.total.toLocaleString("ru-RU")}` + (shown < data.total ? `, показано ${shown}` : "")
+    : "Ничего не найдено.";
+  $("dict-more").hidden = shown >= data.total;
+}
+
+function dictEntry(e) {
+  const box = document.createElement("div");
+  box.className = "doc entry";
+  const head = document.createElement("div");
+  const term = document.createElement("span");
+  term.className = "term";
+  term.textContent = e.term;
+  head.append(term);
+  if (e.en) {
+    const en = document.createElement("span");
+    en.className = "en";
+    en.textContent = "  " + e.en;
+    head.append(en);
+  }
+  box.append(head);
+  if (e.definition) {
+    const def = document.createElement("div");
+    def.className = "def";
+    def.textContent = e.definition;
+    box.append(def);
+  }
+  const extra = [e.etym, e.page ? "с. " + e.page : ""].filter(Boolean).join(" · ");
+  if (extra) {
+    const m = document.createElement("div");
+    m.className = "etym";
+    m.textContent = extra;
+    box.append(m);
+  }
+  return box;
+}
+
+$("dict-form").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  dictView.q = $("dict-q").value.trim();
+  dictView.letter = "";
+  for (const x of $("dict-letters").children) x.setAttribute("aria-pressed", "false");
+  fetchDict(false);
+});
+$("dict-more").addEventListener("click", () => fetchDict(true));
 
 $("map-min").addEventListener("change", () => { if (net.data) buildNet(true); });
 $("map-cand").addEventListener("change", () => loadNetwork(true));
