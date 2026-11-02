@@ -192,6 +192,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(chat.llm_status(State.chat_settings.host, State.chat_settings.model))
             elif route.path == "/api/figure":
                 self._figure((query.get("id") or [""])[0])
+            elif route.path == "/api/dicts":
+                self._json({"dicts": self._dicts()})
+            elif route.path == "/api/dict":
+                self._json(self._dict({k: v[0] for k, v in query.items() if v}))
             elif route.path == "/api/document":
                 doc_id = (query.get("doc_id") or [""])[0]
                 with db.connect(State.dsn) as conn:
@@ -227,6 +231,30 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as exc:  # noqa: BLE001
             traceback.print_exc()
             self._json({"error": f"{type(exc).__name__}: {exc}"}, 500)
+
+    # -- словари ------------------------------------------------------------ #
+    def _dicts(self) -> list[dict[str, Any]]:
+        """Справочные словари из базы (georag/dicts.py) и рабочие словари проекта из config.
+        База недоступна — хотя бы рабочие."""
+        from .. import dicts
+
+        try:
+            with db.connect(State.dsn) as conn:
+                reference = dicts.listing(conn)
+        except Exception:  # noqa: BLE001 — нет базы: вкладка покажет рабочие словари
+            reference = []
+        return reference + dicts.working_listing()
+
+    def _dict(self, q: dict[str, str]) -> dict[str, Any]:
+        from .. import dicts
+
+        dict_id = q.get("id", "")
+        offset = int(q.get("offset") or 0) if (q.get("offset") or "0").isdigit() else 0
+        if dict_id in dicts.WORKING:
+            return dicts.working_find(dict_id, q.get("q", ""), offset=offset)
+        with db.connect(State.dsn) as conn:
+            return dicts.find(conn, dict_id or None, q.get("q", "")[:200],
+                              letter=q.get("letter", "")[:1], offset=offset)
 
     # -- чат-бот ------------------------------------------------------------ #
     def _chat(self, payload: dict[str, Any]) -> None:

@@ -51,6 +51,9 @@
     graph --vectors             векторы фактов для поиска по связям (идёт и после graph)
     graph --types               тип связи и виды концов по цитате (идёт и после graph)
     synonyms                    предложения в словарь синонимов (config/synonyms.yaml)
+    dict import словарь.pdf     разобрать словарь (PDF) → папка dictionaries и база
+    dict load                   словари из папки dictionaries → база (на другой машине)
+    dict list | dict find "термин"   какие словари есть; статьи по термину
     facts                       у чего больше всего фактов из статей
     facts "Анабарский щит"      все факты о нём с цитатами, файл CSV для Excel
                                 (старое имя команды — dataset — тоже работает)
@@ -982,6 +985,12 @@ def main(argv: list[str] | None = None) -> int:
         if not _ensure_database():
             return 1
         return _py("georag.index.formulas", *argv[1:])
+    if argv and argv[0].lower() == "dict":
+        # Словари (georag/dicts.py): import PDF → папка dictionaries и база, load, list, find.
+        _need_venv()
+        if not _ensure_database():
+            return 1
+        return _py("georag.dicts", *argv[1:])
     if argv and argv[0].lower() == "figures":
         # Свои ключи (doc_id, --pdf, --redo) — как у formula, передаются как есть.
         _need_venv()
