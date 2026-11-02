@@ -7,6 +7,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from ..dicts import is_definition
 from .checks import CITE_MARK
 from .collect import summary_text
 from .plan import Plan
@@ -75,6 +76,21 @@ NOTES_NOTE = (
     "статье по вопросу. Они такие же источники: используй их сведения, особенно чтобы "
     "ответ охватил все статьи, и ссылайся на них их номерами."
 )
+# Статьи справочного словаря среди источников (georag/dicts.py, вид «словарь»).
+DICTIONARY_NOTE = (
+    "Фрагменты {refs} — статьи Геологического словаря (справочника), а не статьи базы. По ним "
+    "объясняй значение терминов: каждое предложение из словаря — с его номером, и назови "
+    "источник: «по Геологическому словарю [N]». Сведения о районах, месторождениях и результатах исследований бери из "
+    "фрагментов статей, а не из словаря. Если словарь и статья расходятся, приведи оба."
+)
+DEFINITION_NOTE = (
+    "Вопрос об определении термина: начни ответ с определения по словарю одним-двумя "
+    "предложениями, и в каждом из них поставь [{first}]; затем — что о нём сказано во "
+    "фрагментах статей базы (где встречается, с "
+    "чем связано), с их номерами. Если во фрагментах статей о нём ничего нет — ограничься "
+    "словарём."
+)
+
 INSIST = (
     "Эти фрагменты отобраны как относящиеся к вопросу. Если в них есть хотя бы часть "
     "ответа — ответь на неё по правилу 6 и одной фразой назови, чего во фрагментах нет. "
@@ -120,7 +136,11 @@ def fragment_block(source: dict[str, Any]) -> str:
     # Авторы — чтобы вопрос «что пишет Иноуэ» модель сводила к фрагментам его статей: без
     # них она отвечала «в базе нет», имея перед собой статью Inoue 1992 (AgentKB, 20.10.2026).
     # У сводок и датасета авторов нет — это выжимка из многих статей.
-    who = "" if source.get("kind") in ("датасет", "сводка") else surnames(source.get("authors"))
+    who = (
+        ""
+        if source.get("kind") in ("датасет", "сводка", "словарь")
+        else surnames(source.get("authors"))
+    )
     if who:
         where.append(who)
     if source.get("year"):
@@ -231,7 +251,9 @@ def build_messages(
             "отдельным разделом. Если по какой-то части во фрагментах ничего нет — "
             "так и напиши в её разделе."
         )
-    articles = {s["doc_id"]: s["title"] for s in sources if s.get("kind") != "датасет"}
+    articles = {
+        s["doc_id"]: s["title"] for s in sources if s.get("kind") not in ("датасет", "словарь")
+    }
     if len(articles) == 1 and len(sources) > 1:
         notes.append(
             f"Все фрагменты — из одной статьи «{next(iter(articles.values()))}». "
@@ -243,6 +265,12 @@ def build_messages(
         notes.append(COLLECT_NOTE.format(n=gathered["n"]))
     if any(s.get("kind") == "заметка" for s in sources):
         notes.append(NOTES_NOTE)
+    glossary = [s["n"] for s in sources if s.get("kind") == "словарь"]
+    if glossary:
+        refs = ", ".join(f"[{n}]" for n in glossary)
+        notes.append(DICTIONARY_NOTE.format(refs=refs))
+        if is_definition(question):
+            notes.append(DEFINITION_NOTE.format(first=glossary[0]))
     if insist:
         notes.append(INSIST)
     asked = question.strip()

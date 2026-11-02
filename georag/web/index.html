@@ -1797,6 +1797,7 @@ function renderSources(sources, used, queries, info) {
     where.className = "where";
     const marks = [];
     if (s.kind === "датасет") marks.push("сводка по всем статьям");
+    else if (s.kind === "словарь") marks.push("словарь");
     else if (s.feature) marks.push(`доказательство: ${s.feature}`);
     else if (s.found_by === "граф") marks.push("из графа");
     if (s.part && info.parts && info.parts.length) marks.push(`часть ${s.part}`);
@@ -1821,13 +1822,13 @@ function renderSources(sources, used, queries, info) {
       parsed.hidden = !parsed.hidden;
       if (!parsed.hidden && !parsed.childElementCount) fillParsed(parsed, s.doc_id, s.ord);
     });
-    if (s.kind !== "датасет") links.append(full);
+    if (s.kind !== "датасет" && s.kind !== "словарь") links.append(full);
     const onGraph = document.createElement("button");
     onGraph.type = "button"; onGraph.className = "open"; onGraph.textContent = "На графе";
     onGraph.addEventListener("click", () =>
       s.kind === "датасет" ? focusNode("сущность:" + s.doc_id.replace(/^датасет:/, ""))
         : focusArticle(s.doc_id));
-    links.append(onGraph);
+    if (s.kind !== "словарь") links.append(onGraph);
     if (s.url) {
       const a = document.createElement("a");
       a.href = s.url; a.target = "_blank"; a.rel = "noopener";

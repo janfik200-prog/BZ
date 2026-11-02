@@ -68,9 +68,10 @@ from __future__ import annotations
 
 import time
 from collections.abc import Generator, Iterator
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import Any
 
+from .. import dicts
 from ..index import db
 from ..llm import LLM, LLM_HOST, LLMError
 from .article import NamedArticle, in_article, named_article
@@ -151,6 +152,9 @@ class Prepared:
     graph: int = 0  # сколько кандидатов дал граф (вопрос о названном предмете)
     catalog: list[dict[str, Any]] | None = None  # каталожный вопрос: найденные статьи
     article: NamedArticle | None = None  # вопрос о названной статье: поиск только в ней
+    # Статьи справочных словарей о терминах вопроса (dicts.terms_in): в ответ — источниками
+    # вида «словарь», после фрагментов статей.
+    glossary: list[dict[str, Any]] = field(default_factory=list)
 
     def info(self) -> dict[str, Any]:
         plan = self.plan
@@ -164,6 +168,7 @@ class Prepared:
             "dataset": self.dataset["name"] if self.dataset else None,
             "collected": (self.dataset or {}).get("collected"),
             "article": self.article.title if self.article else None,
+            "dictionary": [e["term"] for e in self.glossary],
             **self.retrieval.info(),
         }
 
@@ -246,7 +251,24 @@ def prepare(
     found = yield from retrieve(
         conn, embedder, question, plan, searching, judge, base, limit, rounds, extra
     )
-    return Prepared(plan, base + found.sources, found, data, len(extra), article=named)
+    glossary = lookup_terms(conn, plan.main or question, settings)
+    if glossary:
+        yield {"type": "status", "text": "беру определения терминов из словаря…"}
+    return Prepared(
+        plan, base + found.sources, found, data, len(extra), article=named, glossary=glossary
+    )
+
+
+def lookup_terms(conn: Any, question: str, settings: Settings) -> list[dict[str, Any]]:
+    """Статьи словарей о терминах вопроса; словарей нет, они выключены или база-заглушка —
+    пусто. Ошибка словаря ответ не роняет."""
+    if not settings.dictionary or not db.is_real(conn):
+        return []
+    try:
+        return dicts.terms_in(conn, question)
+    except Exception:  # noqa: BLE001 — без словаря ответ всё равно будет
+        conn.rollback()
+        return []
 
 
 def answer(
@@ -297,14 +319,18 @@ def answer(
         history = []
 
     text, tokens = "", None
-    if sources:
+    if sources or prepared.glossary:
         clashes: list[dict[str, Any]] = []
         real = conflicts is not find_conflicts or llm is stream_llm
-        if conflicts is not None and settings.check_conflicts and real:
+        if sources and conflicts is not None and settings.check_conflicts and real:
             yield {"type": "status", "text": "сверяю, не расходятся ли статьи…"}
             clashes = conflicts(question, sources, settings) or []
         info["conflicts"] = clashes
         sources, turns = fit_budget(question, sources, history, settings, plan, clashes)
+        # Статьи словаря — после фрагментов, своими номерами: окно им не урезается (они
+        # короткие), а номера фрагментов статей, на которые ссылается сводка, не сдвигаются.
+        if prepared.glossary:
+            sources = sources + dicts.as_sources(conn, prepared.glossary, len(sources) + 1)
         yield {"type": "status", "text": "пишу ответ по найденному…"}
         # Отказ при фрагментах, которые модель-отборщик признала подходящими, — второй
         # заход с напоминанием правила 6 (insist). На s01 модель с одним и тем же набором

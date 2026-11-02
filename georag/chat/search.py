@@ -107,9 +107,12 @@ def search_all(
     more: dict[str, Any] = {"facts": True} if facts and db.is_real(conn) else {}
     if doc:
         more["doc_id"] = doc
+    also = {q: dictionary_variants(conn, q) for q in queries}
     if len(queries) < 2 or not db.is_real(conn) or not hasattr(embedder, "encode"):
         return [
-            hybrid_search(conn, embedder, q, limit=CANDIDATES, max_per_doc=0, **more)
+            hybrid_search(
+                conn, embedder, q, limit=CANDIDATES, max_per_doc=0, **more, **also[q]
+            )
             for q in queries
         ]
     vectors = embedder.encode(queries)
@@ -118,11 +121,29 @@ def search_all(
         query, vector = pair
         with db.sibling(conn) as other:
             return hybrid_search(
-                other, embedder, query, limit=CANDIDATES, max_per_doc=0, vector=vector, **more
+                other, embedder, query, limit=CANDIDATES, max_per_doc=0, vector=vector,
+                **more, **also[query],
             )
 
     with ThreadPoolExecutor(min(SEARCH_WORKERS, len(queries))) as pool:
         return list(pool.map(one, zip(queries, vectors, strict=True)))
+
+
+def dictionary_variants(conn: Any, query: str) -> dict[str, Any]:
+    """Другие написания терминов запроса из справочного словаря (английское название,
+    термин по отсылке «см.»/«син. термина») — в поиск по словам: он ищет слова буквально.
+    Нет словаря или он выключен (GEORAG_DICT=0) — ничего."""
+    from ..dicts import query_variants
+    from .settings import dictionary_on
+
+    if not dictionary_on() or not db.is_real(conn):
+        return {}
+    try:
+        variants = query_variants(conn, query)
+    except Exception:  # noqa: BLE001 — без вариантов поиск тот же, что раньше
+        conn.rollback()
+        return {}
+    return {"alternatives": variants} if variants else {}
 
 
 # Статья найдена, а фрагмент с ответом — нет: из 17 проваленных вопросов об одном факте
@@ -371,7 +392,7 @@ def add_neighbors(conn: Any, sources: list[dict[str, Any]]) -> None:
     Key = tuple[str, int] | None
     plan: list[tuple[dict[str, Any], Key, Key, bool]] = []
     for s in sources:
-        if s.get("kind") in ("датасет", "заметка"):
+        if s.get("kind") in ("датасет", "заметка", "словарь"):
             continue
         text = s["text"]
         prev = (s["doc_id"], s["ord"] - 1) if starts_mid_thought(text) else None
