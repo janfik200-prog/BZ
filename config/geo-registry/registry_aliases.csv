@@ -1,0 +1,562 @@
+alias,area_id,lang,source
+Russia,R:RU,en,curation
+Russian Federation,R:RU,en,curation
+Российская Федерация,R:RU,ru,curation
+РФ,R:RU,ru,curation
+Ural,R:RU:URAL,en,curation
+Urals,R:RU:URAL,en,curation
+Уральский регион,R:RU:URAL,ru,curation
+Middle Urals,R:RU:URAL:MID,en,10.47765_0869-5997-2024-10017
+Middle Ural,R:RU:URAL:MID,en,10.47765_0869-5997-2024-10017
+Central Urals,R:RU:URAL:MID,en,10.47765_0869-5997-2024-10017
+Auerbakh ore district,R:RU:URAL:MID:AUERBAKH,en,10.47765_0869-5997-2024-10017
+Ауэрбаховский,R:RU:URAL:MID:AUERBAKH,ru,10.47765_0869-5997-2024-10017
+Турьинско-Ауэрбаховский рудный район,R:RU:URAL:MID:AUERBAKH,ru,10.47765_0869-5997-2024-10017
+Воронцовское,R:RU:URAL:VORONTSOVSKOE,ru,10.47765_0869-5997-2024-10017
+Vorontsovskoe,R:RU:URAL:VORONTSOVSKOE,en,10.47765_0869-5997-2024-10017
+Vorontsovskoye,R:RU:URAL:VORONTSOVSKOE,en,10.47765_0869-5997-2024-10017
+Пещерное,R:RU:URAL:PESHCHERNOE,ru,10.47765_0869-5997-2024-10017
+Peshchernoe,R:RU:URAL:PESHCHERNOE,en,10.47765_0869-5997-2024-10017
+Peschernoe,R:RU:URAL:PESHCHERNOE,en,10.47765_0869-5997-2024-10017
+Peshchernoye,R:RU:URAL:PESHCHERNOE,en,10.47765_0869-5997-2024-10017
+Murzinka group,R:RU:URAL:MURZINKA,en,openalex-w7213480904
+Murzinka,R:RU:URAL:MURZINKA,en,openalex-w7213480904
+Мурзинка,R:RU:URAL:MURZINKA,ru,openalex-w7213480904
+Мурзинские россыпи,R:RU:URAL:MURZINKA,ru,openalex-w7213480904
+Murzinka River,R:RU:URAL:MURZINKA,en,openalex-w7213480904
+Siberian platform,R:RU:SIBPLAT,en,curation
+Siberian craton,R:RU:SIBPLAT,en,curation
+Сибирский кратон,R:RU:SIBPLAT,ru,curation
+Якутия,R:RU:YAKUTIA,ru,curation
+Yakutia,R:RU:YAKUTIA,en,curation
+Republic of Sakha,R:RU:YAKUTIA,en,curation
+Sakha,R:RU:YAKUTIA,en,curation
+Республика Саха,R:RU:YAKUTIA,ru,curation
+Aldan shield,R:RU:ALDAN,en,curation
+Алдано-Становой щит,R:RU:ALDAN,ru,curation
+Aldan-Stanovoy shield,R:RU:ALDAN,en,curation
+Центральный Алдан,R:RU:ALDAN,ru,curation
+Central Aldan,R:RU:ALDAN,en,curation
+Эльконская зона,R:RU:ELKON,ru,10.47765_0869-7175-2024-10029
+Elkon zone,R:RU:ELKON,en,10.47765_0869-7175-2024-10029
+Tommot-Elkon zone,R:RU:ELKON,en,10.47765_0869-7175-2024-10029
+Эльконский горст,R:RU:ELKON,ru,10.47765_0869-7175-2024-10029
+Seligdar ore field,R:RU:SELIGDAR,en,10.47765_0869-7175-2024-10029
+Seligdar,R:RU:SELIGDAR,en,10.47765_0869-7175-2024-10029
+Селигдар,R:RU:SELIGDAR,ru,10.47765_0869-7175-2024-10029
+Селигдарское,R:RU:SELIGDAR,ru,10.47765_0869-7175-2024-10029
+Chulkovsky site,R:RU:CHULKOVSKY,en,10.47765_0869-7175-2024-10029
+Chulkovsky,R:RU:CHULKOVSKY,en,10.47765_0869-7175-2024-10029
+Чулковское рудопроявление,R:RU:CHULKOVSKY,ru,10.47765_0869-7175-2024-10029
+Чулковская площадь,R:RU:CHULKOVSKY,ru,10.47765_0869-7175-2024-10029
+Чулковское,R:RU:CHULKOVSKY,ru,10.47765_0869-7175-2024-10029
+Lebediny ore cluster,R:RU:LEBEDINY,en,curation
+Лебединский,R:RU:LEBEDINY,ru,curation
+Дальний Восток,R:RU:FE,ru,curation
+Russian Far East,R:RU:FE,en,curation
+Far East of Russia,R:RU:FE,en,curation
+Дальневосточный регион,R:RU:FE,ru,curation
+Arctic zone of Russia,R:RU:ARCTIC,en,curation
+Russian Arctic,R:RU:ARCTIC,en,curation
+Российская Арктика,R:RU:ARCTIC,ru,curation
+Арктическая зона РФ,R:RU:ARCTIC,ru,curation
+Russian Arctic zone,R:RU:ARCTIC,en,curation
+Arctic Belt of the Russian Far East,R:RU:FE:ARCTICBELT,en,10.47765_0869-5997-2025-10005
+Arctic belt,R:RU:FE:ARCTICBELT,en,10.47765_0869-5997-2025-10005
+Арктический пояс,R:RU:FE:ARCTICBELT,ru,10.47765_0869-5997-2025-10005
+Chukotka,R:RU:CHUKOTKA,en,curation
+Чукотский автономный округ,R:RU:CHUKOTKA,ru,curation
+Чукотский АО,R:RU:CHUKOTKA,ru,curation
+Чукотский сектор,R:RU:CHUKOTKA,ru,curation
+Майское,R:RU:MAYSKOE_CHUK,ru,curation
+Mayskoe,R:RU:MAYSKOE_CHUK,en,curation
+Maiskoe,R:RU:MAYSKOE_CHUK,en,curation
+Mayskoye,R:RU:MAYSKOE_CHUK,en,curation
+Kekura,R:RU:KEKURA,en,curation
+месторождение Кекура,R:RU:KEKURA,ru,curation
+Kupol,R:RU:KUPOL,en,curation
+месторождение Купол,R:RU:KUPOL,ru,curation
+Куларо-Полоусненский,R:RU:KULAR,ru,curation
+Kular,R:RU:KULAR,en,curation
+Кулар,R:RU:KULAR,ru,curation
+Kular-Polousny,R:RU:KULAR,en,curation
+Magadan region,R:RU:MAGADAN,en,curation
+Магадан,R:RU:MAGADAN,ru,curation
+Magadan,R:RU:MAGADAN,en,curation
+Магаданская,R:RU:MAGADAN,ru,curation
+Arylyakh,R:RU:ARYLAKH,en,10.56195_20793332-2025-25-5-49-54
+Арылахское,R:RU:ARYLAKH,ru,10.56195_20793332-2025-25-5-49-54
+месторождение Арылах,R:RU:ARYLAKH,ru,10.56195_20793332-2025-25-5-49-54
+Yana-Kolyma belt,R:RU:YANAKOLYMA,en,curation
+Яно-Колымский,R:RU:YANAKOLYMA,ru,curation
+Yana-Kolyma,R:RU:YANAKOLYMA,en,curation
+Колыма,R:RU:YANAKOLYMA,ru,curation
+Kolyma,R:RU:YANAKOLYMA,en,curation
+Verkhoyansk-Kolyma fold system,R:RU:VERKHOYANSK,en,curation
+Verkhoyansk-Kolyma,R:RU:VERKHOYANSK,en,curation
+Верхояно-Колымская,R:RU:VERKHOYANSK,ru,curation
+Верхоянье,R:RU:VERKHOYANSK,ru,curation
+Verkhoyansk,R:RU:VERKHOYANSK,en,curation
+Bayag ore field,R:RU:BAYAG,en,10.18799_24131830_2024_12_4577
+Bayag,R:RU:BAYAG,en,10.18799_24131830_2024_12_4577
+Баягское,R:RU:BAYAG,ru,10.18799_24131830_2024_12_4577
+Nezhdaninskoe,R:RU:NEZHDANINSKOE,en,curation
+Nezhdaninskoye,R:RU:NEZHDANINSKOE,en,curation
+Нежданинское,R:RU:NEZHDANINSKOE,ru,curation
+Приамурье,R:RU:PRIAMURYE,ru,curation
+Приамурская,R:RU:PRIAMURYE,ru,curation
+Amur province,R:RU:PRIAMURYE,en,curation
+Priamurye,R:RU:PRIAMURYE,en,curation
+Amur region,R:RU:PRIAMURYE,en,curation
+Моготский,R:RU:MOGOT,ru,10.34078_1814-0998-2026-1-12-18
+Mogot,R:RU:MOGOT,en,10.34078_1814-0998-2026-1-12-18
+Джалон,R:RU:MOGOT,ru,10.34078_1814-0998-2026-1-12-18
+Джалонский массив,R:RU:MOGOT,ru,10.34078_1814-0998-2026-1-12-18
+Khabarovsk krai,R:RU:KHABAROVSK,en,curation
+Khabarovsk,R:RU:KHABAROVSK,en,curation
+Хабаровский,R:RU:KHABAROVSK,ru,curation
+Ulya trough,R:RU:ULYA,en,curation
+Ульинский,R:RU:ULYA,ru,curation
+Среднеульинский рудный район,R:RU:ULYA,ru,curation
+Svetloe ore field,R:RU:SVETLOE,en,10.18799_24131830_2022_8_3708
+Svetloe,R:RU:SVETLOE,en,10.18799_24131830_2022_8_3708
+Светлое,R:RU:SVETLOE,ru,10.18799_24131830_2022_8_3708
+Уенминский рудный узел,R:RU:SVETLOE,ru,10.18799_24131830_2022_8_3708
+Transbaikalia,R:RU:TRANSBAIKAL,en,curation
+Transbaikal,R:RU:TRANSBAIKAL,en,curation
+Забайкальский край,R:RU:TRANSBAIKAL,ru,curation
+Eastern Transbaikalia,R:RU:TRANSBAIKAL:E,en,10.17223_25421379_31_5
+East Transbaikalia,R:RU:TRANSBAIKAL:E,en,10.17223_25421379_31_5
+Восточно-Забайкальский,R:RU:TRANSBAIKAL:E,ru,10.17223_25421379_31_5
+Baley,R:RU:TB:0,en,10.17223_25421379_31_5
+Балей,R:RU:TB:0,ru,10.17223_25421379_31_5
+Балейское месторождение,R:RU:TB:0,ru,10.17223_25421379_31_5
+Kara,R:RU:TB:1,en,10.17223_25421379_31_5
+Карийское месторождение,R:RU:TB:1,ru,10.17223_25421379_31_5
+Александровское,R:RU:TB:1,ru,10.17223_25421379_31_5
+Shakhtama,R:RU:TB:2,en,10.17223_25421379_31_5
+Шахтаминское месторождение,R:RU:TB:2,ru,10.17223_25421379_31_5
+Bystrinskoe,R:RU:TB:3,en,10.17223_25421379_31_5
+Быстринское месторождение,R:RU:TB:3,ru,10.17223_25421379_31_5
+Лугиинское месторождение,R:RU:TB:4,ru,10.17223_25421379_31_5
+Lugiya,R:RU:TB:4,en,10.17223_25421379_31_5
+Серебряное месторождение,R:RU:TB:5,ru,10.17223_25421379_31_5
+Bukuka,R:RU:TB:6,en,10.17223_25421379_31_5
+Букукинское месторождение,R:RU:TB:6,ru,10.17223_25421379_31_5
+Белухинское месторождение,R:RU:TB:7,ru,10.17223_25421379_31_5
+Belukha,R:RU:TB:7,en,10.17223_25421379_31_5
+Mongol-Okhotsk belt,R:RU:MONGOLOKHOTSK,en,curation
+Монголо-Охотский,R:RU:MONGOLOKHOTSK,ru,curation
+Mongol-Okhotsk,R:RU:MONGOLOKHOTSK,en,curation
+Yenisei Ridge,R:RU:YENISEI,en,curation
+Yenisey Ridge,R:RU:YENISEI,en,curation
+Енисейский,R:RU:YENISEI,ru,curation
+Yenisei ridge,R:RU:YENISEI,en,curation
+Olimpiada,R:RU:OLIMPIADA,en,10.17308_geology.2018.1_1447
+Олимпиада,R:RU:OLIMPIADA,ru,10.17308_geology.2018.1_1447
+Олимпиаднинское,R:RU:OLIMPIADA,ru,10.17308_geology.2018.1_1447
+Olimpiadninskoe,R:RU:OLIMPIADA,en,10.17308_geology.2018.1_1447
+Буреминское,R:RU:BUREMINSKOE,ru,10.17308_geology.2018.1_1447
+Ишимбинский разлом,R:RU:ISHIMBA,ru,10.17308_geology.2018.1_1447
+Ishimba fault,R:RU:ISHIMBA,en,10.17308_geology.2018.1_1447
+Ишимбинского,R:RU:ISHIMBA,ru,10.17308_geology.2018.1_1447
+Патомское нагорье,R:RU:PATOM,ru,curation
+Patom highland,R:RU:PATOM,en,curation
+Patom Highlands,R:RU:PATOM,en,curation
+Патомская складчатая область,R:RU:PATOM,ru,curation
+Baikal-Patom,R:RU:PATOM,en,curation
+Байкало-Патомская,R:RU:PATOM,ru,curation
+Ленский золоторудный район,R:RU:PATOM,ru,curation
+Lena gold district,R:RU:PATOM,en,curation
+Mama-Bodaibo block,R:RU:BODAIBO,en,10.18799_24131830_2025_7_5053
+Bodaibo,R:RU:BODAIBO,en,10.18799_24131830_2025_7_5053
+Бодайбо,R:RU:BODAIBO,ru,10.18799_24131830_2025_7_5053
+Бодайбинский,R:RU:BODAIBO,ru,10.18799_24131830_2025_7_5053
+Sukhoy Log,R:RU:SUKHOILOG,en,10.18799_24131830_2025_7_5053
+Sukhoi Log,R:RU:SUKHOILOG,en,10.18799_24131830_2025_7_5053
+Сухоложское,R:RU:SUKHOILOG,ru,10.18799_24131830_2025_7_5053
+Сухоложский,R:RU:SUKHOILOG,ru,10.18799_24131830_2025_7_5053
+Кропоткинский,R:RU:KROPOTKIN,ru,10.18799_24131830_2025_7_5053
+Kropotkin ore cluster,R:RU:KROPOTKIN,en,10.18799_24131830_2025_7_5053
+Karelia,R:RU:KARELIA,en,curation
+Республика Карелия,R:RU:KARELIA,ru,curation
+Северная Карелия,R:RU:KARELIA,ru,curation
+North Karelia,R:RU:KARELIA,en,curation
+Kola Peninsula,R:RU:KOLA,en,curation
+Кольский,R:RU:KOLA,ru,curation
+Мурманская область,R:RU:KOLA,ru,curation
+Baltic Shield,R:BALTIC,en,curation
+Fennoscandian Shield,R:BALTIC,en,curation
+Фенноскандинавский щит,R:BALTIC,ru,curation
+Фенноскандия,R:BALTIC,ru,curation
+Fennoscandia,R:BALTIC,en,curation
+Finland,R:FI,en,curation
+Финляндии,R:FI,ru,curation
+Kuusamo,R:BALTIC:KUUSAMO,en,10.52349_0869-7892_2024_100_147-164
+Куусамо,R:BALTIC:KUUSAMO,ru,10.52349_0869-7892_2024_100_147-164
+Панакуолаярвинский прогиб,R:BALTIC:KUUSAMO,ru,10.52349_0869-7892_2024_100_147-164
+Panajärvi,R:BALTIC:KUUSAMO,en,10.52349_0869-7892_2024_100_147-164
+Kuusamo belt,R:BALTIC:KUUSAMO,en,10.52349_0869-7892_2024_100_147-164
+Куолаярви,R:BALTIC:KUOLAJARVI,ru,10.52349_0869-7892_2024_100_147-164
+Kuolajarvi,R:BALTIC:KUOLAJARVI,en,10.52349_0869-7892_2024_100_147-164
+Kuolajärvi,R:BALTIC:KUOLAJARVI,en,10.52349_0869-7892_2024_100_147-164
+Куолаярвинский,R:BALTIC:KUOLAJARVI,ru,10.52349_0869-7892_2024_100_147-164
+Майское,R:BALTIC:MAYSKOE_KAR,ru,10.52349_0869-7892_2024_100_147-164
+Озерное,R:BALTIC:OZERNOE,ru,10.52349_0869-7892_2024_100_147-164
+Озёрное,R:BALTIC:OZERNOE,ru,10.52349_0869-7892_2024_100_147-164
+Ozernoe,R:BALTIC:OZERNOE,en,10.52349_0869-7892_2024_100_147-164
+Лагерное,R:BALTIC:LAGERNOE,ru,10.52349_0869-7892_2024_100_147-164
+Lagernoe,R:BALTIC:LAGERNOE,en,10.52349_0869-7892_2024_100_147-164
+Juomasuo,R:FI:JUOMASUO,en,curation
+месторождение Юомасуо,R:FI:JUOMASUO,ru,curation
+Rompas,R:FI:ROMPAS,en,curation
+North Caucasus,R:RU:CAUCASUS,en,curation
+Северного Кавказа,R:RU:CAUCASUS,ru,curation
+Кабардино-Балкария,R:RU:CAUCASUS,ru,curation
+Кабардино-Балкарская республика,R:RU:CAUCASUS,ru,curation
+Тырныауз,R:RU:TYRNYAUZ,ru,10.24411_0869-7175-2019-10008
+Tyrnyauz,R:RU:TYRNYAUZ,en,10.24411_0869-7175-2019-10008
+Тырныаузское рудное поле,R:RU:TYRNYAUZ,ru,10.24411_0869-7175-2019-10008
+Тырныаузский,R:RU:TYRNYAUZ,ru,10.24411_0869-7175-2019-10008
+Зыгыркольская,R:RU:ZYGYRKOL,ru,10.24411_0869-7175-2019-10008
+Zygyrkol,R:RU:ZYGYRKOL,en,10.24411_0869-7175-2019-10008
+Donbass,R:DONBASS,en,curation
+Донбасс,R:DONBASS,ru,curation
+Donetsk basin,R:DONBASS,en,curation
+Донецкого бассейна,R:DONBASS,ru,curation
+Eastern Donbass,R:DONBASS:E,en,10.46698_vnc.2023.84.41.008
+East Donbass,R:DONBASS:E,en,10.46698_vnc.2023.84.41.008
+Greater Altai,R:ALTAI,en,curation
+Большого Алтая,R:ALTAI,ru,curation
+Рудный Алтай,R:ALTAI,ru,curation
+Rudny Altai,R:ALTAI,en,curation
+Altai,R:ALTAI,en,curation
+West Siberia,R:RU:WSIB,en,curation
+Западно-Сибирский,R:RU:WSIB,ru,curation
+Western Siberia,R:RU:WSIB,en,curation
+Kazakhstan,R:KZ,en,curation
+Республика Казахстан,R:KZ,ru,curation
+Қазақстан,R:KZ,ru,curation
+Eastern Kazakhstan,R:KZ:E,en,curation
+East Kazakhstan,R:KZ:E,en,curation
+Koldar massif,R:KZ:KOLDAR,en,10.20944_preprints202506.1483.v1
+Koldar,R:KZ:KOLDAR,en,10.20944_preprints202506.1483.v1
+Кольдар,R:KZ:KOLDAR,ru,10.20944_preprints202506.1483.v1
+Uzbekistan,R:UZ,en,curation
+Республика Узбекистан,R:UZ,ru,curation
+Almalyk,R:UZ:ALMALYK,en,10.33677_ggianas20250100142
+Алмалык,R:UZ:ALMALYK,ru,10.33677_ggianas20250100142
+Алмалыкский,R:UZ:ALMALYK,ru,10.33677_ggianas20250100142
+Almalyk ore region,R:UZ:ALMALYK,en,10.33677_ggianas20250100142
+Central Kyzylkum,R:UZ:KYZYLKUM,en,curation
+Kyzylkum,R:UZ:KYZYLKUM,en,curation
+Кызылкум,R:UZ:KYZYLKUM,ru,curation
+Кызылкумы,R:UZ:KYZYLKUM,ru,curation
+Bukantau,R:UZ:BUKANTAU,en,10.52349_0869-7892_2026_106_43-52
+Букантау,R:UZ:BUKANTAU,ru,10.52349_0869-7892_2026_106_43-52
+Bukantau Mountains,R:UZ:BUKANTAU,en,10.52349_0869-7892_2026_106_43-52
+Central Bukantau,R:UZ:BUKANTAU,en,10.52349_0869-7892_2026_106_43-52
+Muruntau,R:UZ:MURUNTAU,en,curation
+месторождение Мурунтау,R:UZ:MURUNTAU,ru,curation
+Чармитан,R:UZ:CHARMITAN,ru,10.47390_ydif-y2026v2i12_n06
+Charmitan,R:UZ:CHARMITAN,en,10.47390_ydif-y2026v2i12_n06
+Чармитанское,R:UZ:CHARMITAN,ru,10.47390_ydif-y2026v2i12_n06
+Tukman,R:UZ:TUKMAN,en,10.47390_ydif-y2026v2i12_n06
+рудопроявление Тукман,R:UZ:TUKMAN,ru,10.47390_ydif-y2026v2i12_n06
+Azerbaijan,R:AZ,en,curation
+Азербайджана,R:AZ,ru,curation
+Nakhchivan,R:AZ:NAKHCHIVAN,en,curation
+Нахчыван,R:AZ:NAKHCHIVAN,ru,curation
+Нахчыванская,R:AZ:NAKHCHIVAN,ru,curation
+Nakhchivan AR,R:AZ:NAKHCHIVAN,en,curation
+Nakhchivan Autonomous Republic,R:AZ:NAKHCHIVAN,en,curation
+Mongolia,R:MN,en,curation
+Монголии,R:MN,ru,curation
+South Mongolia,R:MN:S,en,curation
+Southern Mongolia,R:MN:S,en,curation
+Olon-Ovoot,R:MN:OLONOVOOT,en,10.31857_s0205-96142019559-71
+Олон-Овоот,R:MN:OLONOVOOT,ru,10.31857_s0205-96142019559-71
+Овоотский рудный узел,R:MN:OLONOVOOT,ru,10.31857_s0205-96142019559-71
+Vietnam,R:VN,en,curation
+Вьетнама,R:VN,ru,curation
+Northern Vietnam,R:VN:N,en,10.52349_0869-7892_2024_97_109-117
+North Vietnam,R:VN:N,en,10.52349_0869-7892_2024_97_109-117
+Северо-Западный Вьетнам,R:VN:N,ru,10.52349_0869-7892_2024_97_109-117
+Northwest Vietnam,R:VN:N,en,10.52349_0869-7892_2024_97_109-117
+Чием Хоа,R:VN:N:0,ru,10.52349_0869-7892_2024_97_109-117
+Chiem Hoa,R:VN:N:0,en,10.52349_0869-7892_2024_97_109-117
+Там Зао,R:VN:N:1,ru,10.52349_0869-7892_2024_97_109-117
+Tam Dao,R:VN:N:1,en,10.52349_0869-7892_2024_97_109-117
+Бан Фук,R:VN:N:2,ru,10.52349_0869-7892_2024_97_109-117
+Ban Phuc,R:VN:N:2,en,10.52349_0869-7892_2024_97_109-117
+Шонгма,R:VN:N:3,ru,10.52349_0869-7892_2024_97_109-117
+Song Ma,R:VN:N:3,en,10.52349_0869-7892_2024_97_109-117
+Sông Mã,R:VN:N:3,en,10.52349_0869-7892_2024_97_109-117
+China,R:CN,en,curation
+КНР,R:CN,ru,curation
+Китайская Народная Республика,R:CN,ru,curation
+Eastern China,R:CN,en,curation
+Jiaodong,R:CN:JIAODONG,en,curation
+Jiaodong Peninsula,R:CN:JIAODONG,en,curation
+Цзяодун,R:CN:JIAODONG,ru,curation
+провинция Цзяодун,R:CN:JIAODONG,ru,curation
+Sanshandao,R:CN:SANSHANDAO,en,10.3389_feart.2026.1770354
+Sanshandao fault,R:CN:SANSHANDAO,en,10.3389_feart.2026.1770354
+Xiling,R:CN:XILING,en,10.3389_feart.2026.1770354
+Xiling deposit,R:CN:XILING,en,10.3389_feart.2026.1770354
+Western Henan,R:CN:HENAN,en,curation
+Henan,R:CN:HENAN,en,curation
+Leimengou,R:CN:LEIMENGOU,en,10.25236_ajets.2026.090201
+South China,R:CN:S,en,curation
+Lujing,R:CN:LUJING,en,10.1038_s41598-025-11307-0
+Lujing ore field,R:CN:LUJING,en,10.1038_s41598-025-11307-0
+Arabian-Nubian Shield,R:ANS,en,curation
+Arabian Nubian Shield,R:ANS,en,curation
+Nubian Shield,R:ANS,en,curation
+ANS,R:ANS,en,curation
+Аравийско-Нубийский,R:ANS,ru,curation
+Egyptian Nubian Shield,R:EG:ENS,en,10.1038_s41598-026-60088-7
+Nubian Shield of Egypt,R:EG:ENS,en,10.1038_s41598-026-60088-7
+Egyptian part of the Arabian-Nubian Shield,R:EG:ENS,en,10.1038_s41598-026-60088-7
+Egypt,R:EG,en,curation
+Египта,R:EG,ru,curation
+Eastern Desert,R:EG:ED,en,curation
+Eastern Desert of Egypt,R:EG:ED,en,curation
+Egyptian Eastern Desert,R:EG:ED,en,curation
+Восточная пустыня,R:EG:ED,ru,curation
+Central Eastern Desert,R:EG:ED:C,en,curation
+CED,R:EG:ED:C,en,curation
+Southern Eastern Desert,R:EG:ED:S,en,curation
+South Eastern Desert,R:EG:ED:S,en,curation
+Southeastern Desert,R:EG:ED:S,en,curation
+SED,R:EG:ED:S,en,curation
+Northern Eastern Desert,R:EG:ED:N,en,curation
+North Eastern Desert,R:EG:ED:N,en,curation
+NED,R:EG:ED:N,en,curation
+Atalla-Sid Shear Belt,R:EG:ATALLASID,en,10.1038_s41598-026-60088-7
+Atalla-Sid,R:EG:ATALLASID,en,10.1038_s41598-026-60088-7
+Atalla area,R:EG:ATALLASID,en,10.1038_s41598-026-60088-7
+Sid area,R:EG:ATALLASID,en,10.1038_s41598-026-60088-7
+Atalla,R:EG:ATALLASID,en,10.1038_s41598-026-60088-7
+Wadi Umm Eish El-Zarqa,R:EG:UMMEISH,en,10.33271_mining20.03.010
+Umm Eish El-Zarqa,R:EG:UMMEISH,en,10.33271_mining20.03.010
+Wadi Umm Eish,R:EG:UMMEISH,en,10.33271_mining20.03.010
+Wadi Kab El-Absi,R:EG:UMMEISH,en,10.33271_mining20.03.010
+Dawi shear belt,R:EG:DAWI,en,10.1038_s41598-026-52061-1
+Dawi,R:EG:DAWI,en,10.1038_s41598-026-52061-1
+Wadi Sodmein,R:EG:DAWI,en,10.1038_s41598-026-52061-1
+Sodmein,R:EG:DAWI,en,10.1038_s41598-026-52061-1
+Wadi Queih,R:EG:DAWI,en,10.1038_s41598-026-52061-1
+Queih shear zone,R:EG:DAWI,en,10.1038_s41598-026-52061-1
+Abu Ziran,R:EG:DAWI,en,10.1038_s41598-026-52061-1
+Um Ara-Wadi Murrah,R:EG:UMARA,en,10.1007_s43994-025-00234-5
+Um Ara,R:EG:UMARA,en,10.1007_s43994-025-00234-5
+Wadi Murrah,R:EG:UMARA,en,10.1007_s43994-025-00234-5
+Um Ara-Wadi Mura,R:EG:UMARA,en,10.1007_s43994-025-00234-5
+South Um Ara,R:EG:UMARA,en,10.1007_s43994-025-00234-5
+Wadi Kharit,R:EG:KHARIT,en,10.1038_s41598-026-45708-6
+Kharit,R:EG:KHARIT,en,10.1038_s41598-026-45708-6
+Barramiya,R:EG:BARRAMIYA,en,curation
+Barramiya shear zone,R:EG:BARRAMIYA,en,curation
+Wadi Ghadir,R:EG:GHADIR,en,curation
+Sudan,R:SD,en,curation
+Судана,R:SD,ru,curation
+NE Sudan,R:SD:NE,en,curation
+Northeastern Sudan,R:SD:NE,en,curation
+North-eastern Sudan,R:SD:NE,en,curation
+Red Sea Hills,R:SD:RSH,en,curation
+Red Sea Hills of Sudan,R:SD:RSH,en,curation
+Tohamiyam,R:SD:TOHAMIYAM,en,10.31248_gjees2024.170
+NE Tohamiyam,R:SD:TOHAMIYAM,en,10.31248_gjees2024.170
+Berber Province,R:SD:BERBER,en,curation
+Berber,R:SD:BERBER,en,curation
+Artoli,R:SD:ARTOLI,en,10.31248_gjees2024.162
+Artoli area,R:SD:ARTOLI,en,10.31248_gjees2024.162
+Saudi Arabia,R:SA,en,curation
+Ethiopia,R:ET,en,curation
+Эфиопии,R:ET,ru,curation
+Western Ethiopia,R:ET:W,en,curation
+Benishangul-Gumuz,R:ET:W,en,curation
+Benishangul-Gumuz Regional State,R:ET:W,en,curation
+Menge,R:ET:MENGE,en,10.30967_ijcrset_bikila-argeta-ayele_210
+Menge greenstone belt,R:ET:MENGE,en,10.30967_ijcrset_bikila-argeta-ayele_210
+Menge District,R:ET:MENGE,en,10.30967_ijcrset_bikila-argeta-ayele_210
+Menge area,R:ET:MENGE,en,10.30967_ijcrset_bikila-argeta-ayele_210
+Lega Dembi,R:ET:LEGADEMBI,en,curation
+Nigeria,R:NG,en,curation
+Нигерии,R:NG,ru,curation
+Nigerian,R:NG,en,curation
+NW Nigeria,R:NG:NW,en,curation
+Northwestern Nigeria,R:NG:NW,en,curation
+North-western Nigeria,R:NG:NW,en,curation
+Northern Nigeria,R:NG:NW,en,curation
+North-Central Nigeria,R:NG:NC,en,curation
+North Central Nigeria,R:NG:NC,en,curation
+Central Nigeria,R:NG:NC,en,curation
+Southwestern Nigeria,R:NG:SW,en,curation
+Southwest Nigeria,R:NG:SW,en,curation
+SW Nigeria,R:NG:SW,en,curation
+South-western Nigeria,R:NG:SW,en,curation
+Maru Schist Belt,R:NG:MARU,en,10.1007_s42461-026-01551-x
+Maru,R:NG:MARU,en,10.1007_s42461-026-01551-x
+Maru schist belt,R:NG:MARU,en,10.1007_s42461-026-01551-x
+Sabon Birni,R:NG:MARU,en,10.1007_s42461-026-01551-x
+Yambuki,R:NG:MARU,en,10.1007_s42461-026-01551-x
+Kwara State,R:NG:KWARA,en,curation
+Kwara,R:NG:KWARA,en,curation
+Pategi,R:NG:PATEGI,en,10.70882_josrar.2026.v3i5.246
+Isanlu,R:NG:PATEGI,en,10.70882_josrar.2026.v3i5.246
+Kaduna State,R:NG:KADUNA,en,curation
+Kaduna,R:NG:KADUNA,en,curation
+Kaduna Basement Complex,R:NG:KADUNA,en,curation
+Nasarawa,R:NG:NASARAWA,en,curation
+Nasarawa State,R:NG:NASARAWA,en,curation
+Akwanga,R:NG:NASARAWA,en,curation
+Wamba,R:NG:WAMBA,en,10.21203_rs.3.rs-10216943_v1
+Wamba area,R:NG:WAMBA,en,10.21203_rs.3.rs-10216943_v1
+Wamba Transition Zone,R:NG:WAMBA,en,10.21203_rs.3.rs-10216943_v1
+Benue Trough,R:NG:BENUE,en,curation
+Middle Benue Trough,R:NG:BENUE,en,curation
+the Benue Trough,R:NG:BENUE,en,curation
+Borgu,R:NG:BORGU,en,curation
+Borgu area,R:NG:BORGU,en,curation
+Borgu Basement Terrain,R:NG:BORGU,en,curation
+Borgu Basement,R:NG:BORGU,en,curation
+Ekiti,R:NG:EKITI,en,curation
+Ekiti State,R:NG:EKITI,en,curation
+Ado-Ekiti,R:NG:EKITI,en,curation
+Effon-Alaaye,R:NG:EKITI,en,curation
+Ilogbo,R:NG:EKITI,en,curation
+Alawaye,R:NG:EKITI,en,curation
+Osun,R:NG:OSUN,en,curation
+Osun State,R:NG:OSUN,en,curation
+Ilesa,R:NG:OSUN,en,curation
+Ilesha,R:NG:OSUN,en,curation
+Oshogbo,R:NG:OSUN,en,curation
+Osogbo,R:NG:OSUN,en,curation
+Ilesa schist belt,R:NG:ILESA,en,10.62292_10.62292_njp.v34i3.2025.400
+Ilesha schist belt,R:NG:ILESA,en,10.62292_10.62292_njp.v34i3.2025.400
+Ife-Ilesa,R:NG:ILESA,en,10.62292_10.62292_njp.v34i3.2025.400
+Ifewara,R:NG:ILESA,en,10.62292_10.62292_njp.v34i3.2025.400
+Oko,R:NG:OKO,en,10.62292_njp.v35_s_.2026.639
+Ghana,R:GH,en,curation
+Tarkwa,R:GH:TARKWA,en,curation
+Tarkwaian,R:GH:TARKWA,en,curation
+South Africa,R:ZA,en,curation
+Южная Африка,R:ZA,ru,curation
+Witwatersrand,R:ZA:WITS,en,curation
+Witwatersrand Basin,R:ZA:WITS,en,curation
+Витватерсранд,R:ZA:WITS,ru,curation
+Brazil,R:BR,en,curation
+Бразилии,R:BR,ru,curation
+Jacobina,R:BR:JACOBINA,en,10.1007_s00126-023-01220-9
+Jacobina Basin,R:BR:JACOBINA,en,10.1007_s00126-023-01220-9
+Jacobina deposits,R:BR:JACOBINA,en,10.1007_s00126-023-01220-9
+Castro Basin,R:BR:CASTRO,en,10.22564_brjg.v43i1.2335
+Castro,R:BR:CASTRO,en,10.22564_brjg.v43i1.2335
+Minas do Camaquã,R:BR:CAMAQUA,en,10.24857_rgsa.v18n8-085
+Camaquã,R:BR:CAMAQUA,en,10.24857_rgsa.v18n8-085
+Uruguay Mine,R:BR:CAMAQUA,en,10.24857_rgsa.v18n8-085
+Guiana Shield,R:GUIANA,en,curation
+Гвианский,R:GUIANA,ru,curation
+Guyana,R:GY,en,curation
+Venezuela,R:VE,en,curation
+Roraima Supergroup,R:GUIANA:RORAIMA,en,10.1007_s00126-025-01395-3
+Roraima,R:GUIANA:RORAIMA,en,10.1007_s00126-025-01395-3
+Roraima Basin,R:GUIANA:RORAIMA,en,10.1007_s00126-025-01395-3
+Peaima,R:GUIANA:RORAIMA,en,10.1007_s00126-025-01395-3
+Mahaica,R:GUIANA:RORAIMA,en,10.1007_s00126-025-01395-3
+Eping,R:GUIANA:RORAIMA,en,10.1007_s00126-025-01395-3
+Canada,R:CA,en,curation
+Канады,R:CA,ru,curation
+British Columbia,R:CA:BC,en,curation
+Британская Колумбия,R:CA:BC,ru,curation
+Okanagan,R:CA:OKANAGAN,en,10.12789_geocanj.2023.50.202
+Okanagan Fault,R:CA:OKANAGAN,en,10.12789_geocanj.2023.50.202
+Kelowna,R:CA:OKANAGAN,en,10.12789_geocanj.2023.50.202
+Kelowna area,R:CA:OKANAGAN,en,10.12789_geocanj.2023.50.202
+Okanagan Lake,R:CA:OKANAGAN,en,10.12789_geocanj.2023.50.202
+Mission Creek,R:CA:MISSION,en,10.12789_geocanj.2023.50.202
+Lambly Creek,R:CA:LAMBLY,en,10.12789_geocanj.2023.50.202
+Ontario,R:CA:ON,en,curation
+Geraldton,R:CA:GERALDTON,en,10.21203_rs.3.rs-5384377_v1
+Geraldton area,R:CA:GERALDTON,en,10.21203_rs.3.rs-5384377_v1
+Beardmore-Geraldton,R:CA:GERALDTON,en,10.21203_rs.3.rs-5384377_v1
+Tashota,R:CA:GERALDTON,en,10.21203_rs.3.rs-5384377_v1
+Paint Lake Fault,R:CA:GERALDTON,en,10.21203_rs.3.rs-5384377_v1
+Nunavut,R:CA:NU,en,curation
+Central Arctic Zn-Pb District,R:CA:CAZD,en,10.14430_arctic290
+Cornwallis Island,R:CA:CAZD,en,10.14430_arctic290
+Polaris,R:CA:CAZD,en,10.14430_arctic290
+Nova Scotia,R:CA:NS,en,curation
+United Kingdom,R:UK,en,curation
+UK,R:UK,en,curation
+Britain,R:UK,en,curation
+Scotland,R:UK:SCOT,en,curation
+Scottish,R:UK:SCOT,en,curation
+Southern Uplands,R:UK:SUPLANDS,en,curation
+Southern Uplands Terrane,R:UK:SUPLANDS,en,curation
+Duns,R:UK:DUNS,en,10.6084_m9.figshare.c.8387100.v1
+Duns area,R:UK:DUNS,en,10.6084_m9.figshare.c.8387100.v1
+Berwickshire,R:UK:DUNS,en,10.6084_m9.figshare.c.8387100.v1
+Preston Bridge,R:UK:DUNS,en,10.6084_m9.figshare.c.8387100.v1
+Stoneshiel Hill,R:UK:DUNS,en,10.6084_m9.figshare.c.8387100.v1
+Priestlaw,R:UK:DUNS,en,10.6084_m9.figshare.c.8387100.v1
+Leadhills,R:UK:LEADHILLS,en,curation
+USA,R:US,en,curation
+United States,R:US,en,curation
+U.S.,R:US,en,curation
+the United States,R:US,en,curation
+Nevada,R:US:NV,en,curation
+Невада,R:US:NV,ru,curation
+Carlin,R:US:CARLIN,en,curation
+Carlin trend,R:US:CARLIN,en,curation
+Карлин,R:US:CARLIN,ru,curation
+Карлинский,R:US:CARLIN,ru,curation
+Cuprite,R:US:CUPRITE,en,10.29150_jhrs.v10.2.p87-94
+California,R:US:CA,en,curation
+Mountain Pass,R:US:MTPASS,en,curation
+Mountain Pass District,R:US:MTPASS,en,curation
+Alaska,R:US:AK,en,curation
+Arizona,R:US:AZ,en,curation
+Utah,R:US:UT,en,curation
+Ukraine,R:UA,en,curation
+Ukrainian Shield,R:UA:SHIELD,en,curation
+Украинский щит,R:UA:SHIELD,ru,curation
+Kirovohrad fault zone,R:UA:KIROVOHRAD,en,10.24028_gj.v47i2.322500
+Kirovohrad,R:UA:KIROVOHRAD,en,10.24028_gj.v47i2.322500
+Zvenyhorod-Bratsk,R:UA:KIROVOHRAD,en,10.24028_gj.v47i2.322500
+Morocco,R:MA,en,curation
+Eastern High Atlas,R:MA:HIGHATLAS,en,10.1038_s41598-025-99402-0
+High Atlas,R:MA:HIGHATLAS,en,10.1038_s41598-025-99402-0
+Mougueur,R:MA:MOUGUEUR,en,10.1038_s41598-025-99402-0
+Mougueur inlier,R:MA:MOUGUEUR,en,10.1038_s41598-025-99402-0
+Anti-Atlas,R:MA:ANTIATLAS,en,curation
+Anti Atlas,R:MA:ANTIATLAS,en,curation
+central Anti-Atlas,R:MA:ANTIATLAS,en,curation
+Siroua,R:MA:SIROUA,en,10.12912_27197050_218151
+Siroua Massif,R:MA:SIROUA,en,10.12912_27197050_218151
+Zgounder,R:MA:SIROUA,en,10.12912_27197050_218151
+Imourkhssen,R:MA:SIROUA,en,10.12912_27197050_218151
+Iran,R:IR,en,curation
+Bidkhan,R:IR:BIDKHAN,en,10.4236_ojg.2017.79093
+Kenya,R:KE,en,curation
+Kitui,R:KE:KITUI,en,10.37284_eajenr.9.3.5322
+Kitui West,R:KE:KITUI,en,10.37284_eajenr.9.3.5322
+Kwa Mutonga,R:KE:KITUI,en,10.37284_eajenr.9.3.5322
+Vonza,R:KE:KITUI,en,10.37284_eajenr.9.3.5322
+Vonza area,R:KE:KITUI,en,10.37284_eajenr.9.3.5322
+Democratic Republic of Congo,R:CD,en,curation
+DRC,R:CD,en,curation
+Congo,R:CD,en,curation
+Katanga,R:CD,en,curation
+Philippines,R:PH,en,curation
+Mankayan,R:PH:MANKAYAN,en,10.5194_isprs-annals-x-5-w4-2025-269-2026
+Indonesia,R:ID,en,curation
+Bangka Belitung,R:ID:BANGKA,en,10.29017_lpmgb.60.2.2169
+Bangka,R:ID:BANGKA,en,10.29017_lpmgb.60.2.2169
+Belitung,R:ID:BANGKA,en,10.29017_lpmgb.60.2.2169
+Pakistan,R:PK,en,curation
+India,R:IN,en,curation
+Australia,R:AU,en,curation
+Namibia,R:NA,en,curation

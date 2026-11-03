@@ -1,0 +1,198 @@
+area_id,canonical_name,level,parent_ids,country,deposit_types,settings,overlaps,basis,basis_doc_id,basis_quote,review_status
+R:RU,Россия,country,,,,,,,,,CURATED_UNREVIEWED
+R:RU:URAL,Урал,region,R:RU,RU,,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:URAL:MID,Средний Урал,region,R:RU:URAL,RU,gold,ural_orogen,,SOURCE,10.47765_0869-5997-2024-10017,gold mineralization of the Middle Urals,CURATED_UNREVIEWED
+R:RU:URAL:MID:AUERBAKH,Ауэрбаховский рудный район,ore_district,R:RU:URAL:MID,RU,gold;copper,ural_orogen,,SOURCE,10.47765_0869-5997-2024-10017,Ауэрбаховского рудного района (Средний Урал),CURATED_UNREVIEWED
+R:RU:URAL:VORONTSOVSKOE,Воронцовское месторождение,deposit,R:RU:URAL:MID:AUERBAKH,RU,gold,,,SOURCE,10.47765_0869-5997-2024-10017,Воронцовского месторождения,CURATED_UNREVIEWED
+R:RU:URAL:PESHCHERNOE,Пещерное месторождение,deposit,R:RU:URAL:MID:AUERBAKH,RU,gold,,,SOURCE,10.47765_0869-5997-2024-10017,месторождение Пещерное,CURATED_UNREVIEWED
+R:RU:URAL:MURZINKA,Мурзинская группа россыпей,placer_group,R:RU:URAL:MID,RU,gold,,,SOURCE,openalex-w7213480904,Мурзинской группы россыпей (Средний Урал),CURATED_UNREVIEWED
+R:RU:SIBPLAT,Сибирская платформа,craton,R:RU,RU,,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:YAKUTIA,Республика Саха (Якутия),admin_region,R:RU,RU,,,,ADMIN,,,CURATED_UNREVIEWED
+R:RU:ALDAN,Алданский щит,shield,R:RU:SIBPLAT,RU,gold,aldan_mesozoic_alkaline_au,R:RU:YAKUTIA,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:ELKON,Томмот-Эльконская зона,zone,R:RU:ALDAN,RU,gold;uranium,,,SOURCE,10.47765_0869-7175-2024-10029,Томмот-Эльконской зоны,CURATED_UNREVIEWED
+R:RU:SELIGDAR,Селигдарское рудное поле,ore_field,R:RU:ALDAN;R:RU:YAKUTIA,RU,gold,,,SOURCE,10.47765_0869-7175-2024-10029,"Seligdar Ore Field, Republic of Sakha (Yakutia)",CURATED_UNREVIEWED
+R:RU:CHULKOVSKY,Чулковский участок,site,R:RU:SELIGDAR,RU,gold,,,SOURCE,10.47765_0869-7175-2024-10029,Chulkovsky Site of the Seligdar Ore Field,CURATED_UNREVIEWED
+R:RU:LEBEDINY,Лебединский рудный узел,ore_cluster,R:RU:ALDAN,RU,gold,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:FE,Дальний Восток России,macroregion,R:RU,RU,,,,ADMIN,,,CURATED_UNREVIEWED
+R:RU:ARCTIC,Арктическая зона России,macroregion,R:RU,RU,,,R:RU:FE;R:RU:YAKUTIA;R:RU:SIBPLAT,ADMIN,,,CURATED_UNREVIEWED
+R:RU:FE:ARCTICBELT,Арктический пояс Дальнего Востока,belt,R:RU:FE,RU,gold,ru_ne_mesozoic_orogenic_au,R:RU:ARCTIC;R:RU:YAKUTIA,SOURCE,10.47765_0869-5997-2025-10005,Gold mineralization of the Arctic Belt of the Russian Far East,CURATED_UNREVIEWED
+R:RU:CHUKOTKA,Чукотка,admin_region,R:RU:FE,RU,gold,ru_ne_mesozoic_orogenic_au,R:RU:FE:ARCTICBELT;R:RU:ARCTIC,ADMIN,,,CURATED_UNREVIEWED
+R:RU:MAYSKOE_CHUK,Майское месторождение (Чукотка),deposit,R:RU:CHUKOTKA,RU,gold,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:KEKURA,Кекура,deposit,R:RU:CHUKOTKA,RU,gold,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:KUPOL,Купол,deposit,R:RU:CHUKOTKA,RU,gold;silver,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:KULAR,Куларо-Полоусненский район,ore_district,R:RU:YAKUTIA,RU,gold,,R:RU:FE:ARCTICBELT,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:MAGADAN,Магаданская область,admin_region,R:RU:FE,RU,gold,ru_ne_mesozoic_orogenic_au,,ADMIN,,,CURATED_UNREVIEWED
+R:RU:ARYLAKH,Арылах,deposit,R:RU:MAGADAN,RU,gold,,,SOURCE,10.56195_20793332-2025-25-5-49-54,Arylyakh deposit (Magadan region),CURATED_UNREVIEWED
+R:RU:YANAKOLYMA,Яно-Колымский пояс,belt,R:RU:FE,RU,gold,ru_ne_mesozoic_orogenic_au,R:RU:YAKUTIA;R:RU:MAGADAN,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:VERKHOYANSK,Верхояно-Колымская складчатая система,fold_system,R:RU:FE,RU,gold,ru_ne_mesozoic_orogenic_au,R:RU:YAKUTIA;R:RU:YANAKOLYMA;R:RU:MAGADAN,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:BAYAG,Баягское рудное поле,ore_field,R:RU:VERKHOYANSK;R:RU:YAKUTIA,RU,gold,,,SOURCE,10.18799_24131830_2024_12_4577,"Verkhoyansk-Kolyma fold system (Bayag ore field, Yakutia)",CURATED_UNREVIEWED
+R:RU:NEZHDANINSKOE,Нежданинское месторождение,deposit,R:RU:YAKUTIA,RU,gold,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:PRIAMURYE,Приамурская провинция,province,R:RU:FE,RU,gold,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:MOGOT,Моготский рудно-россыпной узел,ore_cluster,R:RU:PRIAMURYE,RU,gold,,,SOURCE,10.34078_1814-0998-2026-1-12-18,Моготского рудно-россыпного узла Приамурской провинции,CURATED_UNREVIEWED
+R:RU:KHABAROVSK,Хабаровский край,admin_region,R:RU:FE,RU,,,,ADMIN,,,CURATED_UNREVIEWED
+R:RU:ULYA,Ульинский прогиб,trough,R:RU:KHABAROVSK,RU,gold,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:SVETLOE,Рудное поле Светлое,ore_field,R:RU:ULYA,RU,gold,,,SOURCE,10.18799_24131830_2022_8_3708,рудного поля Светлое (Хабаровский край),CURATED_UNREVIEWED
+R:RU:TRANSBAIKAL,Забайкалье,region,R:RU,RU,,,,ADMIN,,,CURATED_UNREVIEWED
+R:RU:TRANSBAIKAL:E,Восточное Забайкалье,region,R:RU:TRANSBAIKAL,RU,gold;rare_metal,mongol_okhotsk_au,,SOURCE,10.17223_25421379_31_5,оруденения Восточного Забайкалья,CURATED_UNREVIEWED
+R:RU:TB:0,Балейское,deposit,R:RU:TRANSBAIKAL:E,RU,gold;rare_metal,,,SOURCE,10.17223_25421379_31_5,месторождений Восточного Забайкалья,CURATED_UNREVIEWED
+R:RU:TB:1,Карийское,deposit,R:RU:TRANSBAIKAL:E,RU,gold;rare_metal,,,SOURCE,10.17223_25421379_31_5,месторождений Восточного Забайкалья,CURATED_UNREVIEWED
+R:RU:TB:2,Шахтаминское,deposit,R:RU:TRANSBAIKAL:E,RU,gold;rare_metal,,,SOURCE,10.17223_25421379_31_5,месторождений Восточного Забайкалья,CURATED_UNREVIEWED
+R:RU:TB:3,Быстринское,deposit,R:RU:TRANSBAIKAL:E,RU,gold;rare_metal,,,SOURCE,10.17223_25421379_31_5,месторождений Восточного Забайкалья,CURATED_UNREVIEWED
+R:RU:TB:4,Лугиинское,deposit,R:RU:TRANSBAIKAL:E,RU,gold;rare_metal,,,SOURCE,10.17223_25421379_31_5,месторождений Восточного Забайкалья,CURATED_UNREVIEWED
+R:RU:TB:5,Серебряное,deposit,R:RU:TRANSBAIKAL:E,RU,gold;rare_metal,,,SOURCE,10.17223_25421379_31_5,месторождений Восточного Забайкалья,CURATED_UNREVIEWED
+R:RU:TB:6,Букукинское,deposit,R:RU:TRANSBAIKAL:E,RU,gold;rare_metal,,,SOURCE,10.17223_25421379_31_5,месторождений Восточного Забайкалья,CURATED_UNREVIEWED
+R:RU:TB:7,Белухинское,deposit,R:RU:TRANSBAIKAL:E,RU,gold;rare_metal,,,SOURCE,10.17223_25421379_31_5,месторождений Восточного Забайкалья,CURATED_UNREVIEWED
+R:RU:MONGOLOKHOTSK,Монголо-Охотский пояс,belt,,,gold,mongol_okhotsk_au,R:RU:TRANSBAIKAL;R:MN;R:RU:FE,,,,CURATED_UNREVIEWED
+R:RU:YENISEI,Енисейский кряж,ridge,R:RU,RU,gold,yenisei_neoproterozoic_au,,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:OLIMPIADA,Олимпиаднинское месторождение,deposit,R:RU:YENISEI,RU,gold,,,SOURCE,10.17308_geology.2018.1_1447,Олимпиаднинское месторождение (Енисейский кряж),CURATED_UNREVIEWED
+R:RU:BUREMINSKOE,Буреминское рудопроявление,occurrence,R:RU:YENISEI,RU,gold,,,SOURCE,10.17308_geology.2018.1_1447,рудопроявления Буреминское,CURATED_UNREVIEWED
+R:RU:ISHIMBA,Ишимбинская зона,zone,R:RU:YENISEI,RU,gold,,,SOURCE,10.17308_geology.2018.1_1447,зоны Ишимбинского разлома,CURATED_UNREVIEWED
+R:RU:PATOM,Байкало-Патомская складчатая область,fold_belt,R:RU,RU,gold,patom_black_shale_au,,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:BODAIBO,Мамско-Бодайбинская зона,zone,R:RU:PATOM,RU,gold,,,SOURCE,10.18799_24131830_2025_7_5053,зоны Мамско-Бодайбинского,CURATED_UNREVIEWED
+R:RU:SUKHOILOG,Сухой Лог,deposit,R:RU:BODAIBO,RU,gold,patom_black_shale_au,,SOURCE,10.18799_24131830_2025_7_5053,Золоторудное месторождение Сухой Лог (Патомское нагорье),CURATED_UNREVIEWED
+R:RU:KROPOTKIN,Кропоткинский рудный узел,ore_cluster,R:RU:BODAIBO,RU,gold,,,SOURCE,10.18799_24131830_2025_7_5053,Кропоткинского рудного узла,CURATED_UNREVIEWED
+R:RU:KARELIA,Карелия,admin_region,R:RU,RU,,,R:BALTIC,ADMIN,,,CURATED_UNREVIEWED
+R:RU:KOLA,Кольский полуостров,region,R:RU,RU,,,R:BALTIC,ADMIN,,,CURATED_UNREVIEWED
+R:BALTIC,Балтийский щит,shield,,,gold;uranium,svecofennian_paleoproterozoic_au_u,,,,,CURATED_UNREVIEWED
+R:FI,Финляндия,country,,,,,R:BALTIC,,,,CURATED_UNREVIEWED
+R:BALTIC:KUUSAMO,Куусамо-Панакуолаярвинский прогиб,trough,R:BALTIC,,gold;uranium,svecofennian_paleoproterozoic_au_u,,SOURCE,10.52349_0869-7892_2024_100_147-164,Куусамо-Панакуолаярвинского прогиба (Балтийский щит),CURATED_UNREVIEWED
+R:BALTIC:KUOLAJARVI,Куолаярвинский рудный узел,ore_cluster,R:BALTIC:KUUSAMO,,gold;uranium,,,SOURCE,10.52349_0869-7892_2024_100_147-164,Куолаярвинского рудного узла,CURATED_UNREVIEWED
+R:BALTIC:MAYSKOE_KAR,Майское рудопроявление (Северная Карелия),occurrence,R:BALTIC:KUOLAJARVI,,gold;uranium,,,SOURCE,10.52349_0869-7892_2024_100_147-164,Майское (Куолаярвинский рудный узел),CURATED_UNREVIEWED
+R:BALTIC:OZERNOE,Озерное рудопроявление,occurrence,R:BALTIC:KUOLAJARVI,,gold;uranium,,,SOURCE,10.52349_0869-7892_2024_100_147-164,рудопроявления Озерное,CURATED_UNREVIEWED
+R:BALTIC:LAGERNOE,Лагерное рудопроявление,occurrence,R:BALTIC:KUOLAJARVI,,gold;uranium,,,SOURCE,10.52349_0869-7892_2024_100_147-164,Лагерное,CURATED_UNREVIEWED
+R:FI:JUOMASUO,Юомасуо,deposit,R:FI;R:BALTIC:KUUSAMO,FI,gold;uranium,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:FI:ROMPAS,Ромпас,occurrence,R:FI;R:BALTIC,FI,gold;uranium,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:RU:CAUCASUS,Северный Кавказ,region,R:RU,RU,,,,ADMIN,,,CURATED_UNREVIEWED
+R:RU:TYRNYAUZ,Тырныаузский рудный узел,ore_cluster,R:RU:CAUCASUS,RU,tungsten;molybdenum;gold,,,SOURCE,10.24411_0869-7175-2019-10008,Зыгыркольской зоны (северный фланг Тырныаузского рудного узла),CURATED_UNREVIEWED
+R:RU:ZYGYRKOL,Зыгыркольская зона,zone,R:RU:TYRNYAUZ,RU,tungsten;molybdenum;gold,,,SOURCE,10.24411_0869-7175-2019-10008,Зыгыркольской зоны (северный фланг Тырныаузского рудного узла),CURATED_UNREVIEWED
+R:DONBASS,Донецкий бассейн,basin,,,base_metals;gold,,,,,,CURATED_UNREVIEWED
+R:DONBASS:E,Восточный Донбасс,region,R:DONBASS,,base_metals;gold,,,SOURCE,10.46698_vnc.2023.84.41.008,Ore-magmatic systems of Eastern Donbass,CURATED_UNREVIEWED
+R:ALTAI,Большой Алтай,region,,,base_metals;gold,altai_vms,R:KZ;R:RU;R:CN;R:MN,,,,CURATED_UNREVIEWED
+R:RU:WSIB,Западная Сибирь,region,R:RU,RU,,,,ADMIN,,,CURATED_UNREVIEWED
+R:KZ,Казахстан,country,,,,,,,,,CURATED_UNREVIEWED
+R:KZ:E,Восточный Казахстан,region,R:KZ,KZ,,,,ADMIN,,,CURATED_UNREVIEWED
+R:KZ:KOLDAR,Кольдарский массив,massif,R:KZ,KZ,copper,,,SOURCE,10.20944_preprints202506.1483.v1,"Koldar Massif, Kazakhstan",CURATED_UNREVIEWED
+R:UZ,Узбекистан,country,,,,,,,,,CURATED_UNREVIEWED
+R:UZ:ALMALYK,Алмалыкский рудный район,ore_district,R:UZ,UZ,copper;gold,,,SOURCE,10.33677_ggianas20250100142,Almalyk Ore Region,CURATED_UNREVIEWED
+R:UZ:KYZYLKUM,Центральные Кызылкумы,region,R:UZ,UZ,gold,tien_shan_black_shale_au,,GEOLOGY,,,CURATED_UNREVIEWED
+R:UZ:BUKANTAU,Горы Букантау,mountains,R:UZ:KYZYLKUM,UZ,gold,tien_shan_black_shale_au,,SOURCE,10.52349_0869-7892_2026_106_43-52,The Bukantau Mountains ring structures,CURATED_UNREVIEWED
+R:UZ:MURUNTAU,Мурунтау,deposit,R:UZ:KYZYLKUM,UZ,gold,tien_shan_black_shale_au,,GEOLOGY,,,CURATED_UNREVIEWED
+R:UZ:CHARMITAN,Чармитанское рудное поле,ore_field,R:UZ,UZ,gold,,,SOURCE,10.47390_ydif-y2026v2i12_n06,РУДОПРОЯВЛЕНИИ ТУКМАН (ЧАРМИТАНСКОЕ РУДНОЕ ПОЛЕ),CURATED_UNREVIEWED
+R:UZ:TUKMAN,Тукман,occurrence,R:UZ:CHARMITAN,UZ,gold,,,SOURCE,10.47390_ydif-y2026v2i12_n06,РУДОПРОЯВЛЕНИИ ТУКМАН (ЧАРМИТАНСКОЕ РУДНОЕ ПОЛЕ),CURATED_UNREVIEWED
+R:AZ,Азербайджан,country,,,,,,,,,CURATED_UNREVIEWED
+R:AZ:NAKHCHIVAN,Нахчыванская Автономная Республика,admin_region,R:AZ,AZ,gold;base_metals,,,ADMIN,,,CURATED_UNREVIEWED
+R:MN,Монголия,country,,,,,,,,,CURATED_UNREVIEWED
+R:MN:S,Южная Монголия,region,R:MN,MN,,,,ADMIN,,,CURATED_UNREVIEWED
+R:MN:OLONOVOOT,Олон-Овоотский рудный узел,ore_cluster,R:MN:S,MN,gold,,,SOURCE,10.31857_s0205-96142019559-71,Olon-Ovoot gold-ore cluster (South Mongolia),CURATED_UNREVIEWED
+R:VN,Вьетнам,country,,,,,,,,,CURATED_UNREVIEWED
+R:VN:N,Северный Вьетнам,region,R:VN,VN,gold;tin;tungsten,,,SOURCE,10.52349_0869-7892_2024_97_109-117,metallogenic zoning of Northern Vietnam,CURATED_UNREVIEWED
+R:VN:N:0,Рудный район Чием Хоа,ore_district,R:VN:N,VN,,,,SOURCE,10.52349_0869-7892_2024_97_109-117,рудный район Чием Хоа,CURATED_UNREVIEWED
+R:VN:N:1,Рудный район Там Зао,ore_district,R:VN:N,VN,,,,SOURCE,10.52349_0869-7892_2024_97_109-117,рудный район Там Зао,CURATED_UNREVIEWED
+R:VN:N:2,Рудный район Бан Фук,ore_district,R:VN:N,VN,,,,SOURCE,10.52349_0869-7892_2024_97_109-117,рудный район Бан Фук,CURATED_UNREVIEWED
+R:VN:N:3,Рудный район Шонгма,ore_district,R:VN:N,VN,,,,SOURCE,10.52349_0869-7892_2024_97_109-117,рудный район Шонгма,CURATED_UNREVIEWED
+R:CN,Китай,country,,,,,,,,,CURATED_UNREVIEWED
+R:CN:JIAODONG,Полуостров Цзяодун,province,R:CN,CN,gold,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:CN:SANSHANDAO,Саншандао,deposit,R:CN:JIAODONG,CN,gold,,,SOURCE,10.3389_feart.2026.1770354,Sanshandao,CURATED_UNREVIEWED
+R:CN:XILING,Силин,deposit,R:CN:SANSHANDAO,CN,gold,,,SOURCE,10.3389_feart.2026.1770354,Xiling deposit,CURATED_UNREVIEWED
+R:CN:HENAN,Западный Хэнань,region,R:CN,CN,,,,ADMIN,,,CURATED_UNREVIEWED
+R:CN:LEIMENGOU,Леймэнгоу,deposit,R:CN:HENAN,CN,molybdenum,,,SOURCE,10.25236_ajets.2026.090201,"Leimengou Giant Mo Deposit, Western Henan, China",CURATED_UNREVIEWED
+R:CN:S,Южный Китай,region,R:CN,CN,,,,ADMIN,,,CURATED_UNREVIEWED
+R:CN:LUJING,Рудное поле Луцзин,ore_field,R:CN:S,CN,uranium,,,SOURCE,10.1038_s41598-025-11307-0,"Lujing uranium ore field, South China",CURATED_UNREVIEWED
+R:ANS,Аравийско-Нубийский щит,shield,,,gold,ans_neoproterozoic_shear_au,R:EG;R:SD;R:ET;R:SA,,,,CURATED_UNREVIEWED
+R:EG:ENS,Египетская часть Нубийского щита,shield_part,R:EG;R:ANS,EG,gold;rare_metal,ans_neoproterozoic_shear_au,R:EG:ED,SOURCE,10.1038_s41598-026-60088-7,gold deposits in the Egyptian Nubian Shield,CURATED_UNREVIEWED
+R:EG,Египет,country,,,,,,,,,CURATED_UNREVIEWED
+R:EG:ED,Восточная пустыня Египта,region,R:EG,EG,gold;rare_metal;fluorite,ans_neoproterozoic_shear_au,R:ANS,GEOLOGY,,,CURATED_UNREVIEWED
+R:EG:ED:C,Центральная Восточная пустыня,region,R:EG:ED,EG,gold,ans_neoproterozoic_shear_au,,GEOLOGY,,,CURATED_UNREVIEWED
+R:EG:ED:S,Южная Восточная пустыня,region,R:EG:ED,EG,gold;rare_metal,ans_neoproterozoic_shear_au,,GEOLOGY,,,CURATED_UNREVIEWED
+R:EG:ED:N,Северная Восточная пустыня,region,R:EG:ED,EG,,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:EG:ATALLASID,Сдвиговый пояс Аталла-Сид,shear_belt,R:EG:ED:C,EG,gold,ans_neoproterozoic_shear_au,,SOURCE,10.1038_s41598-026-60088-7,"the Atalla-Sid Shear Belt, Central Eastern Desert",CURATED_UNREVIEWED
+R:EG:UMMEISH,Вади Умм-Эйш Эль-Зарка,area,R:EG:ED:C,EG,gold,ans_neoproterozoic_shear_au,,SOURCE,10.33271_mining20.03.010,"Wadi Umm Eish El-Zarqa, Central Eastern Desert",CURATED_UNREVIEWED
+R:EG:DAWI,Сдвиговый пояс Дави,shear_belt,R:EG:ED:C,EG,gold;fluorite;barite,ans_neoproterozoic_shear_au,,SOURCE,10.1038_s41598-026-52061-1,"Dawi shear belt, Egypt",CURATED_UNREVIEWED
+R:EG:UMARA,Умм-Ара — Вади Мурра,area,R:EG:ED:S,EG,rare_metal,ans_neoproterozoic_granite_rm,,SOURCE,10.1007_s43994-025-00234-5,"South Um Ara-Wadi Murrah area, Southeastern Desert, Egypt",CURATED_UNREVIEWED
+R:EG:KHARIT,Вади Харит,area,R:EG:ED:S,EG,gold,ans_neoproterozoic_shear_au,,SOURCE,10.1038_s41598-026-45708-6,"Wadi Kharit region, Southern Eastern Desert",CURATED_UNREVIEWED
+R:EG:BARRAMIYA,Барамия,area,R:EG:ED:C,EG,gold,ans_neoproterozoic_shear_au,,GEOLOGY,,,CURATED_UNREVIEWED
+R:EG:GHADIR,Вади Гадир,area,R:EG:ED:S,EG,,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:SD,Судан,country,,,,,,,,,CURATED_UNREVIEWED
+R:SD:NE,Северо-Восточный Судан,region,R:SD,SD,,,,ADMIN,,,CURATED_UNREVIEWED
+R:SD:RSH,Холмы Красного моря (Судан),region,R:SD:NE,SD,gold,ans_neoproterozoic_shear_au,R:ANS,GEOLOGY,,,CURATED_UNREVIEWED
+R:SD:TOHAMIYAM,Тохамиям,area,R:SD:RSH,SD,gold,ans_neoproterozoic_shear_au,,SOURCE,10.31248_gjees2024.170,"NE Tohamiyam Area, Red Sea Hills",CURATED_UNREVIEWED
+R:SD:BERBER,Провинция Бербер,admin_region,R:SD:NE,SD,,,,ADMIN,,,CURATED_UNREVIEWED
+R:SD:ARTOLI,Артоли,area,R:SD:BERBER,SD,gold,ans_neoproterozoic_shear_au,,SOURCE,10.31248_gjees2024.162,"Artoli Area, Berber Province",CURATED_UNREVIEWED
+R:SA,Саудовская Аравия,country,,,,,,,,,CURATED_UNREVIEWED
+R:ET,Эфиопия,country,,,,,,,,,CURATED_UNREVIEWED
+R:ET:W,Западная Эфиопия,region,R:ET,ET,,,,ADMIN,,,CURATED_UNREVIEWED
+R:ET:MENGE,Зеленокаменный пояс Менге,greenstone_belt,R:ET:W,ET,gold,east_african_neoproterozoic_greenstone_au,,SOURCE,10.30967_ijcrset_bikila-argeta-ayele_210,"Menge Greenstone Belt, Western Ethiopia",CURATED_UNREVIEWED
+R:ET:LEGADEMBI,Лега Дембе,deposit,R:ET,ET,gold,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:NG,Нигерия,country,,,,nigerian_basement,,,,,CURATED_UNREVIEWED
+R:NG:NW,Северо-Западная Нигерия,region,R:NG,NG,,,,ADMIN,,,CURATED_UNREVIEWED
+R:NG:NC,Северо-Центральная Нигерия,region,R:NG,NG,,,,ADMIN,,,CURATED_UNREVIEWED
+R:NG:SW,Юго-Западная Нигерия,region,R:NG,NG,,,,ADMIN,,,CURATED_UNREVIEWED
+R:NG:MARU,Сланцевый пояс Мару,schist_belt,R:NG:NW,NG,gold,nigerian_schist_belt_au,,SOURCE,10.1007_s42461-026-01551-x,"Maru Schist Belt mineralization, NW Nigeria",CURATED_UNREVIEWED
+R:NG:KWARA,Штат Квара,state,R:NG:NC,NG,,,,ADMIN,,,CURATED_UNREVIEWED
+R:NG:PATEGI,Патеги,area,R:NG:KWARA,NG,,,,SOURCE,10.70882_josrar.2026.v3i5.246,"Pategi, North Central",CURATED_UNREVIEWED
+R:NG:KADUNA,Штат Кадуна,state,R:NG:NW,NG,,,,ADMIN,,,CURATED_UNREVIEWED
+R:NG:NASARAWA,Штат Насарава,state,R:NG:NC,NG,,,,ADMIN,,,CURATED_UNREVIEWED
+R:NG:WAMBA,Переходная зона Вамба,area,R:NG:NASARAWA,NG,,,,SOURCE,10.21203_rs.3.rs-10216943_v1,"Wamba Transition Zone, North-Central Nigeria",CURATED_UNREVIEWED
+R:NG:BENUE,Трог Бенуэ,trough,R:NG,NG,,,,ADMIN,,,CURATED_UNREVIEWED
+R:NG:BORGU,Боргу,area,R:NG:NC,NG,gold;rare_metal,nigerian_schist_belt_au,,GEOLOGY,,,CURATED_UNREVIEWED
+R:NG:EKITI,Штат Экити,state,R:NG:SW,NG,,,,ADMIN,,,CURATED_UNREVIEWED
+R:NG:OSUN,Штат Осун,state,R:NG:SW,NG,,,,ADMIN,,,CURATED_UNREVIEWED
+R:NG:ILESA,Сланцевый пояс Илеса,schist_belt,R:NG:OSUN,NG,gold,nigerian_schist_belt_au,,SOURCE,10.62292_10.62292_njp.v34i3.2025.400,"Ado-Ekiti-Ilesa Region of Southwest, Nigeria",CURATED_UNREVIEWED
+R:NG:OKO,Око,area,R:NG:SW,NG,iron,,,SOURCE,10.62292_njp.v35_s_.2026.639,"Iron Ore Deposit Geometry in Oko, Southwestern Nigeria",CURATED_UNREVIEWED
+R:GH,Гана,country,,,,,,,,,CURATED_UNREVIEWED
+R:GH:TARKWA,Тарква,deposit,R:GH,GH,gold,paleoplacer_conglomerate_au,,GEOLOGY,,,CURATED_UNREVIEWED
+R:ZA,ЮАР,country,,,,,,,,,CURATED_UNREVIEWED
+R:ZA:WITS,Витватерсранд,basin,R:ZA,ZA,gold;uranium,paleoplacer_conglomerate_au,,GEOLOGY,,,CURATED_UNREVIEWED
+R:BR,Бразилия,country,,,,,,,,,CURATED_UNREVIEWED
+R:BR:JACOBINA,Якобина,basin,R:BR,BR,gold,paleoplacer_conglomerate_au,,SOURCE,10.1007_s00126-023-01220-9,"metaconglomerate-hosted gold deposits at Jacobina, Brazil",CURATED_UNREVIEWED
+R:BR:CASTRO,Бассейн Кастру,basin,R:BR,BR,gold,,,SOURCE,10.22564_brjg.v43i1.2335,Epithermal Gold Deposit in the Castro Basin,CURATED_UNREVIEWED
+R:BR:CAMAQUA,Минас-ду-Камакуан,mine,R:BR,BR,copper,,,SOURCE,10.24857_rgsa.v18n8-085,"Uruguay Mine, Minas do Camaquã",CURATED_UNREVIEWED
+R:GUIANA,Гвианский щит,shield,,,gold,,R:GY;R:BR;R:VE,,,,CURATED_UNREVIEWED
+R:GY,Гайана,country,,,,,,,,,CURATED_UNREVIEWED
+R:VE,Венесуэла,country,,,,,,,,,CURATED_UNREVIEWED
+R:GUIANA:RORAIMA,Супергруппа Рорайма,basin,R:GUIANA,,gold,paleoplacer_conglomerate_au,R:GY;R:VE;R:BR,SOURCE,10.1007_s00126-025-01395-3,Gold potential of the Roraima Supergroup in Guyana,CURATED_UNREVIEWED
+R:CA,Канада,country,,,,,,,,,CURATED_UNREVIEWED
+R:CA:BC,Британская Колумбия,province,R:CA,CA,,,,ADMIN,,,CURATED_UNREVIEWED
+R:CA:OKANAGAN,Оканаган,area,R:CA:BC,CA,gold,,,SOURCE,10.12789_geocanj.2023.50.202,"Placer Gold Across the Okanagan Fault, Kelowna, British Columbia",CURATED_UNREVIEWED
+R:CA:MISSION,Ручей Мишн-Крик,placer,R:CA:OKANAGAN,CA,gold,,,SOURCE,10.12789_geocanj.2023.50.202,Mission Creek,CURATED_UNREVIEWED
+R:CA:LAMBLY,Ручей Ламбли-Крик,placer,R:CA:OKANAGAN,CA,gold,,,SOURCE,10.12789_geocanj.2023.50.202,Lambly Creek,CURATED_UNREVIEWED
+R:CA:ON,Онтарио,province,R:CA,CA,,,,ADMIN,,,CURATED_UNREVIEWED
+R:CA:GERALDTON,Джералдтон,area,R:CA:ON,CA,gold,superior_archean_greenstone_au,,SOURCE,10.21203_rs.3.rs-5384377_v1,"Geraldton Area, Ontario",CURATED_UNREVIEWED
+R:CA:NU,Нунавут,territory,R:CA,CA,,,,ADMIN,,,CURATED_UNREVIEWED
+R:CA:CAZD,Центрально-Арктический Zn-Pb район,district,R:CA:NU,CA,base_metals,,,SOURCE,10.14430_arctic290,"Central Arctic Zn-Pb District, Nunavut",CURATED_UNREVIEWED
+R:CA:NS,Новая Шотландия,province,R:CA,CA,,,,ADMIN,,,CURATED_UNREVIEWED
+R:UK,Великобритания,country,,,,,,,,,CURATED_UNREVIEWED
+R:UK:SCOT,Шотландия,country_part,R:UK,UK,,,,ADMIN,,,CURATED_UNREVIEWED
+R:UK:SUPLANDS,Южное нагорье Шотландии,terrane,R:UK:SCOT,UK,gold,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:UK:DUNS,Район Данс,area,R:UK:SCOT,UK,gold,,,SOURCE,10.6084_m9.figshare.c.8387100.v1,"Duns area, Berwickshire, Scotland",CURATED_UNREVIEWED
+R:UK:LEADHILLS,Лидхиллс,district,R:UK:SUPLANDS,UK,gold;base_metals,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:US,США,country,,,,,,,,,CURATED_UNREVIEWED
+R:US:NV,Невада,state,R:US,US,gold,carlin_type_au,,ADMIN,,,CURATED_UNREVIEWED
+R:US:CARLIN,Тренд Карлин,trend,R:US:NV,US,gold,carlin_type_au,,GEOLOGY,,,CURATED_UNREVIEWED
+R:US:CUPRITE,Куприт,area,R:US:NV,US,,,,SOURCE,10.29150_jhrs.v10.2.p87-94,"Cuprite, Nevada, USA",CURATED_UNREVIEWED
+R:US:CA,Калифорния,state,R:US,US,,,,ADMIN,,,CURATED_UNREVIEWED
+R:US:MTPASS,Маунтин-Пасс,district,R:US:CA,US,ree,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:US:AK,Аляска,state,R:US,US,gold,,,ADMIN,,,CURATED_UNREVIEWED
+R:US:AZ,Аризона,state,R:US,US,,,,ADMIN,,,CURATED_UNREVIEWED
+R:US:UT,Юта,state,R:US,US,,,,ADMIN,,,CURATED_UNREVIEWED
+R:UA,Украина,country,,,,,,,,,CURATED_UNREVIEWED
+R:UA:SHIELD,Украинский щит,shield,R:UA,UA,,,,GEOLOGY,,,CURATED_UNREVIEWED
+R:UA:KIROVOHRAD,Кировоградская зона разломов,fault_zone,R:UA:SHIELD,UA,,,,SOURCE,10.24028_gj.v47i2.322500,Kirovohrad and Zvenyhorod-Bratsk fault zones of the Ukrainian Shield,CURATED_UNREVIEWED
+R:MA,Марокко,country,,,,,,,,,CURATED_UNREVIEWED
+R:MA:HIGHATLAS,Восточный Высокий Атлас,region,R:MA,MA,,,,SOURCE,10.1038_s41598-025-99402-0,"mougueur inlier, Eastern high atlas, M[orocco]",CURATED_UNREVIEWED
+R:MA:MOUGUEUR,Выступ Мугер,inlier,R:MA:HIGHATLAS,MA,base_metals,,,SOURCE,10.1038_s41598-025-99402-0,"mougueur inlier, Eastern high atlas",CURATED_UNREVIEWED
+R:MA:ANTIATLAS,Антиатлас,region,R:MA,MA,,,,ADMIN,,,CURATED_UNREVIEWED
+R:MA:SIROUA,Массив Сироуа,massif,R:MA:ANTIATLAS,MA,silver,,,SOURCE,10.12912_27197050_218151,"northern Siroua Massif, central Anti-Atlas, Morocco",CURATED_UNREVIEWED
+R:IR,Иран,country,,,,,,,,,CURATED_UNREVIEWED
+R:IR:BIDKHAN,Бидхан,area,R:IR,IR,,,,SOURCE,10.4236_ojg.2017.79093,Bidkhan Area,CURATED_UNREVIEWED
+R:KE,Кения,country,,,,,,,,,CURATED_UNREVIEWED
+R:KE:KITUI,Китуи,area,R:KE,KE,copper,,,SOURCE,10.37284_eajenr.9.3.5322,"Kwa Mutonga–Vonza Area, Kitui West, Kenya",CURATED_UNREVIEWED
+R:CD,ДР Конго,country,,,,,,,,,CURATED_UNREVIEWED
+R:PH,Филиппины,country,,,,,,,,,CURATED_UNREVIEWED
+R:PH:MANKAYAN,Манкаян,district,R:PH,PH,copper;gold,,,SOURCE,10.5194_isprs-annals-x-5-w4-2025-269-2026,Case of Mankaya[n],CURATED_UNREVIEWED
+R:ID,Индонезия,country,,,,,,,,,CURATED_UNREVIEWED
+R:ID:BANGKA,Банка-Белитунг,belt,R:ID,ID,tin;ree,,,SOURCE,10.29017_lpmgb.60.2.2169,Bangka Belitung Tin-G[ranite Belt],CURATED_UNREVIEWED
+R:PK,Пакистан,country,,,,,,,,,CURATED_UNREVIEWED
+R:IN,Индия,country,,,,,,,,,CURATED_UNREVIEWED
+R:AU,Австралия,country,,,,,,,,,CURATED_UNREVIEWED
+R:NA,Намибия,country,,,,,,,,,CURATED_UNREVIEWED

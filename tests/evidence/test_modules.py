@@ -128,6 +128,22 @@ def test_real_registry_integrity():
     assert REAL.relation("R:EG:ED", "R:EG:ED") == EXACT
 
 
+def test_working_registry_in_config(monkeypatch):
+    """Чат (GEORAG_SCOPE_GATE) берёт рабочий реестр из config/geo-registry, а не из
+    замороженного research/v14/data; рабочий цел и знает те же территории."""
+    from georag.evidence import gate
+
+    monkeypatch.delenv("GEORAG_REGISTRY", raising=False)
+    assert gate.REGISTRY_DIR == ROOT / "config" / "geo-registry"
+    gate.registry.cache_clear()
+    try:
+        working = gate.registry()
+    finally:
+        gate.registry.cache_clear()
+    assert check_integrity(working) == []
+    assert working.relation("R:RU:CHULKOVSKY", "R:RU:YAKUTIA") == PART_OF
+
+
 def test_real_registry_homonym():
     hits = REAL.find("рудопроявление Майское")
     assert hits and hits[0].ambiguous  # Чукотка и Северная Карелия — разные id

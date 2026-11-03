@@ -32,7 +32,10 @@ from .provenance import DocumentSnapshot, make_evidence, snapshot_from_db
 from .scope import resolve_scope
 from .support import assess_support
 
-REGISTRY_DIR = ROOT / "research" / "v14" / "data"
+# Рабочий реестр территорий — в config, рядом с другими словарями проекта: его можно
+# пополнять. Исходный — research/v14/data — заморожен вместе с экспериментами v14
+# (results/FREEZE.json) и нужен для их воспроизведения; пополнять его нельзя.
+REGISTRY_DIR = ROOT / "config" / "geo-registry"
 
 _TYPICAL_Q = re.compile(
     r"характерн|типичн|в\s+целом|обычно|как\s+правило|typical|characteristic|in\s+general", re.I
