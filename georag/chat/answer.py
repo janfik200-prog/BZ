@@ -377,11 +377,15 @@ def answer(
             yield {"type": "status", "text": "сверяю, не расходятся ли статьи…"}
             clashes = conflicts(question, sources, settings) or []
         info["conflicts"] = clashes
-        sources, turns = fit_budget(question, sources, history, settings, plan, clashes)
-        # Статьи словаря — после фрагментов, своими номерами: окно им не урезается (они
-        # короткие), а номера фрагментов статей, на которые ссылается сводка, не сдвигаются.
-        if prepared.glossary:
-            sources = sources + dicts.as_sources(conn, prepared.glossary, len(sources) + 1)
+        # Статьи словаря — после фрагментов, своими номерами: номера фрагментов статей, на
+        # которые ссылается сводка, не сдвигаются. Сами они не урезаются, но место в окне
+        # занимают (статья словаря — до FRAGMENT_CHARS, три — до 2,4 тыс. токенов): окно
+        # считается вместе с ними, и уступают последние фрагменты статей.
+        glossary = dicts.as_sources(conn, prepared.glossary, 1) if prepared.glossary else []
+        sources, turns = fit_budget(
+            question, sources, history, settings, plan, clashes, tail=glossary
+        )
+        sources = sources + [{**g, "n": len(sources) + i} for i, g in enumerate(glossary, 1)]
         yield {"type": "status", "text": "пишу ответ по найденному…"}
         # Отказ при фрагментах, которые модель-отборщик признала подходящими, — второй
         # заход с напоминанием правила 6 (insist). На s01 модель с одним и тем же набором

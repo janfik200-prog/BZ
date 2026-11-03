@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
 
+from .. import env
 from ..llm import DEFAULT_MODEL, LLM, LLM_HOST, NUM_CTX
 
 MODEL = DEFAULT_MODEL
@@ -19,14 +19,15 @@ PARTS = 3  # на сколько частей самое большее дели
 
 
 def env_flag(name: str) -> bool:
-    """Переключатель из окружения: 1, true, yes, да — включено; пусто и прочее — выключено."""
-    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "да")
+    """Переключатель из окружения (georag/env.py): 1, true, yes, да, on — включено; пусто и
+    прочее — выключено."""
+    return env.flag(name)
 
 
 def dictionary_on() -> bool:
     """Справочные словари в чате (georag/dicts.py): по умолчанию включены, если загружены;
     GEORAG_DICT=0 — выключить (сравнить ответы без словаря)."""
-    return os.environ.get("GEORAG_DICT", "1").strip().lower() not in ("0", "false", "no", "нет")
+    return env.flag("GEORAG_DICT", default=True)
 
 
 @dataclass

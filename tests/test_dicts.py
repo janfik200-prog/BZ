@@ -316,5 +316,50 @@ class ReadOnlyTests(unittest.TestCase):
         self.assertIn("минерал группы", D.as_sources(conn, [entry], start=1)[0]["text"])
 
 
+class BudgetTests(unittest.TestCase):
+    """Статьи словаря идут после фрагментов и не урезаются, но окно модели они занимают:
+    fit_budget считает их (tail), и уступают последние фрагменты статей."""
+
+    def setUp(self):
+        from georag.chat.settings import Settings
+
+        self.settings = Settings()  # окно как у модели: NUM_CTX
+        word = "слово " * 400  # 2400 знаков — как обрезанный фрагмент
+        self.sources = [
+            {"n": i, "doc_id": f"d{i}", "title": f"Статья {i}", "text": word, "authors": []}
+            for i in range(1, 11)
+        ]
+        self.glossary = [
+            {**s, "doc_id": "словарь:d", "kind": "словарь", "n": k}
+            for k, s in enumerate(self.sources[:3], start=1)
+        ]
+
+    def size(self, sources):
+        from georag.chat.messages import _tokens, build_messages
+
+        return _tokens(build_messages("Что такое адуляр?", sources, [], self.settings.model))
+
+    def test_glossary_counted_in_window(self):
+        from georag.chat.messages import ANSWER_RESERVE, fit_budget
+
+        alone, _ = fit_budget("Что такое адуляр?", self.sources, [], self.settings)
+        kept, _ = fit_budget(
+            "Что такое адуляр?", self.sources, [], self.settings, tail=self.glossary
+        )
+        self.assertLess(len(kept), len(alone))
+        self.assertGreaterEqual(len(kept), 3)
+        budget = self.settings.num_ctx - ANSWER_RESERVE
+        self.assertLessEqual(self.size(kept + self.glossary), budget)
+        # Без учёта словаря то же окно переполнялось бы.
+        self.assertGreater(self.size(alone + self.glossary), budget)
+
+    def test_no_tail_same_as_before(self):
+        from georag.chat.messages import fit_budget
+
+        a = fit_budget("Что такое адуляр?", self.sources, [], self.settings)
+        b = fit_budget("Что такое адуляр?", self.sources, [], self.settings, tail=[])
+        self.assertEqual(a, b)
+
+
 if __name__ == "__main__":
     unittest.main()

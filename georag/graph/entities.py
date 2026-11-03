@@ -23,15 +23,16 @@
 
 from __future__ import annotations
 
-import os
 import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .. import env
 from ..paths import CONFIG
 from ..text import keyword_pattern, normalize
+from .facts import FRAGMENT_CHARS
 
 TERMS_PATH = CONFIG / "geo-terms.txt"
 MIN_TERMS = 3
@@ -44,13 +45,7 @@ ENTITY_LIST_ENV = "GEORAG_GRAPH_ENTITY_LIST"
 
 def entity_list_enabled() -> bool:
     """Идёт ли список предметов первого этапа модели (флаг ENTITY_LIST_ENV, по умолчанию да)."""
-    return os.environ.get(ENTITY_LIST_ENV, "1").strip().lower() not in (
-        "0",
-        "no",
-        "false",
-        "нет",
-        "off",
-    )
+    return env.flag(ENTITY_LIST_ENV, default=True)
 
 
 MAX_ENTITIES = 40  # сколько предметов уходит модели списком
@@ -58,7 +53,7 @@ SPACY_MODELS = {"ru": "ru_core_news_sm", "en": "en_core_web_sm"}
 # Метки spaCy, которые бывают предметами геологии: места, объекты, организации-
 # месторождения («Kibali»), изделия («Landsat»). Людей, даты и числа — нет.
 PLACE_LABELS = {"LOC", "GPE", "FAC", "ORG", "PRODUCT", "NORP"}
-SPACY_CHARS = 4000  # как facts.FRAGMENT_CHARS: дальше модель всё равно не читает
+SPACY_CHARS = FRAGMENT_CHARS  # дальше модель всё равно не читает
 MIXED_SHARE = 0.3  # доля букв меньшего алфавита, с которой фрагмент — смесь языков
 
 _CYR = re.compile(r"[а-яё]", re.IGNORECASE)

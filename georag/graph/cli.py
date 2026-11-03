@@ -28,11 +28,11 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
 from typing import Any
 
+from .. import env
 from ..common import add_db_args, add_embedder_args, add_llm_args
 from ..index import db
 from ..paths import LOCAL, ROOT
@@ -490,7 +490,8 @@ def _relations_as_names(syn: Any) -> Any:
     return Synonyms(names={}, groups=groups)
 
 
-def main(argv: list[str] | None = None) -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """Ключи команды graph (значения по умолчанию — и из переменных окружения)."""
     parser = argparse.ArgumentParser(description="Граф знаний ГеоRAG: факты из статей")
     parser.add_argument(
         "command",
@@ -551,19 +552,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--workers",
         type=int,
-        default=int(os.environ.get("GEORAG_WORKERS") or WORKERS),
+        default=env.positive_int("GEORAG_WORKERS", WORKERS),
         help="сколько фрагментов у модели одновременно (build)",
     )
     parser.add_argument(
         "--confirm-workers",
         type=int,
-        default=int(os.environ.get("GEORAG_CONFIRM_WORKERS") or CONFIRM_WORKERS),
+        default=env.positive_int("GEORAG_CONFIRM_WORKERS", CONFIRM_WORKERS),
         help="сколько фактов у модели одновременно при подтверждении вопросами",
     )
     add_db_args(parser)
     add_embedder_args(parser)
     add_llm_args(parser)
-    args = parser.parse_args(argv)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
     args.name = args.name or args.territory
 
     try:

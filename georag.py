@@ -411,6 +411,19 @@ def _running(service: str) -> bool:
     return bool(done is not None and done.returncode == 0 and (done.stdout or "").strip())
 
 
+def _builder_busy() -> bool:
+    """Видеокарту держит модель-строитель (идёт graph, synonyms, add… в другом окне)?
+    Обе модели — наши, локальные, и каждая берёт 90 % видеопамяти: Qwen3-14B рядом не
+    поднимется, а упавший контейнер перезапускался бы впустую (restart: on-failure:3)."""
+    return _local(LLM) and _local(BUILDER_HOST) and _running("builder")
+
+
+BUILDER_BUSY = (
+    "Видеокарту сейчас занимает модель-строитель {builder} (граф или добыча в другом окне). "
+    "{model} поднимется сама, когда та закончит; поиск работает и без неё."
+)
+
+
 def _agreed(question: str) -> bool:
     """Да/нет у человека; спросить некого (вывод в файл, планировщик) — нет, с подсказкой."""
     if not sys.stdin.isatty():
@@ -502,6 +515,9 @@ def _ensure_llm(wait: bool = True, limit: int = 1800) -> bool:
     if not LLM.startswith(("http://localhost", "http://127.0.0.1")):
         print(f"Модель на {LLM} не отвечает — её сервер запускают там.", file=sys.stderr)
         return False
+    if _builder_busy():
+        print(BUILDER_BUSY.format(builder=BUILDER_MODEL, model=MODEL), file=sys.stderr)
+        return False
     print("Модель не запущена. Поднимаю vLLM...")
     up = _docker("--profile", "llm", "up", "-d", "llm")
     if up is None or up.returncode != 0:
@@ -576,7 +592,9 @@ def cmd_start(opts: argparse.Namespace) -> int:
     # а up печатал бы только английское «error during connect…».
     if _db_state() is None:
         return 1
-    up = _docker("--profile", "llm", "up", "-d")
+    # Строитель на видеокарте — поднимается только база: модель рядом не поместится.
+    busy = _builder_busy()
+    up = _docker("up", "-d", "db") if busy else _docker("--profile", "llm", "up", "-d")
     if up is None or up.returncode != 0:
         return 1
     print()
@@ -584,6 +602,9 @@ def cmd_start(opts: argparse.Namespace) -> int:
     _docker("--profile", "llm", "ps")
     if not ready:
         return 1
+    if busy:
+        print(BUILDER_BUSY.format(builder=BUILDER_MODEL, model=MODEL))
+        return 0
     return 0 if _ensure_llm() else 1
 
 
@@ -1067,7 +1088,8 @@ def main(argv: list[str] | None = None) -> int:
         _need_venv()
         if not _ensure_database():
             return 1
-        _ensure_llm(wait=True)
+        if not _ensure_llm(wait=True):  # без модели отвечать на набор вопросов нечем
+            return 1
         return _py("georag.chat.report", *argv[1:])
     if argv and argv[0].lower() == "dict":
         # Словари (georag/dicts.py): import PDF → папка dictionaries и база, load, list, find.

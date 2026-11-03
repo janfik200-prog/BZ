@@ -74,7 +74,7 @@ class FakeDocker:
             return subprocess.CompletedProcess(args, 0, out + "\n", "")
         if args[0] == "exec":
             return subprocess.CompletedProcess(args, self.ready.pop(0) if self.ready else 1)
-        if args[-2:] == ("up", "-d") or args[0] == "--profile":
+        if args[-2:] == ("up", "-d") or args == ("up", "-d", "db") or args[0] == "--profile":
             return subprocess.CompletedProcess(args, 0)
         raise AssertionError(f"неожиданный вызов docker compose {args}")
 
@@ -428,3 +428,55 @@ def test_embed_runs_on_free_gpu(monkeypatch: MonkeyPatch, code: int, embedded: b
     ]
     expected += ["py embed"] if embedded else []
     assert log == [*expected, "start llm"]
+
+
+# --------------------------------------------------------------------------- #
+#  Видеокарту держит строитель: Qwen3-14B рядом не поднимается
+# --------------------------------------------------------------------------- #
+def fake_gpu(monkeypatch: MonkeyPatch, builder: bool) -> list[str]:
+    """Модель не отвечает; строитель держит видеокарту или нет. Вернуть журнал docker."""
+    log: list[str] = []
+
+    def docker(*args: str, quiet: bool = False) -> subprocess.CompletedProcess[str]:
+        log.append(" ".join(args))
+        return subprocess.CompletedProcess(args, 0)
+
+    monkeypatch.setattr(launcher, "_llm_up", lambda timeout=5, host=launcher.LLM: False)
+    monkeypatch.setattr(launcher, "_docker", docker)
+    monkeypatch.setattr(launcher, "_running", lambda service: builder and service == "builder")
+    return log
+
+
+def test_ensure_llm_waits_for_builder(monkeypatch: MonkeyPatch, capsys: Capsys) -> None:
+    """graph в другом окне держит строитель: web или ask не поднимают Qwen3-14B рядом —
+    она бы не поместилась и падала бы с перезапусками (restart: on-failure:3)."""
+    log = fake_gpu(monkeypatch, builder=True)
+    assert launcher._ensure_llm(wait=False) is False
+    assert not any("up" in line for line in log)
+    assert "модель-строитель" in capsys.readouterr().err
+
+
+def test_ensure_llm_starts_when_gpu_free(monkeypatch: MonkeyPatch) -> None:
+    log = fake_gpu(monkeypatch, builder=False)
+    assert launcher._ensure_llm(wait=False) is True
+    assert "--profile llm up -d llm" in log
+
+
+def test_start_with_builder_busy_starts_only_database(
+    monkeypatch: MonkeyPatch, clock: FakeTime
+) -> None:
+    docker = fake_docker(monkeypatch, ["exited ", "running healthy"])
+    monkeypatch.setattr(launcher, "_running", lambda service: service == "builder")
+    monkeypatch.setattr(launcher, "_ensure_llm", lambda: pytest.fail("модель не поднимать"))
+    assert launcher.cmd_start(launcher.parse(["start"])) == 0
+    assert ("up", "-d", "db") in docker.calls
+    assert ("--profile", "llm", "up", "-d") not in docker.calls
+
+
+def test_report_needs_model(monkeypatch: MonkeyPatch) -> None:
+    """report без модели не прогоняет набор вопросов впустую — выходит с ошибкой."""
+    monkeypatch.setattr(launcher, "_need_venv", lambda: None)
+    monkeypatch.setattr(launcher, "_ensure_database", lambda: True)
+    monkeypatch.setattr(launcher, "_ensure_llm", lambda wait=True: False)
+    monkeypatch.setattr(launcher, "_py", lambda *a: pytest.fail("report запущен без модели"))
+    assert launcher.main(["report", "вопросы.yaml"]) == 1

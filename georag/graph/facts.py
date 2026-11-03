@@ -41,7 +41,6 @@
 
 from __future__ import annotations
 
-import os
 import re
 import time
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
@@ -49,6 +48,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .. import env
 from ..paths import CONFIG
 from ..text import locate_quote, mentions, name_key, split_sentences
 from . import store
@@ -495,7 +495,7 @@ def run(
     from .entities import MIN_TERMS, entity_list_enabled
 
     if captions is None:
-        captions = os.environ.get("GEORAG_SKIP_CAPTIONS") == "1"
+        captions = env.flag("GEORAG_SKIP_CAPTIONS")
 
     need = MIN_TERMS if min_terms is None else min_terms
     give_list = entity_list_enabled() if entity_list is None else entity_list

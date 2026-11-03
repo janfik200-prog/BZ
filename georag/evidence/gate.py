@@ -21,6 +21,7 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
+from .. import env
 from ..paths import ROOT
 from ..text import normalize
 from .applicability import V3, PolicyConfig, decide_applicability
@@ -50,7 +51,8 @@ _CMP_Q = re.compile(r"аналог|сравн|похож|analog|compar|similar",
 
 
 def enabled() -> bool:
-    return os.environ.get("GEORAG_SCOPE_GATE", "").strip() in ("1", "true", "yes")
+    """GEORAG_SCOPE_GATE — переключатель по правилам georag/env.py (1, true, да, …)."""
+    return env.flag("GEORAG_SCOPE_GATE")
 
 
 @cache

@@ -38,6 +38,7 @@ from dataclasses import dataclass
 from itertools import pairwise
 
 from ..text import mentions, split_sentences
+from .facts import FRAGMENT_CHARS  # столько фрагмента видит модель — и отсев смотрит столько же
 
 CAPTIONS_RULES = "captions-v14.t6"
 
@@ -51,7 +52,6 @@ KINDS = (CAPTION, LEGEND, TABLE_ROW, PROSE)
 # 5 из 96 верных размеченных фактов DEV), без таблиц до порога 0,3 — ни одного.
 SKIP_KINDS = frozenset({CAPTION, LEGEND})
 MIN_PROSE_SHARE = 0.3
-FRAGMENT_CHARS = 4000  # столько фрагмента видит модель (facts.FRAGMENT_CHARS)
 
 _LABEL = (
     r"(?:fig(?:ure)?s?\.?|рис(?:унок|унке|\.)?|табл(?:ица|\.)?|tables?|tab\.|"

@@ -305,19 +305,27 @@ def fit_budget(
     settings: Settings,
     plan: Plan | None = None,
     conflicts: list[dict[str, Any]] | None = None,
+    tail: list[dict[str, Any]] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Фрагменты и история, которые влезают в окно модели вместе с ответом.
 
     Сначала уходят старые обмены разговора, потом — последние фрагменты (самые
     слабые: порядок — как отобрала модель), но не меньше трёх. Нумерация не
-    сбивается: отбрасываются только с конца."""
+    сбивается: отбрасываются только с конца.
+
+    tail — источники, которые пойдут после фрагментов и не урезаются (статьи словаря):
+    они в счёте окна, но не среди возвращённых — их добавляет вызывающий."""
+    after = list(tail or [])
     budget = settings.num_ctx - ANSWER_RESERVE
     history = [m for m in history if m.get("role") in ("user", "assistant") and m.get("content")][
         -HISTORY_TURNS * 2 :
     ]
 
     def size() -> Any:
-        return _tokens(build_messages(question, sources, history, settings.model, plan, conflicts))
+        everything = sources + after
+        return _tokens(
+            build_messages(question, everything, history, settings.model, plan, conflicts)
+        )
 
     while history and size() > budget:
         history = history[2:]
