@@ -523,6 +523,15 @@ def index(conn: Any) -> Index | None:
     return _INDEX["x"]
 
 
+def rollback(conn: Any) -> None:
+    """Откатить сбойный запрос к словарю, чтобы соединение годилось дальше; у заглушки
+    соединения в проверках отката нет — и не надо."""
+    try:
+        conn.rollback()
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def _follow(idx: Index, entry: dict[str, Any], hops: int = 2) -> dict[str, Any]:
     """Отсылка («см. Структурная ось β.», «син. термина гастроподы.») — к статье, куда она
     ведёт; запоминается, откуда пришли (via)."""

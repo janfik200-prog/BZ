@@ -267,7 +267,7 @@ def lookup_terms(conn: Any, question: str, settings: Settings) -> list[dict[str,
     try:
         return dicts.terms_in(conn, question)
     except Exception:  # noqa: BLE001 — без словаря ответ всё равно будет
-        conn.rollback()
+        dicts.rollback(conn)
         return []
 
 

@@ -141,7 +141,9 @@ def dictionary_variants(conn: Any, query: str) -> dict[str, Any]:
     try:
         variants = query_variants(conn, query)
     except Exception:  # noqa: BLE001 — без вариантов поиск тот же, что раньше
-        conn.rollback()
+        from ..dicts import rollback
+
+        rollback(conn)
         return {}
     return {"alternatives": variants} if variants else {}
 
