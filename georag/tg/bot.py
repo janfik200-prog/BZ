@@ -764,7 +764,7 @@ class Bot:
     ) -> None:
         article = None
         doc_id = src.get("doc_id") or ""
-        if with_article and doc_id and src.get("kind") != "датасет":
+        if with_article and doc_id and src.get("kind") not in ("датасет", "словарь"):
             ref = session.remember(session.lists, {"kind": "ref", "doc_id": doc_id, "items": []})
             article = f"art:{ref}"
         chunk_id = src.get("chunk_id")

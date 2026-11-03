@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS dict_entries (
 CREATE INDEX IF NOT EXISTS dict_entries_dict ON dict_entries (dict_id, ord);
 CREATE INDEX IF NOT EXISTS dict_entries_key ON dict_entries (term_key);
 CREATE INDEX IF NOT EXISTS dict_entries_tsv ON dict_entries USING gin (tsv);
+ALTER TABLE dictionaries ADD COLUMN IF NOT EXISTS abbreviations JSONB;
 """
 
 
@@ -203,12 +204,38 @@ def detect_range(path: Path) -> tuple[int, int]:
     return pages[0], pages[-1]
 
 
+def abbreviation_pages(path: Path, first_entry_page: int) -> tuple[int, int]:
+    """Страницы списка сокращений: перед статьями, где у большинства строк «X – Y» левая
+    часть кончается точкой («агр. – агрегат»). Нет таких — пустой диапазон."""
+    import pymupdf
+
+    doc = pymupdf.open(path)
+    pages = []
+    for i in range(first_entry_page - 1):
+        heads = dots = 0
+        for left, x, spans in _lines(doc[i]):
+            m = _DASH.search(_text(spans))
+            if _bold(spans[0]) and x - left < INDENT and m:
+                heads += 1
+                dots += _text(spans)[: m.start()].rstrip().endswith(".")
+        if heads >= 5 and dots >= heads / 2:
+            pages.append(i + 1)
+    return (pages[0], pages[-1]) if pages else (1, 0)
+
+
 # --- папка ----------------------------------------------------------------------------- #
 
 
-def save(dict_id: str, title: str, source: str, entries: list[Entry]) -> Path:
+def save(
+    dict_id: str, title: str, source: str, entries: list[Entry],
+    pairs: list[tuple[str, str]] | None = None,
+) -> Path:
     folder = FOLDER / dict_id
     folder.mkdir(parents=True, exist_ok=True)
+    if pairs is not None:
+        (folder / "abbreviations.json").write_text(
+            json.dumps(pairs, ensure_ascii=False, indent=0), "utf-8"
+        )
     with (folder / "entries.jsonl").open("w", encoding="utf-8") as f:
         for e in entries:
             f.write(json.dumps(asdict(e), ensure_ascii=False) + "\n")
@@ -248,14 +275,17 @@ def load(conn: Any, dict_id: str) -> int:
     """Словарь из папки → база (прежние статьи этого словаря заменяются)."""
     meta = json.loads((FOLDER / dict_id / "meta.json").read_text("utf-8"))
     entries = read(dict_id)
+    abbr = FOLDER / dict_id / "abbreviations.json"
+    pairs = json.loads(abbr.read_text("utf-8")) if abbr.exists() else []
     init(conn)
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO dictionaries (id, title, source, entries, loaded_at) "
-            "VALUES (%s, %s, %s, %s, now()) ON CONFLICT (id) DO UPDATE SET title = "
+            "INSERT INTO dictionaries (id, title, source, entries, loaded_at, abbreviations) "
+            "VALUES (%s, %s, %s, %s, now(), %s) ON CONFLICT (id) DO UPDATE SET title = "
             "EXCLUDED.title, source = EXCLUDED.source, entries = EXCLUDED.entries, "
-            "loaded_at = now()",
-            (dict_id, meta["title"], meta.get("source"), len(entries)),
+            "loaded_at = now(), abbreviations = EXCLUDED.abbreviations",
+            (dict_id, meta["title"], meta.get("source"), len(entries),
+             json.dumps(pairs, ensure_ascii=False)),
         )
         cur.execute("DELETE FROM dict_entries WHERE dict_id = %s", (dict_id,))
         with cur.copy(
@@ -338,6 +368,8 @@ def working_entries(key: str) -> list[dict[str, Any]]:
     import yaml
 
     path = CONFIG / WORKING[key][1]
+    if not path.exists():
+        return []
     if key == "geo-terms":
         terms = [line.strip() for line in path.read_text("utf-8").splitlines()
                  if line.strip() and not line.lstrip().startswith("#")]
@@ -361,6 +393,298 @@ def working_find(key: str, query: str, limit: int = 50, offset: int = 0) -> dict
     if q:
         rows = [r for r in rows if q in " ".join(str(v or "") for v in r.values()).lower()]
     return {"total": len(rows), "entries": rows[offset : offset + limit]}
+
+
+# --- сокращения ------------------------------------------------------------------------ #
+
+# Сокращения словаря («м-л», «Тв.», «к-лы») — из его списка сокращений (у Геологического
+# словаря — с. 20–21 PDF). Модель читала бы «Тв. 6» и «м-ниях» как придётся, поэтому перед
+# тем как отдать определение модели, сокращения раскрываются (expand).
+_NOTE = re.compile(r"\s*\([^)]*\)")
+
+
+def abbreviation_pairs(entries: list[Entry]) -> list[tuple[str, str]]:
+    """Строки списка сокращений → пары (сокращение, полное слово).
+
+    «к-л, к-лы – кристалл, кристаллы» → две пары; «тв. – твердость (при цифре)» → одна, без
+    пояснения в скобках. Однобуквенные без точки и дефиса («T, t») пропускаются: совпали бы
+    с обозначениями в формулах."""
+    pairs: list[tuple[str, str]] = []
+    for e in entries:
+        full = _NOTE.sub("", e.definition.split(" Примечания")[0]).strip()
+        shorts = [s.strip() for s in e.term.split(",") if s.strip()]
+        fulls = [f.strip() for f in full.split(",") if f.strip()]
+        for i, short in enumerate(shorts):
+            if len(short) <= 2 and not re.search(r"[.\-]", short):
+                continue
+            if re.fullmatch(r"\w\.", short):  # «г.», «п.» — как инициалы; только в сочетаниях
+                continue
+            target = fulls[i] if len(fulls) == len(shorts) else fulls[0] if fulls else ""
+            if target:
+                pairs.append((short, target))
+    return pairs
+
+
+def _abbr_pattern(short: str, full: str) -> tuple[re.Pattern[str], Any]:
+    """Шаблон сокращения в тексте и замена. Сокращение с дефисом («м-л» → «минерал»)
+    узнаётся и в других формах: «м-лов» → «минералов», «к-лах» → «кристаллах»."""
+    if "-" in short and not short.endswith("."):
+        head, tail = short.split("-", 1)
+        if full.lower().endswith(tail.lower()) and tail:
+            stem = full[: len(full) - len(tail)]
+            pattern = re.compile(
+                rf"(?<![\w-]){re.escape(head)}[-‑]({re.escape(tail[0])}\w*)", re.IGNORECASE
+            )
+            return pattern, lambda m: stem + m.group(1)
+    pattern = re.compile(rf"(?<![\w-]){re.escape(short)}(?![\w-])", re.IGNORECASE)
+
+    def same_case(m: re.Match[str]) -> str:
+        word = full[:1].upper() + full[1:] if m.group(0)[:1].isupper() else full
+        # Точка сокращения бывает и концом фразы: «Мон. Удлиненные к-лы» → «Моноклинный.
+        # Удлиненные…» — точка остаётся, если дальше новая фраза или конец текста.
+        after = m.string[m.end() :]
+        if short.endswith(".") and (not after.strip() or re.match(r"\s+[A-ZА-ЯЁ]", after)):
+            word += "."
+        return word
+
+    return pattern, same_case
+
+
+def expand(text: str, pairs: list[tuple[str, str]]) -> str:
+    """Сокращения словаря в тексте — полными словами (длинные — первыми)."""
+    for short, full in sorted(pairs, key=lambda p: -len(p[0])):
+        pattern, repl = _abbr_pattern(short, full)
+        text = pattern.sub(repl, text)
+    return text
+
+
+def abbreviations(conn: Any, dict_id: str) -> list[tuple[str, str]]:
+    with conn.cursor() as cur:
+        cur.execute("SELECT abbreviations FROM dictionaries WHERE id = %s", (dict_id,))
+        row = cur.fetchone()
+    return [tuple(p) for p in (row[0] or [])] if row else []  # type: ignore[misc]
+
+
+# --- словарь в чате: термины вопроса, отсылки, варианты запроса ------------------------- #
+
+# Однословный термин, который встречается больше чем в COMMON доле фрагментов статей
+# («золото», «разлом»), в справку не идёт: его смысл модели и так ясен, а место в окне нужно
+# фрагментам. Составные термины («зона сдвига») идут всегда.
+COMMON = 0.02
+MAX_NGRAM = 5
+_REFERENCE = re.compile(r"^(?:см\.|син\. термина|то же, что)\s+(.+?)\.?$", re.IGNORECASE)
+_QWORD = re.compile(r"[\w‑-]+", re.U)
+
+
+@dataclass
+class Index:
+    """Ключи терминов справочных словарей (name_key: падеж и число не важны) → статьи."""
+
+    stamp: tuple[Any, ...]
+    by_key: dict[str, list[dict[str, Any]]]
+    titles: dict[str, str]
+
+
+_INDEX: dict[str, Index] = {}
+
+
+def index(conn: Any) -> Index | None:
+    """Индекс терминов из базы; пересчёт — если словари в базе поменялись. Словарей нет —
+    None (чат и поиск работают как раньше)."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT to_regclass('dict_entries') IS NOT NULL")
+        if not cur.fetchone()[0]:
+            return None
+        cur.execute("SELECT count(*), coalesce(max(loaded_at)::text, '') FROM dictionaries")
+        stamp = tuple(cur.fetchone())
+        if not stamp[0]:
+            return None
+        known = _INDEX.get("x")
+        if known is not None and known.stamp == stamp:
+            return known
+        cur.execute("SELECT id, title FROM dictionaries")
+        titles = dict(cur.fetchall())
+        cur.execute("SELECT dict_id, ord, term, term_key, en, etym, definition, page FROM dict_entries")
+        rows = cur.fetchall()
+    by_key: dict[str, list[dict[str, Any]]] = {}
+    for dict_id, ord_, term, key, en, etym, definition, page in rows:
+        entry = {"dict_id": dict_id, "ord": ord_, "term": term, "en": en or "", "etym": etym or "",
+                 "definition": definition, "page": page}
+        by_key.setdefault(key, []).append(entry)
+        # «Гастроподы (Gastropoda; от греч. …)» — и по слову без латинского названия.
+        bare = term.split(" (")[0].strip()
+        if bare != term:
+            by_key.setdefault(name_key(bare), []).append(entry)
+        for name in (en or "").split(","):
+            if name.strip():
+                by_key.setdefault(name_key(name), []).append(entry)
+    _INDEX.clear()
+    _INDEX["x"] = Index(stamp, by_key, titles)
+    return _INDEX["x"]
+
+
+def rollback(conn: Any) -> None:
+    """Откатить сбойный запрос к словарю, чтобы соединение годилось дальше; у заглушки
+    соединения в проверках отката нет — и не надо."""
+    try:
+        conn.rollback()
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _follow(idx: Index, entry: dict[str, Any], hops: int = 2) -> dict[str, Any]:
+    """Отсылка («см. Структурная ось β.», «син. термина гастроподы.») — к статье, куда она
+    ведёт; запоминается, откуда пришли (via)."""
+    current = entry
+    for _ in range(hops):
+        m = _REFERENCE.match(current["definition"].strip())
+        if not m:
+            break
+        target = idx.by_key.get(name_key(m.group(1).split(" (")[0]))
+        if not target:
+            break
+        current = {**target[0], "via": entry["term"]}
+    return current
+
+
+def _common(conn: Any, term: str, total: int) -> bool:
+    if " " in term.strip() or not total:
+        return False
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT count(*) FROM chunks WHERE tsv @@ plainto_tsquery('russian', %s)", (term,)
+        )
+        return cur.fetchone()[0] > COMMON * total
+
+
+def terms_in(conn: Any, text: str, limit: int = 3) -> list[dict[str, Any]]:
+    """Статьи словарей о терминах, названных в тексте вопроса: самые длинные совпадения
+    первыми, без перекрытий; отсылки разворачиваются, общеупотребительные однословные
+    термины пропускаются. Словарей в базе нет — пусто."""
+    idx = index(conn)
+    if idx is None:
+        return []
+    words = _QWORD.findall(text or "")
+    spans: list[tuple[int, int, dict[str, Any]]] = []
+    for n in range(min(MAX_NGRAM, len(words)), 0, -1):
+        for i in range(len(words) - n + 1):
+            if any(a < i + n and i < b for a, b, _ in spans):
+                continue
+            phrase = " ".join(words[i : i + n])
+            if n == 1 and len(phrase) < 4:
+                continue
+            found = idx.by_key.get(name_key(phrase))
+            if found:
+                spans.append((i, i + n, found[0]))
+    if not spans:
+        return []
+    with conn.cursor() as cur:
+        cur.execute("SELECT count(*) FROM chunks")
+        total = cur.fetchone()[0]
+    out: list[dict[str, Any]] = []
+    seen: set[tuple[str, int]] = set()
+    for _, _, entry in sorted(spans, key=lambda s: (-(s[1] - s[0]), s[0])):
+        if _common(conn, entry["term"], total):
+            continue
+        entry = _follow(idx, entry)
+        key = (entry["dict_id"], entry["ord"])
+        if key not in seen:
+            seen.add(key)
+            out.append({**entry, "title": idx.titles.get(entry["dict_id"], entry["dict_id"])})
+        if len(out) >= limit:
+            break
+    return out
+
+
+def query_variants(conn: Any, query: str, limit: int = 4) -> list[str]:
+    """Запрос с другими написаниями терминов из словаря: английским названием и термином,
+    куда ведёт отсылка («Брюхоногие» → «гастроподы»). Для полнотекстового поиска: он
+    ищет слова буквально, и «лиственитизация» не находит английскую статью."""
+    idx = index(conn)
+    if idx is None:
+        return []
+    out: list[str] = []
+    words = _QWORD.findall(query or "")
+    for n in range(min(MAX_NGRAM, len(words)), 0, -1):
+        for i in range(len(words) - n + 1):
+            phrase = " ".join(words[i : i + n])
+            if n == 1 and len(phrase) < 4:
+                continue
+            found = idx.by_key.get(name_key(phrase))
+            if not found:
+                continue
+            entry = found[0]
+            target = _follow(idx, entry)
+            names = [x.strip() for x in entry["en"].split(",") if x.strip()]
+            if target is not entry:
+                names.append(target["term"])
+                names += [x.strip() for x in target["en"].split(",") if x.strip()]
+            for name in names:
+                if name_key(name) != name_key(phrase):
+                    variant = " ".join([*words[:i], name, *words[i + n :]])
+                    if variant not in out:
+                        out.append(variant)
+    return out[:limit]
+
+
+def expand_headword(text: str, term: str) -> str:
+    """Термин внутри своей статьи сокращён до начальных букв: «Термин Д. часто применяют»
+    (Декольман), «А. с. используется» (Адсорбция селективная) — полным термином. Инициалы
+    авторов («Д.С. Коржинский», «Д. Smith») не трогаются: после них — заглавная буква."""
+    words = [w for w in re.split(r"[\s\-]+", term.split(" (")[0]) if w]
+    if not words:
+        return text
+    initials = r"\s?".join(re.escape(w[0]) + r"\." for w in words)
+    initials = initials[:1].upper() + initials[1:] if len(words) == 1 else initials
+    pattern = re.compile(rf"(?<![\w.]){initials}(?=(?-i:\s+[а-яёa-z0-9(])|[,;:)]|\s*$)", re.IGNORECASE)
+    return pattern.sub(term.split(" (")[0], text)
+
+
+def as_sources(conn: Any, entries: list[dict[str, Any]], start: int) -> list[dict[str, Any]]:
+    """Статьи словаря — источниками ответа, как фрагменты статей: свой номер [n], вид
+    «словарь». Сокращения раскрыты, отсылка («см. …») названа."""
+    out = []
+    pairs_by: dict[str, list[tuple[str, str]]] = {}
+    for i, e in enumerate(entries):
+        if e["dict_id"] not in pairs_by:
+            pairs_by[e["dict_id"]] = abbreviations(conn, e["dict_id"])
+        pairs = pairs_by[e["dict_id"]]
+        head = e["term"] + (f" [{e['en']}]" if e["en"] else "")
+        via = f"(по отсылке из статьи «{e['via']}») " if e.get("via") else ""
+        text = f"{head} — {via}{expand_headword(expand(e['definition'], pairs), e['term'])}"
+        out.append({
+            "n": start + i,
+            "doc_id": f"словарь:{e['dict_id']}",
+            "ord": e["ord"],
+            "title": f"{e['title']}: «{e['term']}»",
+            "year": None,
+            "journal": None,
+            "authors": [],
+            "pages": [e["page"]] if e.get("page") else [],
+            "headings": [],
+            "url": "",
+            "text": text,
+            "similarity": None,
+            "found_by": "словарь",
+            "part": None,
+            "kind": "словарь",
+            "term": e["term"],
+        })
+    return out
+
+
+# «Что такое адуляр», «что значит декольман», «дай определение…» — вопрос об определении:
+# ответ начинается со статьи словаря, статьи базы его дополняют.
+DEFINITION = re.compile(
+    r"^\s*(?:что\s+(?:такое|значит|означает|называют|понимают\s+под)|"
+    r"(?:дай|дайте|приведи|приведите)\s+определение|определение\s+(?:термина|понятия)?|"
+    r"значение\s+(?:термина|слова|понятия)|what\s+is|what\s+does)\b",
+    re.IGNORECASE,
+)
+
+
+def is_definition(question: str) -> bool:
+    return bool(DEFINITION.search(question or ""))
 
 
 # --- команда --------------------------------------------------------------------------- #
@@ -394,7 +718,9 @@ def main(argv: list[str] | None = None) -> int:
             first, last = detect_range(pdf)
         print(f"Разбираю {pdf.name}, страницы {first}–{last}…")
         entries = parse_pdf(pdf, first, last)
-        folder = save(dict_id, args.title or pdf.stem, pdf.name, entries)
+        pairs = abbreviation_pairs(parse_pdf(pdf, *abbreviation_pages(pdf, first)))
+        print(f"Сокращений: {len(pairs)}")
+        folder = save(dict_id, args.title or pdf.stem, pdf.name, entries, pairs)
         print(f"Статей: {len(entries)} → {folder}")
         if not args.no_db:
             with db.connect() as conn:

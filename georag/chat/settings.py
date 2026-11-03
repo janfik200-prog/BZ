@@ -23,6 +23,12 @@ def env_flag(name: str) -> bool:
     return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "да")
 
 
+def dictionary_on() -> bool:
+    """Справочные словари в чате (georag/dicts.py): по умолчанию включены, если загружены;
+    GEORAG_DICT=0 — выключить (сравнить ответы без словаря)."""
+    return os.environ.get("GEORAG_DICT", "1").strip().lower() not in ("0", "false", "no", "нет")
+
+
 @dataclass
 class Settings:
     model: str = MODEL
@@ -53,6 +59,10 @@ class Settings:
     # место…, и кандидаты с ними идут выше. Проверка 30.10.2026 (research/v15): доля
     # полезных среди пяти лучших 0,50 → 0,72 на 25 вопросах. Лишний вызов модели на вопрос.
     concepts: bool = field(default_factory=lambda: env_flag("GEORAG_CONCEPTS"))
+    # Справочные словари (georag/dicts.py, вкладка «Словари»): термины вопроса — статьями
+    # словаря среди источников ответа, вопрос «что такое …» — с определения по словарю,
+    # английские названия и отсылки словаря — в поиск по словам. GEORAG_DICT=0 — без них.
+    dictionary: bool = field(default_factory=dictionary_on)
     # Заметки: модель, отбирая фрагменты, пишет по каждому подходящему, что в нём сказано
     # по вопросу; ответ видит TOP_K фрагментов целиком и заметки ещё по NOTES (retrieval).
     # Статей в ответе — вдвое больше, но полнота по эталону не выросла надёжно (0,30 → 0,36
