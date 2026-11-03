@@ -89,7 +89,8 @@ def _ids_from_hits(reg: GeoAreaRegistry, hits: list[AliasHit]) -> tuple[set[str]
         if not h.ambiguous:
             continue
         related = [
-            i for i in h.area_ids
+            i
+            for i in h.area_ids
             if any(p in reg.ancestors(i) or i in reg.ancestors(p) for p in plain)
         ]
         if len(related) == 1:
@@ -162,7 +163,9 @@ def resolve_scope(
                 out.derivation = ANAPHORA
                 out.spans = [ScopeSpan(ANAPHORA, sentence, h.alias, h.area_ids) for h in found]
                 out.reason_codes.append("ANAPHORA_RESOLVED")
-                if len(ids) > 1 and any(registry.relation(a, b) == DISJOINT for a in ids for b in ids if a < b):
+                if len(ids) > 1 and any(
+                    registry.relation(a, b) == DISJOINT for a in ids for b in ids if a < b
+                ):
                     out.mixed = True
                     out.reason_codes.append("REGION_MIXED")
                 return out

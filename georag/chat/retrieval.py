@@ -361,7 +361,9 @@ def retrieve(
         )
         add(found, None, 1)
     else:
-        add(candidates(conn, embedder, plan.queries, cache, wide, facts, where, **by_concepts), 1, 1)
+        add(
+            candidates(conn, embedder, plan.queries, cache, wide, facts, where, **by_concepts), 1, 1
+        )
     # Ограничение — на весь набор: поиски по частям вопроса складываются, и одна статья
     # набирала 7 мест из 16. Других статей мало — лишние куски той же добирают места.
     for h, part, rnd in spare[: max(0, wide - len(pool))]:

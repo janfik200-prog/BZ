@@ -50,8 +50,12 @@ def test_classify(text: str, kind: str) -> None:
 def test_caption_line_glued_to_prose_by_splitter() -> None:
     """Подпись без точки split_sentences склеивает со следующим абзацем; вид — по строке
     Docling и по куску, где названы концы факта."""
-    text = "Fig. 21 Iron ore prospectivity map of the study area\nLineament density controls iron ore."
-    quote = "Fig. 21 Iron ore prospectivity map of the study area Lineament density controls iron ore."
+    text = (
+        "Fig. 21 Iron ore prospectivity map of the study area\nLineament density controls iron ore."
+    )
+    quote = (
+        "Fig. 21 Iron ore prospectivity map of the study area Lineament density controls iron ore."
+    )
     assert C.quote_kind(quote, text, "lineament density", "iron ore") == C.PROSE
     assert C.quote_kind(quote, text, "prospectivity map", "study area") == C.CAPTION
 
@@ -69,7 +73,9 @@ def test_legend_inside_prose_paragraph_does_not_spread() -> None:
 
 
 def test_formula_paragraph_is_not_table_line() -> None:
-    text = "Here, the threshold is set high, so that R = 0.45 and n = 26 for the model. Gold is rare."
+    text = (
+        "Here, the threshold is set high, so that R = 0.45 and n = 26 for the model. Gold is rare."
+    )
     assert C.sentence_kinds(text) == [C.PROSE, C.PROSE]
 
 
@@ -124,9 +130,14 @@ def pipeline(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     from georag.graph import dedup, store
 
     log: dict[str, Any] = {"skipped": {}, "saved": []}
-    rows = [(1, "d", "Fig. 4 Geological map of the area\n" + LEGEND), (2, "d", "Gold occurs in quartz veins.")]
+    rows = [
+        (1, "d", "Fig. 4 Geological map of the area\n" + LEGEND),
+        (2, "d", "Gold occurs in quartz veins."),
+    ]
     monkeypatch.setattr(store, "todo", lambda *_a, **_k: rows)
-    monkeypatch.setattr(store, "skip", lambda _c, cid, reason, _lang=None: log["skipped"].__setitem__(cid, reason))
+    monkeypatch.setattr(
+        store, "skip", lambda _c, cid, reason, _lang=None: log["skipped"].__setitem__(cid, reason)
+    )
     monkeypatch.setattr(store, "save", lambda _c, cid, *_a, **_k: log["saved"].append(cid))
     monkeypatch.setattr(dedup, "find_duplicate", lambda *_a: None)
     monkeypatch.setattr(F, "load_rules", lambda *_a: "правила")
@@ -141,7 +152,9 @@ def test_run_skips_caption_fragment_when_enabled(pipeline: dict[str, Any]) -> No
     assert pipeline["saved"] == [2] and llm.calls == 1
 
 
-def test_run_unchanged_by_default(pipeline: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_unchanged_by_default(
+    pipeline: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.delenv("GEORAG_SKIP_CAPTIONS", raising=False)
     llm = _LLM()
     stats = F.run(_Conn(), llm, finder=_Finder(), log=lambda *_: None)
@@ -149,7 +162,9 @@ def test_run_unchanged_by_default(pipeline: dict[str, Any], monkeypatch: pytest.
     assert pipeline["saved"] == [1, 2] and llm.calls == 2
 
 
-def test_run_flag_from_environment(pipeline: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_flag_from_environment(
+    pipeline: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("GEORAG_SKIP_CAPTIONS", "1")
     stats = F.run(_Conn(), _LLM(), finder=_Finder(), log=lambda *_: None)
     assert stats["captions"] == 1
@@ -157,5 +172,7 @@ def test_run_flag_from_environment(pipeline: dict[str, Any], monkeypatch: pytest
 
 def test_no_filter_reprocesses(pipeline: dict[str, Any]) -> None:
     """graph --no-filter: отсев выключен, отсеянные раньше проходятся заново."""
-    stats = F.run(_Conn(), _LLM(), finder=_Finder(), filtering=False, captions=True, log=lambda *_: None)
+    stats = F.run(
+        _Conn(), _LLM(), finder=_Finder(), filtering=False, captions=True, log=lambda *_: None
+    )
     assert stats["captions"] == 0 and pipeline["saved"] == [1, 2]

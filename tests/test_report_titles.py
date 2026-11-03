@@ -35,10 +35,14 @@ class MatchTests(unittest.TestCase):
         self.assertIs(found["other"], by_report)
 
     def test_title_with_place(self):
-        self.assertEqual(T.title_of({"title": "Отчёт о работах", "place": "Линденская площадь"}),
-                         "Отчёт о работах (Линденская площадь)")
-        self.assertEqual(T.title_of({"title": "Работы на Линденской площади", "place": "Линденской"}),
-                         "Работы на Линденской площади")
+        self.assertEqual(
+            T.title_of({"title": "Отчёт о работах", "place": "Линденская площадь"}),
+            "Отчёт о работах (Линденская площадь)",
+        )
+        self.assertEqual(
+            T.title_of({"title": "Работы на Линденской площади", "place": "Линденской"}),
+            "Работы на Линденской площади",
+        )
 
     def test_read_table(self):
         from openpyxl import Workbook
@@ -62,8 +66,11 @@ class ReportTests(unittest.TestCase):
     def test_questions_and_reaction(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "q.yaml"
-            path.write_text("вопросы:\n  - {id: f1, вид: ложный, вопрос: 'Почему X?'}\n"
-                            "  - 'Простой вопрос?'\n", "utf-8")
+            path.write_text(
+                "вопросы:\n  - {id: f1, вид: ложный, вопрос: 'Почему X?'}\n"
+                "  - 'Простой вопрос?'\n",
+                "utf-8",
+            )
             qs = R.load_questions(path)
         self.assertEqual([(q["id"], q["kind"]) for q in qs], [("f1", "ложный"), ("2", "обычный")])
         self.assertEqual(R.reaction("Это неверно: во фрагментах сказано другое [1]."), "опроверг")
@@ -83,9 +90,13 @@ class LinkTests(unittest.TestCase):
 
     def test_weak_link(self):
         claim = "Свита нефтематеринская, что подтверждает приток нефти [2]."
-        self.assertTrue(S._weak_link({"ответ": "частично", "чего_нет": "связь: нет во фрагменте"}, claim))
+        self.assertTrue(
+            S._weak_link({"ответ": "частично", "чего_нет": "связь: нет во фрагменте"}, claim)
+        )
         self.assertFalse(S._weak_link({"ответ": "частично", "чего_нет": "другое место"}, claim))
-        self.assertFalse(S._weak_link({"ответ": "частично", "чего_нет": "связь"}, "Свита есть [1]."))
+        self.assertFalse(
+            S._weak_link({"ответ": "частично", "чего_нет": "связь"}, "Свита есть [1].")
+        )
 
     def test_rules_in_prompt(self):
         from georag.chat.messages import SYSTEM

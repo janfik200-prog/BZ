@@ -67,15 +67,18 @@ class ShareTests(unittest.TestCase):
 
 class RerankTests(unittest.TestCase):
     def test_concepts_first_ties_keep_order(self):
-        hits = [Hit(1, "общие слова"), Hit(2, "Euler deconvolution depth"), Hit(3, "тоже общее"),
-                Hit(4, "метод Эйлера")]
+        hits = [
+            Hit(1, "общие слова"),
+            Hit(2, "Euler deconvolution depth"),
+            Hit(3, "тоже общее"),
+            Hit(4, "метод Эйлера"),
+        ]
         got = [h.chunk_id for h in C.rerank(hits, [["метод Эйлера", "Euler deconvolution"]])]
         self.assertEqual(got, [2, 4, 1, 3])
 
     def test_no_concepts_no_change(self):
         hits = [Hit(1, "a"), Hit(2, "b")]
         self.assertIs(C.rerank(hits, []), hits)
-
 
 
 class PlaceTests(unittest.TestCase):

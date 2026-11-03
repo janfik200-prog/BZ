@@ -135,7 +135,9 @@ def _entry(raw: str, page: int) -> Entry | None:
     """«Адуляр [по горам Адула, Швейцария; adularia] – прозрач. …» → поля статьи."""
     # Тире внутри скобок («[от фр. décollement – отклеивание; …]») — не граница определения.
     b, e = raw.find("["), raw.find("]")
-    m = _DASH.search(raw, e + 1 if 0 <= b < e and b < (_DASH.search(raw) or re.search("$", raw)).start() else 0)
+    m = _DASH.search(
+        raw, e + 1 if 0 <= b < e and b < (_DASH.search(raw) or re.search("$", raw)).start() else 0
+    )
     if not m:
         return None
     head, definition = raw[: m.start()].strip(), raw[m.end() :].strip()
@@ -227,7 +229,10 @@ def abbreviation_pages(path: Path, first_entry_page: int) -> tuple[int, int]:
 
 
 def save(
-    dict_id: str, title: str, source: str, entries: list[Entry],
+    dict_id: str,
+    title: str,
+    source: str,
+    entries: list[Entry],
     pairs: list[tuple[str, str]] | None = None,
 ) -> Path:
     folder = FOLDER / dict_id
@@ -239,8 +244,13 @@ def save(
     with (folder / "entries.jsonl").open("w", encoding="utf-8") as f:
         for e in entries:
             f.write(json.dumps(asdict(e), ensure_ascii=False) + "\n")
-    meta = {"id": dict_id, "title": title, "source": source, "entries": len(entries),
-            "parsed_at": datetime.now().isoformat(timespec="seconds")}
+    meta = {
+        "id": dict_id,
+        "title": title,
+        "source": source,
+        "entries": len(entries),
+        "parsed_at": datetime.now().isoformat(timespec="seconds"),
+    }
     (folder / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), "utf-8")
     return folder
 
@@ -284,8 +294,13 @@ def load(conn: Any, dict_id: str) -> int:
             "VALUES (%s, %s, %s, %s, now(), %s) ON CONFLICT (id) DO UPDATE SET title = "
             "EXCLUDED.title, source = EXCLUDED.source, entries = EXCLUDED.entries, "
             "loaded_at = now(), abbreviations = EXCLUDED.abbreviations",
-            (dict_id, meta["title"], meta.get("source"), len(entries),
-             json.dumps(pairs, ensure_ascii=False)),
+            (
+                dict_id,
+                meta["title"],
+                meta.get("source"),
+                len(entries),
+                json.dumps(pairs, ensure_ascii=False),
+            ),
         )
         cur.execute("DELETE FROM dict_entries WHERE dict_id = %s", (dict_id,))
         with cur.copy(
@@ -293,8 +308,9 @@ def load(conn: Any, dict_id: str) -> int:
             "FROM STDIN"
         ) as copy:
             for i, e in enumerate(entries):
-                copy.write_row((dict_id, i, e.term, name_key(e.term), e.en, e.etym,
-                                e.definition, e.page))
+                copy.write_row(
+                    (dict_id, i, e.term, name_key(e.term), e.en, e.etym, e.definition, e.page)
+                )
     conn.commit()
     return len(entries)
 
@@ -304,12 +320,15 @@ def listing(conn: Any) -> list[dict[str, Any]]:
     init(conn)
     with conn.cursor() as cur:
         cur.execute("SELECT id, title, source, entries FROM dictionaries ORDER BY title")
-        return [{"id": i, "title": t, "source": s, "entries": n, "kind": "reference"}
-                for i, t, s, n in cur.fetchall()]
+        return [
+            {"id": i, "title": t, "source": s, "entries": n, "kind": "reference"}
+            for i, t, s, n in cur.fetchall()
+        ]
 
 
-def find(conn: Any, dict_id: str | None, query: str, letter: str = "", limit: int = 50,
-         offset: int = 0) -> dict[str, Any]:
+def find(
+    conn: Any, dict_id: str | None, query: str, letter: str = "", limit: int = 50, offset: int = 0
+) -> dict[str, Any]:
     """Статьи словаря: по началу термина, затем по словам в термине и определении.
     Пустой запрос — по алфавиту (с буквы letter)."""
     init(conn)
@@ -323,13 +342,18 @@ def find(conn: Any, dict_id: str | None, query: str, letter: str = "", limit: in
             sql_where = f"{where} AND term ILIKE %(l)s"
             cur.execute(f"SELECT count(*) FROM dict_entries WHERE {sql_where}", params)
             total = cur.fetchone()[0]
-            cur.execute(f"SELECT {fields} FROM dict_entries e WHERE {sql_where} "
-                        "ORDER BY ord LIMIT %(lim)s OFFSET %(off)s", params)
+            cur.execute(
+                f"SELECT {fields} FROM dict_entries e WHERE {sql_where} "
+                "ORDER BY ord LIMIT %(lim)s OFFSET %(off)s",
+                params,
+            )
         else:
             params.update({"p": f"{q}%", "q": q})
-            match = ("(term ILIKE %(p)s OR en ILIKE %(p)s OR tsv @@ "
-                     "websearch_to_tsquery('russian', %(q)s) OR tsv @@ "
-                     "websearch_to_tsquery('english', %(q)s))")
+            match = (
+                "(term ILIKE %(p)s OR en ILIKE %(p)s OR tsv @@ "
+                "websearch_to_tsquery('russian', %(q)s) OR tsv @@ "
+                "websearch_to_tsquery('english', %(q)s))"
+            )
             cur.execute(f"SELECT count(*) FROM dict_entries WHERE {where} AND {match}", params)
             total = cur.fetchone()[0]
             cur.execute(
@@ -339,8 +363,10 @@ def find(conn: Any, dict_id: str | None, query: str, letter: str = "", limit: in
                 "LIMIT %(lim)s OFFSET %(off)s",
                 params,
             )
-        rows = [dict(zip(("dict_id", "term", "en", "etym", "definition", "page"), r))
-                for r in cur.fetchall()]
+        rows = [
+            dict(zip(("dict_id", "term", "en", "etym", "definition", "page"), r))
+            for r in cur.fetchall()
+        ]
     return {"total": total, "entries": rows}
 
 
@@ -358,8 +384,15 @@ def working_listing() -> list[dict[str, Any]]:
     for key, (title, file) in WORKING.items():
         path = CONFIG / file
         if path.exists():
-            out.append({"id": key, "title": title, "source": f"config/{file}",
-                        "entries": len(working_entries(key)), "kind": "working"})
+            out.append(
+                {
+                    "id": key,
+                    "title": title,
+                    "source": f"config/{file}",
+                    "entries": len(working_entries(key)),
+                    "kind": "working",
+                }
+            )
     return out
 
 
@@ -371,20 +404,37 @@ def working_entries(key: str) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     if key == "geo-terms":
-        terms = [line.strip() for line in path.read_text("utf-8").splitlines()
-                 if line.strip() and not line.lstrip().startswith("#")]
+        terms = [
+            line.strip()
+            for line in path.read_text("utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
         return [{"term": t, "en": "", "etym": "", "definition": "", "page": None} for t in terms]
     data = yaml.safe_load(path.read_text("utf-8")) or {}
     if key == "synonyms":
         rows = []
         for section in ("имена", "связи"):
             for name, spellings in (data.get(section) or {}).items():
-                rows.append({"term": str(name), "en": "", "etym": section,
-                             "definition": ", ".join(str(s) for s in spellings or []),
-                             "page": None})
+                rows.append(
+                    {
+                        "term": str(name),
+                        "en": "",
+                        "etym": section,
+                        "definition": ", ".join(str(s) for s in spellings or []),
+                        "page": None,
+                    }
+                )
         return rows
-    return [{"term": str(k), "en": ", ".join(str(x) for x in v or []), "etym": "",
-             "definition": "", "page": None} for k, v in data.items()]
+    return [
+        {
+            "term": str(k),
+            "en": ", ".join(str(x) for x in v or []),
+            "etym": "",
+            "definition": "",
+            "page": None,
+        }
+        for k, v in data.items()
+    ]
 
 
 def working_find(key: str, query: str, limit: int = 50, offset: int = 0) -> dict[str, Any]:
@@ -504,12 +554,21 @@ def index(conn: Any) -> Index | None:
             return known
         cur.execute("SELECT id, title FROM dictionaries")
         titles = dict(cur.fetchall())
-        cur.execute("SELECT dict_id, ord, term, term_key, en, etym, definition, page FROM dict_entries")
+        cur.execute(
+            "SELECT dict_id, ord, term, term_key, en, etym, definition, page FROM dict_entries"
+        )
         rows = cur.fetchall()
     by_key: dict[str, list[dict[str, Any]]] = {}
     for dict_id, ord_, term, key, en, etym, definition, page in rows:
-        entry = {"dict_id": dict_id, "ord": ord_, "term": term, "en": en or "", "etym": etym or "",
-                 "definition": definition, "page": page}
+        entry = {
+            "dict_id": dict_id,
+            "ord": ord_,
+            "term": term,
+            "en": en or "",
+            "etym": etym or "",
+            "definition": definition,
+            "page": page,
+        }
         by_key.setdefault(key, []).append(entry)
         # «Гастроподы (Gastropoda; от греч. …)» — и по слову без латинского названия.
         bare = term.split(" (")[0].strip()
@@ -636,7 +695,9 @@ def expand_headword(text: str, term: str) -> str:
         return text
     initials = r"\s?".join(re.escape(w[0]) + r"\." for w in words)
     initials = initials[:1].upper() + initials[1:] if len(words) == 1 else initials
-    pattern = re.compile(rf"(?<![\w.]){initials}(?=(?-i:\s+[а-яёa-z0-9(])|[,;:)]|\s*$)", re.IGNORECASE)
+    pattern = re.compile(
+        rf"(?<![\w.]){initials}(?=(?-i:\s+[а-яёa-z0-9(])|[,;:)]|\s*$)", re.IGNORECASE
+    )
     return pattern.sub(term.split(" (")[0], text)
 
 
@@ -652,24 +713,26 @@ def as_sources(conn: Any, entries: list[dict[str, Any]], start: int) -> list[dic
         head = e["term"] + (f" [{e['en']}]" if e["en"] else "")
         via = f"(по отсылке из статьи «{e['via']}») " if e.get("via") else ""
         text = f"{head} — {via}{expand_headword(expand(e['definition'], pairs), e['term'])}"
-        out.append({
-            "n": start + i,
-            "doc_id": f"словарь:{e['dict_id']}",
-            "ord": e["ord"],
-            "title": f"{e['title']}: «{e['term']}»",
-            "year": None,
-            "journal": None,
-            "authors": [],
-            "pages": [e["page"]] if e.get("page") else [],
-            "headings": [],
-            "url": "",
-            "text": text,
-            "similarity": None,
-            "found_by": "словарь",
-            "part": None,
-            "kind": "словарь",
-            "term": e["term"],
-        })
+        out.append(
+            {
+                "n": start + i,
+                "doc_id": f"словарь:{e['dict_id']}",
+                "ord": e["ord"],
+                "title": f"{e['title']}: «{e['term']}»",
+                "year": None,
+                "journal": None,
+                "authors": [],
+                "pages": [e["page"]] if e.get("page") else [],
+                "headings": [],
+                "url": "",
+                "text": text,
+                "similarity": None,
+                "found_by": "словарь",
+                "part": None,
+                "kind": "словарь",
+                "term": e["term"],
+            }
+        )
     return out
 
 

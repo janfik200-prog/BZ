@@ -14,7 +14,7 @@ import csv
 import io
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -28,23 +28,48 @@ TITLES = {
     "UNRESOLVED": "Не решено: территория, поддержка или квантор не установлены",
 }
 CSV_COLUMNS = [
-    "section", "decision_id", "claim_id", "subject", "predicate", "object", "polarity", "modality",
-    "quantifier", "doc_id", "doi", "title", "pages", "quote", "support", "status", "reason_codes",
-    "scope_derivation", "region_ids", "source_family", "override_status", "override_reason", "override_by",
+    "section",
+    "decision_id",
+    "claim_id",
+    "subject",
+    "predicate",
+    "object",
+    "polarity",
+    "modality",
+    "quantifier",
+    "doc_id",
+    "doi",
+    "title",
+    "pages",
+    "quote",
+    "support",
+    "status",
+    "reason_codes",
+    "scope_derivation",
+    "region_ids",
+    "source_family",
+    "override_status",
+    "override_reason",
+    "override_by",
 ]
 
 
 @dataclass
 class EvidenceDossier:
     query: QueryFrame
-    entries: dict[str, list[dict[str, Any]]] = field(default_factory=lambda: {s: [] for s in SECTIONS})
+    entries: dict[str, list[dict[str, Any]]] = field(
+        default_factory=lambda: {s: [] for s in SECTIONS}
+    )
     meta: dict[str, Any] = field(default_factory=dict)
 
     def to_json(self) -> dict[str, Any]:
         return {
             "query": self.query.to_json(),
             "meta": self.meta,
-            "sections": {s: {"title": TITLES[s], "n": len(self.entries[s]), "entries": self.entries[s]} for s in SECTIONS},
+            "sections": {
+                s: {"title": TITLES[s], "n": len(self.entries[s]), "entries": self.entries[s]}
+                for s in SECTIONS
+            },
         }
 
     def to_csv(self) -> str:
@@ -53,9 +78,15 @@ class EvidenceDossier:
         w.writeheader()
         for s in SECTIONS:
             for e in self.entries[s]:
-                w.writerow({**e, "section": s, "reason_codes": ";".join(e["reason_codes"]),
-                            "pages": ",".join(str(p) for p in e.get("pages") or []),
-                            "region_ids": ";".join(e.get("region_ids") or [])})
+                w.writerow(
+                    {
+                        **e,
+                        "section": s,
+                        "reason_codes": ";".join(e["reason_codes"]),
+                        "pages": ",".join(str(p) for p in e.get("pages") or []),
+                        "region_ids": ";".join(e.get("region_ids") or []),
+                    }
+                )
         return buf.getvalue()
 
 
@@ -77,13 +108,16 @@ def build_dossier(
     for ev in overrides or []:
         last[ev["decision_id"]] = ev
         history.setdefault(ev["decision_id"], []).append(ev)
-    dossier = EvidenceDossier(query, meta={
-        "built_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "policy_versions": sorted({d.policy_version for d in decisions}),
-        "registry_versions": sorted({d.registry_version for d in decisions}),
-        "n_decisions": len(decisions),
-        "note": "Статус — о применимости источника к вопросу, не об истинности сказанного.",
-    })
+    dossier = EvidenceDossier(
+        query,
+        meta={
+            "built_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "policy_versions": sorted({d.policy_version for d in decisions}),
+            "registry_versions": sorted({d.registry_version for d in decisions}),
+            "n_decisions": len(decisions),
+            "note": "Статус — о применимости источника к вопросу, не об истинности сказанного.",
+        },
+    )
     for d in decisions:
         c = claims[d.claim_id]
         src = sources.get(d.claim_id, {})
@@ -123,7 +157,9 @@ def build_dossier(
     return dossier
 
 
-def record_override(log_path: Path | str, decision: DecisionRecord, new_status: str, reason: str, user: str) -> dict[str, Any]:
+def record_override(
+    log_path: Path | str, decision: DecisionRecord, new_status: str, reason: str, user: str
+) -> dict[str, Any]:
     """Исправление специалиста — новой строкой журнала; решение кода не меняется."""
     if new_status not in SECTIONS:
         raise ValueError(f"статус {new_status!r} не из {SECTIONS}")
@@ -137,7 +173,7 @@ def record_override(log_path: Path | str, decision: DecisionRecord, new_status: 
         "new_status": new_status,
         "reason": reason,
         "user": user,
-        "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "at": datetime.now(UTC).isoformat(timespec="seconds"),
         "policy_version": decision.policy_version,
     }
     path = Path(log_path)
@@ -183,7 +219,9 @@ def to_markdown(dossier: EvidenceDossier, max_per_section: int = 12) -> str:
                 f"область: {', '.join(e['region_ids']) or '—'} ({e['scope_derivation'] or '—'})",
             ]
             if e["override_status"]:
-                lines.append(f"  - исправлено: {e['override_status']} ({e['override_by']}: {e['override_reason']})")
+                lines.append(
+                    f"  - исправлено: {e['override_status']} ({e['override_by']}: {e['override_reason']})"
+                )
         if len(items) > max_per_section:
             lines.append(f"- … ещё {len(items) - max_per_section} (полностью — в CSV/JSON)")
         lines.append("")

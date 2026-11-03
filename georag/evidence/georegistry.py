@@ -19,9 +19,9 @@ from __future__ import annotations
 import csv
 import hashlib
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable
 
 from ..text import normalize
 
@@ -102,7 +102,10 @@ class GeoAreaRegistry:
             h
             for h in found
             if not any(
-                o is not h and o.start <= h.start and h.end <= o.end and (o.end - o.start) > (h.end - h.start)
+                o is not h
+                and o.start <= h.start
+                and h.end <= o.end
+                and (o.end - o.start) > (h.end - h.start)
                 for o in found
             )
         ]
@@ -193,7 +196,11 @@ def _ru_word(word: str) -> str:
 
     stem = ru_stem(word, 3) if len(word) > 4 else word
     stems = {stem, word}
-    return "(?:" + "|".join(re.escape(x) for x in sorted(stems, key=len, reverse=True)) + f")(?:{_RU_ENDINGS})?"
+    return (
+        "(?:"
+        + "|".join(re.escape(x) for x in sorted(stems, key=len, reverse=True))
+        + f")(?:{_RU_ENDINGS})?"
+    )
 
 
 def _alias_pattern(key: str) -> re.Pattern[str]:
@@ -202,7 +209,9 @@ def _alias_pattern(key: str) -> re.Pattern[str]:
     окончанием из закрытого списка."""
     words = [w for w in re.split(r"[\s\-]+", key) if w]
     if re.search(r"[а-я]", key):
-        body = r"[\s\-]+".join(_ru_word(w) if re.search(r"[а-я]", w) else re.escape(w) for w in words)
+        body = r"[\s\-]+".join(
+            _ru_word(w) if re.search(r"[а-я]", w) else re.escape(w) for w in words
+        )
         return re.compile(r"(?<![а-яa-z0-9])" + body + r"(?![а-яa-z0-9])")
     body = r"[\s\-]+".join(re.escape(w) for w in words)
     return re.compile(r"(?<![a-zа-я0-9])" + body + r"(?:s|es|ian|ean|an|n|ic)?(?![a-zа-я0-9])")

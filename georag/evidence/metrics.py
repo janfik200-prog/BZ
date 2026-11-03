@@ -43,7 +43,9 @@ def check_gold(gold: list[dict[str, Any]]) -> None:
     for g in gold:
         split = (g.get("split") or "").upper()
         if split not in ("DEV", "TEST"):
-            raise ValueError(f"{g.get('sample_id')}: split {split!r} — только DEV/TEST, синтетика не оценивается")
+            raise ValueError(
+                f"{g.get('sample_id')}: split {split!r} — только DEV/TEST, синтетика не оценивается"
+            )
         f = g["source_family"]
         if fam.setdefault(f, split) != split:
             raise ValueError(f"семейство {f} и в DEV, и в TEST — утечка")
@@ -81,19 +83,25 @@ class MetricsReport:
         return {k: (list(v) if isinstance(v, tuple) else v) for k, v in self.__dict__.items()}
 
 
-def compute_metrics(raw_predictions: list[dict[str, Any]], gold: list[dict[str, Any]], method: str, split: str) -> MetricsReport:
+def compute_metrics(
+    raw_predictions: list[dict[str, Any]], gold: list[dict[str, Any]], method: str, split: str
+) -> MetricsReport:
     """raw_predictions: sample_id, predicted_status (по одному на пару для method).
     Отказывается считать, если метод покрыл не все пары разбиения."""
     check_gold(gold)
     g = {r["sample_id"]: r for r in gold if r["split"].upper() == split}
     p = {r["sample_id"]: r["predicted_status"] for r in raw_predictions if r["sample_id"] in g}
     if set(p) != set(g):
-        raise ValueError(f"{method}: предсказаний {len(p)} из {len(g)} пар {split} — сравнение не считается")
+        raise ValueError(
+            f"{method}: предсказаний {len(p)} из {len(g)} пар {split} — сравнение не считается"
+        )
     pairs = [(g[s], p[s]) for s in sorted(g)]
     foreign = [(x, y) for x, y in pairs if x["gold_applicability"] in FOREIGN]
     fd = sum(y == "DIRECT" for _, y in foreign)
     answerable = {x["query_id"] for x, _ in pairs if x["gold_applicability"] == "DIRECT"}
-    covered = {x["query_id"] for x, y in pairs if x["gold_applicability"] == "DIRECT" and y == "DIRECT"}
+    covered = {
+        x["query_id"] for x, y in pairs if x["gold_applicability"] == "DIRECT" and y == "DIRECT"
+    }
     pred_direct = [(x, y) for x, y in pairs if y == "DIRECT"]
     false_direct = sum(x["gold_applicability"] != "DIRECT" for x, _ in pred_direct)
     gold_direct = [(x, y) for x, y in pairs if x["gold_applicability"] == "DIRECT"]
@@ -115,7 +123,9 @@ def compute_metrics(raw_predictions: list[dict[str, Any]], gold: list[dict[str, 
         selective_risk=false_direct / len(pred_direct) if pred_direct else None,
         selective_risk_ci=wilson(false_direct, len(pred_direct)),
         n_gold_direct=len(gold_direct),
-        direct_recall_pairs=sum(y == "DIRECT" for _, y in gold_direct) / len(gold_direct) if gold_direct else None,
+        direct_recall_pairs=(
+            sum(y == "DIRECT" for _, y in gold_direct) / len(gold_direct) if gold_direct else None
+        ),
         unresolved_rate=sum(y == "UNRESOLVED" for _, y in pairs) / len(pairs),
         accuracy4=sum(x["gold_applicability"] == y for x, y in pairs) / len(pairs),
     )
@@ -124,7 +134,9 @@ def compute_metrics(raw_predictions: list[dict[str, Any]], gold: list[dict[str, 
 def _stats(pairs: list[tuple[dict[str, Any], str]]) -> tuple[float | None, float | None]:
     foreign = [y for x, y in pairs if x["gold_applicability"] in FOREIGN]
     answerable = {x["query_id"] for x, _ in pairs if x["gold_applicability"] == "DIRECT"}
-    covered = {x["query_id"] for x, y in pairs if x["gold_applicability"] == "DIRECT" and y == "DIRECT"}
+    covered = {
+        x["query_id"] for x, y in pairs if x["gold_applicability"] == "DIRECT" and y == "DIRECT"
+    }
     ftr = sum(y == "DIRECT" for y in foreign) / len(foreign) if foreign else None
     cov = len(covered) / len(answerable) if answerable else None
     return ftr, cov
@@ -183,7 +195,9 @@ def paired_bootstrap(
     }
 
 
-def confusion(raw_predictions: list[dict[str, Any]], gold: list[dict[str, Any]], split: str) -> dict[str, dict[str, int]]:
+def confusion(
+    raw_predictions: list[dict[str, Any]], gold: list[dict[str, Any]], split: str
+) -> dict[str, dict[str, int]]:
     g = {r["sample_id"]: r["gold_applicability"] for r in gold if r["split"].upper() == split}
     out: dict[str, dict[str, int]] = {a: {b: 0 for b in sorted(VALID)} for a in sorted(VALID)}
     for r in raw_predictions:

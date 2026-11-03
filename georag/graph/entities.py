@@ -44,7 +44,15 @@ ENTITY_LIST_ENV = "GEORAG_GRAPH_ENTITY_LIST"
 
 def entity_list_enabled() -> bool:
     """Идёт ли список предметов первого этапа модели (флаг ENTITY_LIST_ENV, по умолчанию да)."""
-    return os.environ.get(ENTITY_LIST_ENV, "1").strip().lower() not in ("0", "no", "false", "нет", "off")
+    return os.environ.get(ENTITY_LIST_ENV, "1").strip().lower() not in (
+        "0",
+        "no",
+        "false",
+        "нет",
+        "off",
+    )
+
+
 MAX_ENTITIES = 40  # сколько предметов уходит модели списком
 SPACY_MODELS = {"ru": "ru_core_news_sm", "en": "en_core_web_sm"}
 # Метки spaCy, которые бывают предметами геологии: места, объекты, организации-

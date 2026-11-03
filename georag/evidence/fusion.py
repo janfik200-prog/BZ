@@ -85,7 +85,9 @@ def source_families(docs: list[dict[str, Any]], chunks: dict[str, list[str]]) ->
         for s in ss:
             for band, h in enumerate(dedup.bands(s)):
                 buckets[(band, h)].add(doc_id)
-    pairs = {tuple(sorted(p)) for b in buckets.values() if 1 < len(b) < 20 for p in combinations(b, 2)}
+    pairs = {
+        tuple(sorted(p)) for b in buckets.values() if 1 < len(b) < 20 for p in combinations(b, 2)
+    }
     for a, b in sorted(pairs):
         sa, sb = sigs[a], sigs[b]
         if not sa or not sb:
@@ -101,10 +103,19 @@ def source_families(docs: list[dict[str, Any]], chunks: dict[str, list[str]]) ->
         if _authors_overlap(x, y) < 0.5:
             continue
         tx, ty = x.get("title") or "", y.get("title") or ""
-        if _PART.search(tx) and _PART.search(ty) and _series_key(tx) and _series_key(tx) == _series_key(ty):
+        if (
+            _PART.search(tx)
+            and _PART.search(ty)
+            and _series_key(tx)
+            and _series_key(tx) == _series_key(ty)
+        ):
             union(x["doc_id"], y["doc_id"], "SERIES: части одной работы одной команды авторов")
         elif _title_jaccard(tx, ty) >= TITLE_SAME_WORK:
-            union(x["doc_id"], y["doc_id"], "SAME_WORK_VERSION: та же команда авторов, почти то же название")
+            union(
+                x["doc_id"],
+                y["doc_id"],
+                "SAME_WORK_VERSION: та же команда авторов, почти то же название",
+            )
     groups: defaultdict[str, list[str]] = defaultdict(list)
     for d in docs:
         groups[find(d["doc_id"])].append(d["doc_id"])
@@ -112,7 +123,15 @@ def source_families(docs: list[dict[str, Any]], chunks: dict[str, list[str]]) ->
     for root, ids in sorted(groups.items()):
         ids = sorted(ids)
         reasons = sorted({r for (a, b), r in why.items() if a in ids and b in ids})
-        kind = "SINGLE" if len(ids) == 1 else reasons[0].split(":")[0] if len({r.split(":")[0] for r in reasons}) == 1 else "MIXED"
+        kind = (
+            "SINGLE"
+            if len(ids) == 1
+            else (
+                reasons[0].split(":")[0]
+                if len({r.split(":")[0] for r in reasons}) == 1
+                else "MIXED"
+            )
+        )
         out.append(Family(f"FAM:{ids[0]}", tuple(ids), kind, "; ".join(reasons)))
     return out
 
@@ -121,7 +140,9 @@ def family_of(families: list[Family]) -> dict[str, str]:
     return {d: f.family_id for f in families for d in f.doc_ids}
 
 
-def independent_support(claims: list[dict[str, Any]], families: dict[str, str]) -> dict[tuple[str, str, str], dict[str, Any]]:
+def independent_support(
+    claims: list[dict[str, Any]], families: dict[str, str]
+) -> dict[tuple[str, str, str], dict[str, Any]]:
     """Сколько независимых семейств сообщают одну связь (src_key, relation, dst_key).
     Копии одной первичной работы — один голос (ТЗ WP07, приёмка). Дословно та же цитата
     в разных статьях (повтор текста одной группы авторов) — тоже один голос: статьи
@@ -144,7 +165,8 @@ def independent_support(claims: list[dict[str, Any]], families: dict[str, str]) 
         row["n_docs"] = len(row["docs"])
         row["n_independent"] = len(row["families"])
         row["independence_status"] = (
-            "INDEPENDENT" if row["n_independent"] == row["n_docs"]
+            "INDEPENDENT"
+            if row["n_independent"] == row["n_docs"]
             else "TEXT_REUSE" if row["text_reuse"] else "DEPENDENT_COPIES"
         )
     return out
@@ -161,16 +183,29 @@ class ConflictCheck:
 def compare(a: dict[str, Any], b: dict[str, Any]) -> ConflictCheck | None:
     """Две записи: claim_id, src, relation, dst, polarity, region_ids, stage.
     None — несравнимы (другие концы или связь)."""
-    same_ends = name_key(a["src"]) == name_key(b["src"]) and name_key(a["dst"]) == name_key(b["dst"])
-    if not same_ends or normalize(a["relation"]).replace("предположительно ", "") != normalize(b["relation"]).replace("предположительно ", ""):
+    same_ends = name_key(a["src"]) == name_key(b["src"]) and name_key(a["dst"]) == name_key(
+        b["dst"]
+    )
+    if not same_ends or normalize(a["relation"]).replace("предположительно ", "") != normalize(
+        b["relation"]
+    ).replace("предположительно ", ""):
         return None
     ra, rb = set(a.get("region_ids") or ()), set(b.get("region_ids") or ())
     if not ra or not rb or ra != rb:
-        return ConflictCheck(a["claim_id"], b["claim_id"], "DIFFERENT_SCOPE", "разные или неизвестные территории — не противоречие")
+        return ConflictCheck(
+            a["claim_id"],
+            b["claim_id"],
+            "DIFFERENT_SCOPE",
+            "разные или неизвестные территории — не противоречие",
+        )
     if (a.get("stage") or None) != (b.get("stage") or None):
-        return ConflictCheck(a["claim_id"], b["claim_id"], "DIFFERENT_STAGE", "разные стадии — не противоречие")
+        return ConflictCheck(
+            a["claim_id"], b["claim_id"], "DIFFERENT_STAGE", "разные стадии — не противоречие"
+        )
     if a.get("polarity") != b.get("polarity"):
-        return ConflictCheck(a["claim_id"], b["claim_id"], "CONFLICT", "одна территория и стадия, разная полярность")
+        return ConflictCheck(
+            a["claim_id"], b["claim_id"], "CONFLICT", "одна территория и стадия, разная полярность"
+        )
     return ConflictCheck(a["claim_id"], b["claim_id"], "CONSISTENT", "")
 
 

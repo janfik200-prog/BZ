@@ -33,9 +33,17 @@ from .support import assess_support
 
 REGISTRY_DIR = ROOT / "research" / "v14" / "data"
 
-_TYPICAL_Q = re.compile(r"характерн|типичн|в\s+целом|обычно|как\s+правило|typical|characteristic|in\s+general", re.I)
-_ALL_Q = re.compile(r"везде|повсеместн|во\s+всех|всей\s+территори|каждом|throughout|\bevery\b|\ball\s+(?:parts|deposits|areas)", re.I)
-_EXISTS_Q = re.compile(r"встречается\s+ли|есть\s+ли|известн\w+\s+ли|где-либо|хотя\s+бы|выявлен\w*\s+ли|\bany\b|\boccur", re.I)
+_TYPICAL_Q = re.compile(
+    r"характерн|типичн|в\s+целом|обычно|как\s+правило|typical|characteristic|in\s+general", re.I
+)
+_ALL_Q = re.compile(
+    r"везде|повсеместн|во\s+всех|всей\s+территори|каждом|throughout|\bevery\b|\ball\s+(?:parts|deposits|areas)",
+    re.I,
+)
+_EXISTS_Q = re.compile(
+    r"встречается\s+ли|есть\s+ли|известн\w+\s+ли|где-либо|хотя\s+бы|выявлен\w*\s+ли|\bany\b|\boccur",
+    re.I,
+)
 _NEG_Q = re.compile(r"отсутств|не\s+выявлен|не\s+обнаружен|absence|not\s+found|\bnegative\b", re.I)
 _HYP_Q = re.compile(r"гипотез|предполож|модел\w+\s+образован|hypothes|proposed\s+model", re.I)
 _CMP_Q = re.compile(r"аналог|сравн|похож|analog|compar|similar", re.I)
@@ -59,9 +67,20 @@ def frame_question(question: str, reg: GeoAreaRegistry, query_id: str = "Q:chat"
     ids = {a for a in ids if not any(a in reg.ancestors(b) for b in ids if b != a)}
     target = sorted(ids)[0] if len(ids) == 1 else None
     deposits = [name for name, rx in COMMODITIES.items() if rx.search(question)]
-    quantifier = "ALL" if _ALL_Q.search(question) else "TYPICAL" if _TYPICAL_Q.search(question) else (
-        "EXISTS" if _EXISTS_Q.search(question) else "UNSPECIFIED")
-    mode = "RESEARCH_REVIEW" if _HYP_Q.search(question) else "COMPARATIVE" if _CMP_Q.search(question) else "FACTUAL"
+    quantifier = (
+        "ALL"
+        if _ALL_Q.search(question)
+        else (
+            "TYPICAL"
+            if _TYPICAL_Q.search(question)
+            else ("EXISTS" if _EXISTS_Q.search(question) else "UNSPECIFIED")
+        )
+    )
+    mode = (
+        "RESEARCH_REVIEW"
+        if _HYP_Q.search(question)
+        else "COMPARATIVE" if _CMP_Q.search(question) else "FACTUAL"
+    )
     return QueryFrame(
         query_id=query_id,
         raw_text=question,
@@ -112,21 +131,35 @@ def decide_fact(
     chunk = doc.chunks.get(str(fact["chunk_id"])) if doc else None
     evidence = make_evidence(doc, str(fact["chunk_id"]), fact["quote"]) if doc else None
     sc = resolve_scope(
-        fact["quote"], reg,
+        fact["quote"],
+        reg,
         chunk_text=chunk.text if chunk else "",
         headings=chunk.headings if chunk else (),
         title=doc.title if doc else "",
     )
-    claim = claim_from_fact(fact, evidence.evidence_id if evidence else f"E:missing:{fact['chunk_id']}")
+    claim = claim_from_fact(
+        fact, evidence.evidence_id if evidence else f"E:missing:{fact['chunk_id']}"
+    )
     if evidence is None:
         from .contracts import SupportAssessment
 
-        support = SupportAssessment(f"S:{claim.claim_id}", claim.claim_id, claim.evidence_ids[0], "INVALID_EVIDENCE",
-                                    ("SOURCE_HASH_INVALID", "SPAN_LOST"))
+        support = SupportAssessment(
+            f"S:{claim.claim_id}",
+            claim.claim_id,
+            claim.evidence_ids[0],
+            "INVALID_EVIDENCE",
+            ("SOURCE_HASH_INVALID", "SPAN_LOST"),
+        )
     else:
         support = assess_support(claim, evidence, document=doc, votes=claim.legacy_votes)
     decision = decide_applicability(frame, claim, support, reg, scope=sc, config=config)
-    return {"claim": claim, "support": support, "scope": sc, "decision": decision, "evidence": evidence}
+    return {
+        "claim": claim,
+        "support": support,
+        "scope": sc,
+        "decision": decision,
+        "evidence": evidence,
+    }
 
 
 def filter_dataset(conn: Any, question: str, data: dict[str, Any]) -> dict[str, Any]:
@@ -135,33 +168,70 @@ def filter_dataset(conn: Any, question: str, data: dict[str, Any]) -> dict[str, 
     reg = registry()
     frame = frame_question(question, reg)
     if frame.target_region_id is None:
-        data["scope_gate"] = {"frame": frame.to_json(), "applied": False, "reason": "NO_TARGET_REGION"}
+        data["scope_gate"] = {
+            "frame": frame.to_json(),
+            "applied": False,
+            "reason": "NO_TARGET_REGION",
+        }
         return data
     ctx = Context(conn)
     kept, analogs, excluded = [], [], []
     for row in data.get("facts", []):
         direct_quotes = []
         for q in row.get("quotes", []):
-            fact = {"chunk_id": q["chunk_id"], "doc_id": q["doc_id"], "quote": q["quote"],
-                    "src": row["about"] if row["direction"] == "→" else row["other"],
-                    "dst": row["other"] if row["direction"] == "→" else row["about"],
-                    "relation": row["relation"]}
+            fact = {
+                "chunk_id": q["chunk_id"],
+                "doc_id": q["doc_id"],
+                "quote": q["quote"],
+                "src": row["about"] if row["direction"] == "→" else row["other"],
+                "dst": row["other"] if row["direction"] == "→" else row["about"],
+                "relation": row["relation"],
+            }
             out = decide_fact(ctx, frame, fact, reg)
             d = out["decision"]
-            item = {**q, "status": d.status, "reason_codes": list(d.reason_codes), "decision_id": d.decision_id}
+            item = {
+                **q,
+                "status": d.status,
+                "reason_codes": list(d.reason_codes),
+                "decision_id": d.decision_id,
+            }
             if d.status == "DIRECT":
                 direct_quotes.append(item)
             elif d.status == "ANALOG":
-                analogs.append({**item, "relation": row["relation"], "about": row["about"], "other": row["other"]})
+                analogs.append(
+                    {
+                        **item,
+                        "relation": row["relation"],
+                        "about": row["about"],
+                        "other": row["other"],
+                    }
+                )
             else:
-                excluded.append({**item, "relation": row["relation"], "about": row["about"], "other": row["other"]})
+                excluded.append(
+                    {
+                        **item,
+                        "relation": row["relation"],
+                        "about": row["about"],
+                        "other": row["other"],
+                    }
+                )
         if direct_quotes:
-            kept.append({**row, "quotes": direct_quotes, "chunk_ids": [q["chunk_id"] for q in direct_quotes],
-                         "documents": len({q["doc_id"] for q in direct_quotes})})
+            kept.append(
+                {
+                    **row,
+                    "quotes": direct_quotes,
+                    "chunk_ids": [q["chunk_id"] for q in direct_quotes],
+                    "documents": len({q["doc_id"] for q in direct_quotes}),
+                }
+            )
     data = {**data, "facts": kept, "analogs": analogs}
     data["scope_gate"] = {
-        "frame": frame.to_json(), "applied": True, "direct_rows": len(kept), "analogs": len(analogs),
-        "excluded": excluded, "policy": "V3",
+        "frame": frame.to_json(),
+        "applied": True,
+        "direct_rows": len(kept),
+        "analogs": len(analogs),
+        "excluded": excluded,
+        "policy": "V3",
     }
     return data
 
@@ -169,19 +239,24 @@ def filter_dataset(conn: Any, question: str, data: dict[str, Any]) -> dict[str, 
 def mark_unchecked(claims: list[str], checked: int) -> list[dict[str, Any]]:
     """Статус проверки каждого утверждения ответа: первые checked — CHECKED, остальные —
     NOT_CHECKED (лимит chat/support.MAX_CLAIMS). Непроверенное не объявляется проверенным."""
-    return [{"claim": c, "status": "CHECKED" if i < checked else "NOT_CHECKED"} for i, c in enumerate(claims)]
+    return [
+        {"claim": c, "status": "CHECKED" if i < checked else "NOT_CHECKED"}
+        for i, c in enumerate(claims)
+    ]
 
 
 def normalized(text: str) -> str:
     return normalize(text)
 
 
-def filter_sources(question: str, sources: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def filter_sources(
+    question: str, sources: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Фрагменты ответа под вопрос о территории: фрагмент, все названные территории
     которого (текст, заголовки, название статьи — resolve_scope) несовместимы с
     территорией вопроса, в ответ как прямой источник не идёт; неизвестные и свои —
     остаются. Номера источников переписываются по порядку (ссылки [n] — на новые)."""
-    from .georegistry import CONTAINS, DISJOINT, OVERLAP
+    from .georegistry import DISJOINT
 
     reg = registry()
     frame = frame_question(question, reg)
@@ -189,14 +264,28 @@ def filter_sources(question: str, sources: list[dict[str, Any]]) -> tuple[list[d
         return sources, {"applied": False, "reason": "NO_TARGET_REGION", "frame": frame.to_json()}
     kept, excluded = [], []
     for s in sources:
-        sc = resolve_scope(s.get("text", ""), reg, chunk_text=s.get("text", ""), headings=tuple(s.get("headings") or ()),
-                           title=s.get("title", ""))
+        sc = resolve_scope(
+            s.get("text", ""),
+            reg,
+            chunk_text=s.get("text", ""),
+            headings=tuple(s.get("headings") or ()),
+            title=s.get("title", ""),
+        )
         rels = {registry().relation(r, frame.target_region_id) for r in sc.region_ids}
         foreign = bool(rels) and rels <= {DISJOINT}
-        (excluded if foreign else kept).append({**s, "scope_regions": list(sc.region_ids), "scope_relations": sorted(rels)})
+        (excluded if foreign else kept).append(
+            {**s, "scope_regions": list(sc.region_ids), "scope_relations": sorted(rels)}
+        )
     if not kept:  # всё о других районах — честнее ответить «в базе нет», чем по чужому
         return [], {"applied": True, "frame": frame.to_json(), "kept": 0, "excluded": excluded}
     for i, s in enumerate(kept, start=1):
         s["n"] = i
-    return kept, {"applied": True, "frame": frame.to_json(), "kept": len(kept),
-                  "excluded": [{k: e.get(k) for k in ("doc_id", "chunk_id", "title", "scope_regions")} for e in excluded]}
+    return kept, {
+        "applied": True,
+        "frame": frame.to_json(),
+        "kept": len(kept),
+        "excluded": [
+            {k: e.get(k) for k in ("doc_id", "chunk_id", "title", "scope_regions")}
+            for e in excluded
+        ],
+    }

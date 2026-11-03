@@ -33,7 +33,9 @@ class Result:
 
 
 class ModelAdapter:
-    def __init__(self, host: str, model: str, log_path: Path | str | None = None, timeout: int = 300) -> None:
+    def __init__(
+        self, host: str, model: str, log_path: Path | str | None = None, timeout: int = 300
+    ) -> None:
         self.host = host.rstrip("/")
         self.model = model
         self.timeout = timeout
@@ -47,8 +49,15 @@ class ModelAdapter:
         r.raise_for_status()
         return list(r.json().get("data", []))
 
-    def chat_json(self, system: str, user: str, *, max_tokens: int = 3000, temperature: float = 0.0,
-                  tag: str = "") -> Result:
+    def chat_json(
+        self,
+        system: str,
+        user: str,
+        *,
+        max_tokens: int = 3000,
+        temperature: float = 0.0,
+        tag: str = "",
+    ) -> Result:
         import requests
 
         prompt_sha = sha256_text(system + "\n" + user)
@@ -63,7 +72,9 @@ class ModelAdapter:
         started = time.monotonic()
         error, data, usage, served = None, None, {}, self.model
         try:
-            r = requests.post(f"{self.host}/v1/chat/completions", json=payload, timeout=self.timeout)
+            r = requests.post(
+                f"{self.host}/v1/chat/completions", json=payload, timeout=self.timeout
+            )
             r.raise_for_status()
             body = r.json()
             usage = body.get("usage") or {}
@@ -86,10 +97,19 @@ class ModelAdapter:
             prompt_sha256=prompt_sha,
         )
         if self.log_path:
-            row = {"tag": tag, "model": served, "prompt_sha256": prompt_sha, "ok": result.ok, "error": error,
-                   "prompt_tokens": result.prompt_tokens, "completion_tokens": result.completion_tokens,
-                   "latency_s": result.latency_s, "temperature": temperature, "max_tokens": max_tokens,
-                   "at": time.strftime("%Y-%m-%dT%H:%M:%S")}
+            row = {
+                "tag": tag,
+                "model": served,
+                "prompt_sha256": prompt_sha,
+                "ok": result.ok,
+                "error": error,
+                "prompt_tokens": result.prompt_tokens,
+                "completion_tokens": result.completion_tokens,
+                "latency_s": result.latency_s,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            }
             with self._lock, self.log_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(row, ensure_ascii=False) + "\n")
         return result

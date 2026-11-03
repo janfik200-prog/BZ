@@ -215,8 +215,11 @@ def _distinct(name: str) -> str:
     """Отличительная часть названия: «Anabar Shield» → «Anabar», «массив Колдар» → «Колдар».
     Осталось короче пяти букв — название целиком: от «Mountain Pass» одно «Pass» нашлось бы
     в 33 статьях из 114."""
-    kept = [w for w in re.split(r"[\s\-]+", name) if w and _stem(w) not in
-            {_stem(x) for x in PLACE_WORDS}]
+    kept = [
+        w
+        for w in re.split(r"[\s\-]+", name)
+        if w and _stem(w) not in {_stem(x) for x in PLACE_WORDS}
+    ]
     short = sum(len(w) for w in kept) < 5
     return name if short or not kept else " ".join(kept)
 
@@ -236,7 +239,9 @@ class _Base:
     def phonetic(self, model: Any) -> Any:
         """Фонетические векторы названий (Symphonym), по первой нужде."""
         if self._phonetic is None:
-            items = [(_distinct(n), "ru" if re.search("[а-яё]", n, re.I) else "en") for n in self.names]
+            items = [
+                (_distinct(n), "ru" if re.search("[а-яё]", n, re.I) else "en") for n in self.names
+            ]
             self._phonetic = model.batch_embed(items)
         return self._phonetic
 
@@ -311,7 +316,9 @@ def _symphonym(path: str) -> Any:
     from functools import partial
 
     try:
-        spec = importlib.util.spec_from_file_location("symphonym_inference", Path(path) / "inference.py")
+        spec = importlib.util.spec_from_file_location(
+            "symphonym_inference", Path(path) / "inference.py"
+        )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         # Словари модели — в UTF-8, а её код открывает их в кодировке системы (в Windows

@@ -22,7 +22,9 @@ NORMALIZATION = "collapse-whitespace-v1"
 # Битый текстовый слой: знаки замены, «буквы» из областей частного использования,
 # сплошные одиночные буквы через пробел («g o l d»).
 _BROKEN = re.compile(r"[�-]")
-_SPACED = re.compile(r"(?:(?<![^\W\d_])[^\W\d_]\s){6,}")  # буквы через пробел; цифры таблиц — не сбой
+_SPACED = re.compile(
+    r"(?:(?<![^\W\d_])[^\W\d_]\s){6,}"
+)  # буквы через пробел; цифры таблиц — не сбой
 OCR_BROKEN_SHARE = 0.02
 
 
@@ -112,7 +114,9 @@ def make_evidence(
     )
 
 
-def verify_evidence(evidence: EvidenceSpan, document: DocumentSnapshot | None) -> EvidenceValidation:
+def verify_evidence(
+    evidence: EvidenceSpan, document: DocumentSnapshot | None
+) -> EvidenceValidation:
     """Повторная проверка доказательства по снимку статьи (ТЗ WP01, приёмка):
     подменённая цифра, страница, отпечаток или пропавший фрагмент — не проходит."""
     reasons: list[str] = []
@@ -189,7 +193,13 @@ def audit(conn: Any, evidence: list[EvidenceSpan]) -> dict[str, Any]:
         if ev.doc_id not in cache:
             cache[ev.doc_id] = snapshot_from_db(conn, ev.doc_id)
         result = verify_evidence(ev, cache[ev.doc_id])
-        rows.append({"evidence_id": ev.evidence_id, "valid": result.valid, "reasons": list(result.reason_codes)})
+        rows.append(
+            {
+                "evidence_id": ev.evidence_id,
+                "valid": result.valid,
+                "reasons": list(result.reason_codes),
+            }
+        )
     return {
         "normalization": NORMALIZATION,
         "n": len(rows),

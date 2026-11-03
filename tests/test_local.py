@@ -103,4 +103,6 @@ def test_doc_id_for_russian_name_is_unique() -> None:
     a = local.local_doc_id(Path("Статья.pdf"), "1" * 64)
     b = local.local_doc_id(Path("Отчёт.pdf"), "2" * 64)
     assert a != b and a.startswith("local-")
-    assert local.local_doc_id(Path("Gravity Model.pdf"), "f" * 64) == "local-gravity_model-ffffffffff"
+    assert (
+        local.local_doc_id(Path("Gravity Model.pdf"), "f" * 64) == "local-gravity_model-ffffffffff"
+    )

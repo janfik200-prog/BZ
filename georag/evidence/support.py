@@ -58,11 +58,15 @@ def assess_support(
         check = verify_evidence(evidence, document)
         quote_ok = check.valid
         if not check.valid:
-            return _out(claim, evidence, "INVALID_EVIDENCE", list(check.reason_codes), False, split, votes)
+            return _out(
+                claim, evidence, "INVALID_EVIDENCE", list(check.reason_codes), False, split, votes
+            )
         reasons.append("SOURCE_SPAN_EXACT")
     quote = evidence.exact_quote
     if not (mentions(claim.subject, quote) and mentions(claim.object, quote)):
-        return _out(claim, evidence, "UNKNOWN", [*reasons, "SUPPORT_ENDS_MISSING"], quote_ok, split, votes)
+        return _out(
+            claim, evidence, "UNKNOWN", [*reasons, "SUPPORT_ENDS_MISSING"], quote_ok, split, votes
+        )
     if _POSITIONAL.search(quote) and not _POSITIONAL_RELATION.search(claim.predicate):
         reasons.append("RELATION_POSITIONAL_ONLY")
         return _out(claim, evidence, "PARTIAL", reasons, quote_ok, split, votes)
@@ -91,7 +95,11 @@ def _out(
     split: str,
     votes: int | None,
 ) -> SupportAssessment:
-    by_llm = votes is not None and label in ("ENTAILED", "PARTIAL", "UNKNOWN") and "NOT_CHECKED" not in reasons
+    by_llm = (
+        votes is not None
+        and label in ("ENTAILED", "PARTIAL", "UNKNOWN")
+        and "NOT_CHECKED" not in reasons
+    )
     return SupportAssessment(
         support_id=f"S:{claim.claim_id}:{evidence.evidence_id}",
         claim_id=claim.claim_id,

@@ -49,18 +49,47 @@ class PolicyConfig:
     use_temporal: bool = True
 
 
-V0 = PolicyConfig("V0", use_support=False, scope_mode="none", use_deposit=False, use_quantifier=False,
-                  use_modality=False, use_polarity=False, strict_mixed=False, use_temporal=False)
-V1 = PolicyConfig("V1", use_support=False, scope_mode="string", use_deposit=False, use_quantifier=False,
-                  use_modality=False, use_polarity=False, strict_mixed=False, use_temporal=False)
-V2 = PolicyConfig("V2", use_support=True, scope_mode="naive", use_deposit=True, use_quantifier=False,
-                  use_modality=False, use_polarity=False, strict_mixed=False, use_temporal=False)
+V0 = PolicyConfig(
+    "V0",
+    use_support=False,
+    scope_mode="none",
+    use_deposit=False,
+    use_quantifier=False,
+    use_modality=False,
+    use_polarity=False,
+    strict_mixed=False,
+    use_temporal=False,
+)
+V1 = PolicyConfig(
+    "V1",
+    use_support=False,
+    scope_mode="string",
+    use_deposit=False,
+    use_quantifier=False,
+    use_modality=False,
+    use_polarity=False,
+    strict_mixed=False,
+    use_temporal=False,
+)
+V2 = PolicyConfig(
+    "V2",
+    use_support=True,
+    scope_mode="naive",
+    use_deposit=True,
+    use_quantifier=False,
+    use_modality=False,
+    use_polarity=False,
+    strict_mixed=False,
+    use_temporal=False,
+)
 V3 = PolicyConfig("V3")
 VARIANTS = {"V0": V0, "V1": V1, "V2": V2, "V3": V3}
 ABLATIONS = {
     "V3-registry": replace(V3, name="V3-registry", scope_mode="string"),
     "V3-quantifier": replace(V3, name="V3-quantifier", use_quantifier=False),
-    "V3-modality_polarity": replace(V3, name="V3-modality_polarity", use_modality=False, use_polarity=False),
+    "V3-modality_polarity": replace(
+        V3, name="V3-modality_polarity", use_modality=False, use_polarity=False
+    ),
     "V3-support": replace(V3, name="V3-support", use_support=False),
     "V3-anaphora": replace(V3, name="V3-anaphora"),  # scope считается в mode="no_anaphora"
     "V3-title_rules": replace(V3, name="V3-title_rules"),  # scope в mode="naive"
@@ -112,13 +141,42 @@ def decide_applicability(
     # --- поддержка источником (I1, I2, I10) ---------------------------------------------
     if config.use_support:
         if support.label == "INVALID_EVIDENCE":
-            return _record(query, claim, support, registry, config, "UNRESOLVED", ["SOURCE_HASH_INVALID", *support.reason_codes], scope)
+            return _record(
+                query,
+                claim,
+                support,
+                registry,
+                config,
+                "UNRESOLVED",
+                ["SOURCE_HASH_INVALID", *support.reason_codes],
+                scope,
+            )
         if support.label != "ENTAILED":
-            code = "NOT_CHECKED" if "NOT_CHECKED" in support.reason_codes else "SUPPORT_NOT_ENTAILED"
-            return _record(query, claim, support, registry, config, "UNRESOLVED", [code, f"SUPPORT_{support.label}"], scope)
+            code = (
+                "NOT_CHECKED" if "NOT_CHECKED" in support.reason_codes else "SUPPORT_NOT_ENTAILED"
+            )
+            return _record(
+                query,
+                claim,
+                support,
+                registry,
+                config,
+                "UNRESOLVED",
+                [code, f"SUPPORT_{support.label}"],
+                scope,
+            )
         reasons.append("SUPPORT_ENTAILED")
     elif not claim.legacy_accepted:
-        return _record(query, claim, support, registry, config, "UNRESOLVED", ["SUPPORT_NOT_ENTAILED", "LEGACY_CANDIDATE"], scope)
+        return _record(
+            query,
+            claim,
+            support,
+            registry,
+            config,
+            "UNRESOLVED",
+            ["SUPPORT_NOT_ENTAILED", "LEGACY_CANDIDATE"],
+            scope,
+        )
     else:
         reasons.append("LEGACY_ACCEPTED")
 
@@ -130,7 +188,16 @@ def decide_applicability(
         if _name_match(query, registry, name_texts or []):
             reasons.append("REGION_NAME_MATCH")
         else:
-            return _record(query, claim, support, registry, config, "UNRESOLVED", [*reasons, "REGION_NAME_NOT_FOUND"], scope)
+            return _record(
+                query,
+                claim,
+                support,
+                registry,
+                config,
+                "UNRESOLVED",
+                [*reasons, "REGION_NAME_NOT_FOUND"],
+                scope,
+            )
     else:
         sc = scope or GeoScopeAssessment(reason_codes=["REGION_UNKNOWN"])
         reasons += [r for r in sc.reason_codes if r not in ("REGION_MIXED",)]
@@ -144,21 +211,65 @@ def decide_applicability(
         if config.strict_mixed and sc.mixed:
             kinds = set(rels.values())
             if kinds & {EXACT, PART_OF} and kinds - {EXACT, PART_OF, CONTAINS}:
-                return _record(query, claim, support, registry, config, "UNRESOLVED", [*reasons, "REGION_MIXED"], scope)
+                return _record(
+                    query,
+                    claim,
+                    support,
+                    registry,
+                    config,
+                    "UNRESOLVED",
+                    [*reasons, "REGION_MIXED"],
+                    scope,
+                )
         relation = min(rels.values(), key=_RANK.__getitem__)
         if config.strict_mixed and sc.ambiguous:
-            return _record(query, claim, support, registry, config, "UNRESOLVED", [*reasons, "ALIAS_AMBIGUOUS"], scope)
+            return _record(
+                query,
+                claim,
+                support,
+                registry,
+                config,
+                "UNRESOLVED",
+                [*reasons, "ALIAS_AMBIGUOUS"],
+                scope,
+            )
         if relation == EXACT:
             reasons.append("REGION_EXACT")
         elif relation == PART_OF:
             reasons.append("REGION_PART_OF")
         elif relation == CONTAINS:
-            return _record(query, claim, support, registry, config, "UNRESOLVED",
-                           [*reasons, "REGION_CONTAINS_TARGET", "SCOPE_UNIVERSALITY_MISMATCH"], scope)
+            return _record(
+                query,
+                claim,
+                support,
+                registry,
+                config,
+                "UNRESOLVED",
+                [*reasons, "REGION_CONTAINS_TARGET", "SCOPE_UNIVERSALITY_MISMATCH"],
+                scope,
+            )
         elif relation == OVERLAP:
-            return _record(query, claim, support, registry, config, "UNRESOLVED", [*reasons, "REGION_OVERLAP"], scope)
+            return _record(
+                query,
+                claim,
+                support,
+                registry,
+                config,
+                "UNRESOLVED",
+                [*reasons, "REGION_OVERLAP"],
+                scope,
+            )
         elif relation == UNKNOWN:
-            return _record(query, claim, support, registry, config, "UNRESOLVED", [*reasons, "NO_VERIFIED_GEO_ID"], scope)
+            return _record(
+                query,
+                claim,
+                support,
+                registry,
+                config,
+                "UNRESOLVED",
+                [*reasons, "NO_VERIFIED_GEO_ID"],
+                scope,
+            )
         else:  # DISJOINT
             reasons.append("REGION_DISJOINT")
             if query.allow_analogies or query.requested_mode == "COMPARATIVE":
@@ -176,20 +287,56 @@ def decide_applicability(
 
     # --- тип оруденения ---------------------------------------------------------------------
     if config.use_deposit and status in ("DIRECT", "ANALOG") and _deposit_ok(query, claim) is False:
-        return _record(query, claim, support, registry, config, "OUT_OF_SCOPE", [*reasons, "DEPOSIT_TYPE_MISMATCH"], scope)
+        return _record(
+            query,
+            claim,
+            support,
+            registry,
+            config,
+            "OUT_OF_SCOPE",
+            [*reasons, "DEPOSIT_TYPE_MISMATCH"],
+            scope,
+        )
     if status != "DIRECT":
         return _record(query, claim, support, registry, config, status, reasons, scope)
 
     # --- полярность (I6), модальность (I5), квантор (I4), стадия ----------------------------
     if config.use_polarity:
         if claim.polarity == "NEGATE" and query.requested_polarity == "AFFIRM":
-            return _record(query, claim, support, registry, config, "UNRESOLVED", [*reasons, "POLARITY_NEGATED"], scope)
+            return _record(
+                query,
+                claim,
+                support,
+                registry,
+                config,
+                "UNRESOLVED",
+                [*reasons, "POLARITY_NEGATED"],
+                scope,
+            )
         if claim.polarity == "AFFIRM" and query.requested_polarity == "NEGATE":
-            return _record(query, claim, support, registry, config, "UNRESOLVED", [*reasons, "POLARITY_MISMATCH"], scope)
+            return _record(
+                query,
+                claim,
+                support,
+                registry,
+                config,
+                "UNRESOLVED",
+                [*reasons, "POLARITY_MISMATCH"],
+                scope,
+            )
         if claim.polarity == "NEGATE":
             reasons.append("POLARITY_MATCH")
         if claim.polarity == "UNCLEAR":
-            return _record(query, claim, support, registry, config, "UNRESOLVED", [*reasons, "POLARITY_UNCLEAR"], scope)
+            return _record(
+                query,
+                claim,
+                support,
+                registry,
+                config,
+                "UNRESOLVED",
+                [*reasons, "POLARITY_UNCLEAR"],
+                scope,
+            )
     if config.use_modality and claim.modality == "HYPOTHESIS":
         reasons.append("MODALITY_HYPOTHESIS")
         if query.requested_mode != "RESEARCH_REVIEW":
@@ -198,12 +345,41 @@ def decide_applicability(
         whole = relation in (None, EXACT) or config.scope_mode in ("none", "string")
         strong = {"TYPICAL": ("TYPICAL", "ALL"), "ALL": ("ALL",)}[query.requested_quantifier]
         if not whole or claim.quantifier not in strong:
-            return _record(query, claim, support, registry, config, "UNRESOLVED", [*reasons, "SCOPE_UNIVERSALITY_MISMATCH"], scope)
+            return _record(
+                query,
+                claim,
+                support,
+                registry,
+                config,
+                "UNRESOLVED",
+                [*reasons, "SCOPE_UNIVERSALITY_MISMATCH"],
+                scope,
+            )
     if config.use_temporal and query.target_stage:
-        if not claim.scope.mineralization_stage or normalize(claim.scope.mineralization_stage) != normalize(query.target_stage):
-            return _record(query, claim, support, registry, config, "UNRESOLVED", [*reasons, "TEMPORAL_SCOPE_MISMATCH"], scope)
+        if not claim.scope.mineralization_stage or normalize(
+            claim.scope.mineralization_stage
+        ) != normalize(query.target_stage):
+            return _record(
+                query,
+                claim,
+                support,
+                registry,
+                config,
+                "UNRESOLVED",
+                [*reasons, "TEMPORAL_SCOPE_MISMATCH"],
+                scope,
+            )
     if conflicting:
-        return _record(query, claim, support, registry, config, "UNRESOLVED", [*reasons, "CONFLICTING_EVIDENCE"], scope)
+        return _record(
+            query,
+            claim,
+            support,
+            registry,
+            config,
+            "UNRESOLVED",
+            [*reasons, "CONFLICTING_EVIDENCE"],
+            scope,
+        )
     return _record(query, claim, support, registry, config, "DIRECT", reasons, scope)
 
 

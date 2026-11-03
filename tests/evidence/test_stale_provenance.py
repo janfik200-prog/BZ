@@ -22,8 +22,16 @@ FACTS = [(101, 12, QUOTE)]  # (id, chunk_id, цитата)
 
 
 def row(ord_: int, text: str) -> dict[str, Any]:
-    return {"doc_id": "d1", "ord": ord_, "text": text, "headings": [], "pages": [1],
-            "n_tokens": 1, "has_table": False, "embedding": "[0]"}
+    return {
+        "doc_id": "d1",
+        "ord": ord_,
+        "text": text,
+        "headings": [],
+        "pages": [1],
+        "n_tokens": 1,
+        "has_table": False,
+        "embedding": "[0]",
+    }
 
 
 def base(old=OLD, facts=FACTS, stale=(), columns=True) -> FakeConn:
@@ -106,7 +114,10 @@ def test_reparse_with_new_layout_but_quote_kept_marks_nothing() -> None:
     """Текст фрагмента другой (переносы, соседний абзац), но цитата в нём есть — факт прямой."""
     conn = base()
     got: dict[str, list[int]] = {}
-    new = [row(0, "Введение."), row(1, f"Методы (уточнено).\n{QUOTE.replace(' к ', '  к\n')} Конец.")]
+    new = [
+        row(0, "Введение."),
+        row(1, f"Методы (уточнено).\n{QUOTE.replace(' к ', '  к\n')} Конец."),
+    ]
     db.replace_chunks(conn, "d1", new, stale=got)
     assert got["marked"] == [] and stale_updates(conn) == []
 
@@ -143,14 +154,21 @@ def test_parser_version_from_package() -> None:
 
 
 def test_ingest_takes_recorded_version_or_says_unrecorded() -> None:
-    assert ingest.parser_version({"parser": "docling", "parser_version": "docling@2.140.0"}) == "docling@2.140.0"
+    assert (
+        ingest.parser_version({"parser": "docling", "parser_version": "docling@2.140.0"})
+        == "docling@2.140.0"
+    )
     assert ingest.parser_version({"parser": "docling"}) == "docling@unrecorded"
 
 
 def test_parse_print_equals_snapshot_print() -> None:
     rows = [row(1, "Второй  фрагмент."), row(0, "Первый\nфрагмент.")]
-    snap = DocumentSnapshot("d1", "", "x", chunks={
-        str(i): ChunkSnapshot(str(i), r["text"], ord=r["ord"]) for i, r in enumerate(rows)})
+    snap = DocumentSnapshot(
+        "d1",
+        "",
+        "x",
+        chunks={str(i): ChunkSnapshot(str(i), r["text"], ord=r["ord"]) for i, r in enumerate(rows)},
+    )
     conn = base()
     assert db.record_parse(conn, "d1", rows, "docling@2.140.0") == snap.parsed_sha256
     [(version, digest, doc_id)] = conn.queries("UPDATE documents SET parser_version")
@@ -169,10 +187,16 @@ def test_snapshot_takes_parser_version_column() -> None:
                 assert "to_jsonb(d) ->> 'parser_version'" in sql  # и в базе без колонки
                 return [("d1", "a" * 64, "docling", "T", None, "ru", version)]
             return []
+
         return a
 
-    assert snapshot_from_db(FakeConn(answer=answer("docling@2.140.0")), "d1").parser_version == "docling@2.140.0"
-    assert snapshot_from_db(FakeConn(answer=answer(None)), "d1").parser_version == "docling@unrecorded"
+    assert (
+        snapshot_from_db(FakeConn(answer=answer("docling@2.140.0")), "d1").parser_version
+        == "docling@2.140.0"
+    )
+    assert (
+        snapshot_from_db(FakeConn(answer=answer(None)), "d1").parser_version == "docling@unrecorded"
+    )
 
 
 # --------------------------------------------------------------------------- #

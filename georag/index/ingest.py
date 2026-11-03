@@ -289,7 +289,9 @@ def tidy_indexed(conn: Any, embedder: Any, verbose: bool = True) -> TidyReport:
         ]
         db.tidy_chunks(conn, drop, updates, stale)
         # Текст статьи в базе другой — и отпечаток разбора другой; версия парсера прежняя.
-        db.record_parse(conn, doc_id, [{"ord": c["index"], "text": c["text"]} for c in cleaned.chunks])
+        db.record_parse(
+            conn, doc_id, [{"ord": c["index"], "text": c["text"]} for c in cleaned.chunks]
+        )
         conn.commit()
         report.documents += 1
         report.dropped += len(drop)

@@ -110,9 +110,7 @@ def search_all(
     also = {q: dictionary_variants(conn, q) for q in queries}
     if len(queries) < 2 or not db.is_real(conn) or not hasattr(embedder, "encode"):
         return [
-            hybrid_search(
-                conn, embedder, q, limit=CANDIDATES, max_per_doc=0, **more, **also[q]
-            )
+            hybrid_search(conn, embedder, q, limit=CANDIDATES, max_per_doc=0, **more, **also[q])
             for q in queries
         ]
     vectors = embedder.encode(queries)
@@ -121,8 +119,14 @@ def search_all(
         query, vector = pair
         with db.sibling(conn) as other:
             return hybrid_search(
-                other, embedder, query, limit=CANDIDATES, max_per_doc=0, vector=vector,
-                **more, **also[query],
+                other,
+                embedder,
+                query,
+                limit=CANDIDATES,
+                max_per_doc=0,
+                vector=vector,
+                **more,
+                **also[query],
             )
 
     with ThreadPoolExecutor(min(SEARCH_WORKERS, len(queries))) as pool:

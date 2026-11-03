@@ -54,12 +54,14 @@ def load_questions(path: Path) -> list[dict[str, Any]]:
             item = {"вопрос": item}
         question = " ".join(str(item.get("вопрос") or item.get("question") or "").split())
         if question:
-            out.append({
-                "id": str(item.get("id") or i),
-                "question": question,
-                "kind": str(item.get("вид") or item.get("kind") or "обычный"),
-                "note": str(item.get("заметка") or item.get("note") or ""),
-            })
+            out.append(
+                {
+                    "id": str(item.get("id") or i),
+                    "question": question,
+                    "kind": str(item.get("вид") or item.get("kind") or "обычный"),
+                    "note": str(item.get("заметка") or item.get("note") or ""),
+                }
+            )
     return out
 
 
@@ -113,13 +115,36 @@ def write(rows: list[dict[str, Any]], out: Path, title: str) -> Path:
     wb = Workbook()
     ws = wb.active
     ws.title = "Ответы"
-    head = ["№", "Вид", "Вопрос", "Словарь", "Ответ бота", "Источники", "Термины словаря",
-            "Реакция на ложную посылку", "Время, с", "Оценка (верно / частично / неверно)",
-            "Комментарий геолога"]
+    head = [
+        "№",
+        "Вид",
+        "Вопрос",
+        "Словарь",
+        "Ответ бота",
+        "Источники",
+        "Термины словаря",
+        "Реакция на ложную посылку",
+        "Время, с",
+        "Оценка (верно / частично / неверно)",
+        "Комментарий геолога",
+    ]
     ws.append(head)
     for r in rows:
-        ws.append([r["id"], r["kind"], r["question"], r["dict"], r["answer"], r["sources"],
-                   r["dictionary"], r.get("reaction", ""), r["seconds"], None, None])
+        ws.append(
+            [
+                r["id"],
+                r["kind"],
+                r["question"],
+                r["dict"],
+                r["answer"],
+                r["sources"],
+                r["dictionary"],
+                r.get("reaction", ""),
+                r["seconds"],
+                None,
+                None,
+            ]
+        )
     widths = (6, 10, 40, 9, 90, 50, 22, 18, 9, 18, 30)
     for col, w in zip("ABCDEFGHIJK", widths, strict=True):
         ws.column_dimensions[col].width = w
@@ -134,10 +159,13 @@ def write(rows: list[dict[str, Any]], out: Path, title: str) -> Path:
         ws.cell(r, 11).fill = fill
     ws.freeze_panes = "D2"
     info = wb.create_sheet("О прогоне")
-    for line in (title, f"Вопросов: {len({r['id'] for r in rows})}, ответов: {len(rows)}",
-                 f"Дата: {datetime.now():%d.%m.%Y %H:%M}",
-                 "Колонку «Оценка» и «Комментарий» заполняет человек. «Реакция» — подсказка по "
-                 "словам ответа, не оценка."):
+    for line in (
+        title,
+        f"Вопросов: {len({r['id'] for r in rows})}, ответов: {len(rows)}",
+        f"Дата: {datetime.now():%d.%m.%Y %H:%M}",
+        "Колонку «Оценка» и «Комментарий» заполняет человек. «Реакция» — подсказка по "
+        "словам ответа, не оценка.",
+    ):
         info.append([line])
     info.column_dimensions["A"].width = 110
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -174,8 +202,11 @@ def main(argv: list[str] | None = None) -> int:
                 if q["kind"].startswith("лож"):
                     row["reaction"] = reaction(got["answer"])
                 rows.append(row)
-                print(f"{q['id']:>3} {'словарь' if with_dict else 'без словаря':<12} "
-                      f"{got['seconds']:>6} с", flush=True)
+                print(
+                    f"{q['id']:>3} {'словарь' if with_dict else 'без словаря':<12} "
+                    f"{got['seconds']:>6} с",
+                    flush=True,
+                )
     print(f"Таблица: {write(rows, out, f'Набор: {path.name}')}")
     return 0
 

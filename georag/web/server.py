@@ -276,8 +276,13 @@ class Handler(BaseHTTPRequestHandler):
         if dict_id in dicts.WORKING:
             return dicts.working_find(dict_id, q.get("q", ""), offset=offset)
         with db.connect(State.dsn) as conn:
-            return dicts.find(conn, dict_id or None, q.get("q", "")[:200],
-                              letter=q.get("letter", "")[:1], offset=offset)
+            return dicts.find(
+                conn,
+                dict_id or None,
+                q.get("q", "")[:200],
+                letter=q.get("letter", "")[:1],
+                offset=offset,
+            )
 
     # -- чат-бот ------------------------------------------------------------ #
     def _chat(self, payload: dict[str, Any]) -> None:

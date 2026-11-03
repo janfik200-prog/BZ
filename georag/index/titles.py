@@ -26,8 +26,18 @@ COLUMNS = {
     "title": ("назв", "заголов", "тема", "title", "наименов"),
     "authors": ("автор", "исполнит", "author", "состав"),
     "year": ("год", "year", "дата"),
-    "place": ("территор", "площад", "район", "регион", "объект", "месторожд", "участ", "area",
-              "region", "лицензи"),
+    "place": (
+        "территор",
+        "площад",
+        "район",
+        "регион",
+        "объект",
+        "месторожд",
+        "участ",
+        "area",
+        "region",
+        "лицензи",
+    ),
 }
 _ID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.IGNORECASE)
 _YEAR = re.compile(r"(19|20)\d\d")
@@ -146,8 +156,9 @@ def apply(conn: Any, found: dict[str, Row]) -> int:
     with conn.cursor() as cur:
         for doc_id, row in found.items():
             title = title_of(row.values)
-            authors = [a.strip() for a in re.split(r"[;,]\s*", row.values.get("authors", ""))
-                       if a.strip()]
+            authors = [
+                a.strip() for a in re.split(r"[;,]\s*", row.values.get("authors", "")) if a.strip()
+            ]
             year_m = _YEAR.search(row.values.get("year", ""))
             sets, params = [], []
             if title:
@@ -160,8 +171,9 @@ def apply(conn: Any, found: dict[str, Row]) -> int:
                 sets.append("year = %s")
                 params.append(int(year_m.group()))
             if sets:
-                cur.execute(f"UPDATE documents SET {', '.join(sets)} WHERE doc_id = %s",
-                            (*params, doc_id))
+                cur.execute(
+                    f"UPDATE documents SET {', '.join(sets)} WHERE doc_id = %s", (*params, doc_id)
+                )
                 changed += cur.rowcount
     conn.commit()
     return changed
@@ -180,8 +192,11 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     header, cols, rows = read_table(path)
     if not rows:
-        print("В таблице не нашлось строки заголовков с названием и строк с кодами "
-              "(UUID или именем файла).", file=sys.stderr)
+        print(
+            "В таблице не нашлось строки заголовков с названием и строк с кодами "
+            "(UUID или именем файла).",
+            file=sys.stderr,
+        )
         return 1
     print("Заголовки таблицы: " + " | ".join(h or "—" for h in header))
     print("Узнаны колонки: " + ", ".join(f"{k} ← «{header[i]}»" for k, i in cols.items()))

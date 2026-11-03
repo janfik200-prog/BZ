@@ -87,14 +87,23 @@ COMMODITIES: dict[str, re.Pattern[str]] = {
     "silver": re.compile(r"\bsilver\b|\bag\b|серебр\w*", re.I),
     "copper": re.compile(r"\bcopper\b|\bcu\b|медн\w*|\bмед[ьи]\b|cu-", re.I),
     "uranium": re.compile(r"uranium|\bu\b(?=[\s-]*(?:mineral|ore|deposit))|уран\w*", re.I),
-    "iron": re.compile(r"iron[\s-]*ore|\bbif\b|banded\s+iron|железоруд\w*|железист\w+\s+кварцит", re.I),
+    "iron": re.compile(
+        r"iron[\s-]*ore|\bbif\b|banded\s+iron|железоруд\w*|железист\w+\s+кварцит", re.I
+    ),
     "ree": re.compile(r"rare[\s-]*earth|\bree\b|рзэ|редкоземел\w*", re.I),
-    "rare_metal": re.compile(r"rare[\s-]*metal|редкометал\w*|tantal\w*|niob\w*|lithium|литиев\w*", re.I),
+    "rare_metal": re.compile(
+        r"rare[\s-]*metal|редкометал\w*|tantal\w*|niob\w*|lithium|литиев\w*", re.I
+    ),
     "tin": re.compile(r"\btin\b|cassiterite|олов\w*|касситерит", re.I),
     "tungsten": re.compile(r"tungsten|wolfram\w*|scheelite|вольфрам\w*|шеелит", re.I),
-    "base_metals": re.compile(r"\blead\b|\bzinc\b|\bpb\b|\bzn\b|polymetal\w*|полиметалл\w*|свинц\w*|цинк\w*|колчедан\w*|\bvms\b", re.I),
+    "base_metals": re.compile(
+        r"\blead\b|\bzinc\b|\bpb\b|\bzn\b|polymetal\w*|полиметалл\w*|свинц\w*|цинк\w*|колчедан\w*|\bvms\b",
+        re.I,
+    ),
     "fluorite": re.compile(r"fluorite|флюорит\w*", re.I),
-    "molybdenum": re.compile(r"molybden\w*|\bmo\b(?=[\s-]*(?:mineral|ore|deposit|porphyry))|молибден\w*", re.I),
+    "molybdenum": re.compile(
+        r"molybden\w*|\bmo\b(?=[\s-]*(?:mineral|ore|deposit|porphyry))|молибден\w*", re.I
+    ),
     "diamond": re.compile(r"diamond|кимберлит\w*|алмаз\w*", re.I),
     "lithium_brine": re.compile(r"\bbrine|рассол\w*", re.I),
 }
@@ -169,9 +178,7 @@ def claim_from_fact(
         accepted = int(votes) >= min_votes
     base_scope = scope or Scope()
     if base_scope.deposit_type is None and feats.deposit_types:
-        base_scope = Scope(
-            **{**base_scope.__dict__, "deposit_type": ";".join(feats.deposit_types)}
-        )
+        base_scope = Scope(**{**base_scope.__dict__, "deposit_type": ";".join(feats.deposit_types)})
     if base_scope.mineralization_stage is None and feats.stage:
         base_scope = Scope(**{**base_scope.__dict__, "mineralization_stage": feats.stage})
     return GeoClaim(
@@ -207,7 +214,9 @@ def build_claims(fragment: dict[str, Any], model_config: dict[str, Any]) -> list
     adapter = model_config["adapter"]
     rules = model_config["rules"]
     system, user = facts.messages(rules, fragment["text"], fragment.get("entities"))
-    result = adapter.chat_json(system, user, max_tokens=facts.ANSWER_TOKENS, tag=str(fragment["chunk_id"]))
+    result = adapter.chat_json(
+        system, user, max_tokens=facts.ANSWER_TOKENS, tag=str(fragment["chunk_id"])
+    )
     checked = facts.check(result.data, fragment["text"]) if result.ok else facts.Checked()
     out = []
     for i, f in enumerate(checked.facts):

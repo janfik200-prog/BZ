@@ -86,6 +86,8 @@ def _formula(triple: re.Match[str]) -> bool:
     перед «=» обозначение в 1–2 знака, после — число."""
     last = triple.group("head").split()[-1]
     return len(last.strip("()")) <= 2 and triple.group("value")[:1].isdigit()
+
+
 _SHORT_HEAD = re.compile(r"^(?P<head>[^=]{1,90}?)\s=\s+(?P<value>\S)")
 _PIPES = re.compile(r"\|")
 _TOKEN = re.compile(r"\S+")
@@ -280,7 +282,11 @@ def skip_reason(text: str) -> str | None:
         return None
     if sum(v for k, v in chars.items() if k not in SKIP_KINDS) / total > MIN_PROSE_SHARE:
         return None
-    parts = [f"{NAMES[k]} {round(100 * chars[k] / total)} %" for k in KINDS if chars[k] and k in SKIP_KINDS]
+    parts = [
+        f"{NAMES[k]} {round(100 * chars[k] / total)} %"
+        for k in KINDS
+        if chars[k] and k in SKIP_KINDS
+    ]
     return "подписи, легенды и таблицы: " + ", ".join(parts)
 
 

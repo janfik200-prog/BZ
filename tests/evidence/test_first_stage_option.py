@@ -22,7 +22,11 @@ TEXTS = {
 class FakeFinder:
     def find(self, text: str) -> Found:
         if text.startswith("Пирит"):
-            return Found("ru", terms=["Пирит", "халцедон", "кварцевых жилах", "золотом"], names=["Ключевское"])
+            return Found(
+                "ru",
+                terms=["Пирит", "халцедон", "кварцевых жилах", "золотом"],
+                names=["Ключевское"],
+            )
         return Found("ru", terms=[])
 
 
@@ -41,8 +45,14 @@ class FakeLLM:
 def patched(monkeypatch):
     skipped: list[int] = []
     saved: list[int] = []
-    monkeypatch.setattr(store, "todo", lambda conn, limit=None, retry_skipped=False: [(i, "d", t) for i, t in TEXTS.items()])
-    monkeypatch.setattr(store, "skip", lambda conn, chunk_id, reason, lang=None: skipped.append(chunk_id))
+    monkeypatch.setattr(
+        store,
+        "todo",
+        lambda conn, limit=None, retry_skipped=False: [(i, "d", t) for i, t in TEXTS.items()],
+    )
+    monkeypatch.setattr(
+        store, "skip", lambda conn, chunk_id, reason, lang=None: skipped.append(chunk_id)
+    )
     monkeypatch.setattr(store, "save", lambda conn, chunk_id, *a, **kw: saved.append(chunk_id))
     monkeypatch.setattr(dedup, "find_duplicate", lambda conn, chunk_id, text: None)
     monkeypatch.delenv(entities.ENTITY_LIST_ENV, raising=False)

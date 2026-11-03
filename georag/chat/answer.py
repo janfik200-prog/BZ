@@ -352,7 +352,12 @@ def answer(
     if gate.enabled() and sources and prepared.catalog is None:
         sources, info["scope_gate"] = gate.filter_sources(question, sources)
         if not sources:
-            yield {"type": "done", "mode": "нет в базе", "text": NOT_IN_BASE, "scope_gate": info["scope_gate"]}
+            yield {
+                "type": "done",
+                "mode": "нет в базе",
+                "text": NOT_IN_BASE,
+                "scope_gate": info["scope_gate"],
+            }
             return
     if prepared.catalog is not None:
         yield from _catalog_answer(prepared, settings, started, info)

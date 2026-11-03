@@ -23,8 +23,12 @@ from ..text import normalize
 PREFILTER_RULES = "prefilter-v14.1"
 JACCARD_DROP = dedup.DUP_SIMILARITY
 
-_NEG = re.compile(r"(?<![а-яa-z])(?:не|нет|ни|без|отсутству\w*|not|no|without|absent|lack\w*|none|never)(?![а-яa-z])")
-_MODAL = re.compile(r"вероятн\w*|возможн\w*|предполож\w*|по-видимому|may|might|could|probabl\w*|likely|possibl\w*|suggest\w*")
+_NEG = re.compile(
+    r"(?<![а-яa-z])(?:не|нет|ни|без|отсутству\w*|not|no|without|absent|lack\w*|none|never)(?![а-яa-z])"
+)
+_MODAL = re.compile(
+    r"вероятн\w*|возможн\w*|предполож\w*|по-видимому|may|might|could|probabl\w*|likely|possibl\w*|suggest\w*"
+)
 _SIDE = re.compile(
     r"(?<![а-яa-z])(?:север\w*|юг\w*|запад\w*|восток\w*|восточн\w*|западн\w*|северн\w*|южн\w*|"
     r"north\w*|south\w*|east\w*|west\w*|ne|nw|se|sw)(?![а-яa-z])"
@@ -35,7 +39,10 @@ _WORD = re.compile(r"[a-zа-я0-9]+")
 
 def shingles(text: str) -> set[str]:
     words = _WORD.findall(normalize(text))
-    return {" ".join(words[i : i + dedup.SHINGLE]) for i in range(max(len(words) - dedup.SHINGLE + 1, 0))}
+    return {
+        " ".join(words[i : i + dedup.SHINGLE])
+        for i in range(max(len(words) - dedup.SHINGLE + 1, 0))
+    }
 
 
 def jaccard(a: str, b: str) -> float:
@@ -127,18 +134,50 @@ class Prefilter:
             if best is not None:
                 other_text = self.seen[best[0]][1]
                 jac = jaccard(text, other_text)
-                diff = protected_diff(text, other_text, self.registry, self.finder) if self.protect else []
+                diff = (
+                    protected_diff(text, other_text, self.registry, self.finder)
+                    if self.protect
+                    else []
+                )
                 if diff:
-                    return Decision(chunk_id, "REVIEW_NOT_DROP", "PREFILTER_PROTECTED_TOKEN", jac, best[1], diff,
-                                    n_terms, self.k, best[0], found.lang)
+                    return Decision(
+                        chunk_id,
+                        "REVIEW_NOT_DROP",
+                        "PREFILTER_PROTECTED_TOKEN",
+                        jac,
+                        best[1],
+                        diff,
+                        n_terms,
+                        self.k,
+                        best[0],
+                        found.lang,
+                    )
                 if jac >= JACCARD_DROP or not self.protect:
-                    return Decision(chunk_id, "DROP_DUPLICATE", "near-duplicate", jac, best[1], [], n_terms,
-                                    self.k, best[0], found.lang)
+                    return Decision(
+                        chunk_id,
+                        "DROP_DUPLICATE",
+                        "near-duplicate",
+                        jac,
+                        best[1],
+                        [],
+                        n_terms,
+                        self.k,
+                        best[0],
+                        found.lang,
+                    )
                 # подпись совпала, а настоящая мера Жаккара ниже порога — не дубль
             self.seen[chunk_id] = (sig, text)
             for band, h in enumerate(keys):
                 self.buckets.setdefault((band, h), []).append(chunk_id)
         if n_terms < self.k:
-            return Decision(chunk_id, "DROP_SPARSE", f"terms {n_terms} < k={self.k}", terms_found=n_terms,
-                            threshold_k=self.k, lang=found.lang)
-        return Decision(chunk_id, "KEEP", "ok", terms_found=n_terms, threshold_k=self.k, lang=found.lang)
+            return Decision(
+                chunk_id,
+                "DROP_SPARSE",
+                f"terms {n_terms} < k={self.k}",
+                terms_found=n_terms,
+                threshold_k=self.k,
+                lang=found.lang,
+            )
+        return Decision(
+            chunk_id, "KEEP", "ok", terms_found=n_terms, threshold_k=self.k, lang=found.lang
+        )

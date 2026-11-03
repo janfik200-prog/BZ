@@ -275,7 +275,9 @@ def dataset_summary(data: dict[str, Any]) -> str:
     analogs = data.get("analogs") or []
     if analogs:
         lines.append("По другим районам (аналоги, не прямые свидетельства):")
-        lines += [f"- {a['about']} — {a['relation']} — {a['other']} ({a['title']})" for a in analogs[:8]]
+        lines += [
+            f"- {a['about']} — {a['relation']} — {a['other']} ({a['title']})" for a in analogs[:8]
+        ]
     return "\n".join(lines)
 
 

@@ -9,8 +9,12 @@ from georag import dicts as D
 
 class EntryTests(unittest.TestCase):
     def test_etymology_and_english(self):
-        e = D._entry("Адуляр [по горам Адула, Швейцария; adularia] – прозрач. разновид. ортоклаза.", 31)
-        self.assertEqual((e.term, e.etym, e.en), ("Адуляр", "по горам Адула, Швейцария", "adularia"))
+        e = D._entry(
+            "Адуляр [по горам Адула, Швейцария; adularia] – прозрач. разновид. ортоклаза.", 31
+        )
+        self.assertEqual(
+            (e.term, e.etym, e.en), ("Адуляр", "по горам Адула, Швейцария", "adularia")
+        )
         self.assertEqual(e.definition, "прозрач. разновид. ортоклаза.")
         self.assertEqual(e.page, 31)
 
@@ -19,8 +23,10 @@ class EntryTests(unittest.TestCase):
         self.assertEqual((e.term, e.en, e.etym), ("Адмитанс", "admittance", ""))
 
     def test_dash_inside_brackets(self):
-        raw = ("Декольман [от фр. décollement – отклеивание; Haug E., 1907; décollement] – "
-               "пологий надвиг.")
+        raw = (
+            "Декольман [от фр. décollement – отклеивание; Haug E., 1907; décollement] – "
+            "пологий надвиг."
+        )
         e = D._entry(raw, 315)
         self.assertEqual(e.term, "Декольман")
         self.assertEqual(e.en, "décollement")
@@ -36,7 +42,9 @@ class EntryTests(unittest.TestCase):
 
 class JoinTests(unittest.TestCase):
     def test_hyphenation_and_soft_hyphen(self):
-        self.assertEqual(D._join(["гидрогеоло-", "гическая структура"]), "гидрогеологическая структура")
+        self.assertEqual(
+            D._join(["гидрогеоло-", "гическая структура"]), "гидрогеологическая структура"
+        )
         self.assertEqual(D._join(["издаю\x10 щая при ударе"]), "издающая при ударе")
         self.assertEqual(D._join(["Брюстерит · 10H2O��. Мон."]), "Брюстерит · 10H2O. Мон.")
 
@@ -75,13 +83,15 @@ class WorkingTests(unittest.TestCase):
         self.assertEqual(D.working_find("term-translations", "")["total"], 0)
 
 
-PAIRS = D.abbreviation_pairs([
-    D.Entry("м-л, м-лы", "", "", "минерал, минералы", 20),
-    D.Entry("к-л, к-лы", "", "", "кристалл, кристаллы", 20),
-    D.Entry("тв.", "", "", "твердость (при цифре)", 21),
-    D.Entry("мон.", "", "", "моноклинный", 21),
-    D.Entry("T, t", "", "", "температура", 21),
-])
+PAIRS = D.abbreviation_pairs(
+    [
+        D.Entry("м-л, м-лы", "", "", "минерал, минералы", 20),
+        D.Entry("к-л, к-лы", "", "", "кристалл, кристаллы", 20),
+        D.Entry("тв.", "", "", "твердость (при цифре)", 21),
+        D.Entry("мон.", "", "", "моноклинный", 21),
+        D.Entry("T, t", "", "", "температура", 21),
+    ]
+)
 
 
 class AbbreviationTests(unittest.TestCase):
@@ -92,16 +102,25 @@ class AbbreviationTests(unittest.TestCase):
 
     def test_expand_forms_and_dots(self):
         got = D.expand("Мон. Удлиненные к-лы. Тв. 2–3. В ассоц. с м-лами, м-лов нет.", PAIRS)
-        self.assertEqual(got, "Моноклинный. Удлиненные кристаллы. Твердость 2–3. В ассоц. с "
-                              "минералами, минералов нет.")
+        self.assertEqual(
+            got,
+            "Моноклинный. Удлиненные кристаллы. Твердость 2–3. В ассоц. с "
+            "минералами, минералов нет.",
+        )
 
     def test_headword_initials(self):
-        self.assertEqual(D.expand_headword("Термин Д. часто применяют.", "Декольман"),
-                         "Термин Декольман часто применяют.")
-        self.assertEqual(D.expand_headword("А. с. используется для очистки.", "Адсорбция селективная"),
-                         "Адсорбция селективная используется для очистки.")
-        self.assertEqual(D.expand_headword("по Д.С. Коржинскому и Д. Smith", "Декольман"),
-                         "по Д.С. Коржинскому и Д. Smith")
+        self.assertEqual(
+            D.expand_headword("Термин Д. часто применяют.", "Декольман"),
+            "Термин Декольман часто применяют.",
+        )
+        self.assertEqual(
+            D.expand_headword("А. с. используется для очистки.", "Адсорбция селективная"),
+            "Адсорбция селективная используется для очистки.",
+        )
+        self.assertEqual(
+            D.expand_headword("по Д.С. Коржинскому и Д. Smith", "Декольман"),
+            "по Д.С. Коржинскому и Д. Smith",
+        )
 
     def test_no_expand_inside_words(self):
         self.assertEqual(D.expand("сульфидами Tm-лантаноиды", PAIRS), "сульфидами Tm-лантаноиды")
@@ -118,8 +137,15 @@ def _index(*entries):
 
 
 def _e(term, definition, en="", ord_=0):
-    return {"dict_id": "d", "ord": ord_, "term": term, "en": en, "etym": "", "definition": definition,
-            "page": 5}
+    return {
+        "dict_id": "d",
+        "ord": ord_,
+        "term": term,
+        "en": en,
+        "etym": "",
+        "definition": definition,
+        "page": 5,
+    }
 
 
 class FakeCursor:
@@ -174,8 +200,12 @@ class TermsTests(unittest.TestCase):
         self.assertEqual(got[0]["via"], "Брюхоногие")
 
     def test_query_variants(self):
-        self.assertIn("Как выделяют shear zone", D.query_variants(FakeConn(), "Как выделяют зону сдвига?"))
-        self.assertIn("Где встречаются gastropod", D.query_variants(FakeConn(), "Где встречаются брюхоногие"))
+        self.assertIn(
+            "Как выделяют shear zone", D.query_variants(FakeConn(), "Как выделяют зону сдвига?")
+        )
+        self.assertIn(
+            "Где встречаются gastropod", D.query_variants(FakeConn(), "Где встречаются брюхоногие")
+        )
 
     def test_no_dictionary(self):
         D.index = lambda conn: None
@@ -185,17 +215,29 @@ class TermsTests(unittest.TestCase):
 
 class DefinitionTests(unittest.TestCase):
     def test_definition_questions(self):
-        for q in ("Что такое адуляр?", "что значит декольман", "Дай определение термина зона сдвига",
-                  "What is adularia?"):
+        for q in (
+            "Что такое адуляр?",
+            "что значит декольман",
+            "Дай определение термина зона сдвига",
+            "What is adularia?",
+        ):
             self.assertTrue(D.is_definition(q), q)
         self.assertFalse(D.is_definition("Где встречается адуляр и что такое ортоклаз"))
 
     def test_prompt_notes(self):
         from georag.chat.messages import build_messages
 
-        src = {"n": 1, "doc_id": "словарь:d", "ord": 0, "title": "Словарь: «Адуляр»", "year": None,
-               "authors": [], "pages": [31], "text": "Адуляр — разновидность ортоклаза.",
-               "kind": "словарь"}
+        src = {
+            "n": 1,
+            "doc_id": "словарь:d",
+            "ord": 0,
+            "title": "Словарь: «Адуляр»",
+            "year": None,
+            "authors": [],
+            "pages": [31],
+            "text": "Адуляр — разновидность ортоклаза.",
+            "kind": "словарь",
+        }
         user = build_messages("Что такое адуляр?", [src], [])[-1]["content"]
         self.assertIn("статьи Геологического словаря", user)
         self.assertIn("начни ответ с определения по словарю", user)
