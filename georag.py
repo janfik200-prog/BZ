@@ -51,6 +51,8 @@
     graph --vectors             векторы фактов для поиска по связям (идёт и после graph)
     graph --types               тип связи и виды концов по цитате (идёт и после graph)
     synonyms                    предложения в словарь синонимов (config/synonyms.yaml)
+    titles отчёты.xlsx [--dry-run]   названия, авторы, год, территория документов из таблицы
+    report вопросы.yaml [--compare-dict]   ответы чата на набор вопросов → Excel для оценки
     dict import словарь.pdf     разобрать словарь (PDF) → папка dictionaries и база
     dict load                   словари из папки dictionaries → база (на другой машине)
     dict list | dict find "термин"   какие словари есть; статьи по термину
@@ -985,6 +987,19 @@ def main(argv: list[str] | None = None) -> int:
         if not _ensure_database():
             return 1
         return _py("georag.index.formulas", *argv[1:])
+    if argv and argv[0].lower() == "titles":
+        # Названия, авторы, год, территория документов из таблицы отчётов (index/titles.py).
+        _need_venv()
+        if not _ensure_database():
+            return 1
+        return _py("georag.index.titles", *argv[1:])
+    if argv and argv[0].lower() == "report":
+        # Прогон набора вопросов через чат → таблица Excel для оценки (chat/report.py).
+        _need_venv()
+        if not _ensure_database():
+            return 1
+        _ensure_llm(wait=True)
+        return _py("georag.chat.report", *argv[1:])
     if argv and argv[0].lower() == "dict":
         # Словари (georag/dicts.py): import PDF → папка dictionaries и база, load, list, find.
         _need_venv()

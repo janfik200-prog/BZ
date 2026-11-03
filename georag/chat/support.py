@@ -47,6 +47,10 @@ SUPPORT_USER = """Фрагменты статей:
 - «частично» — главное есть, но есть и добавка, которой во фрагменте нет (её — в «чего_нет»);
 - «нет» — главного во фрагменте нет или сказано другое: другое место или объект, другое \
 число, другая работа или метод, чем в утверждении.
+Если в утверждении есть объяснение или вывод («поскольку…», «так как…», «что \
+подтверждает…», «следовательно…»), а во фрагменте этой связи нет, хотя сами факты есть, — \
+ответ «частично», и «чего_нет» начни со слова «связь» (например, «связь: во фрагменте нет, \
+что залежи доказывают нефтематеринскую природу»).
 Не придирайся к словам, пересказу и переводу. «нет» — только когда можешь назвать, чего \
 именно во фрагменте нет: тогда напиши это в «чего_нет» (например, «во фрагменте Франция, \
 а не Испания»). Не можешь назвать — значит, не «нет».
@@ -155,8 +159,39 @@ def _refuted(verdict: Any, claim: str = "", fragments: str = "") -> bool:
     return answer == "нет" or (answer == "частично" and _foreign(reason, claim, fragments))
 
 
+# Причинная связка в утверждении: «…, поскольку в ней выявлены залежи [1]». Если сверка
+# говорит «частично, связь: …», отрезается связка до конца фразы, факт и ссылка остаются.
+_CAUSAL = re.compile(
+    r",?\s+(?:поскольку|так как|потому что|что подтверждает|что свидетельствует|что указывает|"
+    r"следовательно|а значит)\b[^\[]*",
+    re.IGNORECASE,
+)
+
+
+def _weak_link(verdict: Any, claim: str) -> bool:
+    """Сверка подтвердила факты, но не связь «поскольку…» между ними."""
+    if not isinstance(verdict, dict) or not _CAUSAL.search(claim):
+        return False
+    answer = str(verdict.get("ответ") or "").strip().lower()
+    reason = str(verdict.get("чего_нет") or "").strip().lower()
+    return answer == "частично" and reason.startswith("связ")
+
+
+def cut_link(claim: str) -> str:
+    """«Свита — нефтематеринская, поскольку в ней залежи [1]» → «Свита — нефтематеринская [1]»."""
+    cut = _CAUSAL.sub("", claim, count=1).rstrip()
+    marks = "".join(m.strip() for m in CITE_MARK.findall(claim))
+    body = CITE_MARK.sub("", cut).rstrip(" ,;.")
+    return f"{body} {marks}".rstrip() + "." if body else claim
+
+
 def _ask(claims: list[str], by_n: dict[int, dict[str, Any]], settings: Settings) -> list[bool]:
     """Модель о каждом утверждении: опровергнуто ли оно его фрагментами. Молчит — нет."""
+    return [v == "refuted" for v in _verdicts(claims, by_n, settings)]
+
+
+def _verdicts(claims: list[str], by_n: dict[int, dict[str, Any]], settings: Settings) -> list[str]:
+    """«refuted» — опровергнуто, «link» — факты есть, а связи «поскольку…» нет, «ok» — иначе."""
     cited = sorted({n for c in claims for n in cited_numbers(c) if n in by_n})
     blocks = "\n\n".join(seen(by_n[n]) for n in cited)
     lines = [
@@ -175,16 +210,19 @@ def _ask(claims: list[str], by_n: dict[int, dict[str, Any]], settings: Settings)
             max_tokens=40 * len(claims) + 60,
         )
     except Exception:  # noqa: BLE001 — не вышло сверить: ничего не опровергнуто
-        return [False] * len(claims)
+        return ["ok"] * len(claims)
     data = data if isinstance(data, dict) else {}
-    return [
-        _refuted(
-            data.get(str(i)),
-            c,
-            " ".join(seen(by_n[n]) for n in cited_numbers(c) if n in by_n),
-        )
-        for i, c in enumerate(claims, start=1)
-    ]
+    out = []
+    for i, c in enumerate(claims, start=1):
+        verdict = data.get(str(i))
+        fragments = " ".join(seen(by_n[n]) for n in cited_numbers(c) if n in by_n)
+        if _weak_link(verdict, c):
+            out.append("link")
+        elif _refuted(verdict, c, fragments):
+            out.append("refuted")
+        else:
+            out.append("ok")
+    return out
 
 
 def check_support(
@@ -198,7 +236,12 @@ def check_support(
 
     fixed = {c: new for c in claims if (new := _recite(c, by_n)) is not None}
     checked = [fixed.get(c, c) for c in claims]
-    first = _ask(checked, by_n, settings)
+    verdicts = _verdicts(checked, by_n, settings)
+    first = [v == "refuted" for v in verdicts]
+    # Связь «поскольку…» не подтверждена, факты подтверждены — связка отрезается.
+    for i, v in enumerate(verdicts):
+        if v == "link":
+            fixed[claims[i]] = cut_link(checked[i])
     # Опровергнутое — ещё раз, по одному, только со своими фрагментами: в AgentKB общий
     # проход опровергал и верное (около трети из «нет»), а узкая перепроверка ошибается
     # реже. Убирается то, что опровергнуто оба раза.
