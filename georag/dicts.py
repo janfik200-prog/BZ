@@ -419,7 +419,7 @@ def working_entries(key: str) -> list[dict[str, Any]]:
     if key == "geo-terms":
         terms = [
             line.strip()
-            for line in path.read_text("utf-8").splitlines()
+            for line in path.read_text("utf-8-sig").splitlines()
             if line.strip() and not line.lstrip().startswith("#")
         ]
         return [{"term": t, "en": "", "etym": "", "definition": "", "page": None} for t in terms]

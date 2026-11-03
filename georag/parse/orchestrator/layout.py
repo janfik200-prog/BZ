@@ -106,9 +106,15 @@ def rescue_table_rows(doc: Any) -> int:
         if not cells:
             continue
         last = max(c.start_row_offset_idx for c, _ in cells)
-        tops = sorted({round(b.t, 1) for c, b in cells if c.start_row_offset_idx >= last - 1})
-        row_top = max(b.t for c, b in cells if c.start_row_offset_idx == last)
-        step = tops[-1] - tops[-2] if len(tops) > 1 else 0.0
+        # Верх строки — самый высокий верх её ячеек: текст в ячейках начинается на разной
+        # высоте (центровка, ячейка в две строки), и шаг по двум нижним верхам ячеек
+        # выходил в несколько пунктов — строка под таблицей тогда не возвращалась.
+        row_tops: dict[int, float] = {}
+        for c, b in cells:
+            row = c.start_row_offset_idx
+            row_tops[row] = min(row_tops.get(row, b.t), b.t)
+        row_top = row_tops[last]  # отступ до следующей строки — тоже от верха строки
+        step = row_tops[last] - row_tops[last - 1] if last - 1 in row_tops else 0.0
         if step <= 0:
             step = max(b.b - b.t for _, b in cells) * 1.8
         # Левые края всех ячеек столбца: у заголовка он свой («Глубина, м» шире чисел).

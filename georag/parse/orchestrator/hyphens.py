@@ -20,7 +20,9 @@ from .profile import PLAIN, SCAN, UNKNOWN, WORD
 
 _LETTERS = "A-Za-zА-Яа-яЁё"
 _LINE_HYPHEN = re.compile(rf"\b([{_LETTERS}]{{2,}})- ([{_LETTERS}]{{2,}})\b")
-HANGING = {"и", "или", "либо", "а", "and", "or", "nor", "to"}  # «северо- и юго-западный»
+# Союз после висячего дефиса: «северо- и юго-западный», «Erz- und Kupferlagerstätten».
+# Без немецких и французских союзов вёрстка без переносов (PLAIN) делала «Erz-und».
+HANGING = {"и", "или", "либо", "а", "and", "or", "nor", "to", "und", "oder", "bzw", "et", "ou"}
 _HANGING = HANGING
 _CYRILLIC = re.compile(r"[А-Яа-яЁё]")
 _ELEMENT = re.compile(r"[A-Z][a-z]?")

@@ -73,7 +73,11 @@ def language(text: str) -> str:
 def load_terms(path: Path | str | None = None) -> list[str]:
     """Термины из файла: строка — термин, # — комментарий."""
     text = Path(path or TERMS_PATH).read_text(encoding="utf-8-sig")
-    return [line.strip() for line in text.splitlines() if line.strip() and not line.startswith("#")]
+    return [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
 
 
 @dataclass

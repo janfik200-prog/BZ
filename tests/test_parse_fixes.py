@@ -211,6 +211,41 @@ def test_rescue_table_row() -> None:
     assert [t.text for t in doc.texts] == ["Таблица показывает содержания металлов в пробах."]
 
 
+def test_rescue_table_row_uneven_cell_tops() -> None:
+    """Текст в ячейках последней строки начинается на разной высоте (центровка по
+    вертикали, ячейка в две строки). Шаг строки — между верхами строк, а не между двумя
+    нижними верхами ячеек: иначе шаг выходил в 3 пт, и строка под таблицей не
+    возвращалась."""
+    from docling_core.types.doc.items.table.table_data import TableCell, TableData
+
+    doc = _doc()
+    lefts = (80, 210, 310, 400)
+    rows = (("Проба", "Au", "Ag", "Cu"), ("КП-1", "1,1", "5,0", "30"), ("КП-2", "0,9", "4,8", "28"))
+    shift = {(2, 2): 3.0, (2, 3): 5.0}  # «4,8» и «28» — ниже «КП-2»
+    cells = [
+        TableCell(
+            bbox=_prov(1, left, top + shift.get((r, c), 0.0), left + 60, top + 12).bbox,
+            row_span=1,
+            col_span=1,
+            start_row_offset_idx=r,
+            end_row_offset_idx=r + 1,
+            start_col_offset_idx=c,
+            end_col_offset_idx=c + 1,
+            text=rows[r][c],
+            column_header=r == 0,
+        )
+        for r, top in enumerate((100, 120, 140))
+        for c, left in enumerate(lefts)
+    ]
+    doc.add_table(
+        data=TableData(num_rows=3, num_cols=4, table_cells=cells), prov=_prov(1, 80, 100, 460, 157)
+    )
+    for left, text in zip(lefts, ("КП-4", "1,2", "5,5", "31"), strict=True):
+        _text(doc, text, l=left, t=163)
+    assert layout.rescue_table_rows(doc) == 1
+    assert doc.tables[0].data.num_rows == 4
+
+
 def test_join_split_paragraphs() -> None:
     doc = _doc()
     _text(doc, "Работы ведутся по единой методике. В об-", page=1, t=700)
@@ -222,3 +257,21 @@ def test_join_split_paragraphs() -> None:
         "Новый абзац начинается с заглавной.",
     ]
     assert [p.page_no for p in doc.texts[0].prov] == [1, 2]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Erz- und Kupferlagerstätten",
+        "Gold- oder Silbererze",
+        "roches magmatiques- et sédimentaires",
+    ],
+)
+def test_hanging_hyphen_other_languages_kept(text: str) -> None:
+    """Висячий дефис перед союзом — настоящий и в немецком, французском: вёрстка без
+    переносов не склеивает его в «Erz-und»."""
+    from georag.parse.orchestrator.hyphens import fix_line_hyphens
+    from georag.parse.orchestrator.profile import HYPHENATED, PLAIN
+
+    assert fix_line_hyphens(text, PLAIN) == (text, 0)
+    assert fix_line_hyphens(text, HYPHENATED) == (text, 0)

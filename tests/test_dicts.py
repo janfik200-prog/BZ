@@ -71,6 +71,17 @@ class WorkingTests(unittest.TestCase):
         D.CONFIG = self.old
         self.tmp.cleanup()
 
+    def test_terms_file_saved_with_bom(self):
+        """Блокнот сохраняет UTF-8 с BOM: первый термин — без невидимого знака, а
+        комментарий с отступом — не термин (так же читает граф, entities.load_terms)."""
+        from georag.graph.entities import load_terms
+
+        path = D.CONFIG / "geo-terms.txt"
+        path.write_text("\ufeffкварц\n  # с отступом\npyrite\n", "utf-8")
+        terms = [e["term"] for e in D.working_entries("geo-terms")]
+        self.assertEqual(terms, ["кварц", "pyrite"])
+        self.assertEqual(load_terms(path), terms)
+
     def test_listed_only_existing_files(self):
         ids = {d["id"] for d in D.working_listing()}
         self.assertEqual(ids, {"geo-terms", "synonyms"})
