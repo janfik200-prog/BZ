@@ -319,11 +319,13 @@ def _symphonym(path: str) -> Any:
         spec = importlib.util.spec_from_file_location(
             "symphonym_inference", Path(path) / "inference.py"
         )
+        if spec is None or spec.loader is None:
+            return None
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         # Словари модели — в UTF-8, а её код открывает их в кодировке системы (в Windows
         # это cp1251): open внутри модуля — с явной кодировкой.
-        module.open = partial(open, encoding="utf-8")
+        setattr(module, "open", partial(open, encoding="utf-8"))  # noqa: B010
         return module.SymphonymModel(model_dir=path)
     except Exception:  # noqa: BLE001 — без фонетики сверка идёт как раньше
         return None

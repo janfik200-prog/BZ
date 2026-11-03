@@ -262,7 +262,8 @@ def filter_sources(
     frame = frame_question(question, reg)
     if frame.target_region_id is None or not sources:
         return sources, {"applied": False, "reason": "NO_TARGET_REGION", "frame": frame.to_json()}
-    kept, excluded = [], []
+    kept: list[dict[str, Any]] = []
+    excluded: list[dict[str, Any]] = []
     for s in sources:
         sc = resolve_scope(
             s.get("text", ""),

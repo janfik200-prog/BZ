@@ -219,7 +219,10 @@ def _preceding(quote: str, chunk_text: str) -> list[str]:
     """Предложения фрагмента до цитаты (по первому её предложению)."""
     sents = split_sentences(" ".join((chunk_text or "").split()))
     head = split_sentences(quote)[0] if quote else ""
-    norm = lambda s: " ".join(s.split())  # noqa: E731
+
+    def norm(s: str) -> str:
+        return " ".join(s.split())
+
     for i, s in enumerate(sents):
         if norm(s) == norm(head) or (head and norm(head)[:60] in norm(s)):
             return sents[:i]

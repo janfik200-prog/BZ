@@ -246,5 +246,75 @@ class DefinitionTests(unittest.TestCase):
         self.assertNotIn("начни ответ с определения", user)
 
 
+class SchemaConn:
+    """Заглушка базы для запросов вкладки «Словари»: какие таблицы и колонки есть и что
+    выполнялось. DDL (CREATE/ALTER) и commit — ошибка: чтение схему не меняет."""
+
+    def __init__(self, tables=True, columns=("abbreviations",), pairs=None):
+        self.tables, self.columns, self.pairs = tables, set(columns), pairs or []
+        self.sql = []
+
+    def cursor(self):
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def commit(self):
+        raise AssertionError("commit при чтении словарей")
+
+    def execute(self, sql, params=None):
+        if "CREATE" in sql or "ALTER" in sql:
+            raise AssertionError(f"DDL при чтении словарей: {sql[:40]}")
+        self.sql.append(sql)
+        self.params = params
+
+    def fetchone(self):
+        last = self.sql[-1]
+        if "to_regclass" in last:
+            return (self.tables,)
+        if "SELECT abbreviations" in last:
+            return (self.pairs,)
+        return (0,)
+
+    def fetchall(self):
+        last = self.sql[-1]
+        if "information_schema.columns" in last:
+            return [(c,) for c in self.params[1] if c in self.columns]
+        return []
+
+
+class ReadOnlyTests(unittest.TestCase):
+    def test_no_tables_empty_without_ddl(self):
+        conn = SchemaConn(tables=False)
+        self.assertEqual(D.listing(conn), [])
+        self.assertEqual(D.find(conn, None, "адуляр"), {"total": 0, "entries": []})
+
+    def test_tables_read_without_ddl(self):
+        conn = SchemaConn()
+        self.assertEqual(D.listing(conn), [])
+        self.assertEqual(D.find(conn, "d", "", letter="А")["entries"], [])
+
+    def test_abbreviations_without_column(self):
+        """Словарь загружен до колонки abbreviations: пусто, а не UndefinedColumn,
+        который ронял ответ чата (answer.py зовёт as_sources без перехвата)."""
+        conn = SchemaConn(columns=(), pairs=[["м-л", "минерал"]])
+        self.assertEqual(D.abbreviations(conn, "d"), [])
+        self.assertFalse(any("SELECT abbreviations" in s for s in conn.sql))
+        entry = {**_e("Адуляр", "м-л группы ортоклаза."), "title": "Словарь"}
+        got = D.as_sources(conn, [entry], start=3)
+        self.assertEqual((got[0]["n"], got[0]["kind"]), (3, "словарь"))
+        self.assertIn("м-л группы", got[0]["text"])
+
+    def test_abbreviations_with_column(self):
+        conn = SchemaConn(pairs=[["м-л", "минерал"]])
+        self.assertEqual(D.abbreviations(conn, "d"), [("м-л", "минерал")])
+        entry = {**_e("Адуляр", "м-л группы ортоклаза."), "title": "Словарь"}
+        self.assertIn("минерал группы", D.as_sources(conn, [entry], start=1)[0]["text"])
+
+
 if __name__ == "__main__":
     unittest.main()

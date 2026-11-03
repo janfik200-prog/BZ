@@ -305,3 +305,36 @@ def test_partly_right_citation_stays() -> None:
     }
     claim = "Снимки с разрешением 30 м (масштаб 1:150 000) и 60–120 м (1:300 000) [4]."
     assert support._recite(claim, by_n) is None
+
+
+# --------------------------------------------------------------------------- #
+#  Связь «поскольку…», которой во фрагменте нет
+# --------------------------------------------------------------------------- #
+LINK = {"ответ": "частично", "чего_нет": "связь: во фрагменте нет, что жилы это доказывают"}
+
+
+def test_unsupported_link_is_cut_and_fact_stays(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Факты подтверждены, связь «поскольку…» — нет: связка отрезается, факт и ссылка
+    остаются, ничего не убирается целиком."""
+    answer = (
+        "В Центральном массиве золотые жилы контролируются линеаментами, поскольку "
+        "плотность линеаментов выше 2,5 км/км² [1]."
+    )
+    (text, removed, _), _client = run(monkeypatch, answer, lambda c: LINK)
+    assert text == "В Центральном массиве золотые жилы контролируются линеаментами [1]."
+    assert removed == []
+
+
+def test_cut_link_is_not_counted_as_recited(monkeypatch: pytest.MonkeyPatch) -> None:
+    """recited — сколько ссылок переставлено; отрезанная связка ссылок не переставляет
+    (раньше она попадала в тот же счёт)."""
+    answer = "Золотые жилы контролируются линеаментами, так как это видно по карте [1]."
+    (text, removed, recited), _client = run(monkeypatch, answer, lambda c: LINK)
+    assert "так как" not in text and removed == [] and recited == 0
+
+
+def test_link_verdict_without_causal_words_is_ordinary(monkeypatch: pytest.MonkeyPatch) -> None:
+    """«частично, связь…» у утверждения без связки — обычное «частично»: не режется."""
+    claim = "В Центральном массиве золотые жилы контролируются линеаментами [1]."
+    (text, removed, recited), _client = run(monkeypatch, claim, lambda c: LINK)
+    assert (text, removed, recited) == (claim, [], 0)

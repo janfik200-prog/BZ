@@ -61,7 +61,7 @@ class ModelAdapter:
         import requests
 
         prompt_sha = sha256_text(system + "\n" + user)
-        payload = {
+        payload: dict[str, Any] = {
             "model": self.model,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
             "temperature": temperature,
@@ -70,7 +70,8 @@ class ModelAdapter:
             **NO_THINK,
         }
         started = time.monotonic()
-        error, data, usage, served = None, None, {}, self.model
+        usage: dict[str, Any] = {}
+        error, data, served = None, None, self.model
         try:
             r = requests.post(
                 f"{self.host}/v1/chat/completions", json=payload, timeout=self.timeout

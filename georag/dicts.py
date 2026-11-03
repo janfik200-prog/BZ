@@ -134,10 +134,11 @@ def _join(parts: list[str]) -> str:
 def _entry(raw: str, page: int) -> Entry | None:
     """«Адуляр [по горам Адула, Швейцария; adularia] – прозрач. …» → поля статьи."""
     # Тире внутри скобок («[от фр. décollement – отклеивание; …]») — не граница определения.
+    # Скобки открываются раньше первого тире — граница ищется после «]».
     b, e = raw.find("["), raw.find("]")
-    m = _DASH.search(
-        raw, e + 1 if 0 <= b < e and b < (_DASH.search(raw) or re.search("$", raw)).start() else 0
-    )
+    first = _DASH.search(raw)
+    bracket_first = 0 <= b < e and (first is None or b < first.start())
+    m = _DASH.search(raw, e + 1) if bracket_first else first
     if not m:
         return None
     head, definition = raw[: m.start()].strip(), raw[m.end() :].strip()
@@ -161,7 +162,7 @@ def parse_pdf(path: Path, first: int = 1, last: int | None = None) -> list[Entry
     """Статьи словаря из PDF (страницы first…last, с 1)."""
     import pymupdf
 
-    doc = pymupdf.open(path)
+    doc = pymupdf.open(path)  # type: ignore[no-untyped-call]
     entries: list[Entry] = []
     current: list[str] = []
     start_page = first
@@ -189,7 +190,7 @@ def detect_range(path: Path) -> tuple[int, int]:
     последней такой. Вступление, сокращения и выходные данные отсекаются."""
     import pymupdf
 
-    doc = pymupdf.open(path)
+    doc = pymupdf.open(path)  # type: ignore[no-untyped-call]
     pages = []
     for i in range(len(doc)):
         heads = dots = 0
@@ -211,7 +212,7 @@ def abbreviation_pages(path: Path, first_entry_page: int) -> tuple[int, int]:
     часть кончается точкой («агр. – агрегат»). Нет таких — пустой диапазон."""
     import pymupdf
 
-    doc = pymupdf.open(path)
+    doc = pymupdf.open(path)  # type: ignore[no-untyped-call]
     pages = []
     for i in range(first_entry_page - 1):
         heads = dots = 0
@@ -315,9 +316,20 @@ def load(conn: Any, dict_id: str) -> int:
     return len(entries)
 
 
+def loaded(conn: Any) -> bool:
+    """Есть ли в базе таблицы словарей (их создаёт dict load). Проверка только читает:
+    вкладка «Словари» и чат не меняют схему — init (CREATE/ALTER TABLE) на каждый запрос
+    страницы брал бы исключительную блокировку таблицы и делал commit чужой работы."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT to_regclass('dict_entries') IS NOT NULL")
+        row = cur.fetchone()
+    return bool(row and row[0])
+
+
 def listing(conn: Any) -> list[dict[str, Any]]:
-    """Справочные словари из базы."""
-    init(conn)
+    """Справочные словари из базы; не загружали ни одного — пусто."""
+    if not loaded(conn):
+        return []
     with conn.cursor() as cur:
         cur.execute("SELECT id, title, source, entries FROM dictionaries ORDER BY title")
         return [
@@ -331,7 +343,8 @@ def find(
 ) -> dict[str, Any]:
     """Статьи словаря: по началу термина, затем по словам в термине и определении.
     Пустой запрос — по алфавиту (с буквы letter)."""
-    init(conn)
+    if not loaded(conn):
+        return {"total": 0, "entries": []}
     where = "dict_id = %(d)s" if dict_id else "TRUE"
     params: dict[str, Any] = {"d": dict_id, "lim": limit, "off": offset}
     fields = "e.dict_id, e.term, e.en, e.etym, e.definition, e.page"
@@ -364,7 +377,7 @@ def find(
                 params,
             )
         rows = [
-            dict(zip(("dict_id", "term", "en", "etym", "definition", "page"), r))
+            dict(zip(("dict_id", "term", "en", "etym", "definition", "page"), r, strict=True))
             for r in cur.fetchall()
         ]
     return {"total": total, "entries": rows}
@@ -509,10 +522,17 @@ def expand(text: str, pairs: list[tuple[str, str]]) -> str:
 
 
 def abbreviations(conn: Any, dict_id: str) -> list[tuple[str, str]]:
+    """Пары сокращений словаря из базы. Словарь загружен до того, как появилась колонка
+    abbreviations (её добавляет init при dict load), — пусто: определения идут в ответ
+    без раскрытых сокращений, а не роняют его ошибкой UndefinedColumn."""
+    from .index.db import has_columns
+
+    if not has_columns(conn, "dictionaries", ("abbreviations",)):
+        return []
     with conn.cursor() as cur:
         cur.execute("SELECT abbreviations FROM dictionaries WHERE id = %s", (dict_id,))
         row = cur.fetchone()
-    return [tuple(p) for p in (row[0] or [])] if row else []  # type: ignore[misc]
+    return [(str(p[0]), str(p[1])) for p in (row[0] or [])] if row else []
 
 
 # --- словарь в чате: термины вопроса, отсылки, варианты запроса ------------------------- #
@@ -613,7 +633,7 @@ def _common(conn: Any, term: str, total: int) -> bool:
         cur.execute(
             "SELECT count(*) FROM chunks WHERE tsv @@ plainto_tsquery('russian', %s)", (term,)
         )
-        return cur.fetchone()[0] > COMMON * total
+        return bool(cur.fetchone()[0] > COMMON * total)
 
 
 def terms_in(conn: Any, text: str, limit: int = 3) -> list[dict[str, Any]]:

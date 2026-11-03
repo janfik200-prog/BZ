@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from itertools import pairwise
 
 from ..text import mentions, split_sentences
 
@@ -111,7 +112,7 @@ def _caption(line: str) -> str | None:
 
 def _legend(text: str) -> str | None:
     numbers = [int(m.group(1)) for m in _ENUM.finditer(text)]
-    if len(numbers) >= 2 and any(b == a + 1 for a, b in zip(numbers, numbers[1:])):
+    if len(numbers) >= 2 and any(b == a + 1 for a, b in pairwise(numbers)):
         return "legend:numbered"
     if len(_ABBR.findall(text)) >= 3:
         return "legend:abbreviations"

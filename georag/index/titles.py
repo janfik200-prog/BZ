@@ -160,7 +160,8 @@ def apply(conn: Any, found: dict[str, Row]) -> int:
                 a.strip() for a in re.split(r"[;,]\s*", row.values.get("authors", "")) if a.strip()
             ]
             year_m = _YEAR.search(row.values.get("year", ""))
-            sets, params = [], []
+            sets: list[str] = []
+            params: list[Any] = []
             if title:
                 sets.append("title = %s")
                 params.append(title)

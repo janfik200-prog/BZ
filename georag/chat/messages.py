@@ -277,8 +277,7 @@ def build_messages(
         notes.append(NOTES_NOTE)
     glossary = [s["n"] for s in sources if s.get("kind") == "словарь"]
     if glossary:
-        refs = ", ".join(f"[{n}]" for n in glossary)
-        notes.append(DICTIONARY_NOTE.format(refs=refs))
+        notes.append(DICTIONARY_NOTE.format(refs=", ".join(f"[{n}]" for n in glossary)))
         if is_definition(question):
             notes.append(DEFINITION_NOTE.format(first=glossary[0]))
     if insist:

@@ -45,7 +45,7 @@ def facts_for(conn: Any, frame: Any, topic: str | None) -> list[dict[str, Any]]:
             (_pg(rx), topic, topic),
         )
         cols = [c.name for c in cur.description]
-        return [dict(zip(cols, r)) for r in cur.fetchall()]
+        return [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]
 
 
 def _pg(rx: str) -> str:
@@ -177,7 +177,9 @@ def audit_facts(conn: Any, mark_stale: bool = False) -> dict[str, Any]:
     # Отпечаток разбора у статьи: нет — записывается (база до T13); другой — текст статьи
     # менялся мимо загрузки, это и есть «невидимое расхождение»: оно в отчёте, факты
     # статьи только что сверены с её текущим текстом, и отпечаток — текущий.
-    filled, differs, versions = [], [], {}
+    filled: list[str] = []
+    differs: list[str] = []
+    versions: dict[str, Any] = {}
     for did in doc_ids:
         if did not in cache:
             cache[did] = snapshot_from_db(conn, did)

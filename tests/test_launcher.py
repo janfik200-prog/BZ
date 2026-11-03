@@ -289,6 +289,37 @@ def test_dsn_and_queries_accepted() -> None:
     assert (opts.dsn, opts.queries) == ("postgresql://x@h:1/db", 1)
 
 
+@pytest.mark.parametrize(
+    "argv, rest, dsn",
+    [
+        (["dict", "list", "--dsn", "postgresql://h:1/x"], ["dict", "list"], "postgresql://h:1/x"),
+        (["--dsn=postgresql://h:1/x", "stats"], ["stats"], "postgresql://h:1/x"),
+        (["dict", "find", "адуляр"], ["dict", "find", "адуляр"], "прежний"),
+        (["stats", "--dsn"], ["stats"], "прежний"),  # без значения — адрес прежний
+    ],
+)
+def test_take_dsn(monkeypatch: MonkeyPatch, argv: list[str], rest: list[str], dsn: str) -> None:
+    monkeypatch.setenv("GEORAG_DSN", "прежний")
+    assert launcher._take_dsn(argv) == rest
+    assert os.environ["GEORAG_DSN"] == dsn
+
+
+@pytest.mark.parametrize("command", ["dict", "titles", "evidence", "formula"])
+def test_dsn_reaches_commands_with_own_args(monkeypatch: MonkeyPatch, command: str) -> None:
+    """Команда со своими ключами получает их без --dsn (dict и titles его не знают и
+    падали), а адрес — через GEORAG_DSN ещё до проверки базы: база на другом сервере —
+    свой контейнер не поднимается."""
+    monkeypatch.setenv("GEORAG_DSN", "")
+    seen: dict[str, Any] = {}
+    monkeypatch.setattr(launcher, "_need_venv", lambda: None)
+    monkeypatch.setattr(launcher, "_db_state", lambda: pytest.fail("Docker не нужен"))
+    monkeypatch.setattr(launcher, "_py", lambda module, *args: seen.update(args=args) or 0)
+    remote = "postgresql://georag:georag@10.0.0.5:5432/georag"
+    assert launcher.main([command, "x", "--dsn", remote]) == 0
+    assert seen["args"] == ("x",)
+    assert os.environ["GEORAG_DSN"] == remote
+
+
 def test_start_docker_not_responding(monkeypatch: MonkeyPatch, capsys: Capsys) -> None:
     """Docker не отвечает — start говорит по-русски, что делать, и up не зовёт."""
     seen = fake_run(monkeypatch, code=1)

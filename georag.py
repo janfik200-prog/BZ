@@ -1012,6 +1012,29 @@ def parse(argv: list[str]) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
+def _take_dsn(argv: list[str]) -> list[str]:
+    """--dsn АДРЕС (или --dsn=АДРЕС) у любой команды — в GEORAG_DSN, из аргументов вон.
+
+    Команды со своими ключами (formula, figures, evidence, titles, report, dict) получают
+    аргументы как есть, а --dsn знают не все: dict и titles падали на нём с «unrecognized
+    arguments». И _ensure_database должна видеть адрес до вызова: база на другом
+    сервере — свой контейнер не поднимается. Адрес дочерние команды берут из GEORAG_DSN
+    (index/db.py); --dsn у formula и figures без значения берёт его же."""
+    rest: list[str] = []
+    args = iter(argv)
+    for arg in args:
+        if arg == "--dsn":
+            value = next(args, "")
+        elif arg.startswith("--dsn="):
+            value = arg.split("=", 1)[1]
+        else:
+            rest.append(arg)
+            continue
+        if value:
+            os.environ["GEORAG_DSN"] = value
+    return rest
+
+
 def main(argv: list[str] | None = None) -> int:
     # Сам файл запускают и старым Python — ему нужно понятное сообщение, а не ошибка разбора.
     if sys.version_info < (3, 12):  # noqa: UP036
@@ -1020,7 +1043,7 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 1
-    argv = sys.argv[1:] if argv is None else argv
+    argv = _take_dsn(sys.argv[1:] if argv is None else argv)
     if argv and argv[0].lower() == "formula":
         # У команды свои ключи (doc_id, номер, --find, --json) — передаются как есть.
         _need_venv()
@@ -1067,9 +1090,6 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if opts.command.lower() not in NO_VENV:
         _need_venv()
-    if opts.dsn:
-        # Адрес базы дочерние команды берут из GEORAG_DSN (index/db.py) — ключ туда же.
-        os.environ["GEORAG_DSN"] = opts.dsn
     return command(opts)
 
 

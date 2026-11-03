@@ -154,9 +154,9 @@ def write(rows: list[dict[str, Any]], out: Path, title: str) -> Path:
     for row in ws.iter_rows(min_row=2):
         for c in row:
             c.alignment = Alignment(wrap_text=True, vertical="top")
-    for r in range(1, ws.max_row + 1):
-        ws.cell(r, 10).fill = fill
-        ws.cell(r, 11).fill = fill
+    for row_no in range(1, ws.max_row + 1):
+        ws.cell(row_no, 10).fill = fill
+        ws.cell(row_no, 11).fill = fill
     ws.freeze_panes = "D2"
     info = wb.create_sheet("О прогоне")
     for line in (

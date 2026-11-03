@@ -120,7 +120,7 @@ def source_families(docs: list[dict[str, Any]], chunks: dict[str, list[str]]) ->
     for d in docs:
         groups[find(d["doc_id"])].append(d["doc_id"])
     out = []
-    for root, ids in sorted(groups.items()):
+    for _root, ids in sorted(groups.items()):
         ids = sorted(ids)
         reasons = sorted({r for (a, b), r in why.items() if a in ids and b in ids})
         kind = (

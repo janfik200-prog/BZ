@@ -588,4 +588,4 @@ def to_yaml(items: list[dict[str, Any]], note: str = "") -> str:
         ]
     )
     body = yaml.safe_dump({"вопросы": items}, allow_unicode=True, sort_keys=False, width=100)
-    return "\n".join(head) + body
+    return "\n".join(head) + str(body)

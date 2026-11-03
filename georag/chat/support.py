@@ -241,6 +241,9 @@ def check_support(
         return answer, [], 0
 
     fixed = {c: new for c in claims if (new := _recite(c, by_n)) is not None}
+    # Переставленные ссылки — до отрезанных связок: те тоже ложатся в fixed, но ссылок
+    # не переставляют, и счёт «recited» в ответе (answer.py) их брать не должен.
+    recited = len(fixed)
     checked = [fixed.get(c, c) for c in claims]
     verdicts = _verdicts(checked, by_n, settings)
     first = [v == "refuted" for v in verdicts]
@@ -268,4 +271,4 @@ def check_support(
             return None
         return fixed.get(part, part)
 
-    return rewrite(answer, change), removed, len(fixed)
+    return rewrite(answer, change), removed, recited
