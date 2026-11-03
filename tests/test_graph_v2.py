@@ -18,8 +18,10 @@ from georag.graph.synonyms import Synonyms
 def test_accepted_condition() -> None:
     sql = store.accepted()
     assert "coalesce(f.votes, 0) >= 3" in sql  # непроверенный — не NULL, а 0
-    assert "o.doc_id <> f.doc_id" in sql  # повтор — только в другой статье
-    assert "o.src_key = f.dst_key AND o.dst_key = f.src_key" in sql  # в любую сторону
+    assert "count(DISTINCT o.doc_id) > 1" in sql  # повтор — только в другой статье
+    # в любую сторону: пара концов без направления
+    assert "(least(f.src_key, f.dst_key), greatest(f.src_key, f.dst_key)) IN" in sql
+    assert "facts o WHERE" not in sql  # без fresh устаревших нет — фильтра тоже
 
 
 def test_all_facts_candidates_and_keys() -> None:
@@ -79,7 +81,7 @@ def _cluster_conn() -> FakeConn:
     ]
 
     def answer(sql: str, params: Any) -> list[Any]:
-        if "least(f.src_key" in sql:
+        if sql.lstrip().startswith("SELECT least(f.src_key"):  # рёбра кластеров
             return edges
         if sql.startswith("SELECT key, raw"):
             return [(k, k, 1, 0) for k in {x for a, b, _ in edges for x in (a, b)}]

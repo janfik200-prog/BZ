@@ -247,15 +247,23 @@ def accepted(min_votes: int = MIN_VOTES, alias: str = "f", fresh: bool = False) 
 
     fresh — без фактов, помеченных устаревшими (T13: цитаты нет в тексте фрагмента после
     переразбора; index/db.py, recheck_facts): такой факт в граф не идёт и чужой факт
-    повтором не подтверждает. Только для базы с колонкой stale_since (has_stale)."""
+    повтором не подтверждает. Только для базы с колонкой stale_since (has_stale).
+
+    «Повтор в другой статье» — пара концов без учёта направления (least, greatest), у
+    которой фактов больше чем из одной статьи. Пары считаются один раз на запрос
+    (GROUP BY, хеш-подплан), а не подзапросом на каждый факт: на 13 739 фактах
+    (03.11.2026) 35 мс → 15 мс, ответ тот же у всех фактов, и с fresh, и без; рост
+    базы — линейный, а не «факт × поиск по индексу». Ключи и doc_id — NOT NULL, поэтому
+    IN не даёт NULL, и NOT accepted (кандидаты) никого не теряет."""
     a = alias
-    other = " AND o.stale_since IS NULL" if fresh else ""
+    other = " WHERE o.stale_since IS NULL" if fresh else ""
     cond = (
         # coalesce: у непроверенного votes — NULL, и NOT (NULL OR …) выкинуло бы его и
         # из кандидатов.
-        f"(coalesce({a}.votes, 0) >= {int(min_votes)} OR EXISTS (SELECT 1 FROM facts o "
-        f"WHERE o.doc_id <> {a}.doc_id{other} AND ((o.src_key = {a}.src_key AND o.dst_key = "
-        f"{a}.dst_key) OR (o.src_key = {a}.dst_key AND o.dst_key = {a}.src_key))))"
+        f"(coalesce({a}.votes, 0) >= {int(min_votes)} OR (least({a}.src_key, {a}.dst_key), "
+        f"greatest({a}.src_key, {a}.dst_key)) IN (SELECT least(o.src_key, o.dst_key), "
+        f"greatest(o.src_key, o.dst_key) FROM facts o{other} GROUP BY 1, 2 "
+        f"HAVING count(DISTINCT o.doc_id) > 1))"
     )
     # Устаревший факт — среди кандидатов (NOT accepted), а не в графе.
     return f"({a}.stale_since IS NULL AND {cond})" if fresh else cond
