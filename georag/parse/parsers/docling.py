@@ -126,7 +126,17 @@ def ocr_options(settings: Settings) -> Any:
     текстового слоя у скана нет. Язык — код модели RapidOCR (Settings.ocr_lang)."""
     from docling.datamodel.pipeline_options import OcrMode, RapidOcrOptions
 
-    return RapidOcrOptions(lang=[settings.ocr_lang], mode=OcrMode.FULL_PAGE)
+    from ..ocr_models import local_paths
+
+    # Модели в папке проекта — без скачивания (закрытая БЗ без интернета).
+    paths = local_paths(settings)
+    return RapidOcrOptions(
+        lang=[settings.ocr_lang],
+        mode=OcrMode.FULL_PAGE,
+        det_model_path=str(paths["det"]) if paths else None,
+        cls_model_path=str(paths["cls"]) if paths else None,
+        rec_model_path=str(paths["rec"]) if paths else None,
+    )
 
 
 _FORMULA_MODELS = (

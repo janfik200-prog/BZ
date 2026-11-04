@@ -172,3 +172,21 @@ def test_repaired_scan_with_images_is_scan() -> None:
     p = profile.Profile("", "", pages=3, chars_per_page=2, repaired=True, images=3)
     assert profile.decide(p).variant == profile.SCAN
     assert profile.decide(profile.Profile("", "", pages=0)).variant == profile.BROKEN
+
+
+def test_ocr_models_from_project_folder(tmp_path: Path) -> None:
+    """Модели OCR в папке проекта — пути к ним уходят в docling (без скачивания); не все
+    на месте — RapidOCR берёт свои."""
+    pytest.importorskip("docling")
+    from georag.parse import ocr_models
+    from georag.parse.config import Settings
+    from georag.parse.parsers.docling import ocr_options
+
+    settings = Settings(ocr_models=tmp_path, ocr_lang="cyrillic")
+    assert ocr_models.local_paths(settings) is None
+    assert ocr_options(settings).rec_model_path is None
+    for name in ocr_models.files("cyrillic").values():
+        (tmp_path / name).write_bytes(b"onnx")
+    opts = ocr_options(settings)
+    assert opts.rec_model_path == str(tmp_path / "cyrillic_PP-OCRv5_rec_mobile.onnx")
+    assert opts.det_model_path and opts.cls_model_path

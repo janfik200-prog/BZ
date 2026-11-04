@@ -64,6 +64,9 @@ class Settings:
     # Модель скачивается при первом разборе скана (около 15 МБ).
     ocr: bool = field(default_factory=lambda: env.flag("GEORAG_OCR"))
     ocr_lang: str = "cyrillic"  # код RapidOCR: cyrillic, latin, eslav (рус., укр., бел.)…
+    # Модели OCR в папке проекта (python -m georag.parse.ocr_models): есть — берутся
+    # отсюда, без интернета (закрытая БЗ); нет — RapidOCR скачивает их сам.
+    ocr_models: Path = LOCAL / "models" / "rapidocr"
 
     # --- железо ---
     device: str = "auto"  # auto | cuda | cpu | mps
