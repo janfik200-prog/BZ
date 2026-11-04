@@ -1,7 +1,9 @@
 """Отчёт по набору вопросов: ответы чата → таблица Excel, колонка оценки — пустая.
 
 Для встреч с геологами: свой список вопросов (config/questions-*.yaml), ответ бота, его
-источники и время; колонку «Оценка» заполняет человек. --compare-dict — каждый вопрос
+источники и время; колонку «Оценка» заполняет человек. Лист «Фрагменты» — каждый
+источник ответа отдельной строкой: название статьи или отчёта, имя файла, страницы,
+раздел и сам текст фрагмента, — чтобы проверить ответ, не открывая базу. --compare-dict — каждый вопрос
 дважды, со справочным словарём и без (GEORAG_DICT): видно, что словарь меняет.
 
 У вопросов-ловушек (вид «ложный» — заведомо неверная посылка: «почему в баженовской свите
@@ -31,6 +33,7 @@ from typing import Any
 from ..paths import LOCAL
 
 REPORTS = LOCAL / "reports"
+CELL_CHARS = 30000  # в ячейке Excel не больше 32 767 знаков
 
 # Опровержение посылки и «нет данных» — по словам ответа (подсказка для оценки).
 _DENY = re.compile(
@@ -97,18 +100,68 @@ def ask(conn: Any, embedder: Any, question: str, settings: Any) -> dict[str, Any
             text = f"[ошибка] {ev.get('error')}"
     used = set(done.get("used") or [])
     shown = [s for s in sources if s["n"] in used] or sources
+    files = file_names(conn, [s.get("doc_id") or "" for s in sources])
     return {
         "answer": text.strip(),
-        "sources": "\n".join(
-            f"[{s['n']}] {s.get('title') or s.get('doc_id')}"
-            + (f", с. {', '.join(map(str, s['pages'][:3]))}" if s.get("pages") else "")
-            + (" — словарь" if s.get("kind") == "словарь" else "")
-            for s in shown
-        ),
+        "sources": "\n".join(source_line(s, files) for s in shown),
+        "fragments": [
+            {
+                "n": s["n"],
+                "used": s["n"] in used,
+                "kind": s.get("kind") or "",
+                "title": s.get("title") or s.get("doc_id") or "",
+                "file": files.get(s.get("doc_id") or "", ""),
+                "year": s.get("year") or "",
+                "pages": ", ".join(map(str, s.get("pages") or [])),
+                "headings": " / ".join(s.get("headings") or []),
+                "text": s.get("text") or s.get("note") or "",
+            }
+            for s in sources
+        ],
         "dictionary": ", ".join(done.get("dictionary") or []),
         "mode": done.get("mode", ""),
         "seconds": round(time.monotonic() - started, 1),
     }
+
+
+def file_names(conn: Any, doc_ids: list[str]) -> dict[str, str]:
+    """Имя файла каждой статьи или отчёта (documents.file_name): по нему документ
+    находится в папке output. У словаря и сводок файла нет."""
+    ids = [d for d in dict.fromkeys(doc_ids) if d and ":" not in d]
+    if not ids:
+        return {}
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT doc_id, coalesce(file_name, '') FROM documents WHERE doc_id = ANY(%s)",
+                (ids,),
+            )
+            return {str(d): str(f) for d, f in cur.fetchall()}
+    except Exception:  # noqa: BLE001 — без имён файлов отчёт всё равно нужен
+        conn.rollback()
+        return {}
+
+
+def source_line(s: dict[str, Any], files: dict[str, str]) -> str:
+    """«[2] Название — файл x.docx, с. 12» для колонки «Источники»."""
+    line = f"[{s['n']}] {s.get('title') or s.get('doc_id')}"
+    if s.get("kind") == "словарь":
+        line += " — словарь"
+    elif files.get(s.get("doc_id") or ""):
+        line += f" — файл {files[s['doc_id']]}"
+    if s.get("pages"):
+        line += f", с. {', '.join(map(str, s['pages'][:3]))}"
+    return line
+
+
+def _cell(value: Any) -> Any:
+    """Строка без знаков, которых Excel не принимает, и не длиннее ячейки."""
+    if not isinstance(value, str):
+        return value
+    from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
+
+    value = ILLEGAL_CHARACTERS_RE.sub("", value)
+    return value if len(value) <= CELL_CHARS else value[:CELL_CHARS] + " …"
 
 
 def write(rows: list[dict[str, Any]], out: Path, title: str) -> Path:
@@ -122,6 +175,7 @@ def write(rows: list[dict[str, Any]], out: Path, title: str) -> Path:
         "№",
         "Вид",
         "Вопрос",
+        "Что считать правильным",
         "Словарь",
         "Ответ бота",
         "Источники",
@@ -135,9 +189,12 @@ def write(rows: list[dict[str, Any]], out: Path, title: str) -> Path:
     for r in rows:
         ws.append(
             [
+                _cell(v)
+                for v in [
                 r["id"],
                 r["kind"],
                 r["question"],
+                r.get("note", ""),
                 r["dict"],
                 r["answer"],
                 r["sources"],
@@ -146,10 +203,10 @@ def write(rows: list[dict[str, Any]], out: Path, title: str) -> Path:
                 r["seconds"],
                 None,
                 None,
-            ]
+            ]]
         )
-    widths = (6, 10, 40, 9, 90, 50, 22, 18, 9, 18, 30)
-    for col, w in zip("ABCDEFGHIJK", widths, strict=True):
+    widths = (6, 10, 40, 30, 9, 90, 55, 22, 18, 9, 18, 30)
+    for col, w in zip("ABCDEFGHIJKL", widths, strict=True):
         ws.column_dimensions[col].width = w
     fill = PatternFill("solid", fgColor="FFF2CC")
     for c in ws[1]:
@@ -158,9 +215,55 @@ def write(rows: list[dict[str, Any]], out: Path, title: str) -> Path:
         for c in row:
             c.alignment = Alignment(wrap_text=True, vertical="top")
     for row_no in range(1, ws.max_row + 1):
-        ws.cell(row_no, 10).fill = fill
         ws.cell(row_no, 11).fill = fill
+        ws.cell(row_no, 12).fill = fill
     ws.freeze_panes = "D2"
+
+    # Каждый источник ответа — строкой: найти документ по имени файла и прочитать сам
+    # фрагмент. «Использован» — бот сослался на него в ответе.
+    frag = wb.create_sheet("Фрагменты")
+    frag.append(
+        [
+            "№ вопроса",
+            "Словарь",
+            "[n]",
+            "Использован в ответе",
+            "Название статьи / отчёта",
+            "Файл",
+            "Год",
+            "Страницы",
+            "Раздел",
+            "Текст фрагмента",
+        ]
+    )
+    for r in rows:
+        for f in r.get("fragments") or []:
+            frag.append(
+                [
+                    _cell(v)
+                    for v in (
+                        r["id"],
+                        r["dict"],
+                        f"[{f['n']}]",
+                        "да" if f["used"] else "нет",
+                        f["title"] + (" (словарь)" if f["kind"] == "словарь" else ""),
+                        f["file"],
+                        f["year"],
+                        f["pages"],
+                        f["headings"],
+                        f["text"],
+                    )
+                ]
+            )
+    for col, w in zip("ABCDEFGHIJ", (9, 8, 6, 11, 45, 30, 7, 10, 30, 110), strict=True):
+        frag.column_dimensions[col].width = w
+    for c in frag[1]:
+        c.font = Font(bold=True)
+    for row in frag.iter_rows(min_row=2):
+        for c in row:
+            c.alignment = Alignment(wrap_text=True, vertical="top")
+    frag.freeze_panes = "E2"
+    frag.auto_filter.ref = frag.dimensions
     info = wb.create_sheet("О прогоне")
     for line in (
         title,
@@ -168,6 +271,9 @@ def write(rows: list[dict[str, Any]], out: Path, title: str) -> Path:
         f"Дата: {datetime.now():%d.%m.%Y %H:%M}",
         "Колонку «Оценка» и «Комментарий» заполняет человек. «Реакция» — подсказка по "
         "словам ответа, не оценка.",
+        "Лист «Фрагменты» — все источники каждого ответа: название, файл (в папке output), "
+        "страницы, раздел и текст фрагмента. Фильтр по «№ вопроса» показывает источники "
+        "одного ответа.",
     ):
         info.append([line])
     info.column_dimensions["A"].width = 110

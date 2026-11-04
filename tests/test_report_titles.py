@@ -83,6 +83,38 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(sum(q["kind"] == "ложный" for q in qs), 20)
 
 
+class FragmentsSheetTests(unittest.TestCase):
+    def test_sources_with_file_and_fragment_text(self):
+        from openpyxl import load_workbook
+
+        files = {UUID_DOC: f"{UUID_DOC}.docx"}
+        src = {"n": 2, "doc_id": UUID_DOC, "title": "Отчёт о работах", "pages": [12]}
+        self.assertEqual(
+            R.source_line(src, files), f"[2] Отчёт о работах — файл {UUID_DOC}.docx, с. 12"
+        )
+        word = {"n": 3, "doc_id": "словарь:d", "title": "Словарь: «Кероген»", "kind": "словарь"}
+        self.assertEqual(R.source_line(word, files), "[3] Словарь: «Кероген» — словарь")
+        row = {
+            "id": "oil01", "kind": "обычный", "question": "Что такое кероген?",
+            "note": "определение", "dict": "да", "answer": "Кероген — … [2]",
+            "sources": R.source_line(src, files), "dictionary": "", "seconds": 1.0,
+            "fragments": [
+                {"n": 2, "used": True, "kind": "", "title": "Отчёт о работах",
+                 "file": f"{UUID_DOC}.docx", "year": 2018, "pages": "12",
+                 "headings": "Глава 3", "text": "Текстфрагмента"},
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            out = R.write([row], Path(tmp) / "r.xlsx", "Набор")
+            wb = load_workbook(out)
+            answers, frags = wb["Ответы"], wb["Фрагменты"]
+            self.assertEqual(answers.cell(2, 4).value, "определение")
+            got = [c.value for c in frags[2]]
+            self.assertEqual(got[:6], ["oil01", "да", "[2]", "да", "Отчёт о работах",
+                                       f"{UUID_DOC}.docx"])
+            self.assertEqual(got[-1], "Текстфрагмента")  # знак, которого Excel не берёт, — вон
+
+
 class LinkTests(unittest.TestCase):
     def test_cut_link(self):
         claim = "Баженовская свита — нефтематеринская толща, поскольку в ней выявлены залежи [1]."
