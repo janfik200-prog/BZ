@@ -22,7 +22,9 @@
 
 Термин считается по словарю, а не по форме слова (04.11.2026): «пирит», «пирита»,
 «пиритом» — один термин. Порог подбирали, когда формы считались разными терминами,
-поэтому теперь отсеивается чуть больше фрагментов (по ключу без падежей — 43 из 4 272).
+и теперь отсеивается чуть больше. Пересчёт на той же базе (04.11.2026), k = 3: к модели
+72,9 % → 71,2 % фрагментов (решение сменилось у 72 из 4 272), из фрагментов с фактами —
+95,5 % → 94,2 %, фактов — 97,2 % → 96,2 %, подтверждённых — 97,0 % → 95,9 %.
 """
 
 from __future__ import annotations
@@ -131,12 +133,12 @@ class Finder:
         # Один большой шаблон: каждый термин — в любой форме, с начала слова. Длинные —
         # первыми: иначе «quartz» забирал бы начало «quartz veins».
         terms = sorted(load_terms(terms_path), key=len, reverse=True)
-        # Группа на термин: по ней видно, какой термин словаря нашёлся (счёт терминов —
-        # по словарю, а не по формам слова в тексте).
+        # Какой термин словаря нашёлся (счёт терминов — по словарю, а не по формам слова)
+        # определяется отдельно, по шаблону каждого термина и только в найденном месте:
+        # группа на термин в общем шаблоне замедляла поиск в 15 раз.
         self.terms = terms
-        self.pattern = re.compile(
-            "|".join(f"(?P<t{i}>{keyword_pattern(t).pattern})" for i, t in enumerate(terms))
-        )
+        self._each = [keyword_pattern(t) for t in terms]
+        self.pattern = re.compile("|".join(f"(?:{p.pattern})" for p in self._each))
         self.use_spacy = use_spacy
         self._nlp: dict[str, Any] = {}
 
@@ -157,6 +159,15 @@ class Finder:
                 self._nlp[lang] = None
         return self._nlp[lang]
 
+    def _term_at(self, lowered: str, m: re.Match[str]) -> str:
+        """Ключ термина словаря, найденного общим шаблоном в этом месте: тот же, что выбрал
+        бы общий шаблон, — первый по порядку, совпавший здесь и той же длины."""
+        for term, pattern in zip(self.terms, self._each, strict=True):
+            hit = pattern.match(lowered, m.start())
+            if hit is not None and hit.end() == m.end():
+                return name_key(term)
+        return name_key(m.group())
+
     def find(self, text: str) -> Found:
         text = text or ""
         found = Found(language(text))
@@ -166,8 +177,7 @@ class Finder:
         same = len(lowered) == len(text)  # «İ» в нижнем регистре — два знака
         for m in self.pattern.finditer(lowered):
             found.terms.append((text if same else lowered)[m.start() : m.end()])
-            group = m.lastgroup or next((g for g, v in m.groupdict().items() if v is not None), "")
-            found.keys.append(name_key(self.terms[int(group[1:])]) if group else "")
+            found.keys.append(self._term_at(lowered, m))
         for lang in ("ru", "en") if found.lang == "mixed" else (found.lang,):
             nlp = self._spacy(lang)
             if nlp is None:
