@@ -80,10 +80,25 @@ def init(conn: Any) -> None:
     conn.commit()
 
 
+# Причина отсева почти-дубля (facts.run): номер оригинала — в конце.
+DUPLICATE_OF = "дубль: фрагмента "
+
+
 def todo(conn: Any, limit: int | None = None, retry_skipped: bool = False) -> list[tuple[Any, ...]]:
     """Фрагменты, которых модель ещё не видела: (chunk_id, doc_id, текст).
-    retry_skipped — и отсеянные первым этапом (graph --no-filter)."""
-    again = "OR p.skipped IS NOT NULL" if retry_skipped else ""
+    retry_skipped — и отсеянные первым этапом (graph --no-filter).
+
+    Почти-дубль, чей оригинал больше не пройден (удалён вместе со статьёй или
+    переразобран — его проход стёрт, replace_chunks), — снова в работе: отсеян он был
+    только из-за оригинала, а того текста больше нет."""
+    if retry_skipped:
+        again = "OR p.skipped IS NOT NULL"
+    else:
+        again = (
+            f"OR (left(p.skipped, {len(DUPLICATE_OF)}) = '{DUPLICATE_OF}' AND NOT EXISTS ("
+            "SELECT 1 FROM facts_pass o WHERE o.chunk_id = "
+            "substring(p.skipped from '([0-9]+)$')::bigint))"
+        )
     with conn.cursor() as cur:
         cur.execute(
             f"""

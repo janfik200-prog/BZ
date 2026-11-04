@@ -13,6 +13,7 @@ NO_FULLTEXT = "no_fulltext"  # найден, но открытого PDF нет 
 FETCH_FAILED = "fetch_failed"  # ссылка есть, но файл не отдался или это не PDF
 PARSE_FAILED = "parse_failed"  # скачали, но разобрать не смогли
 SCANNED = "scan"  # скачали, а это скан без текстового слоя — не разбираем
+DAMAGED = "damaged"  # скачали, а файл обрезан или недокачан — скачать заново
 REJECTED = "rejected"  # LLM посчитала статью нерелевантной теме
 UNREVIEWED = "unreviewed"  # LLM не смогла решить — нужен человек
 NOT_FETCHED = "not_fetched"  # пробный прогон: отобрана, но мы намеренно не качали

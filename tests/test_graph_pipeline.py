@@ -93,3 +93,41 @@ def test_truncated_answer_keeps_whole_facts() -> None:
     assert extract_json(tricky, repair=True)["факты"] == [[1, "zone [A]", "связано с", 'a "b"']]
     # целый ответ не трогается
     assert extract_json('{"факты": []}', repair=True) == {"факты": []}
+
+
+def test_forms_of_one_term_count_once() -> None:
+    """«пирит», «пирита», «пиритом» — один термин словаря: порог k и список для модели
+    считают термины, а не формы слова."""
+    finder = entities.Finder(use_spacy=False)
+    found = finder.find("Пирит, пирита и пиритом; с пиритами.")
+    assert len(found.terms) == 4
+    assert found.distinct_terms == 1
+    assert not found.enough(2)
+    assert found.entities == ["Пирит"]
+
+
+def test_term_keys_follow_dictionary() -> None:
+    found = entities.Finder(use_spacy=False).find(TEXT_RU)
+    assert len(found.keys) == len(found.terms)
+    assert found.distinct_terms == len(set(found.keys))
+
+
+def test_spacy_name_same_as_term_not_repeated() -> None:
+    found = entities.Found("en", terms=["gold"], names=["Gold", "Kibali"])
+    assert found.entities == ["gold", "Kibali"]
+
+
+def test_released_duplicate_back_in_todo() -> None:
+    """Почти-дубль, чей оригинал больше не пройден, — снова в работе; с --no-filter —
+    все отсеянные."""
+    from fakedb import FakeConn
+
+    from georag.graph import store
+
+    conn = FakeConn(rows=[])
+    store.todo(conn, limit=5)
+    sql = conn.log[-1][0]
+    assert f"left(p.skipped, {len(store.DUPLICATE_OF)}) = '{store.DUPLICATE_OF}'" in sql
+    assert "NOT EXISTS (SELECT 1 FROM facts_pass o" in sql
+    store.todo(conn, limit=5, retry_skipped=True)
+    assert "OR p.skipped IS NOT NULL" in conn.log[-1][0]

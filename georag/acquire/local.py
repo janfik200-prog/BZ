@@ -32,12 +32,19 @@ from pathlib import Path
 from typing import Any
 
 from ..parse.config import Settings
-from ..parse.models import OK, PARTIAL, SCAN, ParseInput
+from ..parse.models import ParseInput
 from ..parse.parsers.worker import DoclingWorker
 from ..parse.pipeline import StepLogger, process_document, say
 from ..paths import ARTICLES, ROOT
-from .models import ACQUIRED, PARSE_FAILED, SCANNED, AcquiredRecord, AcquireReport
-from .pipeline import _save_report, _write_doc, append_index, failed_note, load_index
+from .models import ACQUIRED, SCANNED, AcquiredRecord, AcquireReport
+from .pipeline import (
+    _save_report,
+    _write_doc,
+    append_index,
+    failed_note,
+    load_index,
+    record_status,
+)
 
 INBOX = ROOT / "input"
 OUTBOX = ROOT / "output"
@@ -132,12 +139,7 @@ def parse_one(
         inp, settings, worker, logger, write_outputs=False
     )
 
-    if doc_result.status in (OK, PARTIAL):
-        status = ACQUIRED
-    elif doc_result.status == SCAN:
-        status = SCANNED
-    else:
-        status = PARSE_FAILED
+    status = record_status(doc_result)
     record = AcquiredRecord(
         doc_id=doc_id,
         status=status,

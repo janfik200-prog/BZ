@@ -32,6 +32,7 @@ from .heuristic import HeuristicFilter, has_domain_term
 from .llm import filter_candidates
 from .models import (
     ACQUIRED,
+    DAMAGED,
     FETCH_FAILED,
     NO_FULLTEXT,
     NOT_FETCHED,
@@ -119,6 +120,17 @@ def failed_note(doc_result: Any) -> str:
     return "не прошёл валидацию, нужен человек"
 
 
+def record_status(doc_result: Any) -> str:
+    """Статус записи по итогу разбора: разобрана, скан, повреждённый файл или не разобралась."""
+    if doc_result.status in (OK, PARTIAL):
+        return ACQUIRED
+    if doc_result.status == SCAN:
+        return SCANNED  # не ошибка: сканы не разбираем
+    if doc_result.variant == BROKEN:
+        return DAMAGED  # файл не целиком — взять заново, разбор тут ни при чём
+    return PARSE_FAILED
+
+
 def append_index(out_dir: Path, record: AcquiredRecord) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     with (out_dir / INDEX_NAME).open("a", encoding="utf-8") as fh:
@@ -188,7 +200,9 @@ def _dedup(candidates: list[Candidate], known: dict[str, dict[str, Any]], force:
         doc_id = cand.doc_id
         if doc_id in unique:
             continue
-        if not force and doc_id in known:
+        # Повреждённый файл (обрезан, недокачан) качается заново: в прошлый раз источник
+        # отдал его не целиком. Остальное известное — не трогается.
+        if not force and doc_id in known and known[doc_id].get("status") != DAMAGED:
             already += 1
             continue
         unique[doc_id] = cand
@@ -560,12 +574,7 @@ def _acquire_one(
             )
         strip_images(parsed.docling_doc)
 
-    if doc_result.status in (OK, PARTIAL):
-        status = ACQUIRED
-    elif doc_result.status == SCAN:
-        status = SCANNED  # не ошибка: сканы не разбираем
-    else:
-        status = PARSE_FAILED
+    status = record_status(doc_result)
     record = AcquiredRecord.from_candidate(
         cand,
         status,

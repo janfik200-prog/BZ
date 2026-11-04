@@ -83,6 +83,22 @@ class ReplaceChunksTests(unittest.TestCase):
         self.assertEqual(conn.queries("DELETE FROM chunks WHERE id = ANY"), [([13],)])
         self.assertEqual(conn.queries("DELETE FROM facts WHERE chunk_id"), [([12],)])
 
+    def test_changed_chunk_loses_its_minhash(self):
+        """Отпечаток прежнего текста (graph/dedup.py) уходит: новые фрагменты не должны
+        считаться дублями текста, которого больше нет."""
+
+        def answer(sql, params):
+            if sql.startswith("SELECT ord, id, text FROM chunks"):
+                return [(o, i, t) for i, o, t in OLD]
+            if "to_regclass" in sql:
+                return [(True,)]
+            return []
+
+        conn = FakeConn(answer=answer)
+        db.replace_chunks(conn, "d1", [row(0, "Введение."), row(1, "Методы, исправлено.")])
+        self.assertEqual(conn.queries("DELETE FROM chunk_minhash"), [([12],)])
+        self.assertEqual(conn.queries("DELETE FROM chunk_bands"), [([12],)])
+
     def test_first_load_inserts_without_renumbering(self):
         conn = facts_conn([])
         db.replace_chunks(conn, "d1", [row(0, "Введение.")])

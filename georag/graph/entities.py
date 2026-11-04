@@ -19,6 +19,10 @@
 при 4 — 63 % и 91,7 % (94 % фактов). «Пустые» фрагменты — тоже геология (медиана —
 3 термина против 11), так что резче без потерь не отсеять. Найденное уходит модели
 списком (facts.messages): она только определяет связи между ними.
+
+Термин считается по словарю, а не по форме слова (04.11.2026): «пирит», «пирита»,
+«пиритом» — один термин. Порог подбирали, когда формы считались разными терминами,
+поэтому теперь отсеивается чуть больше фрагментов (по ключу без падежей — 43 из 4 272).
 """
 
 from __future__ import annotations
@@ -31,7 +35,7 @@ from typing import Any
 
 from .. import env
 from ..paths import CONFIG
-from ..text import keyword_pattern, normalize
+from ..text import keyword_pattern, name_key
 from .facts import FRAGMENT_CHARS
 
 TERMS_PATH = CONFIG / "geo-terms.txt"
@@ -87,21 +91,37 @@ class Found:
     lang: str
     terms: list[str] = field(default_factory=list)  # термины словаря, как в тексте
     names: list[str] = field(default_factory=list)  # места и объекты от spaCy
+    # Термин словаря, которым найдено каждое из terms (Finder.find): «пирита» и «пиритом»
+    # — один термин «пирит». Пусто (Found собран руками) — ключ имени без падежей.
+    keys: list[str] = field(default_factory=list)
+
+    def _term_keys(self) -> list[str]:
+        if len(self.keys) == len(self.terms):
+            return self.keys
+        return [name_key(t) for t in self.terms]
+
+    @property
+    def distinct_terms(self) -> int:
+        """Сколько разных терминов словаря во фрагменте: формы одного слова — один."""
+        return len({k for k in self._term_keys() if k})
 
     @property
     def entities(self) -> list[str]:
-        """Предметы списком для модели: без повторов, не больше MAX_ENTITIES."""
+        """Предметы списком для модели: без повторов (формы одного термина или имени —
+        одна строка, как написано в статье первой), не больше MAX_ENTITIES."""
         out: list[str] = []
         seen: set[str] = set()
-        for name in [*self.terms, *self.names]:
-            key = normalize(name)
-            if key and key not in seen:
-                seen.add(key)
+        pairs = [*zip(self.terms, self._term_keys(), strict=True)]
+        pairs += [(n, name_key(n)) for n in self.names]
+        for name, key in pairs:
+            # Имя spaCy, совпавшее с термином словаря, — тоже повтор («Gold» и «gold»).
+            if key and key not in seen and name_key(name) not in seen:
+                seen.update({key, name_key(name)})
                 out.append(name)
         return out[:MAX_ENTITIES]
 
     def enough(self, min_terms: int = MIN_TERMS) -> bool:
-        return len({normalize(t) for t in self.terms}) >= min_terms
+        return self.distinct_terms >= min_terms
 
 
 class Finder:
@@ -111,7 +131,12 @@ class Finder:
         # Один большой шаблон: каждый термин — в любой форме, с начала слова. Длинные —
         # первыми: иначе «quartz» забирал бы начало «quartz veins».
         terms = sorted(load_terms(terms_path), key=len, reverse=True)
-        self.pattern = re.compile("|".join(f"(?:{keyword_pattern(t).pattern})" for t in terms))
+        # Группа на термин: по ней видно, какой термин словаря нашёлся (счёт терминов —
+        # по словарю, а не по формам слова в тексте).
+        self.terms = terms
+        self.pattern = re.compile(
+            "|".join(f"(?P<t{i}>{keyword_pattern(t).pattern})" for i, t in enumerate(terms))
+        )
         self.use_spacy = use_spacy
         self._nlp: dict[str, Any] = {}
 
@@ -139,9 +164,10 @@ class Finder:
         # список — как написано в статье.
         lowered = text.lower().replace("ё", "е")
         same = len(lowered) == len(text)  # «İ» в нижнем регистре — два знака
-        found.terms = [
-            (text if same else lowered)[m.start() : m.end()] for m in self.pattern.finditer(lowered)
-        ]
+        for m in self.pattern.finditer(lowered):
+            found.terms.append((text if same else lowered)[m.start() : m.end()])
+            group = m.lastgroup or next((g for g, v in m.groupdict().items() if v is not None), "")
+            found.keys.append(name_key(self.terms[int(group[1:])]) if group else "")
         for lang in ("ru", "en") if found.lang == "mixed" else (found.lang,):
             nlp = self._spacy(lang)
             if nlp is None:

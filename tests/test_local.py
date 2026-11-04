@@ -106,3 +106,27 @@ def test_doc_id_for_russian_name_is_unique() -> None:
     assert (
         local.local_doc_id(Path("Gravity Model.pdf"), "f" * 64) == "local-gravity_model-ffffffffff"
     )
+
+
+def test_damaged_file_has_own_status_and_is_fetched_again() -> None:
+    """Обрезанный или недокачанный файл — статус «повреждён», а не «не разобралась»; добыча
+    скачивает его заново, остальные известные статьи — нет."""
+    from types import SimpleNamespace
+
+    from georag.acquire.models import DAMAGED, SCANNED
+    from georag.acquire.pipeline import _dedup, record_status
+    from georag.parse.models import FAILED, OK, SCAN
+    from georag.parse.orchestrator.profile import BROKEN, PLAIN
+
+    def result(status: str, variant: str) -> Any:
+        return SimpleNamespace(status=status, variant=variant)
+
+    assert record_status(result(OK, PLAIN)) == ACQUIRED
+    assert record_status(result(SCAN, "скан")) == SCANNED
+    assert record_status(result(FAILED, BROKEN)) == DAMAGED
+    assert record_status(result(FAILED, PLAIN)) == PARSE_FAILED
+
+    cands = [SimpleNamespace(doc_id=d) for d in ("cut", "done", "new")]
+    known = {"cut": {"status": DAMAGED}, "done": {"status": ACQUIRED}}
+    fresh, already = _dedup(cands, known, force=False)
+    assert [c.doc_id for c in fresh] == ["cut", "new"] and already == 1

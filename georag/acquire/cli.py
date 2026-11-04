@@ -28,6 +28,7 @@ from .heuristic import HeuristicFilter
 from .llm import ModelFilter
 from .models import (
     ACQUIRED,
+    DAMAGED,
     FETCH_FAILED,
     NO_FULLTEXT,
     NOT_FETCHED,
@@ -45,6 +46,7 @@ STATUS_LABELS = {
     FETCH_FAILED: "не скачалась",
     PARSE_FAILED: "не разобралась",
     SCANNED: "скан — не разбираем",
+    DAMAGED: "файл повреждён — скачается заново",
     REJECTED: "мимо темы",
     UNREVIEWED: "нужно решение",
 }
@@ -220,7 +222,9 @@ def _print_report(report: Any, show_table: bool = True) -> None:
         f"время: {report.duration_sec:.0f} с"
     )
 
-    problems = [r for r in report.records if r.status in (FETCH_FAILED, PARSE_FAILED, UNREVIEWED)]
+    problems = [
+        r for r in report.records if r.status in (FETCH_FAILED, PARSE_FAILED, DAMAGED, UNREVIEWED)
+    ]
     if problems:
         print("\nНе получилось взять автоматически:")
         for rec in problems:

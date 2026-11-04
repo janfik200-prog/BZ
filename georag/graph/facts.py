@@ -554,9 +554,9 @@ def run(
                 original = dedup.find_duplicate(conn, chunk_id, text or "")
                 reason = None
                 if original is not None:
-                    reason, kind = f"дубль: фрагмента {original}", "duplicates"
+                    reason, kind = f"{store.DUPLICATE_OF}{original}", "duplicates"
                 elif not found.enough(need):
-                    terms = len({t.lower() for t in found.terms})
+                    terms = found.distinct_terms
                     reason, kind = f"мало предметов: терминов {terms} из {need}", "sparse"
                 elif captions and (why := cap.skip_reason(text or "")):
                     reason, kind = why, "captions"

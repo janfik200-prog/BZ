@@ -64,6 +64,7 @@ class Profile:
     line_breaks: int = 0  # строк, кончающихся дефисом перед строчной буквой
     lines: int = 0
     repaired: bool = False  # PyMuPDF восстанавливал структуру файла при открытии
+    images: int = 0  # картинок на первых страницах: у скана страница — картинка
     seconds: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
@@ -105,6 +106,10 @@ def _measure(inp: ParseInput) -> Profile:
         repaired = bool(doc.is_repaired)
         sample = min(pages, SAMPLE_PAGES)
         text = "".join(doc[i].get_text() for i in range(sample))
+        try:
+            images = sum(len(doc[i].get_images()) for i in range(sample))
+        except Exception:  # noqa: BLE001 — страницы не читаются: картинок не видно
+            images = 0
     lines = text.splitlines()
     breaks = sum(
         1
@@ -124,6 +129,7 @@ def _measure(inp: ParseInput) -> Profile:
         line_breaks=breaks,
         lines=len(lines),
         repaired=repaired,
+        images=images,
     )
     return decide(p)
 
@@ -132,7 +138,10 @@ def decide(p: Profile) -> Profile:
     """Вариант по признакам зонда (отдельно от чтения PDF — проверяется на числах)."""
     rate = p.line_breaks / max(1, p.lines)
     breaks = f"строк с переносом {p.line_breaks} из {p.lines} ({rate:.1%})"
-    if p.chars_per_page < SCAN_CHARS and (p.repaired or not p.pages):
+    # Восстановленный файл с картинками на страницах — скан: PyMuPDF чинит и целые, но
+    # небрежно собранные PDF сканеров. Повреждён — когда страниц нет или читать на них
+    # нечего: ни текста, ни картинок.
+    if p.chars_per_page < SCAN_CHARS and (not p.pages or (p.repaired and not p.images)):
         # Обрезанный или недокачанный PDF: у него текста нет не потому, что это скан, —
         # страницы просто не читаются (без конца файла, таблицы ссылок, потоков страниц).
         p.variant = BROKEN

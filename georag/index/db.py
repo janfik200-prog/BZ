@@ -537,6 +537,16 @@ def replace_chunks(
         with conn.cursor() as cur:
             cur.execute("DELETE FROM facts WHERE chunk_id = ANY(%s)", (changed,))
             cur.execute("DELETE FROM facts_pass WHERE chunk_id = ANY(%s)", (changed,))
+    if changed:
+        # Отпечаток прежнего текста (graph/dedup.py) — прочь: иначе новые фрагменты
+        # признавались бы дублями текста, которого больше нет. Почти-дубли этого
+        # фрагмента вернутся к модели сами (graph/store.py, todo): его проход стёрт.
+        with conn.cursor() as cur:
+            cur.execute("SELECT to_regclass('chunk_minhash') IS NOT NULL")
+            minhash = cur.fetchone()
+            if minhash and minhash[0]:
+                cur.execute("DELETE FROM chunk_bands WHERE chunk_id = ANY(%s)", (changed,))
+                cur.execute("DELETE FROM chunk_minhash WHERE chunk_id = ANY(%s)", (changed,))
     return len(rows)
 
 

@@ -102,3 +102,10 @@ def test_broken_needs_repair() -> None:
     assert scan.variant == profile.SCAN
     broken = profile.decide(profile.Profile("", "", pages=3, chars_per_page=2, repaired=True))
     assert broken.variant == profile.BROKEN
+
+
+def test_repaired_scan_with_images_is_scan() -> None:
+    """Восстановленный PyMuPDF, но со страницами-картинками — скан, а не повреждённый."""
+    p = profile.Profile("", "", pages=3, chars_per_page=2, repaired=True, images=3)
+    assert profile.decide(p).variant == profile.SCAN
+    assert profile.decide(profile.Profile("", "", pages=0)).variant == profile.BROKEN
