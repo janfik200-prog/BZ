@@ -137,14 +137,12 @@ class AbbreviationTests(unittest.TestCase):
         self.assertEqual(D.expand("сульфидами Tm-лантаноиды", PAIRS), "сульфидами Tm-лантаноиды")
 
 
-def _index(*entries):
-    by_key = {}
-    for e in entries:
-        by_key.setdefault(D.name_key(e["term"].split(" (")[0]), []).append(e)
-        for name in e["en"].split(","):
-            if name.strip():
-                by_key.setdefault(D.name_key(name), []).append(e)
-    return D.Index(("t",), by_key, {"d": "Словарь"})
+def _index(*entries, pairs=None):
+    rows = [
+        (e["dict_id"], e["ord"], e["term"], e["en"], e["etym"], e["definition"], e["page"])
+        for e in entries
+    ]
+    return D.build_index(("t",), rows, {"d": "Словарь"}, {"d": pairs or []})
 
 
 def _e(term, definition, en="", ord_=0):
@@ -222,6 +220,54 @@ class TermsTests(unittest.TestCase):
         D.index = lambda conn: None
         self.assertEqual(D.terms_in(FakeConn(), "зона сдвига"), [])
         self.assertEqual(D.query_variants(FakeConn(), "зона сдвига"), [])
+
+
+class MatchingTests(unittest.TestCase):
+    """Как вопрос находит термин, написанный в словаре иначе."""
+
+    def setUp(self):
+        self.idx = _index(
+            _e("Слоистость косая", "слоистость с наклонными слойками.", "cross-bedding", 1),
+            _e("Ловушка нефти и газа", "часть резервуара, где скапливаются нефть и газ.", "", 2),
+            _e("Нефть", "жидкое горючее полезное ископаемое.", "oil", 3),
+            _e("Нефтематеринская свита", "свита, где образуется нефть.", "", 4),
+            _e("Породы мишени", "породы, на которые нацелен поиск.", "", 5),
+            _e("ГЗН", "главная зона нефтеобразования.", "", 6),
+            _e("Главная зона нефтеобразования (ГЗН)", "зона в разрезе бассейна.", "", 7),
+            _e("Катагенез (биол.)", "упрощение организации организмов.", "", 8),
+            _e("Катагенез (литол.)", "преобразование осад. п. и орг. в-ва при погружении.", "", 9),
+            pairs=[("орг.", "органический"), ("в-во", "вещество")],
+        )
+        self.old, D.index = D.index, lambda conn: self.idx
+
+    def tearDown(self):
+        D.index = self.old
+
+    def terms(self, q):
+        return [e["term"] for e in D.terms_in(FakeConn(), q)]
+
+    def test_word_order(self):
+        self.assertEqual(self.terms("Что такое косая слоистость?"), ["Слоистость косая"])
+
+    def test_compound_before_single_word(self):
+        self.assertEqual(self.terms("Что такое ловушка нефти?"), ["Ловушка нефти и газа"])
+
+    def test_long_specific_head_without_other_words(self):
+        self.assertIn("Нефтематеринская свита", self.terms("Что такое нефтематеринская толща?"))
+
+    def test_common_head_needs_more_words(self):
+        self.assertNotIn("Породы мишени", self.terms("Какие породы считаются кварцевыми?"))
+
+    def test_abbreviation_followed(self):
+        got = D.terms_in(FakeConn(), "Что такое ГЗН?")
+        self.assertEqual(got[0]["term"], "Главная зона нефтеобразования (ГЗН)")
+        self.assertEqual(got[0]["via"], "ГЗН")
+
+    def test_sense_by_definition_with_abbreviations(self):
+        self.assertEqual(
+            self.terms("Что такое катагенез органического вещества?"), ["Катагенез (литол.)"]
+        )
+        self.assertEqual(self.terms("Что такое катагенез?"), ["Катагенез (литол.)"])  # не биол.
 
 
 class DefinitionTests(unittest.TestCase):

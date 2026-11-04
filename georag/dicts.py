@@ -23,7 +23,7 @@ import argparse
 import json
 import re
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -548,11 +548,19 @@ _QWORD = re.compile(r"[\w‑-]+", re.U)
 
 @dataclass
 class Index:
-    """Ключи терминов справочных словарей (name_key: падеж и число не важны) → статьи."""
+    """Ключи терминов справочных словарей (name_key: падеж и число не важны) → статьи.
+
+    by_bag — те же слова в любом порядке: словарь пишет «Слоистость косая», «Адсорбция
+    селективная», а в вопросе — «косая слоистость». by_head — составные термины по первому
+    слову: «ловушка нефти» → «Ловушка нефти и газа», «нефтематеринская толща» →
+    «Нефтематеринские породы»."""
 
     stamp: tuple[Any, ...]
     by_key: dict[str, list[dict[str, Any]]]
     titles: dict[str, str]
+    by_bag: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+    by_head: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+    pairs: dict[str, list[tuple[str, str]]] = field(default_factory=dict)  # сокращения словаря
 
 
 _INDEX: dict[str, Index] = {}
@@ -572,14 +580,29 @@ def index(conn: Any) -> Index | None:
         known = _INDEX.get("x")
         if known is not None and known.stamp == stamp:
             return known
-        cur.execute("SELECT id, title FROM dictionaries")
-        titles = dict(cur.fetchall())
-        cur.execute(
-            "SELECT dict_id, ord, term, term_key, en, etym, definition, page FROM dict_entries"
-        )
+        cur.execute("SELECT id, title, abbreviations FROM dictionaries")
+        meta = cur.fetchall()
+        titles = {i: t for i, t, _ in meta}
+        pairs = {i: [(str(a), str(b)) for a, b in (ab or [])] for i, _, ab in meta}
+        cur.execute("SELECT dict_id, ord, term, en, etym, definition, page FROM dict_entries")
         rows = cur.fetchall()
+    _INDEX.clear()
+    _INDEX["x"] = build_index(stamp, rows, titles, pairs)
+    return _INDEX["x"]
+
+
+def build_index(
+    stamp: tuple[Any, ...],
+    rows: list[tuple[Any, ...]],
+    titles: dict[str, str],
+    pairs: dict[str, list[tuple[str, str]]] | None = None,
+) -> Index:
+    """Индекс из строк (dict_id, ord, term, en, etym, definition, page) — без базы, для
+    index() и проверок."""
     by_key: dict[str, list[dict[str, Any]]] = {}
-    for dict_id, ord_, term, key, en, etym, definition, page in rows:
+    by_bag: dict[str, list[dict[str, Any]]] = {}
+    by_head: dict[str, list[dict[str, Any]]] = {}
+    for dict_id, ord_, term, en, etym, definition, page in rows:
         entry = {
             "dict_id": dict_id,
             "ord": ord_,
@@ -589,17 +612,79 @@ def index(conn: Any) -> Index | None:
             "definition": definition,
             "page": page,
         }
-        by_key.setdefault(key, []).append(entry)
+        by_key.setdefault(name_key(term), []).append(entry)
         # «Гастроподы (Gastropoda; от греч. …)» — и по слову без латинского названия.
         bare = term.split(" (")[0].strip()
         if bare != term:
             by_key.setdefault(name_key(bare), []).append(entry)
+        # «Главная зона нефтеобразования (ГЗН)» — и по сокращению.
+        for abbr in re.findall(r"\(([A-ZА-ЯЁ]{2,8})\)", term):
+            by_key.setdefault(name_key(abbr), []).append(entry)
+        bare_key = name_key(bare).split()
+        if len(bare_key) > 1:
+            by_bag.setdefault(" ".join(sorted(bare_key)), []).append(entry)
+            by_head.setdefault(bare_key[0], []).append(entry)
         for name in (en or "").split(","):
             if name.strip():
                 by_key.setdefault(name_key(name), []).append(entry)
-    _INDEX.clear()
-    _INDEX["x"] = Index(stamp, by_key, titles)
-    return _INDEX["x"]
+    return Index(stamp, by_key, titles, by_bag, by_head, pairs or {})
+
+
+def _lookup(idx: Index, phrase: str) -> list[dict[str, Any]]:
+    """Статьи по фразе: точное совпадение ключа, иначе те же слова в другом порядке."""
+    key = name_key(phrase)
+    found = idx.by_key.get(key)
+    if found or " " not in key:
+        return found or []
+    return idx.by_bag.get(" ".join(sorted(key.split())), [])
+
+
+def _sense(
+    found: list[dict[str, Any]], words: list[str], pairs: dict[str, list[tuple[str, str]]]
+) -> dict[str, Any]:
+    """У термина несколько статей («Катагенез (биол.)», «Катагенез (литол.)», «… углей») —
+    та, в определении которой больше слов вопроса; при равенстве — первая по словарю."""
+    if len(found) == 1:
+        return found[0]
+    # По началу слова: в определениях — «органич.», в вопросе — «органического».
+    asked = {w.lower()[:5] for w in words if len(w) > 3}
+
+    def overlap(e: dict[str, Any]) -> int:
+        # Сокращения раскрыты: «орг. в-ва» в литологическом «Катагенезе» — «органического
+        # вещества», иначе выигрывал биологический (с «организацией» и «органами»).
+        text = expand(e["definition"], pairs.get(e["dict_id"], []))
+        return len(asked & {w.lower()[:5] for w in _QWORD.findall(text)})
+
+    def geological(e: dict[str, Any]) -> bool:
+        # При равенстве — не биологический и не медицинский смысл: база геологическая.
+        return not re.search(r"\((?:биол|мед)\.\)", e["term"])
+
+    return max(found, key=lambda e: (overlap(e), geological(e)))
+
+
+def _by_head(idx: Index, words: list[str], i: int) -> tuple[int, dict[str, Any]] | None:
+    """Составной термин, начатый словом вопроса words[i], когда точного нет: из статей с
+    этим первым словом — та, у которой больше остальных слов есть в вопросе, при равенстве
+    — короче. Возвращает (сколько слов вопроса занял, статья)."""
+    head = name_key(words[i])
+    found = idx.by_head.get(head)
+    if not found or len(words[i]) < 6:
+        return None
+    asked = {name_key(w) for w in words}
+
+    def score(e: dict[str, Any]) -> tuple[int, int]:
+        rest = name_key(e["term"].split(" (")[0]).split()[1:]
+        return (sum(w in asked for w in rest), -len(rest))
+
+    best = max(found, key=score)
+    # Общее первое слово («породы», «зона») без других общих слов с вопросом — не тот
+    # термин («Породы мишени» на вопрос о нефтематеринских породах). Без совпадений
+    # годится только длинное, само по себе узкое слово: «нефтематеринская» (14+ букв).
+    if score(best)[0] == 0 and len(words[i]) < 14:
+        return None
+    rest = name_key(best["term"].split(" (")[0]).split()[1:]
+    nxt = name_key(words[i + 1]) if i + 1 < len(words) else ""
+    return (2 if nxt and nxt in rest else 1), best
 
 
 def rollback(conn: Any) -> None:
@@ -616,10 +701,14 @@ def _follow(idx: Index, entry: dict[str, Any], hops: int = 2) -> dict[str, Any]:
     ведёт; запоминается, откуда пришли (via)."""
     current = entry
     for _ in range(hops):
-        m = _REFERENCE.match(current["definition"].strip())
-        if not m:
+        definition = current["definition"].strip()
+        m = _REFERENCE.match(definition)
+        # Сокращение, раскрытое без «см.»: «ГЗН – главная зона нефтеобразования.»
+        whole = definition.rstrip(".")
+        name = m.group(1) if m else whole if len(whole.split()) <= 6 else ""
+        if not name:
             break
-        target = idx.by_key.get(name_key(m.group(1).split(" (")[0]))
+        target = [e for e in idx.by_key.get(name_key(name.split(" (")[0]), []) if e is not current]
         if not target:
             break
         current = {**target[0], "via": entry["term"]}
@@ -645,16 +734,31 @@ def terms_in(conn: Any, text: str, limit: int = 3) -> list[dict[str, Any]]:
         return []
     words = _QWORD.findall(text or "")
     spans: list[tuple[int, int, dict[str, Any]]] = []
-    for n in range(min(MAX_NGRAM, len(words)), 0, -1):
+
+    def free(i: int, width: int) -> bool:
+        return not any(a < i + width and i < b for a, b, _ in spans)
+
+    def exact(n: int) -> None:
         for i in range(len(words) - n + 1):
-            if any(a < i + n and i < b for a, b, _ in spans):
-                continue
             phrase = " ".join(words[i : i + n])
-            if n == 1 and len(phrase) < 4:
+            if not free(i, n):
                 continue
-            found = idx.by_key.get(name_key(phrase))
+            if n == 1 and len(phrase) < 4 and not (phrase.isupper() and len(phrase) >= 2):
+                continue
+            found = _lookup(idx, phrase)
             if found:
-                spans.append((i, i + n, found[0]))
+                spans.append((i, i + n, _sense(found, words, idx.pairs)))
+
+    for n in range(min(MAX_NGRAM, len(words)), 1, -1):
+        exact(n)
+    # Составной термин словаря по первому слову — раньше однословных: иначе «нефти» в
+    # «ловушка нефти» занимала бы место «Ловушки нефти и газа» статьёй «Нефть».
+    for i in range(len(words)):
+        got = _by_head(idx, words, i) if free(i, 1) else None
+        if got is not None:
+            width, entry = got
+            spans.append((i, i + (width if free(i, width) else 1), entry))
+    exact(1)
     if not spans:
         return []
     with conn.cursor() as cur:
