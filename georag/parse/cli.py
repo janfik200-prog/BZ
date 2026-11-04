@@ -38,6 +38,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--limit", type=int, default=None, help="обработать только первые N файлов")
     p.add_argument("--no-chunks", action="store_true", help="только парсинг и валидация")
     p.add_argument("--no-formulas", action="store_true", help="без распознавания формул")
+    p.add_argument(
+        "--ocr",
+        action="store_true",
+        help="распознавать сканы (OCR, прототип; то же — GEORAG_OCR=1)",
+    )
     return p
 
 
@@ -63,6 +68,8 @@ def settings_from_args(args: argparse.Namespace) -> Settings:
         s.doc_timeout_sec = args.timeout
     if args.no_formulas:
         s.formulas = False
+    if args.ocr:
+        s.ocr = True
     return s
 
 

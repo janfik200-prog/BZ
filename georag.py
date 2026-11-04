@@ -94,6 +94,7 @@
     --force           обработать заново даже то, что уже было (add, all, ingest)
     --figures         описать рисунки статей моделью со зрением (add, all; нужна qwen3.5:9b)
     --no-formulas     разбирать без распознавания формул (add, all): быстрее, формулы — картинками
+    --ocr             распознавать сканы (add, all, local; прототип; то же — GEORAG_OCR=1)
     --queries 3       сколько поисковых запросов составить на тему (add, all; обычно 5)
     --dsn АДРЕС       другая база: postgresql://georag:georag@127.0.0.1:5433/georag_copy
                       (любая команда; то же — переменная GEORAG_DSN)
@@ -579,6 +580,8 @@ def _acquire(opts: argparse.Namespace, topic_args: list[str]) -> int:
         args.append("--figures")
     if opts.no_formulas:
         args.append("--no-formulas")
+    if opts.ocr:
+        args.append("--ocr")
     if opts.queries:
         args += ["--queries", str(opts.queries)]
     if opts.no_llm:  # отбор эвристикой — модель не нужна
@@ -690,6 +693,8 @@ def cmd_local(opts: argparse.Namespace) -> int:
         args += ["--limit", str(opts.limit)]
     if opts.no_formulas:
         args.append("--no-formulas")
+    if opts.ocr:
+        args.append("--ocr")
     return _py("georag.acquire.local", *args)
 
 
@@ -1019,6 +1024,7 @@ def parse(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--types", action="store_true")
     p.add_argument("--figures", action="store_true")
     p.add_argument("--no-formulas", action="store_true")
+    p.add_argument("--ocr", action="store_true")
     p.add_argument("--no-graph", action="store_true")
     p.add_argument("--facts", action="store_true")
     p.add_argument("--workers", type=int, default=None)

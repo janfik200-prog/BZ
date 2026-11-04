@@ -11,9 +11,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
+from .. import env
 from ..paths import LOCAL, LOGS
 
 
@@ -54,6 +55,15 @@ class Settings:
     # Без этого docling картинок не сохраняет, а PDF после разбора не хранится.
     figures: bool = False
     figures_scale: float = 2.0  # 144 точки на дюйм: мелкие подписи на карте читаются
+
+    # --- сканы (прототип) ---
+    # Скан — PDF без текстового слоя (зонд, profile.SCAN). Без OCR он не разбирается; с
+    # OCR (GEORAG_OCR=1 или --ocr) docling распознаёт страницы картинкой: RapidOCR,
+    # модель PP-OCRv5 для кириллицы (она же читает и латиницу: «Landsat-8»), на
+    # процессоре, около 0,5 с на страницу после прогрева (04.11.2026, проверочный скан).
+    # Модель скачивается при первом разборе скана (около 15 МБ).
+    ocr: bool = field(default_factory=lambda: env.flag("GEORAG_OCR"))
+    ocr_lang: str = "cyrillic"  # код RapidOCR: cyrillic, latin, eslav (рус., укр., бел.)…
 
     # --- железо ---
     device: str = "auto"  # auto | cuda | cpu | mps

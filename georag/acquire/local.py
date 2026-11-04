@@ -225,6 +225,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--limit", type=int, default=None, help="разобрать только первые N файлов")
     p.add_argument("--force", action="store_true", help="разбирать и уже разобранные")
     p.add_argument("--no-formulas", action="store_true", help="без распознавания формул")
+    p.add_argument(
+        "--ocr",
+        action="store_true",
+        help="распознавать сканы (OCR, прототип; то же — GEORAG_OCR=1)",
+    )
     return p
 
 
@@ -236,6 +241,8 @@ def main(argv: list[str] | None = None) -> int:
     settings = Settings()
     if args.device:
         settings.device = args.device
+    if args.ocr:
+        settings.ocr = True
     if args.no_formulas:
         settings.formulas = False
     else:

@@ -64,13 +64,76 @@ def test_scan_is_not_parsed(data: Path, tmp_path: Path) -> None:
     from georag.parse import pipeline
     from georag.parse.config import Settings
 
-    settings = Settings()
+    settings = Settings(ocr=False)  # без OCR — даже если задан GEORAG_OCR
     settings.log_dir = tmp_path
     logger = pipeline.StepLogger(tmp_path)
     result, parsed, chunks = pipeline.process_document(
         data / "scan.pdf", settings, worker=None, logger=logger, write_outputs=False
     )
     assert result.status == SCAN and parsed.status == SCAN and not chunks
+
+
+def test_scan_with_ocr_goes_to_docling_only(data: Path, tmp_path: Path) -> None:
+    """С OCR скан идёт к docling с пометкой ocr, запасной PyMuPDF не пробуется (текста у
+    скана нет); в версии парсера — движок OCR."""
+    from georag.parse import pipeline
+    from georag.parse.config import Settings
+    from georag.parse.models import DOCLING, ParsedDoc
+
+    seen: list[ParseInput] = []
+
+    class Worker:
+        def parse(self, inp: ParseInput) -> ParsedDoc:
+            seen.append(inp)
+            return ParsedDoc.failed(inp, DOCLING, "проверка")
+
+    called: list[object] = []
+    monkey = pytest.MonkeyPatch()
+    monkey.setattr(pipeline, "parse_with_pymupdf", lambda inp: called.append(inp))
+    try:
+        result, _parsed, chunks = pipeline.process_document(
+            data / "scan.pdf",
+            Settings(ocr=True, log_dir=tmp_path),
+            Worker(),
+            pipeline.StepLogger(tmp_path),
+            write_outputs=False,
+        )
+    finally:
+        monkey.undo()
+    assert [i.ocr for i in seen] == [True] and not called and not chunks
+    assert "+ocr:rapidocr@" in result.parser_version
+
+
+def test_ocr_converter_options() -> None:
+    pytest.importorskip("docling")
+    from georag.parse.config import Settings
+    from georag.parse.parsers.docling import ocr_options
+
+    opts = ocr_options(Settings(ocr_lang="cyrillic"))
+    assert opts.lang == ["cyrillic"] and str(opts.mode.value) == "full_page"
+
+
+@pytest.mark.slow
+def test_ocr_reads_russian_scan(tmp_path: Path) -> None:
+    """Скан русской страницы (картинка без текстового слоя) — текст распознан."""
+    pytest.importorskip("docling")
+    pytest.importorskip("rapidocr")
+    from georag.parse.config import Settings
+    from georag.parse.parsers.docling import DoclingParser
+
+    src = pymupdf.open(Path(__file__).parent / "data" / "plain_ru.pdf")
+    out = pymupdf.open()
+    for page in src:
+        pix = page.get_pixmap(dpi=200, colorspace=pymupdf.csGRAY)
+        new = out.new_page(width=page.rect.width, height=page.rect.height)
+        new.insert_image(new.rect, stream=pix.tobytes("png"))
+    scan = tmp_path / "scan_ru.pdf"
+    out.save(scan)
+    inp = ParseInput.of(scan)
+    inp.ocr = True
+    parsed = DoclingParser(Settings(device="cpu", formulas=False)).parse(inp)
+    assert parsed.status == OK, parsed.errors[:2]
+    assert "Северный блок сложен гранитогнейсами" in parsed.text
 
 
 @pytest.mark.slow

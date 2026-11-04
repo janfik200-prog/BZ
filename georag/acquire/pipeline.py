@@ -221,6 +221,11 @@ def _write_doc(
         from ..index.figures import save as save_figures
 
         payload["figures"] = save_figures(parsed.docling_doc, pdf, stem, out_dir)
+    if parsed is not None and pdf and "+ocr" in (record.parser_version or ""):
+        # Распознанный скан: страницы картинками — сверить с ними текст OCR (index/scans.py).
+        from ..index.scans import save as save_scan
+
+        payload["scan_pages"] = save_scan(pdf, stem, out_dir)
     (out_dir / f"{stem}.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
     )

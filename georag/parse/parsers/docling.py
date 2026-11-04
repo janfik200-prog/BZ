@@ -56,8 +56,11 @@ def _docling_source(inp: ParseInput) -> Any:
     return inp.path
 
 
-def build_converter(settings: Settings, notes: list[str] | None = None) -> DocumentConverter:
-    """Конвертер docling по настройкам; что применить не удалось — в notes (и в лог)."""
+def build_converter(
+    settings: Settings, notes: list[str] | None = None, ocr: bool = False
+) -> DocumentConverter:
+    """Конвертер docling по настройкам; что применить не удалось — в notes (и в лог).
+    ocr — для сканов: страницы распознаются картинкой (ocr_options)."""
     # auto — как у векторов: видеокарта, только если на ней есть место. Рядом с vLLM
     # места нет, а docling, влезая туда, гонял память через общую: статья в 9 страниц —
     # 22,6 с против 11,8 с на процессоре (27.10.2026), и тормозил бы vLLM.
@@ -72,7 +75,9 @@ def build_converter(settings: Settings, notes: list[str] | None = None) -> Docum
     # Распознавание картинок (OCR) у docling включено по умолчанию — выключаем: сканы не
     # разбираются (их останавливает зонд, profile.SCAN), а на PDF с текстовым слоем текст
     # с OCR и без — тот же (замер 13.10.2026), OCR только добавлял время.
-    pipeline_options.do_ocr = False
+    pipeline_options.do_ocr = ocr
+    if ocr:
+        pipeline_options.ocr_options = ocr_options(settings)
     pipeline_options.do_table_structure = True
     pipeline_options.table_structure_options = TableStructureOptions(
         mode=(
@@ -114,6 +119,14 @@ def build_converter(settings: Settings, notes: list[str] | None = None) -> Docum
         allowed_formats=[InputFormat.PDF, InputFormat.DOCX],
         format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)},
     )
+
+
+def ocr_options(settings: Settings) -> Any:
+    """Распознавание скана: RapidOCR (уже в зависимостях docling), вся страница —
+    текстового слоя у скана нет. Язык — код модели RapidOCR (Settings.ocr_lang)."""
+    from docling.datamodel.pipeline_options import OcrMode, RapidOcrOptions
+
+    return RapidOcrOptions(lang=[settings.ocr_lang], mode=OcrMode.FULL_PAGE)
 
 
 _FORMULA_MODELS = (
@@ -175,7 +188,9 @@ class DoclingParser:
 
     def __init__(self, settings: Settings):
         self.settings = settings
-        self._converter: DocumentConverter | None = None
+        # Обычный конвертер и с распознаванием сканов (inp.ocr): у каждого свои модели,
+        # второй строится только при первом скане.
+        self._converters: dict[bool, DocumentConverter] = {}
         self.warnings: list[str] = []  # о настройке docling — в ошибки каждого документа
 
     def parse(self, source: Path | str | ParseInput) -> ParsedDoc:
@@ -193,9 +208,9 @@ class DoclingParser:
         return result
 
     def _convert(self, inp: ParseInput, result: ParsedDoc) -> None:
-        if self._converter is None:
-            self._converter = build_converter(self.settings, self.warnings)
-        conv = self._converter.convert(
+        if inp.ocr not in self._converters:
+            self._converters[inp.ocr] = build_converter(self.settings, self.warnings, inp.ocr)
+        conv = self._converters[inp.ocr].convert(
             _docling_source(inp),
             raises_on_error=False,  # разбираем статус сами, а не ловим исключение
             max_num_pages=self.settings.max_pages,

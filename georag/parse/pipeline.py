@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 import sys
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from statistics import median_high
@@ -39,6 +39,7 @@ from .models import (
     ParsedDoc,
     ParseInput,
     ValidationReport,
+    ocr_version,
     parser_version,
 )
 from .orchestrator import profile
@@ -146,8 +147,13 @@ def _process(
         detail=f"{kind.variant}: {kind.reason}",
         profile=kind.to_dict(),
     )
-    if kind.variant in (profile.SCAN, profile.BROKEN):
+    # Скан без OCR не разбирается; с OCR (Settings.ocr, прототип) — docling распознаёт
+    # страницы картинкой. Повреждённый файл не разбирается никогда.
+    ocr = kind.variant == profile.SCAN and settings.ocr
+    if kind.variant in (profile.SCAN, profile.BROKEN) and not ocr:
         return _scan(inp, kind, logger, started)
+    if ocr:
+        inp = replace(inp, ocr=True)
 
     try:
         golden = load_golden(inp.doc_id, settings)
@@ -157,10 +163,11 @@ def _process(
 
     # Попытки по очереди, пока одна не пройдёт проверку: docling, затем PyMuPDF4LLM —
     # быстрее и проще, но хуже держит сложную вёрстку и таблицы. Документ Word читает
-    # только docling: PyMuPDF открывает PDF, а не .docx.
+    # только docling: PyMuPDF открывает PDF, а не .docx. Скан тоже: у PyMuPDF4LLM нет
+    # распознавания, без текстового слоя он вернул бы пустоту.
     tried: list[tuple[ParsedDoc, ValidationReport]] = []
     word = kind.variant == profile.WORD
-    for parse in (worker.parse,) if word else (worker.parse, parse_with_pymupdf):
+    for parse in (worker.parse,) if word or ocr else (worker.parse, parse_with_pymupdf):
         parsed = parse(inp)
         report = validate(parsed, settings, golden)
         logger.log(
@@ -207,7 +214,8 @@ def _process(
         attempts=[f"{p.parser}:{p.status}" for p, _ in tried],
         variant=kind.variant,
         cases=[f.short() for f in findings if f.found or f.error],
-        parser_version=parser_version(parsed.parser),
+        # Распознанный скан — с движком OCR в версии: при другом OCR текст другой (T13).
+        parser_version=parser_version(parsed.parser) + (ocr_version() if ocr else ""),
     )
     logger.log(
         inp.doc_id,

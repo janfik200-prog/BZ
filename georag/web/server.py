@@ -17,7 +17,9 @@
                                        база (db) и языковая модель (llm); без базы — 503
     GET  /api/search?q=...             гибридный поиск; &doc_id=... — только в этой статье
     GET  /api/documents                список статей
-    GET  /api/document?doc_id=...      разбор статьи по фрагментам
+    GET  /api/document?doc_id=...      разбор статьи по фрагментам (и scan_pages — страницы
+                                       распознанного скана, у которых есть картинка)
+    GET  /api/scan?doc_id=...&page=N   картинка страницы распознанного скана (index/scans.py)
     GET  /api/chat/status              жив ли сервер модели и та ли на нём модель
     POST /api/chat                     вопрос чат-боту; ответ потоком, строка JSON на событие
     GET  /api/network                  граф: сущности, связи с цитатами, статьи;
@@ -51,7 +53,7 @@ from ..graph import store as graph
 from ..graph.synonyms import DEFAULT_PATH as SYNONYMS_PATH
 from ..graph.synonyms import SynonymsError, synonym_variants
 from ..graph.synonyms import load as load_synonyms
-from ..index import db
+from ..index import db, scans
 from ..index.embed import build_embedder
 from ..index.search import hybrid_search
 
@@ -219,7 +221,10 @@ class Handler(BaseHTTPRequestHandler):
             elif route.path == "/api/document":
                 doc_id = (query.get("doc_id") or [""])[0]
                 with db.connect(State.dsn) as conn:
-                    self._json({"doc_id": doc_id, "chunks": db.document_chunks(conn, doc_id)})
+                    chunks = db.document_chunks(conn, doc_id)
+                self._json({"doc_id": doc_id, "chunks": chunks, "scan_pages": scans.pages(doc_id)})
+            elif route.path == "/api/scan":
+                self._scan_page({k: v[0] for k, v in query.items() if v})
             else:
                 self._json({"error": "нет такой страницы"}, 404)
         except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
@@ -320,6 +325,7 @@ class Handler(BaseHTTPRequestHandler):
                 for event in events:
                     if event.get("type") == "sources":
                         sources = list(event.get("sources") or [])
+                        event = {**event, "sources": with_scans(sources)}
                     self.wfile.write((json.dumps(event, ensure_ascii=False) + "\n").encode("utf-8"))
                     self.wfile.flush()
                     if event.get("type") == "done" and sources:
@@ -347,6 +353,15 @@ class Handler(BaseHTTPRequestHandler):
         finally:
             if events is not None:
                 events.close()  # закрывает и поток от модели: она перестаёт писать
+
+    def _scan_page(self, q: dict[str, str]) -> None:
+        """Картинка страницы распознанного скана (index/scans.py)."""
+        page = int(q["page"]) if q.get("page", "").isdigit() else 0
+        path = scans.page_file(q.get("doc_id", ""), page)
+        if path is None:
+            self._json({"error": "картинки этой страницы нет"}, 404)
+            return
+        self._send(200, path.read_bytes(), "image/jpeg")
 
     def _figure(self, ident: str) -> None:
         """Картинка рисунка по его id в таблице рисунков (index/figures.py)."""
@@ -475,6 +490,20 @@ class Handler(BaseHTTPRequestHandler):
                 doc_id=(query.get("doc_id") or [""])[0] or None,
             )
         return {"query": text, "also": also, "hits": [_hit_to_dict(h) for h in hits]}
+
+
+def with_scans(sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Источникам из распознанных сканов — номера страниц, картинки которых есть
+    (scan_pages): страница показывает ссылки «скан с. N». Остальные — как были."""
+    have: dict[str, list[int]] = {}
+    out = []
+    for s in sources:
+        doc_id = str(s.get("doc_id") or "")
+        if doc_id not in have:
+            have[doc_id] = scans.pages(doc_id)
+        pages = [p for p in s.get("pages") or [] if p in have[doc_id]]
+        out.append({**s, "scan_pages": pages} if pages else s)
+    return out
 
 
 def answer_figures(

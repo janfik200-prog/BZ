@@ -100,6 +100,8 @@ def _captions(doc: Any, inp: ParseInput) -> list[Finding]:
 def _symbols(doc: Any, inp: ParseInput) -> list[Finding]:
     if profile.is_word(inp):
         return [Finding("испорченные знаки", False, "документ Word: текстового слоя PDF нет")]
+    if inp.ocr:  # сверять не с чем: весь текст — из распознавания
+        return [Finding("испорченные знаки", False, "скан: текстового слоя PDF нет")]
     share = textlayer.garbled_share(doc, inp)
     if share < textlayer.GARBLED_SHARE:
         return [Finding("испорченные знаки", False, f"лишних знаков {share:.1%}")]

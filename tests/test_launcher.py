@@ -480,3 +480,11 @@ def test_report_needs_model(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(launcher, "_ensure_llm", lambda wait=True: False)
     monkeypatch.setattr(launcher, "_py", lambda *a: pytest.fail("report запущен без модели"))
     assert launcher.main(["report", "вопросы.yaml"]) == 1
+
+
+def test_local_passes_ocr(monkeypatch: MonkeyPatch) -> None:
+    """python georag.py local --ocr — распознавание сканов доходит до разбора своих статей."""
+    seen: list[tuple[str, ...]] = []
+    monkeypatch.setattr(launcher, "_py", lambda module, *a: seen.append((module, *a)) or 0)
+    assert launcher.cmd_local(launcher.parse(["local", "--ocr", "--limit", "2"])) == 0
+    assert seen == [("georag.acquire.local", "--limit", "2", "--ocr")]

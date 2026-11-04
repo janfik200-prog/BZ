@@ -135,6 +135,7 @@
   }
   .links { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
   .links a { color: var(--muted); font-size: 13px; }
+  a.scan { color: var(--muted); font-size: 13px; margin-left: 6px; }
 
   /* -- чат-бот ------------------------------------------------------------ */
   .bot-status { font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
@@ -519,7 +520,23 @@ async function loadStats() {
   }
 }
 
-function fragmentNode(chunk, highlight) {
+// Страницы распознанного скана (index/scans.py): ссылка на картинку страницы — сверить,
+// что на ней написано, с текстом OCR.
+function scanLinks(docId, pages) {
+  const links = [];
+  for (const p of pages || []) {
+    const a = document.createElement("a");
+    a.href = `/api/scan?doc_id=${encodeURIComponent(docId)}&page=${p}`;
+    a.target = "_blank"; a.rel = "noopener";
+    a.className = "scan";
+    a.textContent = `скан с. ${p} ↗`;
+    a.title = "Текст распознан со скана (OCR) — картинка страницы, чтобы сверить";
+    links.push(a);
+  }
+  return links;
+}
+
+function fragmentNode(chunk, highlight, scanPages) {
   const frag = document.createElement("div");
   frag.className = "frag" + (highlight ? " here" : "");
   const where = document.createElement("span");
@@ -531,6 +548,8 @@ function fragmentNode(chunk, highlight) {
   parts.push(chunk.n_tokens + " токенов");
   if (highlight) parts.push("— найденный кусок");
   where.textContent = parts.join(" · ");
+  const onScan = (chunk.pages || []).filter((p) => (scanPages || []).includes(p));
+  if (onScan.length) where.append(" · ", ...scanLinks(chunk.doc_id || "", onScan));
   const body = document.createElement("div");
   body.textContent = chunk.text;
   frag.append(where, body);
@@ -544,7 +563,9 @@ async function fillParsed(box, docId, highlightOrd) {
     box.innerHTML = "";
     const chunks = data.chunks || [];
     if (!chunks.length) { box.textContent = "Разбор не найден."; return; }
-    for (const chunk of chunks) box.append(fragmentNode(chunk, chunk.ord === highlightOrd));
+    for (const chunk of chunks) {
+      box.append(fragmentNode({ doc_id: docId, ...chunk }, chunk.ord === highlightOrd, data.scan_pages));
+    }
     const found = box.querySelector(".frag.here");
     if (found) found.scrollIntoView({ block: "center", behavior: "smooth" });
   } catch (e) {
@@ -1968,6 +1989,7 @@ function renderSources(sources, used, queries, info) {
       s.kind === "датасет" ? focusNode("сущность:" + s.doc_id.replace(/^датасет:/, ""))
         : focusArticle(s.doc_id));
     if (s.kind !== "словарь") links.append(onGraph);
+    links.append(...scanLinks(s.doc_id, s.scan_pages));
     if (s.url) {
       const a = document.createElement("a");
       a.href = s.url; a.target = "_blank"; a.rel = "noopener";

@@ -41,6 +41,16 @@ def parser_version(parser: str) -> str:
         return f"{parser}@unrecorded"
 
 
+def ocr_version() -> str:
+    """«+ocr:rapidocr@3.10.0» — приписка к версии парсера у распознанного скана."""
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return f"+ocr:rapidocr@{version('rapidocr')}"
+    except PackageNotFoundError:
+        return "+ocr:rapidocr@unrecorded"
+
+
 @dataclass
 class ParseInput:
     """Что парсим: файл на диске или байты в памяти.
@@ -54,6 +64,7 @@ class ParseInput:
     data: bytes | None = None
     display_name: str = ""
     origin: str = ""  # ссылка на статью — с ней документ живёт дальше вместо PDF
+    ocr: bool = False  # скан: docling распознаёт страницы картинкой (Settings.ocr)
 
     @classmethod
     def of(cls, source: Path | str | ParseInput) -> ParseInput:

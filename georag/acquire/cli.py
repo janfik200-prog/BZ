@@ -177,6 +177,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="без распознавания формул (быстрее; формулы останутся картинками)",
     )
+    p.add_argument(
+        "--ocr",
+        action="store_true",
+        help="распознавать сканы (OCR, прототип; то же — GEORAG_OCR=1)",
+    )
     return p
 
 
@@ -185,6 +190,8 @@ def _formulas_ready(settings: Settings, args: argparse.Namespace) -> bool:
     добыча не начинается (parse/parsers/docling.py, formulas_problem)."""
     if args.no_formulas:
         settings.formulas = False
+    if getattr(args, "ocr", False):
+        settings.ocr = True
     if args.dry_run:
         return True
     from ..parse.parsers.docling import formulas_problem
