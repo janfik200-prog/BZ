@@ -35,7 +35,7 @@ from ..parse.config import Settings
 from ..parse.models import ParseInput
 from ..parse.parsers.worker import DoclingWorker
 from ..parse.pipeline import StepLogger, process_document, say
-from ..paths import ARTICLES, ROOT
+from ..paths import ARTICLES, ROOT, files_in
 from .models import ACQUIRED, SCANNED, AcquiredRecord, AcquireReport
 from .pipeline import (
     _save_report,
@@ -183,7 +183,7 @@ def process_folder(
     """Все PDF и .docx из inbox по очереди; каждый переезжает сразу после своего разбора."""
     started = time.monotonic()
     report = AcquireReport(topic=f"статьи из папки {inbox}")
-    pdfs = sorted(p for p in inbox.iterdir() if p.is_file() and p.suffix.lower() in SUFFIXES)
+    pdfs = files_in(inbox, SUFFIXES)
     if limit:
         pdfs = pdfs[:limit]
     report.found = len(pdfs)

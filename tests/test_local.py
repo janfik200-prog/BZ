@@ -130,3 +130,14 @@ def test_damaged_file_has_own_status_and_is_fetched_again() -> None:
     known = {"cut": {"status": DAMAGED}, "done": {"status": ACQUIRED}}
     fresh, already = _dedup(cands, known, force=False)
     assert [c.doc_id for c in fresh] == ["cut", "new"] and already == 1
+
+
+def test_files_in_lists_only_wanted_files(tmp_path: Path) -> None:
+    """Список папки одним проходом os.scandir: только файлы с нужными расширениями, по имени."""
+    from georag.paths import files_in
+
+    for name in ("b.PDF", "a.docx", "c.txt", "d.doc"):
+        (tmp_path / name).write_bytes(b"x")
+    (tmp_path / "sub.pdf").mkdir()
+    assert [p.name for p in files_in(tmp_path, local.SUFFIXES)] == ["a.docx", "b.PDF"]
+    assert files_in(tmp_path / "нет", local.SUFFIXES) == []
