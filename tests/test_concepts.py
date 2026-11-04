@@ -124,3 +124,33 @@ class PlaceMatchTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PlaceVectorCacheTests(unittest.TestCase):
+    """Кэш векторов названий мест на диске — по самим названиям и модели, а не по объёму
+    базы: названия из графа пополняются без новых фрагментов."""
+
+    def test_new_names_with_same_stamp_get_new_vectors(self) -> None:
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+
+        try:
+            import numpy as np
+        except ImportError:
+            self.skipTest("нужен numpy")
+
+        class Embedder:
+            model_id = "fake"
+
+            def encode(self, texts: list[str]) -> list[list[float]]:
+                return [[float(len(t)), 1.0] for t in texts]
+
+        stamp = (10, 99)
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(C, "CACHE", Path(tmp)):
+            first = C._Base(stamp, ["Anabar"], [], {}).vectors(Embedder())
+            later = C._Base(stamp, ["Anabar", "Koldar"], [], {}).vectors(Embedder())
+            again = C._Base(stamp, ["Anabar", "Koldar"], [], {}).vectors(Embedder())
+        self.assertEqual(first.shape, (1, 2))
+        self.assertEqual(later.shape, (2, 2))
+        self.assertTrue(np.allclose(later, again))

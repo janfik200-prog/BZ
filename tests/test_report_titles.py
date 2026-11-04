@@ -107,3 +107,23 @@ class LinkTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DictionaryEnvTests(unittest.TestCase):
+    """--compare-dict: «без словаря» выключает и написания словаря в поиске (GEORAG_DICT)."""
+
+    def test_env_follows_mode_and_is_restored(self) -> None:
+        import os
+        from unittest import mock
+
+        from georag.chat.settings import dictionary_on
+
+        with mock.patch.dict(os.environ, {"GEORAG_DICT": "1"}):
+            with R._dictionary_env(False):
+                self.assertFalse(dictionary_on())
+            self.assertEqual(os.environ["GEORAG_DICT"], "1")
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("GEORAG_DICT", None)
+            with R._dictionary_env(True):
+                self.assertTrue(dictionary_on())
+            self.assertNotIn("GEORAG_DICT", os.environ)

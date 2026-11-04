@@ -17,9 +17,12 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
@@ -173,6 +176,20 @@ def write(rows: list[dict[str, Any]], out: Path, title: str) -> Path:
     return out
 
 
+@contextmanager
+def _dictionary_env(on: bool) -> Iterator[None]:
+    """GEORAG_DICT на время одного ответа: 1 — со словарём, 0 — без; прежнее — обратно."""
+    before = os.environ.get("GEORAG_DICT")
+    os.environ["GEORAG_DICT"] = "1" if on else "0"
+    try:
+        yield
+    finally:
+        if before is None:
+            os.environ.pop("GEORAG_DICT", None)
+        else:
+            os.environ["GEORAG_DICT"] = before
+
+
 def main(argv: list[str] | None = None) -> int:
     from ..index.db import connect
     from ..index.embed import build_embedder
@@ -197,7 +214,11 @@ def main(argv: list[str] | None = None) -> int:
         for q in questions:
             for with_dict in modes:
                 settings = replace(base, dictionary=with_dict)
-                got = ask(conn, embedder, q["question"], settings)
+                # Словарь выключается целиком: и определения (settings.dictionary), и
+                # его написания в поиске по словам — их берёт search.dictionary_variants
+                # по GEORAG_DICT, а не по настройкам ответа.
+                with _dictionary_env(with_dict):
+                    got = ask(conn, embedder, q["question"], settings)
                 row = {**q, **got, "dict": "да" if with_dict else "нет"}
                 if q["kind"].startswith("лож"):
                     row["reaction"] = reaction(got["answer"])

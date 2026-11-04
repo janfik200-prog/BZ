@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,10 @@ from georag.index import figures, noise
 from georag.parse.orchestrator import hyphens, layout
 from georag.parse.orchestrator.formulas import fix_formula
 from georag.parse.orchestrator.words import join_soft_hyphens
+
+NEEDS_DOCLING_CORE = pytest.mark.skipif(
+    importlib.util.find_spec("docling_core") is None, reason="нужен docling-core"
+)
 
 SOFT = "­"
 
@@ -158,6 +163,7 @@ def _text(doc: Any, text: str, page: int = 1, l: float = 50, t: float = 100) -> 
     )
 
 
+@NEEDS_DOCLING_CORE
 def test_demote_authors() -> None:
     from docling_core.types.doc.labels import DocItemLabel
 
@@ -172,6 +178,7 @@ def test_demote_authors() -> None:
     ]
 
 
+@NEEDS_DOCLING_CORE
 def test_rescue_table_row() -> None:
     from docling_core.types.doc.items.table.table_data import TableCell, TableData
 
@@ -211,6 +218,7 @@ def test_rescue_table_row() -> None:
     assert [t.text for t in doc.texts] == ["Таблица показывает содержания металлов в пробах."]
 
 
+@NEEDS_DOCLING_CORE
 def test_rescue_table_row_uneven_cell_tops() -> None:
     """Текст в ячейках последней строки начинается на разной высоте (центровка по
     вертикали, ячейка в две строки). Шаг строки — между верхами строк, а не между двумя

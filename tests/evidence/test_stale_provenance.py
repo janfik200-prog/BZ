@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import re
 from typing import Any
 
@@ -148,7 +149,10 @@ def test_old_base_without_columns_deletes_as_before() -> None:
 #  Версия парсера и отпечаток разбора
 # --------------------------------------------------------------------------- #
 def test_parser_version_from_package() -> None:
-    assert re.fullmatch(r"docling@\d+\.\d+.*", parser_version(DOCLING))
+    if importlib.util.find_spec("docling") is None:  # CI без docling
+        assert parser_version(DOCLING) == f"{DOCLING}@unrecorded"
+    else:
+        assert re.fullmatch(r"docling@\d+\.\d+.*", parser_version(DOCLING))
     assert re.fullmatch(r"pymupdf4llm@\d+\.\d+.*", parser_version(PYMUPDF))
     assert parser_version(PROBE) == f"{PROBE}@unrecorded"
 

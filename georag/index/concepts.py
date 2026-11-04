@@ -250,9 +250,17 @@ class _Base:
 
         if self._vectors is not None:
             return self._vectors
-        path = CACHE / f"place-names-{self.stamp[0]}-{self.stamp[1]}.npy"
-        if path.exists():
-            self._vectors = np.load(path)
+        # Ключ файла — сами названия и модель векторов, а не только объём базы: названия
+        # из графа (entity_names) пополняются без новых фрагментов, и прежний файл давал
+        # векторы не тем названиям (или другой длины — и ответ падал на умножении).
+        import hashlib
+
+        model = str(getattr(embedder, "model_id", "") or "")
+        digest = hashlib.sha256("\n".join([model, *self.names]).encode("utf-8")).hexdigest()
+        path = CACHE / f"place-names-{digest[:16]}.npy"
+        cached = np.load(path) if path.exists() else None
+        if cached is not None and cached.shape[0] == len(self.names):
+            self._vectors = cached
         else:
             v = np.array(embedder.encode([_distinct(n) for n in self.names]))
             self._vectors = v / np.linalg.norm(v, axis=1, keepdims=True)

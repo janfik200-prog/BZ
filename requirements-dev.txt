@@ -1,8 +1,10 @@
 # Проверки кода (python georag.py lint, python georag.py test; настройки — pyproject.toml).
 # Для работы проекта — requirements.txt; эти — поверх него или отдельно в CI.
+# Верхние границы — чтобы новый выпуск не ронял CI сам по себе: black меняет стиль раз в
+# год (январь), ruff добавляет правила в выбранные группы в выпусках 0.x, mypy 3 — главная.
 pytest>=8.0
-ruff>=0.16
-black>=26.0
-mypy>=2.0
+ruff>=0.16,<0.18
+black>=26.0,<27
+mypy>=2.0,<3
 types-PyYAML
 types-requests

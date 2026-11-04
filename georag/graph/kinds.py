@@ -476,11 +476,15 @@ def run(
             for future in finished:
                 batch = pending.pop(future)
                 try:
-                    save(batch, future.result())
+                    answer = future.result()
                 except Exception as exc:  # noqa: BLE001 — эти факты пройдут в следующий раз
                     stats["errors"] += 1
                     if log:
                         log(f"  модель не ответила: {type(exc).__name__}: {exc}")
+                else:
+                    # Запись — вне try: сбой базы не выдаётся за молчание модели и
+                    # останавливает прогон, а не гоняет модель вхолостую.
+                    save(batch, answer)
                 done += len(batch)
                 if log and (done // BATCH) % 10 == 0:
                     pace = (time.monotonic() - started) / max(1, done)
