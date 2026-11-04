@@ -126,9 +126,12 @@ def ask(conn: Any, embedder: Any, question: str, settings: Any) -> dict[str, Any
 
 def file_names(conn: Any, doc_ids: list[str]) -> dict[str, str]:
     """Имя файла каждой статьи или отчёта (documents.file_name): по нему документ
-    находится в папке output. У словаря и сводок файла нет."""
+    находится в папке output. У словаря и сводок файла нет. Колонка file_name есть у
+    базы закрытой БЗ (свои статьи из папки); нет колонки — без имён, без ошибки в базе."""
+    from ..index.db import has_columns
+
     ids = [d for d in dict.fromkeys(doc_ids) if d and ":" not in d]
-    if not ids:
+    if not ids or not has_columns(conn, "documents", ("file_name",)):
         return {}
     try:
         with conn.cursor() as cur:
@@ -191,19 +194,20 @@ def write(rows: list[dict[str, Any]], out: Path, title: str) -> Path:
             [
                 _cell(v)
                 for v in [
-                r["id"],
-                r["kind"],
-                r["question"],
-                r.get("note", ""),
-                r["dict"],
-                r["answer"],
-                r["sources"],
-                r["dictionary"],
-                r.get("reaction", ""),
-                r["seconds"],
-                None,
-                None,
-            ]]
+                    r["id"],
+                    r["kind"],
+                    r["question"],
+                    r.get("note", ""),
+                    r["dict"],
+                    r["answer"],
+                    r["sources"],
+                    r["dictionary"],
+                    r.get("reaction", ""),
+                    r["seconds"],
+                    None,
+                    None,
+                ]
+            ]
         )
     widths = (6, 10, 40, 30, 9, 90, 55, 22, 18, 9, 18, 30)
     for col, w in zip("ABCDEFGHIJKL", widths, strict=True):

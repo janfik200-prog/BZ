@@ -95,13 +95,27 @@ class FragmentsSheetTests(unittest.TestCase):
         word = {"n": 3, "doc_id": "словарь:d", "title": "Словарь: «Кероген»", "kind": "словарь"}
         self.assertEqual(R.source_line(word, files), "[3] Словарь: «Кероген» — словарь")
         row = {
-            "id": "oil01", "kind": "обычный", "question": "Что такое кероген?",
-            "note": "определение", "dict": "да", "answer": "Кероген — … [2]",
-            "sources": R.source_line(src, files), "dictionary": "", "seconds": 1.0,
+            "id": "oil01",
+            "kind": "обычный",
+            "question": "Что такое кероген?",
+            "note": "определение",
+            "dict": "да",
+            "answer": "Кероген — … [2]",
+            "sources": R.source_line(src, files),
+            "dictionary": "",
+            "seconds": 1.0,
             "fragments": [
-                {"n": 2, "used": True, "kind": "", "title": "Отчёт о работах",
-                 "file": f"{UUID_DOC}.docx", "year": 2018, "pages": "12",
-                 "headings": "Глава 3", "text": "Текстфрагмента"},
+                {
+                    "n": 2,
+                    "used": True,
+                    "kind": "",
+                    "title": "Отчёт о работах",
+                    "file": f"{UUID_DOC}.docx",
+                    "year": 2018,
+                    "pages": "12",
+                    "headings": "Глава 3",
+                    "text": "Текст\x0bфрагмента",
+                },
             ],
         }
         with tempfile.TemporaryDirectory() as tmp:
@@ -110,8 +124,9 @@ class FragmentsSheetTests(unittest.TestCase):
             answers, frags = wb["Ответы"], wb["Фрагменты"]
             self.assertEqual(answers.cell(2, 4).value, "определение")
             got = [c.value for c in frags[2]]
-            self.assertEqual(got[:6], ["oil01", "да", "[2]", "да", "Отчёт о работах",
-                                       f"{UUID_DOC}.docx"])
+            self.assertEqual(
+                got[:6], ["oil01", "да", "[2]", "да", "Отчёт о работах", f"{UUID_DOC}.docx"]
+            )
             self.assertEqual(got[-1], "Текстфрагмента")  # знак, которого Excel не берёт, — вон
 
 
@@ -159,3 +174,27 @@ class DictionaryEnvTests(unittest.TestCase):
             with R._dictionary_env(True):
                 self.assertTrue(dictionary_on())
             self.assertNotIn("GEORAG_DICT", os.environ)
+
+
+class FileNamesTests(unittest.TestCase):
+    """Имя файла — из documents.file_name (закрытая БЗ); нет колонки — пусто, без запроса."""
+
+    def test_with_and_without_column(self):
+        from fakedb import FakeConn
+
+        def answer(have):
+            def reply(sql, params):
+                if "information_schema.columns" in sql:
+                    return [("file_name",)] if have else []
+                if sql.startswith("SELECT doc_id, coalesce(file_name"):
+                    return [("d1", "отчёт.pdf")]
+                return []
+
+            return reply
+
+        conn = FakeConn(answer=answer(True))
+        self.assertEqual(R.file_names(conn, ["d1", "словарь:x", "d1"]), {"d1": "отчёт.pdf"})
+        self.assertEqual(conn.queries("SELECT doc_id, coalesce"), [(["d1"],)])
+        conn = FakeConn(answer=answer(False))
+        self.assertEqual(R.file_names(conn, ["d1"]), {})
+        self.assertEqual(conn.queries("SELECT doc_id, coalesce"), [])
