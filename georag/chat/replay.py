@@ -133,7 +133,9 @@ def answer_on(question: str, sources: list[dict[str, Any]], settings: Any) -> di
 
     # tail — статьи словаря, которые не урезаются; в копиях без этого параметра — без него.
     more = {"tail": glossary} if "tail" in inspect.signature(fit_budget).parameters else {}
-    articles, _ = fit_budget(question, articles, [], settings, plan, **more)
+    # Окно — по полному (длинному) промту для обоих: иначе короткому влезало больше фрагментов
+    # и входы различались (m11: 13 против 15, 05.11.2026).
+    articles, _ = fit_budget(question, articles, [], replace(settings, prompt="full"), plan, **more)
     sources = articles + glossary
     started = time.monotonic()
     text, used, refused = "", [], True

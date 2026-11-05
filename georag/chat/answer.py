@@ -75,6 +75,7 @@ from .. import dicts
 from ..index import db
 from ..llm import LLM, LLM_HOST, LLMError
 from .article import NamedArticle, in_article, named_article
+from .binding import bind_objects
 from .catalog import CatalogQuery
 from .checks import (
     NO_ANSWER,
@@ -580,6 +581,11 @@ def _answer_from(
                 cleaned = checked
             else:  # сверка убрала бы всё — ответ остаётся как был
                 unsupported, recited = [], 0
+        # Утверждение об объекте вопроса — только по фрагментам, где он назван (binding.py).
+        bound, unbound = bind_objects(question, cleaned, sources)
+        if unbound and citations(bound, len(sources))[0]:
+            cleaned = bound
+            unsupported = [*unsupported, *unbound]
         rest = rest_of_summary(cleaned, sources)
         if rest:
             cleaned = f"{cleaned.rstrip()}\n\n{rest}".strip()
