@@ -30,6 +30,13 @@ class PromptTests(unittest.TestCase):
     def test_short_keeps_refusal_phrase(self):
         self.assertIn(NO_ANSWER, M.SHORT_SYSTEM)  # по ней код узнаёт отказ
 
+    def test_correction_is_an_answer(self):
+        """Исправление ложной посылки — ответ, отказ — только когда нет ни ответа, ни
+        исправления (сравнение replay 05.11.2026: полный промт отказывался на f19, oil60)."""
+        self.assertIn("Исправление предпосылки — это уже ответ, а не отказ", M.SHORT_SYSTEM)
+        self.assertIn("ни исправить его предпосылку", M.SHORT_SYSTEM)
+        self.assertIn("только если фрагменты подтверждают их для этого объекта", M.SHORT_SYSTEM)
+
     def test_system_by_style(self):
         full = M.build_messages("Вопрос?", [SRC], [])
         short = M.build_messages("Вопрос?", [SRC], [], style="short")
