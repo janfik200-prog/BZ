@@ -92,9 +92,16 @@ def answer_on(question: str, sources: list[dict[str, Any]], settings: Any) -> di
     """Ответ модели на готовых фрагментах — той же дорогой, что в чате (answer._answer_from):
     отказ → второй заход с напоминанием, ссылки, сверка утверждений."""
     from .answer import _answer_from, stream_llm
+    from .messages import fit_budget
     from .plan import Part, Plan
 
     plan = Plan([Part(question, [])])
+    # Как в чате: то, что не влезает в окно модели, отбрасывается с конца (слабейшие
+    # фрагменты). Без этого длинный набор (m11, 05.11.2026) упирался в лимит контекста.
+    articles = [s for s in sources if s.get("kind") != "словарь"]
+    glossary = [s for s in sources if s.get("kind") == "словарь"]
+    articles, _ = fit_budget(question, articles, [], settings, plan, tail=glossary)
+    sources = articles + glossary
     started = time.monotonic()
     text, used, refused = "", [], True
     for insist in (False, True):
