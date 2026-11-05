@@ -66,6 +66,7 @@
     synonyms                    предложения в словарь синонимов (config/synonyms.yaml)
     titles отчёты.xlsx [--dry-run]   названия, авторы, год, территория документов из таблицы
     report вопросы.yaml [--compare-dict]   ответы чата на набор вопросов → Excel для оценки
+    replay таблица.xlsx [--only m01,f04]   те же фрагменты — ответы полным и коротким промтом
     dict import словарь.pdf     разобрать словарь (PDF) → папка dictionaries и база
     dict load                   словари из папки dictionaries → база (на другой машине)
     dict list | dict find "термин"   какие словари есть; статьи по термину
@@ -1089,6 +1090,14 @@ def main(argv: list[str] | None = None) -> int:
         if not _ensure_database():
             return 1
         return _py("georag.index.titles", *argv[1:])
+    if argv and argv[0].lower() == "replay":
+        # Те же фрагменты из таблицы report — ответы разными промтами (chat/replay.py).
+        _need_venv()
+        if not _ensure_database():
+            return 1
+        if not _ensure_llm(wait=True):
+            return 1
+        return _py("georag.chat.replay", *argv[1:])
     if argv and argv[0].lower() == "report":
         # Прогон набора вопросов через чат → таблица Excel для оценки (chat/report.py).
         _need_venv()

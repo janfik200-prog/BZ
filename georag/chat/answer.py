@@ -526,7 +526,9 @@ def _answer_from(
 ) -> Generator[dict[str, Any], None, bool]:
     """Ответ по фрагментам событиями. True — ответ дан (или ошибка сервера модели),
     False — модель отказалась: «в базе знаний нет ответа»."""
-    messages = build_messages(question, sources, turns, settings.model, plan, clashes, insist)
+    messages = build_messages(
+        question, sources, turns, settings.model, plan, clashes, insist, style=settings.prompt
+    )
     stream = _clean(llm(messages, settings))
     tokens = None
     try:

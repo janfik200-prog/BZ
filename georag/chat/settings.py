@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 
 from .. import env
@@ -24,6 +25,13 @@ def env_flag(name: str) -> bool:
     return env.flag(name)
 
 
+def prompt_style() -> str:
+    """Промт ответа (chat/messages.py): «full» — полный (по умолчанию), «short» — короткий
+    с правилами по случаю. GEORAG_PROMPT=short — сравнить (команда replay)."""
+    value = os.environ.get("GEORAG_PROMPT", "").strip().lower()
+    return value if value in ("full", "short") else "full"
+
+
 def dictionary_on() -> bool:
     """Справочные словари в чате (georag/dicts.py): по умолчанию включены, если загружены;
     GEORAG_DICT=0 — выключить (сравнить ответы без словаря)."""
@@ -40,6 +48,8 @@ class Settings:
     temperature: float = 0.1
     num_ctx: int = NUM_CTX
     timeout: int = 300
+    # Промт ответа: «full» — полный, «short» — короткий с правилами по случаю (prompt_style).
+    prompt: str = field(default_factory=prompt_style)
     parts: int = PARTS  # на сколько частей самое большее делить вопрос
     # Вопрос не по теме и в базе пусто: False — короткий отказ, True — ответ из общих знаний.
     general_off_topic: bool = False
