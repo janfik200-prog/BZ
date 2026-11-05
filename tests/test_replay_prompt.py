@@ -94,6 +94,15 @@ class ReplayTests(unittest.TestCase):
         self.assertEqual(sources[0]["year"], 2018)
         self.assertEqual(sources[1].get("kind"), "словарь")
 
+    def test_prompt_record(self):
+        self.assertEqual(R.system_prompt("short"), M.SHORT_SYSTEM)
+        self.assertEqual(R.system_prompt("full"), M.SYSTEM)
+        self.assertEqual(len(R.fingerprint(M.SHORT_SYSTEM)), 12)
+        self.assertNotEqual(R.fingerprint(M.SHORT_SYSTEM), R.fingerprint(M.SYSTEM))
+        self.assertEqual(R.rule_names("Что такое кероген?", [SRC], "short"), "общий вопрос")
+        self.assertEqual(R.rule_names("Что такое кероген?", [SRC], "full"), "")
+        self.assertEqual(R.TEMPERATURE, 0.0)
+
     def test_not_a_report(self):
         from openpyxl import Workbook
 
