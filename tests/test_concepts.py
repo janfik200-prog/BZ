@@ -116,6 +116,11 @@ class PlaceMatchTests(unittest.TestCase):
         self.assertFalse(C._close_enough("Хакасия", "Якутия", 0.7))
         self.assertTrue(C._close_enough("Лудзин", "Lujing", 0.67))
 
+    def test_short_fragment_spelling_dropped(self):
+        """«Bam» к «Бамское» находил по началу слова посторонние статьи (08.11.2026)."""
+        self.assertEqual(C._spellings(["Бамское", "Bam", "Bamskoye"]), ["Бамское", "Bamskoye"])
+        self.assertEqual(C._spellings(["Ош"]), ["Ош"])  # короткое имя без длинных — остаётся
+
     def test_place_named_in_full(self):
         words = set(C._words("ore deposits of the field"))
         self.assertFalse(C._named("Seligdar Ore Field", words))

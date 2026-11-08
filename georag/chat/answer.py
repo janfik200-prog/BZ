@@ -125,6 +125,13 @@ NOT_FOUND = (
     "выключен. Можно спросить иначе: другими словами, с терминами по-английски."
 )
 
+# Вопрос о названной территории, а статей о ней в базе нет: так и сказать — без поиска по
+# всей базе (там нашлось бы только о других районах) и без ответа из общих знаний.
+NOT_IN_PLACE = (
+    "По территории «{place}» в базе знаний ничего не найдено: статей, где она упоминается, "
+    "в базе нет. Можно спросить иначе, назвав территорию по-другому или более крупный район."
+)
+
 # Вопрос о названной статье, а в её фрагментах ответа нет: так и сказать — без ответа из
 # общих знаний (он был бы не о статье) и без «в базе нет» (искалась одна статья).
 NOT_IN_ARTICLE = (
@@ -162,6 +169,8 @@ class Prepared:
     # Статьи справочных словарей о терминах вопроса (dicts.terms_in): в ответ — источниками
     # вида «словарь», после фрагментов статей.
     glossary: list[dict[str, Any]] = field(default_factory=list)
+    # Место вопроса названо, а статей о нём в базе нет (plan.place): поиска не было.
+    no_place: bool = False
 
     def info(self) -> dict[str, Any]:
         plan = self.plan
@@ -209,16 +218,23 @@ def prepare(
     plan = make_plan(named.rest if named else question, history, settings, planner)
     if named:
         in_article(plan, named)
-    if settings.concepts and not plan.concepts:
+    # Разбор понятий и места — модель; в проверках (заглушка базы) не вызывается, иначе
+    # каждый тест ответа ходил бы к серверу модели.
+    if settings.concepts and not plan.concepts and db.is_real(conn):
         from ..index import concepts
 
         yield {"type": "status", "text": "выделяю ключевые понятия…"}
         parsed = concepts.parse(settings.client(), plan.main or question)
         plan.concepts = parsed.concepts
-        if parsed.place and db.is_real(conn) and not plan.article:
+        if parsed.place and not plan.article:
             # Место вопроса — сначала статьи о нём, ответ ищется только в них.
             names = concepts.resolve(conn, embedder, parsed.place)
+            plan.place = list(parsed.place)
             plan.place_docs = concepts.place_docs(conn, embedder, names)
+            if not plan.place_docs:
+                # Статей о месте нет — не искать по всей базе: найденное было бы о других
+                # районах (Ванба → статья о Среднем Урале, 08.11.2026), а не ответом.
+                return Prepared(plan, [], Retrieval([], judged=False), no_place=True)
 
     # Вопрос о самом наборе статей («сколько статей про…», «перечисли статьи…») — по всей
     # базе, по названиям и тексту (catalog.py), а не по 8 фрагментам; через retrieve не идёт.
@@ -410,6 +426,24 @@ def answer(
             )
             if done:
                 return
+
+    if prepared.no_place:
+        text = NOT_IN_PLACE.format(place=plan.place[0] if plan.place else "")
+        yield {"type": "general", "text": text, "not_found": True, "no_place": True, **info}
+        yield {
+            "type": "done",
+            "mode": "без базы",
+            "used": [],
+            "unknown": [],
+            "coverage": [0, 0],
+            "model": settings.model,
+            "seconds": round(time.monotonic() - started, 1),
+            "tokens": None,
+            "not_found": True,
+            "no_place": True,
+            **info,
+        }
+        return
 
     if prepared.article is not None:
         text = NOT_IN_ARTICLE.format(title=prepared.article.title)
