@@ -378,10 +378,18 @@ def _phonetic_matches(base: _Base, place: list[str], strict: bool = False) -> di
 MIN_PLACE_CHARS = 4
 
 
+def _core_letters(name: str) -> int:
+    """Букв в отличительной части названия — без родовых слов («месторождение», «Deposit»).
+    Не _distinct: тот при коротком остатке возвращает название целиком, и «Bam Deposit»
+    выглядело бы длинным, хотя искалось бы одно «Bam» (08.11.2026)."""
+    generic = {_stem(x) for x in PLACE_WORDS}
+    return sum(len(w) for w in re.split(r"[\s\-]+", name) if w and _stem(w) not in generic)
+
+
 def _spellings(place: list[str]) -> list[str]:
     """Написания места без обрывков короче MIN_PLACE_CHARS букв — если есть длиннее; само
     короткое название места («Ош») без длинных написаний остаётся."""
-    longer = [p for p in place if len(_distinct(p)) >= MIN_PLACE_CHARS]
+    longer = [p for p in place if _core_letters(p) >= MIN_PLACE_CHARS]
     return longer or list(place)
 
 

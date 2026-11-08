@@ -78,6 +78,10 @@ services:
       - "127.0.0.1:8100:8000"
     environment:
       HF_HUB_DISABLE_XET: "1"  # см. builder: Xet в контейнере зависал на загрузке
+      # Модель уже в томе georag-models: без этого vLLM при старте спрашивает Hugging Face
+      # и без сети падает («Temporary failure in name resolution», 04.11 и 08.11.2026).
+      # Скачать модель заново — убрать строку на время первого запуска.
+      HF_HUB_OFFLINE: "1"
     volumes:
       # Скачанная модель (около 10 ГБ) хранится в томе и не качается заново.
       - georag-models:/root/.cache/huggingface

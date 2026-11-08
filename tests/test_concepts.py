@@ -120,6 +120,10 @@ class PlaceMatchTests(unittest.TestCase):
         """«Bam» к «Бамское» находил по началу слова посторонние статьи (08.11.2026)."""
         self.assertEqual(C._spellings(["Бамское", "Bam", "Bamskoye"]), ["Бамское", "Bamskoye"])
         self.assertEqual(C._spellings(["Ош"]), ["Ош"])  # короткое имя без длинных — остаётся
+        # Родовое слово не удлиняет обрывок: «Bam Deposit» ищется как «Bam».
+        self.assertEqual(
+            C._spellings(["Бамское месторождение", "Bam Deposit"]), ["Бамское месторождение"]
+        )
 
     def test_place_named_in_full(self):
         words = set(C._words("ore deposits of the field"))
