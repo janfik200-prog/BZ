@@ -799,8 +799,11 @@ def query_variants(conn: Any, query: str, limit: int = 4) -> list[str]:
             entry = found[0]
             target = _follow(idx, entry)
             names = [x.strip() for x in entry["en"].split(",") if x.strip()]
+            # Английский термин вопроса — и русское название статьи: «adularia» → «Адуляр»,
+            # иначе поиск по словам не находил русские статьи (10.11.2026).
+            names.append(entry["term"].split(" (")[0].strip())
             if target is not entry:
-                names.append(target["term"])
+                names.append(target["term"].split(" (")[0].strip())
                 names += [x.strip() for x in target["en"].split(",") if x.strip()]
             for name in names:
                 if name_key(name) != name_key(phrase):
@@ -861,11 +864,15 @@ def as_sources(conn: Any, entries: list[dict[str, Any]], start: int) -> list[dic
 
 
 # «Что такое адуляр», «что значит декольман», «дай определение…» — вопрос об определении:
-# ответ начинается со статьи словаря, статьи базы его дополняют.
+# ответ начинается со статьи словаря, статьи базы его дополняют. «Кто такие брюхоногие»,
+# «what are gastropods», «define …» — тоже (10.11.2026); «what are the …» — нет: это вопрос
+# о составе или списке («What are the main ore-controlling structures…»).
 DEFINITION = re.compile(
     r"^\s*(?:что\s+(?:такое|значит|означает|называют|понимают\s+под)|"
+    r"что\s+представля(?:ет|ют)\s+собой|кто\s+так(?:ие|ой|ая)|"
     r"(?:дай|дайте|приведи|приведите)\s+определение|определение\s+(?:термина|понятия)?|"
-    r"значение\s+(?:термина|слова|понятия)|what\s+is|what\s+does)\b",
+    r"значение\s+(?:термина|слова|понятия)|what\s+is|what's|what\s+does|"
+    r"what\s+are\s+(?!the\b)|define|definition\s+of|meaning\s+of)\b",
     re.IGNORECASE,
 )
 

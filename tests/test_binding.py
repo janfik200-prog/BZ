@@ -61,6 +61,32 @@ class BindTests(unittest.TestCase):
         answer = "Фрагменты не указывают, что в Линденской впадине есть баженовские отложения [1]."
         self.assertEqual(bind_objects(q, answer, sources), (answer, []))
 
+    def test_english_negation_kept(self):
+        q = "What controls gold in the Wamba district?"
+        sources = [src(1, "Berezites of the Middle Urals.", title="Middle Urals")]
+        answer = "It is not mentioned that the Wamba district hosts berezites [1]."
+        self.assertEqual(bind_objects(q, answer, sources), (answer, []))
+
+    def test_english_question_object(self):
+        q = "What controls gold in the Wamba district?"
+        sources = [src(1, "Shear zones control gold.", title="Gold in the Wamba district"),
+                   src(2, "Berezites of the Middle Urals.", title="Middle Urals")]
+        answer = ("Gold in the Wamba district is controlled by shear zones [1]. "
+                  "Wamba hosts berezites [2].")
+        _, removed = bind_objects(q, answer, sources)
+        self.assertEqual(removed, ["Wamba hosts berezites [2]."])
+
+    def test_element_symbols_not_object(self):
+        # «Au-Ag», «Fe-Mn» — химия, а не объект: верное утверждение не убирается (10.11.2026).
+        self.assertEqual(question_objects("Где в Сибири встречается Au-Ag оруденение?"),
+                         [["сиби"]])
+        self.assertEqual(question_objects("What is known about Au-Ag-Te ores at Natalka?"),
+                         [["nata"]])
+        q = "Какие Fe-Mn конкреции известны?"
+        answer = "Fe-Mn конкреции развиты на дне океанов [1]."
+        sources = [src(1, "Железомарганцевые конкреции развиты на дне океанов.")]
+        self.assertEqual(bind_objects(q, answer, sources), (answer, []))
+
     def test_sentence_not_about_object_kept(self):
         q = "Какие баженовские отложения встречаются в Линденской впадине?"
         sources = [src(1, "В Западной Сибири баженовская свита…")]

@@ -215,6 +215,24 @@ class TermsTests(unittest.TestCase):
         self.assertIn(
             "Где встречаются gastropod", D.query_variants(FakeConn(), "Где встречаются брюхоногие")
         )
+        # Термин, куда ведёт отсылка, — без латыни в скобках: она ничего не находит.
+        self.assertIn(
+            "Где встречаются Гастроподы",
+            D.query_variants(FakeConn(), "Где встречаются брюхоногие"),
+        )
+
+    def test_query_variants_english(self):
+        # Английский термин вопроса — и русское название статьи (10.11.2026).
+        self.assertIn(
+            "How to map a Зона сдвига", D.query_variants(FakeConn(), "How to map a shear zone")
+        )
+        self.assertIn(
+            "Where do Гастроподы occur", D.query_variants(FakeConn(), "Where do gastropod occur")
+        )
+
+    def test_terms_english_question(self):
+        got = D.terms_in(FakeConn(), "How do shear zone structures control gold?")
+        self.assertEqual(got[0]["term"], "Зона сдвига")
 
     def test_no_dictionary(self):
         D.index = lambda conn: None
@@ -277,9 +295,16 @@ class DefinitionTests(unittest.TestCase):
             "что значит декольман",
             "Дай определение термина зона сдвига",
             "What is adularia?",
+            "Кто такие брюхоногие?",
+            "Что представляет собой адуляр",
+            "What are gastropods?",
+            "What's adularia?",
+            "Define adularia",
         ):
             self.assertTrue(D.is_definition(q), q)
         self.assertFalse(D.is_definition("Где встречается адуляр и что такое ортоклаз"))
+        # «What are the …» — вопрос о составе или списке, а не об определении.
+        self.assertFalse(D.is_definition("What are the main ore-controlling structures?"))
 
     def test_prompt_notes(self):
         from georag.chat.messages import build_messages

@@ -22,9 +22,17 @@ from .checks import cited_numbers, rewrite
 _WORD = re.compile(r"[A-Za-zА-ЯЁа-яё][\w-]*")
 # Имя собственное — слово с заглавной не в начале вопроса и не после точки.
 _NAME = re.compile(r"(?<![.!?]\s)(?<!^)\b[A-ZА-ЯЁ][a-zа-яё][\w-]*(?:\s+[A-ZА-ЯЁ][a-zа-яё][\w-]*)*")
+# Обозначение элементов — не имя: «Au-Ag оруденение», «Fe-Mn конкреции», «Cu/Ni» — с
+# заглавной, но это химия, а не объект; иначе верное «Au-Ag оруденение известно в Якутии [1]»
+# убиралось, если фрагмент пишет «золото-серебряное» (10.11.2026).
+_ELEMENTS = re.compile(r"[A-Z][a-z]?(?:[-–/][A-Z][a-z]?)+")
+# Отрицание — не утверждение об объекте. По-английски тоже: оба промта велят отвечать
+# по-русски, но модель изредка отвечает на языке вопроса.
 _NEGATION = re.compile(
     r"не\s+(?:подтвержд|указ|упомина|содерж|описан|сказано|привод|назван|следует|связыва)|"
-    r"нет\s+(?:сведений|данных|информации|ответа)|отсутству|неизвестно|не\s+удалось",
+    r"нет\s+(?:сведений|данных|информации|ответа)|отсутству|неизвестно|не\s+удалось|"
+    r"\bnot\s+(?:mention|stat|indicat|specif|confirm|describ|report|support|given|found|known)|"
+    r"\bno\s+(?:data|information|evidence|mention|answer)\b|\babsent\b|\bunknown\b",
     re.IGNORECASE,
 )
 
@@ -39,7 +47,8 @@ def question_objects(question: str) -> list[list[str]]:
     """Объекты вопроса — имена собственные, каждое списком основ слов."""
     out = []
     for m in _NAME.finditer(question.strip()):
-        stems = [_stem(w) for w in _WORD.findall(m.group()) if len(w) >= 3]
+        words = [w for w in m.group().split() if not _ELEMENTS.fullmatch(w)]
+        stems = [_stem(w) for w in _WORD.findall(" ".join(words)) if len(w) >= 3]
         if stems and stems not in out:
             out.append(stems)
     return out
