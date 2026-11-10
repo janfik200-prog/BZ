@@ -37,6 +37,20 @@ class PromptTests(unittest.TestCase):
         self.assertIn("ни исправить его предпосылку", M.SHORT_SYSTEM)
         self.assertIn("только если фрагменты подтверждают их для этого объекта", M.SHORT_SYSTEM)
 
+    def test_completeness_in_both_prompts(self):
+        """Полнота ответа (11.11.2026): «какие» — все варианты, различия — по признакам,
+        «почему» — подтверждённые причины, проверка пропущенного прямого ответа, точно —
+        чего не хватает. Номера правил частичного ответа и отказа не сдвинулись."""
+        for prompt in (M.SYSTEM, M.SHORT_SYSTEM):
+            self.assertIn("перечисли все подтверждённые варианты", prompt)
+            self.assertIn("только подтверждённые причины", prompt)
+            self.assertIn("не пропущен ли во фрагментах прямой", prompt.replace("\n", " "))
+            self.assertIn("о семи типах", prompt)
+        self.assertIn("\n11. ", M.SYSTEM)
+        self.assertEqual(M.RULE_NUMBERS["full"], {"partial": 6, "refusal": 3})
+        self.assertIn("\n6. Если фрагменты отвечают лишь частично", M.SYSTEM)
+        self.assertIn("\n3. Если во фрагментах нет ответа", M.SYSTEM)
+
     def test_system_by_style(self):
         full = M.build_messages("Вопрос?", [SRC], [])
         short = M.build_messages("Вопрос?", [SRC], [], style="short")
