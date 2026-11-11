@@ -398,6 +398,30 @@ def test_graph_runs_on_builder(monkeypatch: MonkeyPatch) -> None:
     assert args[args.index("--workers") + 1] == str(launcher.BUILDER_WORKERS)
 
 
+def test_build_runs_ingest_then_graph(monkeypatch: MonkeyPatch) -> None:
+    """build: векторы фрагментов, затем граф; ключи — каждой своей команде."""
+    fake_models(monkeypatch, analyst=False, builder=True)
+    monkeypatch.setattr(launcher, "_ensure_database", lambda: True)
+    seen: list[tuple[str, ...]] = []
+    monkeypatch.setattr(launcher, "_py", lambda module, *a: seen.append((module, *a)) or 0)
+    opts = launcher.parse(["build", "--force", "--limit", "5", "--yes"])
+    assert launcher.cmd_build(opts) == 0
+    assert seen[0] == ("georag.index.cli", "ingest", "--force")
+    assert seen[1][:2] == ("georag.graph.cli", "build")
+    assert seen[1][seen[1].index("--limit") + 1] == "5" and "--yes" in seen[1]
+    assert "build" in launcher.COMMANDS
+
+
+def test_build_stops_when_ingest_fails(monkeypatch: MonkeyPatch, capsys: Capsys) -> None:
+    fake_models(monkeypatch, analyst=False, builder=True)
+    monkeypatch.setattr(launcher, "_ensure_database", lambda: True)
+    seen: list[str] = []
+    monkeypatch.setattr(launcher, "_py", lambda module, *a: seen.append(module) or 3)
+    assert launcher.cmd_build(launcher.parse(["build"])) == 3
+    assert seen == ["georag.index.cli"]  # граф не запускался
+    assert "граф не строится" in capsys.readouterr().err
+
+
 def test_loading_analyst_counts_as_running(monkeypatch: MonkeyPatch) -> None:
     """Qwen3-14B ещё грузится (не отвечает), но видеопамять заняла: её тоже остановить."""
     log = fake_models(monkeypatch, analyst=False)

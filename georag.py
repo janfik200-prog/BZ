@@ -50,6 +50,8 @@
     в 16 ГБ видеопамяти сразу не помещаются: на время graph, synonyms, questions, add,
     all и clean «тема» Qwen3-14B останавливается (чат-бот не отвечает), потом
     поднимается снова; если она работает, команда сначала спросит (без вопроса — --yes).
+    build                       векторы и граф одной командой: ingest, затем graph
+                                (--force — у ingest; --redo, --limit, --yes — у graph)
     graph                       строитель выписывает факты из статей (правила — config/graph-rules.txt)
     graph --limit 30            только 30 фрагментов — проба
     graph --redo                всё заново (после правки правил): весь граф стирается,
@@ -779,6 +781,19 @@ def cmd_graph(opts: argparse.Namespace) -> int:
     return result["code"]
 
 
+def cmd_build(opts: argparse.Namespace) -> int:
+    """Векторы и граф одной командой: ingest, затем graph. Загрузка не удалась — граф не
+    строится: он работает по фрагментам базы. Ключи — как у обеих: --force у ingest,
+    --redo, --limit, --yes, --no-filter у graph."""
+    print("== 1 из 2. Векторы фрагментов (ingest)", flush=True)
+    code = cmd_ingest(opts)
+    if code != 0:
+        print("Загрузка в базу не удалась — граф не строится.", file=sys.stderr)
+        return code
+    print("== 2 из 2. Граф: факты, проверка, типы, имена, векторы, кластеры (graph)", flush=True)
+    return cmd_graph(opts)
+
+
 def cmd_synonyms(opts: argparse.Namespace) -> int:
     if not _ensure_database():
         return 1
@@ -980,6 +995,7 @@ COMMANDS = {
     "web": cmd_web,
     "serve": cmd_serve,
     "graph": cmd_graph,
+    "build": cmd_build,
     "verify": cmd_verify,
     "synonyms": cmd_synonyms,
     "ask": cmd_ask,
