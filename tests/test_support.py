@@ -145,20 +145,16 @@ def test_unsupported_claim_removed(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "Пиренеях" in client.asked[1] and "Центральном" not in client.asked[1]  # по одному
 
 
-def test_partial_with_foreign_name_is_refuted(monkeypatch: pytest.MonkeyPatch) -> None:
-    """«Частично», а нет во фрагменте — места из утверждения: приписано чужое, убрать.
-    «Частично» с добавкой общими словами — оставить."""
-    foreign = {"ответ": "частично", "чего_нет": "Пиренеи"}
-    (text, removed, _), _ = run(monkeypatch, ANSWER, spain(foreign))
-    assert "Испан" not in text and len(removed) == 1
-    extra = {"ответ": "частично", "чего_нет": "сведения о золотых жилах"}
-    (text, removed, _), _ = run(monkeypatch, ANSWER, spain(extra))
-    assert text == ANSWER and removed == []
-    # Имя, которое в процитированном фрагменте есть, — не чужое.
-    answer = "В статье о радоне в точке TTN-07 изучена связь с плотностью линеаментов [2]."
-    named = {"ответ": "частично", "чего_нет": "TTN-07 упомянута не во всех фрагментах"}
-    (text, removed, _), _ = run(monkeypatch, answer, lambda c: named)
-    assert text == answer and removed == []
+def test_partial_is_refuted(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Строгая сверка (14.11.2026): «частично» — убрать, с любой добавкой: чужим местом,
+    общими словами или без названной причины. Отказ лучше неверного ответа."""
+    for verdict in (
+        {"ответ": "частично", "чего_нет": "Пиренеи"},
+        {"ответ": "частично", "чего_нет": "сведения о золотых жилах"},
+        {"ответ": "частично"},
+    ):
+        (text, removed, _), _ = run(monkeypatch, ANSWER, spain(verdict))
+        assert "Испан" not in text and len(removed) == 1
 
 
 def test_second_look_saves_claim(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -167,11 +163,12 @@ def test_second_look_saves_claim(monkeypatch: pytest.MonkeyPatch) -> None:
     assert text == ANSWER and removed == []
 
 
-def test_doubt_keeps_answer(monkeypatch: pytest.MonkeyPatch) -> None:
-    """«Частично» без причины, «нет» без названной причины, строка вместо разбора,
-    молчащая модель — ответ не трогается."""
-    bare_no = {"ответ": "нет", "чего_нет": ""}
-    for judge in (spain({"ответ": "частично"}), spain(bare_no), spain("нет"), None):
+def test_bare_no_is_refuted_but_silence_keeps_answer(monkeypatch: pytest.MonkeyPatch) -> None:
+    """«нет» и без названной причины — убрать (если и перепроверка говорит «нет»).
+    Строка вместо разбора и молчащая модель — ответ не трогается."""
+    (text, removed, _), _ = run(monkeypatch, ANSWER, spain({"ответ": "нет", "чего_нет": ""}))
+    assert "Испан" not in text and len(removed) == 1
+    for judge in (spain("нет"), None):
         (text, removed, _), _ = run(monkeypatch, ANSWER, judge)
         assert text == ANSWER and removed == []
 

@@ -42,7 +42,8 @@ def resolve_entity(g: Any, hint: str | None, question: str) -> str | None:
     # Если модель назвала предмет, а граф его не знает («Анабарский щит», о котором
     # статей нет), годится только имя с общим словом из её подсказки, иначе вместо
     # предмета подхватится общее слово вопроса («геологическое строение»).
-    text = normalize(question)
+    # Скобки — пояснение, а не часть названия: «сланцевые (низкопроницаемые) толщи».
+    text = normalize(re.sub(r"\([^()]*\)", " ", question))
     want = _stems(hint) if hint else set()
     hits = []
     for name in g.entities:
@@ -51,12 +52,53 @@ def resolve_entity(g: Any, hint: str | None, question: str) -> str | None:
             if len(spelled) < 4 or (want and not want & _stems(spelled)):
                 continue
             try:
-                if phrase_pattern(spelled).search(text):
-                    hits.append(name)
-                    break
+                found = phrase_pattern(spelled).finditer(text)
             except re.error:
                 continue
+            if any(stands_alone(text, m.start(), m.end(), spelled) for m in found):
+                hits.append(name)
+                break
     return max(hits, key=len) if hits else None
+
+
+# Имя сущности найдено в вопросе — но предмет ли это вопроса? «Аномально высокие пластовые
+# давления» — не «аномалии» (наречие, а не имя), «нефтегазоносные бассейны» — не «бассейн»
+# (слово-определение перед именем меняет предмет), «золото-кварцевые жилы» — не «золото».
+# По «аномалиям» сбор читал статьи о геофизических аномалиях и выдавал их за ответ о
+# пластовых давлениях (oil23), по «бассейну» — о речных бассейнах (m11; прогон 11.11.2026).
+_QUALIFIER = re.compile(
+    r"(?:ый|ий|ой|ая|яя|ое|ее|ые|ие|ого|его|ому|ему|ым|им|ую|юю|ых|их|ыми|ими)$"
+)
+# Не определения предмета: вопросительные, указательные и оценочные слова.
+_NOT_QUALIFIER = {
+    "какие", "какой", "какая", "какое", "каких", "каким", "какими", "какую", "такие", "такой",
+    "такая", "такое", "таких", "другие", "других", "разные", "разных", "различные",
+    "различных", "основные", "основной", "основных", "главные", "главный", "главных",
+    "некоторые", "некоторых", "многие", "многих", "которые", "которых", "известные",
+    "известных", "новые", "новых", "этой", "этих", "этого", "данные", "данных", "всех",
+    "самые", "самых", "важные", "важных", "важнейшие", "типичные", "типичных",
+}  # fmt: skip
+_WORD_BEFORE = re.compile(r"([а-яa-z][а-яa-z0-9]*)\s*$")
+
+
+def stands_alone(text: str, start: int, end: int, spelled: str) -> bool:
+    """Найденное в вопросе имя сущности стоит само по себе, а не куском другого названия.
+
+    text — нормализованный вопрос, [start, end) — где найдено имя spelled."""
+    if text[end : end + 1] == "-":  # «золото-кварцевые»
+        return False
+    matched = text[start:end]
+    single = len(spelled.split()) == 1 and "-" not in spelled
+    # Наречие: «аномально», «структурно» — основа та же, что у «аномалии», «структура».
+    if single and matched.endswith("о") and not spelled.lower().rstrip().endswith("о"):
+        return False
+    before = _WORD_BEFORE.search(text[:start])
+    if before is None:
+        return True
+    word = before.group(1)
+    if len(word) < 5 or word in _NOT_QUALIFIER or not _QUALIFIER.search(word):
+        return True
+    return word[:5] in _stems(spelled)  # определение — часть самого имени
 
 
 def question_subject(conn: Any, hint: str | None, question: str) -> str | None:
@@ -72,6 +114,17 @@ def question_subject(conn: Any, hint: str | None, question: str) -> str | None:
         except Exception:  # noqa: BLE001
             pass
         name = None
+    # Вопрос сам называет предмет (подсказка модели или «с чем связаны X»): сущность графа
+    # заменяет его, только если покрывает хотя бы половину его слов. Иначе это другое.
+    asked = hint or subject_in(question)
+    if name and asked and name != asked:
+        need = _stems(asked)
+        try:
+            have = _stems(" ".join([name, *_synonyms().groups.get(name, [])]))
+        except Exception:  # noqa: BLE001 — словаря синонимов нет: только имя
+            have = _stems(name)
+        if need and len(need & have) * 2 < len(need):
+            name = None
     # Названо имя собственное («Билляхская зона разломов»), а граф знает только общее
     # («зоны разломов»): сбор читал 30 статей о разломах вообще и выдавал их за ответ о
     # Билляхской зоне (оценка 15.10.2026). Найденное должно содержать это имя.

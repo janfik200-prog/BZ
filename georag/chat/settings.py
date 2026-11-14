@@ -27,9 +27,10 @@ def env_flag(name: str) -> bool:
 
 def prompt_style() -> str:
     """Промт ответа (chat/messages.py): «full» — полный (по умолчанию), «short» — короткий
-    с правилами по случаю. GEORAG_PROMPT=short — сравнить (команда replay)."""
+    с правилами по случаю, «quote» — ответ выписками из фрагментов (проверяет quotes.py).
+    GEORAG_PROMPT=short или quote — сравнить (команда replay)."""
     value = os.environ.get("GEORAG_PROMPT", "").strip().lower()
-    return value if value in ("full", "short") else "full"
+    return value if value in ("full", "short", "quote") else "full"
 
 
 def dictionary_on() -> bool:
@@ -45,10 +46,13 @@ class Settings:
     top_k: int = TOP_K
     per_doc: int = PER_DOC
     queries: int = QUERIES
-    temperature: float = 0.1
+    # 0 — на один вопрос один ответ: при 0,1 ответ на тех же фрагментах менялся от прогона к
+    # прогону (f17, 05.11.2026; каолинит, 12.11.2026), и оценка прогона не повторялась.
+    temperature: float = 0.0
     num_ctx: int = NUM_CTX
     timeout: int = 300
-    # Промт ответа: «full» — полный, «short» — короткий с правилами по случаю (prompt_style).
+    # Промт ответа: «full» — полный, «short» — короткий с правилами по случаю, «quote» —
+    # выписки из фрагментов (prompt_style).
     prompt: str = field(default_factory=prompt_style)
     parts: int = PARTS  # на сколько частей самое большее делить вопрос
     # Вопрос не по теме и в базе пусто: False — короткий отказ, True — ответ из общих знаний.

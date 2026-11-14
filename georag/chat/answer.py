@@ -75,21 +75,31 @@ from .. import dicts
 from ..index import db
 from ..llm import LLM, LLM_HOST, LLMError
 from .article import NamedArticle, in_article, named_article
+from .abbreviations import fix as fix_abbreviations
 from .binding import bind_objects
+from .binding import strict as strict_binding
 from .catalog import CatalogQuery
 from .checks import (
-    NO_ANSWER,
+    NO_ANSWER_QUOTE,
     REFUSAL_CHARS,
     citations,
     cite_by_numbers,
+    cite_correction,
     coverage,
+    cut_guesses,
+    drop_bare_refusal,
+    drop_empty_leads,
+    drop_mislabelled,
+    drop_invented_gaps,
     drop_repeats,
+    drop_service,
     drop_uncited,
     is_looping,
     is_refusal,
+    keep_correction,
     says_not_in_base,
 )
-from .collect import collect, rest_of_summary
+from .collect import collect
 from .conflicts import find_conflicts
 from .dataset import (
     collect_dataset,
@@ -100,6 +110,7 @@ from .dataset import (
 )
 from .messages import build_messages, fit_budget, general_messages
 from .plan import Plan, is_follow_up, make_plan, plan_question
+from .quotes import check_quotes, check_synthesis, cite_by_words, split_synthesis
 from .retrieval import MAX_ROUNDS, Retrieval, judge_fragments, retrieve
 from .settings import MODEL, Settings
 from .support import check_support, not_checked, seen_numbers
@@ -246,6 +257,11 @@ def prepare(
     # (collect.py), нет его в статьях — из датасета графа; поиск только добавляет.
     data = None
     base: list[dict[str, Any]] = []
+    # Ответ выписками — только по тексту статей: сбор по статьям и датасет графа дают выжимки
+    # («анкеритовые гидротермалиты — ассоциирует с (Озерное)», k02, 11.11.2026), а не текст.
+    if settings.prompt == "quote":
+        settings = replace(settings, collect=False)
+        datasets = None
     # Предмет — один для сбора и для графа: модель его часто не называет («С какими
     # минералами связано золото?» — subject null), тогда — по тексту вопроса.
     subject = plan.subject
@@ -379,6 +395,8 @@ def answer(
     if prepared.catalog is not None:
         yield from _catalog_answer(prepared, settings, started, info)
         return
+    if settings.prompt == "quote":
+        sources = quotable(sources)
 
     # Разговор модели нужен только для вопроса вдогонку. В самостоятельном
     # вопросе прошлый ответ — помеха: на живом прогоне в ответ о Персияновском
@@ -407,7 +425,10 @@ def answer(
         # Отказ при фрагментах, которые модель-отборщик признала подходящими, — второй
         # заход с напоминанием правила 6 (insist). На s01 модель с одним и тем же набором
         # из 6 фрагментов отказывалась 3 раза из 3, хотя ответ в них есть (14.10.2026).
-        retries = (False, True) if prepared.retrieval.judged else (False,)
+        # Статьи словаря найдены по терминам вопроса — тоже повод перечитать: без статей
+        # базы отказ был окончательным, хотя «Покрышка» из словаря отвечала на вопрос о
+        # солях (f08, oil49, oil51 — 11.11.2026).
+        retries = (False, True) if prepared.retrieval.judged or glossary else (False,)
         for insist in retries:
             if insist:
                 yield {"type": "status", "text": "перечитываю найденное…"}
@@ -522,6 +543,16 @@ def answer(
     }
 
 
+def quotable(sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Источники для ответа выписками: без сводки по статьям и фактов графа — их составил
+    бот, а не авторы статей, и выписка из них — не текст базы («пирит — 3 (лит. 4)…», k07,
+    11.11.2026). Номера — подряд, как модель их и увидит."""
+    kept = [s for s in sources if s.get("kind") not in ("сводка", "датасет")]
+    if len(kept) == len(sources):
+        return sources
+    return [{**s, "n": i} for i, s in enumerate(kept, start=1)]
+
+
 def _catalog_answer(
     prepared: Prepared, settings: Settings, started: float, info: dict[str, Any]
 ) -> Generator[dict[str, Any], None, None]:
@@ -577,7 +608,7 @@ def _answer_from(
                 break
             head += part["text"]
             short = says_not_in_base(head) and len(head) < REFUSAL_CHARS
-            if len(head.strip()) >= len(NO_ANSWER) + 10 and not short:
+            if len(head.strip()) >= len(NO_ANSWER_QUOTE) + 10 and not short:
                 break
         if not head.strip() or is_refusal(head) or (finished and says_not_in_base(head)):
             return False
@@ -593,36 +624,30 @@ def _answer_from(
                 yield {"type": "token", "text": part["text"]}
                 if any(mark in part["text"] for mark in ".!?…") and is_looping(text):
                     break  # дальше — те же фразы по кругу; поток закроет finally
-        # Фразы без ссылки на фрагмент — не из статей, повторы — зацикливание:
-        # ответ заменяется очищенным, убранное показывается отдельно. Фраза без ссылки,
-        # все числа которой есть в одном фрагменте, получает ссылку на него и остаётся.
-        unique, rescued = cite_by_numbers(drop_repeats(text), sources, seen_numbers)
-        cleaned, removed = drop_uncited(unique)
-        # Подтверждает ли фрагмент утверждение со ссылкой на него (support.py) — до хвоста
-        # «Ещё в статьях базы»: его пишет код, а не модель.
-        unsupported: list[str] = []
-        recited = 0
-        support_seconds = None
-        unchecked: list[str] = []
-        real = support is not check_support or llm is stream_llm
-        if cleaned and support is not None and settings.check_support and real:
-            yield {"type": "status", "text": "проверяю, что ссылки подтверждают сказанное…"}
-            since = time.monotonic()
-            checked, unsupported, recited = support(question, cleaned, sources, settings)
-            support_seconds = round(time.monotonic() - since, 1)
-            unchecked = not_checked(cleaned)
-            if checked and citations(checked, len(sources))[0]:
-                cleaned = checked
-            else:  # сверка убрала бы всё — ответ остаётся как был
-                unsupported, recited = [], 0
-        # Утверждение об объекте вопроса — только по фрагментам, где он назван (binding.py).
-        bound, unbound = bind_objects(question, cleaned, sources)
-        if unbound and citations(bound, len(sources))[0]:
-            cleaned = bound
-            unsupported = [*unsupported, *unbound]
-        rest = rest_of_summary(cleaned, sources)
-        if rest:
-            cleaned = f"{cleaned.rstrip()}\n\n{rest}".strip()
+        if settings.prompt == "quote":
+            # Ответ выписками: сверяется не модель с моделью, а текст выписки с текстом
+            # фрагмента — кодом (quotes.py). Чего во фрагменте нет — убирается.
+            quotes_part, synthesis = split_synthesis(text)
+            cleaned, unsupported, quoted = check_quotes(quotes_part, sources)
+            removed, rescued, recited, support_seconds, unchecked = [], [], 0, None, []
+            # Раздел «Сопоставление по выписками» — свои слова модели (правило 11): каждое
+            # предложение — со ссылкой, и смысл сверяется с фрагментами, как у пересказа.
+            synthesis, removed = check_synthesis(synthesis, sources)
+            real = support is not check_support or llm is stream_llm
+            if synthesis and support is not None and settings.check_support and real:
+                yield {"type": "status", "text": "проверяю сопоставление по фрагментам…"}
+                since = time.monotonic()
+                checked, refuted, recited = support(question, synthesis, sources, settings)
+                support_seconds = round(time.monotonic() - since, 1)
+                if checked and citations(checked, len(sources))[0]:
+                    synthesis, unsupported = checked, [*unsupported, *refuted]
+            if synthesis and cleaned:
+                cleaned = f"{cleaned}\n\n{synthesis}"
+        else:
+            quoted = None
+            cleaned, removed, unsupported, rescued, recited, support_seconds, unchecked = (
+                yield from _checked(llm, question, text, sources, settings, support)
+            )
         used, unknown = citations(cleaned, len(sources))
         if not used:
             # Уже показанный поток нужно стереть перед повтором или ответом без базы.
@@ -639,7 +664,7 @@ def _answer_from(
                 "recited": recited,
             }
         used, unknown = citations(text, len(sources))
-        cited, claims = coverage(text)
+        cited, claims = quoted if quoted is not None else coverage(text)
         yield {
             "type": "done",
             "mode": "база",
@@ -664,6 +689,62 @@ def _answer_from(
         return True
     finally:
         stream.close()
+
+
+def _checked(
+    llm: Any,
+    question: str,
+    text: str,
+    sources: list[dict[str, Any]],
+    settings: Settings,
+    support: Any,
+) -> Generator[dict[str, Any], None, tuple[Any, ...]]:
+    """Проверка ответа-пересказа: (текст, фразы без ссылки, неподтверждённые, получившие
+    ссылку по числам, переставлено ссылок, секунд сверки, не сверенные)."""
+    # Фразы без ссылки на фрагмент — не из статей, повторы — зацикливание:
+    # ответ заменяется очищенным, убранное показывается отдельно. Фраза без ссылки,
+    # все числа которой есть в одном фрагменте, получает ссылку на него и остаётся.
+    # Служебная вводная и фраза-отказ рядом с ответом по существу — не ответ (checks.py).
+    text = drop_bare_refusal(drop_service(text))
+    # Выдуманные расшифровки сокращений («растительных остатков (РОВ)») — к сокращению.
+    text, _ = fix_abbreviations(text, sources)
+    unique, rescued = cite_by_numbers(drop_repeats(text), sources, seen_numbers)
+    # Определение, переписанное из фрагмента почти дословно без номера, — тоже (quotes.py).
+    unique, copied = cite_by_words(unique, sources)
+    rescued = [*rescued, *copied]
+    cleaned, removed = drop_uncited(cite_correction(cut_guesses(unique)))
+    # Подтверждает ли фрагмент утверждение со ссылкой на него (support.py) — до хвоста
+    # «Ещё в статьях базы»: его пишет код, а не модель.
+    unsupported: list[str] = []
+    recited = 0
+    support_seconds = None
+    unchecked: list[str] = []
+    real = support is not check_support or llm is stream_llm
+    if cleaned and support is not None and settings.check_support and real:
+        yield {"type": "status", "text": "проверяю, что ссылки подтверждают сказанное…"}
+        since = time.monotonic()
+        checked, unsupported, recited = support(question, cleaned, sources, settings)
+        support_seconds = round(time.monotonic() - since, 1)
+        unchecked = not_checked(cleaned)
+        if checked and citations(checked, len(sources))[0]:
+            cleaned, unsupported = keep_correction(cleaned, checked, unsupported)
+        else:  # сверка убрала бы всё — ответ остаётся как был
+            unsupported, recited = [], 0
+    # Утверждение об объекте вопроса — только по фрагментам, где он назван (binding.py).
+    bound, unbound = bind_objects(question, cleaned, sources)
+    # Вопрос о части объекта («на севере платформы») или о названном методе, а все
+    # утверждения — о другом: ответа нет, это лучше ответа не о том (пустой текст — отказ и второй заход).
+    if unbound and (citations(bound, len(sources))[0] or strict_binding(question)):
+        cleaned = bound
+        unsupported = [*unsupported, *unbound]
+    cleaned = drop_invented_gaps(cleaned, question)
+    cleaned, mislabelled = drop_mislabelled(cleaned)
+    unsupported = [*unsupported, *mislabelled]
+    cleaned = drop_empty_leads(cleaned)
+    # Хвост «Ещё в статьях базы» (rest_of_summary) больше не дописывается: это пункты сводки
+    # без проверки — в ответе о метасоматических изменениях шли «abrasion and hammering during
+    # transport», «diorites of the Kamensky massif» (k02, 14.11.2026). Неверное хуже лишнего.
+    return cleaned, removed, unsupported, rescued, recited, support_seconds, unchecked
 
 
 def _clean(parts: Any) -> Generator[dict[str, Any], None, None]:

@@ -349,9 +349,11 @@ def test_drop_uncited_keeps_connective_after_kept_sentence() -> None:
     ],
 )
 def test_drop_uncited_keeps_sentence_referred_back(follower: str) -> None:
-    """Следующая фраза ссылается назад («Эти…», «Таким образом…») — предыдущая остаётся."""
+    """Следующая фраза ссылается назад («Эти…», «Таким образом…») — предыдущая остаётся
+    со ссылкой следующей: так её проверит сверка ссылок."""
     answer = f"Снимки ASTER охватывают четырнадцать каналов в разных диапазонах. {follower}"
-    assert drop_uncited(answer) == (answer, [])
+    kept = f"Снимки ASTER охватывают четырнадцать каналов в разных диапазонах [3]. {follower}"
+    assert drop_uncited(answer) == (kept, [])
 
 
 def test_drop_uncited_back_reference_without_citation_does_not_save() -> None:
@@ -391,12 +393,8 @@ def test_drop_uncited_keeps_formula_line(formula: str) -> None:
     assert removed == [UNCITED]
 
 
-@pytest.mark.xfail(
-    reason="_ABOUT_SOURCES ищет подстроку «фрагмент» и принимает геологические «фрагменты "
-    "пород» (брекчии) за фразу о фрагментах базы: утверждение без ссылки остаётся",
-    raises=AssertionError,
-    strict=True,
-)
+# Было xfail: «фрагменты пород» принимались за фразу о фрагментах базы. Теперь фраза о
+# фрагментах без ссылки остаётся, только если говорит, чего в них нет (14.11.2026).
 def test_drop_uncited_rock_fragments_are_geology_not_sources() -> None:
     sentence = "Брекчии содержат угловатые фрагменты вмещающих пород и обломки жильного кварца."
     assert drop_uncited(sentence) == ("", [sentence])
@@ -442,6 +440,26 @@ def test_drop_repeats_near_copy_without_new_words() -> None:
         "оперяющими структурами [1]."
     )
     assert drop_repeats(f"{first}\n{second}") == first
+
+
+def test_drop_repeats_keeps_list_item_retelling_part_of_long_paragraph() -> None:
+    """Пункт перечня из слов длинного вводного абзаца — не повтор (m04, 12.11.2026)."""
+    lead = (
+        "Кероген с высоким содержанием водорода (H/Cат > 1,5 и O/Cат < 0,1) склонен к "
+        "образованию нефти, тогда как кероген с низким содержанием водорода (H/Cат < 1, "
+        "O/C = 0,2–0,3) более вероятно приводит к образованию газа [3]."
+    )
+    items = [
+        "По классификации Тиссо и Вельте выделены три типа керогена:",
+        "1. Кероген с высоким содержанием водорода (H/Cат > 1,5 и O/Cат < 0,1) — склонен "
+        "к образованию нефти.",
+        "2. Кероген со средним содержанием водорода (H/Cат = 1,5–1) — может образовывать "
+        "как нефть, так и газ.",
+        "3. Кероген с низким содержанием водорода (H/Cат < 1, O/C = 0,2–0,3) — склонен к "
+        "образованию газа [3].",
+    ]
+    answer = "\n".join([lead, "", *items])
+    assert drop_repeats(answer) == answer
 
 
 def test_drop_repeats_keeps_line_with_new_word() -> None:

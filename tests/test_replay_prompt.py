@@ -62,10 +62,9 @@ class PromptTests(unittest.TestCase):
         full = M.build_messages("а и б?", [SRC], [], plan=plan, insist=True)[-1]["content"]
         short = M.build_messages("а и б?", [SRC], [], plan=plan, insist=True,
                                  style="short")[-1]["content"]
-        self.assertIn("по правилу 6", full)
-        self.assertIn("фраза из правила 3", full)
-        self.assertIn("по правилу 4", short)
-        self.assertIn("фраза из правила 4", short)
+        # Ни второй заход (INSIST), ни составной вопрос больше не зовут отказаться.
+        self.assertNotIn("фраза из правила", full)
+        self.assertNotIn("фраза из правила", short)
 
     def test_situational_rules(self):
         self.assertIn(M.SUPERLATIVE_RULE,

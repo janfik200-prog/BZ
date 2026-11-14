@@ -117,3 +117,60 @@ def test_named(name: Any, hint: Any, question: str, expected: Any) -> None:
 def test_named_proper_name_at_start_of_hint() -> None:
     question = "Что известно об Озерном месторождении?"
     assert named("месторождения", "Озерное месторождение", question) is None
+
+
+# --------------------------------------------------------------------------- #
+#  Сущность графа в тексте вопроса — предмет ли она вопроса
+# --------------------------------------------------------------------------- #
+class _Syn:
+    groups: dict[str, list[str]] = {}
+
+
+class _Graph:
+    """Граф-заглушка: имена сущностей, без синонимов; подсказку модели не знает."""
+
+    syn = _Syn()
+
+    def __init__(self, *entities: str) -> None:
+        self.entities = list(entities)
+
+    def resolve(self, raw: str) -> str | None:
+        return raw if raw in self.entities else None
+
+
+@pytest.mark.parametrize(
+    ("question", "entities", "found"),
+    [
+        pytest.param(
+            "С чем связаны аномально высокие пластовые давления?", ["аномалии"], None,
+            id="adverb-is-not-the-noun",
+        ),
+        pytest.param(
+            "Какие нефтегазоносные бассейны и регионы описаны в базе?", ["бассейн"], None,
+            id="qualified-noun",
+        ),
+        pytest.param(
+            "Какие особенности имеют нефтеносные сланцевые (низкопроницаемые) толщи?",
+            ["толща"], None, id="qualifier-before-brackets",
+        ),
+        pytest.param(
+            "Что известно о золото-кварцевых жилах?", ["золото"], None, id="compound-adjective"
+        ),
+        pytest.param(
+            "С какими породами связано золотое оруденение?",
+            ["оруденение", "золотое оруденение"], "золотое оруденение", id="full-name-wins",
+        ),
+        pytest.param("С чем связаны мигматиты Урала?", ["мигматиты"], "мигматиты", id="plain"),
+        pytest.param(
+            "Какие основные аномалии выделены на площади?", ["аномалии"], "аномалии",
+            id="evaluative-word-is-not-a-qualifier",
+        ),
+        pytest.param("С чем связано золото?", ["золото"], "золото", id="noun-ending-in-o"),
+    ],
+)  # fmt: skip
+def test_entity_in_question_must_stand_alone(
+    question: str, entities: list[str], found: str | None
+) -> None:
+    from georag.chat.dataset import resolve_entity
+
+    assert resolve_entity(_Graph(*entities), None, question) == found

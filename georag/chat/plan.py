@@ -23,10 +23,27 @@ PLAN_USER = """Вопрос пользователя: «{question}»
 Разбери вопрос для поиска по базе статей.
 1. Если вопрос составной — в нём несколько разных вещей (признаки и методы; две
    территории для сравнения; причина и следствие), — раздели его на части, не больше
-   {parts}. Простой вопрос — одна часть, не дроби его.
+   {parts}. Простой вопрос — одна часть, не дроби его. Части — только то, о чём
+   спрашивают: не добавляй своих («что такое X», «какие процессы…»), а утверждение,
+   поданное как известное («раз X — это Y», «почему X всегда…»), в отдельную часть не
+   выноси — для него есть запрос из правила 2.
 2. На каждую часть — {n} поисковых запроса: 2–6 слов, терминами предметной области,
    без кавычек и логических операторов; хотя бы один по-русски и хотя бы один
-   по-английски; запросы различаются по смыслу, а не перестановкой слов.
+   по-английски; запросы различаются по смыслу, а не перестановкой слов. Не повторяй
+   вопрос его же словами: в статьях то же называют терминами — ими и пиши. На вопрос «какие
+   зоны выделяют вокруг рудных тел» запросы — «околорудные метасоматические изменения
+   зональность», «ореолы вокруг рудных тел», «wall-rock alteration zoning around orebody»;
+   на вопрос о морфометрии рельефа — «уклон кривизна рельефа ЦМР», «slope curvature
+   drainage density DEM». Общее слово вопроса (зоны, пояса, аномалии, жилы, признаки,
+   характеристики) раскрой в запросах тем, что под ним понимают геологи. Если в вопросе
+   что-то подано как известное («раз X — это Y…», «поскольку…», «почему X не…»), один из
+   запросов — о самом предмете без этого утверждения (что такое X, его состав, свойства):
+   утверждение может быть неверным, и нужен текст, который его подтвердит или опровергнет.
+   В вопросе о нефти и газе слова понимай в нефтяном смысле и так пиши запросы:
+   «сланцевая» нефть или толща — shale, низкопроницаемые глинисто-кремнистые породы с
+   органическим веществом, а не метаморфические сланцы; «бассейн» — нефтегазоносный
+   осадочный бассейн, а не речной; «аномальное давление» — пластовое (АВПД), а не
+   геофизическая аномалия.
 3. «предмет» — если вопрос про что-то конкретное (место, разлом, метод, процесс,
    признак), его название в именительном падеже, как в вопросе; иначе null.
 4. «всё» — true, если просят собрать всё известное о нём: что известно, что описано,
@@ -326,6 +343,36 @@ def parse_plan(data: Any, question: str, settings: Settings) -> Plan:
     )
 
 
+# Английские названия терминов вопроса — из словаря переводов проекта. Без них модель
+# переводила «метод весов доказательств» как «evidence weighting method», поиск находил
+# статьи о взвешенном наложении слоёв, и ответ описывал другой метод: «не требует известных
+# месторождений, веса назначает эксперт» (f04, h02 — 13.11.2026).
+TERMS_RULE = "В английских запросах термины вопроса называй так, как в статьях: {terms}."
+TERM_HINTS = 6
+EXACT_TERMS = 2  # столько терминов вопроса ищутся ещё и отдельным точным запросом
+
+
+def term_hints(question: str) -> list[str]:
+    """Английские написания терминов вопроса (config/term-translations.yaml): длинные
+    термины первыми, не больше TERM_HINTS; словаря нет — пусто."""
+    try:
+        from ..index.concepts import translations
+        from ..text import name_key
+
+        table = translations()
+    except Exception:  # noqa: BLE001 — без словаря разбор тот же, что раньше
+        return []
+    asked = set(name_key(question).split())
+    found = [(k, v) for k, v in table.items() if v and k and set(k.split()) <= asked]
+    found.sort(key=lambda kv: -len(kv[0].split()))
+    out: list[str] = []
+    for _, spellings in found:
+        text = " / ".join(spellings[:2])
+        if text not in out:
+            out.append(text)
+    return out[:TERM_HINTS]
+
+
 def plan_question(question: str, history: list[dict[str, Any]], settings: Settings) -> Plan:
     """Разбор вопроса моделью: части, запросы, предмет вопроса, «собрать всё».
 
@@ -336,11 +383,17 @@ def plan_question(question: str, history: list[dict[str, Any]], settings: Settin
     user = PLAN_USER.format(
         question=question.strip(), context=context, n=settings.queries, parts=max(1, settings.parts)
     )
+    english = term_hints(question)
+    if english:
+        user += chr(10) + TERMS_RULE.format(terms="; ".join(english))
     languages = translate_languages()
     if languages:
         user += TRANSLATE_RULE.format(languages=", ".join(map(_with_script, languages)))
     try:
-        data = settings.client().chat_json(PLAN_SYSTEM, user, temperature=0.2, timeout=(10, 90))
+        # Температура 0: при 0,2 один и тот же вопрос от прогона к прогону разбирался
+        # по-разному — другие запросы, другие фрагменты, то сбор «всё о предмете», то нет
+        # (m11 12–13.11.2026), и ответ менялся без причины.
+        data = settings.client().chat_json(PLAN_SYSTEM, user, temperature=0, timeout=(10, 90))
     except Exception:  # noqa: BLE001 — без разбора поиск всё равно пойдёт
         return Plan(
             [Part(question, [])], collect=bool(_COLLECT.search(question)) or about_links(question)
@@ -373,4 +426,12 @@ def make_plan(
             plan.main = question.strip()
         else:
             plan.main = search_query(question, history)
+    # Точное английское название термина — отдельным запросом: в длинном запросе модели
+    # («weights of evidence не требует известных месторождений») оно тонуло, и фрагмент, где
+    # метод назван, не находился (f04, 14.11.2026).
+    exact = [h.split(" / ")[0] for h in term_hints(question)[:EXACT_TERMS]]
+    have = {q.lower() for q in plan.queries}
+    for query in exact:
+        if query.lower() not in have:
+            plan.parts[0].queries.append(query)
     return plan

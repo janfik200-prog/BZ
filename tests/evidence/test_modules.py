@@ -445,10 +445,10 @@ def test_not_checked_beyond_limit():
 
     answer = " ".join(
         f"Утверждение номер {i}: золото в районе Альфа приурочено к кварцевым жилам [1]."
-        for i in range(1, 27)
+        for i in range(1, support.MAX_CLAIMS + 3)
     )
     rest = support.not_checked(answer)
-    assert len(support._claims(answer)) == 26 and len(rest) == 2
+    assert len(support._claims(answer)) == support.MAX_CLAIMS + 2 and len(rest) == 2
 
 
 def test_text_reuse_is_one_vote():
