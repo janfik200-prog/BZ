@@ -83,9 +83,7 @@ def split_synthesis(answer: str) -> tuple[str, str]:
     return answer, ""
 
 
-def check_synthesis(
-    section: str, sources: list[dict[str, Any]]
-) -> tuple[str, list[str]]:
+def check_synthesis(section: str, sources: list[dict[str, Any]]) -> tuple[str, list[str]]:
     """Раздел сопоставления без предложений, у которых нет ссылки на показанный фрагмент:
     (текст, убранное). Смысл сверяет модель (support.check_support) — это делает answer.py."""
     if not section:
@@ -283,7 +281,7 @@ def cite_by_words(answer: str, sources: list[dict[str, Any]]) -> tuple[str, list
             return None
         if len(scores) > 1 and scores[0][0] - scores[1][0] < RETOLD_GAP:
             return None
-        return scores[0][1]
+        return int(scores[0][1])
 
     text = rewrite(answer, change)
     return (text, cited) if cited else (answer, cited)

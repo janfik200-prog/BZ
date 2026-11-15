@@ -53,8 +53,11 @@ def rule_names(question: str, sources: list[dict[str, Any]], style: str) -> str:
         return ""
     from . import messages as M
 
-    names = {M.FORMULA_RULE: "формулы", M.SUPERLATIVE_RULE: "«основной/лучший»",
-             M.GENERAL_RULE: "общий вопрос"}
+    names = {
+        M.FORMULA_RULE: "формулы",
+        M.SUPERLATIVE_RULE: "«основной/лучший»",
+        M.GENERAL_RULE: "общий вопрос",
+    }
     return ", ".join(names.get(r, "другое") for r in M.situational_rules(question, sources))
 
 
@@ -62,7 +65,9 @@ def _s(value: Any) -> str:
     return "" if value is None else str(value).strip()
 
 
-def read_report(path: Path) -> tuple[list[dict[str, Any]], dict[tuple[str, str], list[dict[str, Any]]]]:
+def read_report(
+    path: Path,
+) -> tuple[list[dict[str, Any]], dict[tuple[str, str], list[dict[str, Any]]]]:
     """Ответы и фрагменты из таблицы прогона report (листы «Ответы» и «Фрагменты»)."""
     from openpyxl import load_workbook
 
@@ -74,12 +79,12 @@ def read_report(path: Path) -> tuple[list[dict[str, Any]], dict[tuple[str, str],
     if "Ответы" not in sheets or "Фрагменты" not in sheets:
         raise ValueError("в таблице нет листов «Ответы» и «Фрагменты» — это не таблица report")
     head = sheets["Ответы"][0]
-    answers = [dict(zip(head, r)) for r in sheets["Ответы"][1:] if r and r[0]]
+    answers = [dict(zip(head, r, strict=False)) for r in sheets["Ответы"][1:] if r and r[0]]
     fhead = sheets["Фрагменты"][0]
     frags: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for r in sheets["Фрагменты"][1:]:
         if r and r[0]:
-            row = dict(zip(fhead, r))
+            row = dict(zip(fhead, r, strict=False))
             frags[(_s(row.get("№ вопроса")), _s(row.get("Словарь")))].append(row)
     return answers, frags
 
@@ -91,28 +96,32 @@ def _pages(value: Any) -> list[int]:
 def to_sources(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Строки листа «Фрагменты» → источники ответа, с прежними номерами [n]."""
     out = []
-    for i, r in enumerate(sorted(rows, key=lambda r: int(re.sub(r"\D", "", _s(r.get("[n]"))) or 0))):
+    for i, r in enumerate(
+        sorted(rows, key=lambda r: int(re.sub(r"\D", "", _s(r.get("[n]"))) or 0))
+    ):
         n = int(re.sub(r"\D", "", _s(r.get("[n]"))) or i + 1)
         title = _s(r.get("Название статьи / отчёта"))
         dictionary = not _s(r.get("Файл")) and title.lower().startswith("геологический словарь")
         year = _s(r.get("Год"))
-        out.append({
-            "n": n,
-            "doc_id": _s(r.get("Файл")) or title or f"фрагмент-{n}",
-            "ord": i,
-            "title": title,
-            "year": int(year) if year.isdigit() else None,
-            "journal": None,
-            "authors": [],
-            "pages": _pages(r.get("Страницы")),
-            "headings": [_s(r.get("Раздел"))] if _s(r.get("Раздел")) else [],
-            "url": "",
-            "text": _s(r.get("Текст фрагмента")),
-            "similarity": None,
-            "found_by": "словарь" if dictionary else "",
-            "part": None,
-            **({"kind": "словарь"} if dictionary else {}),
-        })
+        out.append(
+            {
+                "n": n,
+                "doc_id": _s(r.get("Файл")) or title or f"фрагмент-{n}",
+                "ord": i,
+                "title": title,
+                "year": int(year) if year.isdigit() else None,
+                "journal": None,
+                "authors": [],
+                "pages": _pages(r.get("Страницы")),
+                "headings": [_s(r.get("Раздел"))] if _s(r.get("Раздел")) else [],
+                "url": "",
+                "text": _s(r.get("Текст фрагмента")),
+                "similarity": None,
+                "found_by": "словарь" if dictionary else "",
+                "part": None,
+                **({"kind": "словарь"} if dictionary else {}),
+            }
+        )
     return out
 
 
@@ -138,10 +147,13 @@ def answer_on(question: str, sources: list[dict[str, Any]], settings: Any) -> di
     articles, _ = fit_budget(question, articles, [], replace(settings, prompt="full"), plan, **more)
     sources = articles + glossary
     started = time.monotonic()
-    text, used, refused = "", [], True
+    text, refused = "", True
+    used: list[int] = []
     for insist in (False, True):
         text = ""
-        gen = _answer_from(stream_llm, question, sources, [], plan, [], settings, {}, started, insist)
+        gen = _answer_from(
+            stream_llm, question, sources, [], plan, [], settings, {}, started, insist
+        )
         try:
             while True:
                 ev = next(gen)
@@ -163,12 +175,20 @@ def answer_on(question: str, sources: list[dict[str, Any]], settings: Any) -> di
         "used": ", ".join(f"[{n}]" for n in used),
         "seconds": round(time.monotonic() - started, 1),
         "rules": rule_names(question, sources, settings.prompt),
-        "window": f"{len(articles)} из {total}" + (f" + словарь {len(glossary)}" if glossary else ""),
+        "window": f"{len(articles)} из {total}"
+        + (f" + словарь {len(glossary)}" if glossary else ""),
     }
 
 
-def write(rows: list[dict[str, Any]], frag_rows: list[list[Any]], frag_head: list[str],
-          prompts: list[str], out: Path, source: Path, temperature: float = TEMPERATURE) -> Path:
+def write(
+    rows: list[dict[str, Any]],
+    frag_rows: list[list[Any]],
+    frag_head: list[str],
+    prompts: list[str],
+    out: Path,
+    source: Path,
+    temperature: float = TEMPERATURE,
+) -> Path:
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font
 
@@ -177,15 +197,25 @@ def write(rows: list[dict[str, Any]], frag_rows: list[list[Any]], frag_head: lis
     ws.title = "Сравнение"
     head = ["№", "Вид", "Вопрос"]
     for p in prompts:
-        head += [f"Ответ ({LABELS[p]})", f"Ссылки ({LABELS[p]})", f"Время, с ({LABELS[p]})",
-                 f"Правила по случаю ({LABELS[p]})", f"Фрагментов в окне ({LABELS[p]})"]
+        head += [
+            f"Ответ ({LABELS[p]})",
+            f"Ссылки ({LABELS[p]})",
+            f"Время, с ({LABELS[p]})",
+            f"Правила по случаю ({LABELS[p]})",
+            f"Фрагментов в окне ({LABELS[p]})",
+        ]
     ws.append(head)
     for r in rows:
         line = [r["id"], r["kind"], r["question"]]
         for p in prompts:
             got = r[p]
-            line += [got["answer"], got["used"], got["seconds"], got.get("rules", ""),
-                     got.get("window", "")]
+            line += [
+                got["answer"],
+                got["used"],
+                got["seconds"],
+                got.get("rules", ""),
+                got.get("window", ""),
+            ]
         ws.append(line)
     for c in ws[1]:
         c.font = Font(bold=True)
@@ -198,13 +228,13 @@ def write(rows: list[dict[str, Any]], frag_rows: list[list[Any]], frag_head: lis
     ws.freeze_panes = "D2"
     fs = wb.create_sheet("Фрагменты")
     fs.append(frag_head)
-    for r in frag_rows:
-        fs.append(r)
+    for frag in frag_rows:
+        fs.append(frag)
     ps = wb.create_sheet("Промты")
     ps.append(["Промт", "Отпечаток (sha256, 12 знаков)", "Точный текст системного промта"])
     for p in prompts:
-        text = system_prompt(p)
-        ps.append([LABELS[p], fingerprint(text), text])
+        prompt_text = system_prompt(p)
+        ps.append([LABELS[p], fingerprint(prompt_text), prompt_text])
     ps.column_dimensions["A"].width = 16
     ps.column_dimensions["B"].width = 18
     ps.column_dimensions["C"].width = 120
@@ -212,13 +242,14 @@ def write(rows: list[dict[str, Any]], frag_rows: list[list[Any]], frag_head: lis
         for c in row:
             c.alignment = Alignment(wrap_text=True, vertical="top")
     info = wb.create_sheet("О прогоне")
-    for line in (f"Повтор на фрагментах из: {source.name}",
-                 "Промты: " + ", ".join(f"{LABELS[p]} ({fingerprint(system_prompt(p))})"
-                                         for p in prompts),
-                 f"Температура модели: {temperature}",
-                 f"Вопросов: {len(rows)}; дата: {datetime.now():%d.%m.%Y %H:%M}",
-                 "Фрагменты те же, что в исходном прогоне: новый поиск не делался."):
-        info.append([line])
+    for note in (
+        f"Повтор на фрагментах из: {source.name}",
+        "Промты: " + ", ".join(f"{LABELS[p]} ({fingerprint(system_prompt(p))})" for p in prompts),
+        f"Температура модели: {temperature}",
+        f"Вопросов: {len(rows)}; дата: {datetime.now():%d.%m.%Y %H:%M}",
+        "Фрагменты те же, что в исходном прогоне: новый поиск не делался.",
+    ):
+        info.append([note])
     info.column_dimensions["A"].width = 100
     out.parent.mkdir(parents=True, exist_ok=True)
     wb.save(out)
@@ -233,8 +264,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--prompts", default="full,short", help="какие промты: full, short")
     p.add_argument("--only", default="", help="только эти вопросы: m01,f04")
     p.add_argument("--out", default="", help="куда записать .xlsx")
-    p.add_argument("--temperature", type=float, default=TEMPERATURE,
-                   help="температура модели (для сравнения — 0, без случайности)")
+    p.add_argument(
+        "--temperature",
+        type=float,
+        default=TEMPERATURE,
+        help="температура модели (для сравнения — 0, без случайности)",
+    )
     args = p.parse_args(argv)
     prompts = [x.strip() for x in args.prompts.split(",") if x.strip() in PROMPTS]
     if not prompts:
@@ -251,8 +286,18 @@ def main(argv: list[str] | None = None) -> int:
         answers = [a for a in answers if _s(a.get("№")) in only]
     base = Settings()
     rows, frag_rows = [], []
-    frag_head = ["№ вопроса", "Словарь", "[n]", "Использован в ответе", "Название статьи / отчёта",
-                 "Файл", "Год", "Страницы", "Раздел", "Текст фрагмента"]
+    frag_head = [
+        "№ вопроса",
+        "Словарь",
+        "[n]",
+        "Использован в ответе",
+        "Название статьи / отчёта",
+        "Файл",
+        "Год",
+        "Страницы",
+        "Раздел",
+        "Текст фрагмента",
+    ]
     for a in answers:
         qid, question = _s(a.get("№")), _s(a.get("Вопрос"))
         dict_flag = _s(a.get("Словарь"))
@@ -260,13 +305,19 @@ def main(argv: list[str] | None = None) -> int:
         sources = to_sources(found)
         row: dict[str, Any] = {"id": qid, "kind": _s(a.get("Вид")), "question": question}
         for prompt in prompts:
-            settings = replace(base, prompt=prompt, dictionary=dict_flag != "нет",
-                               temperature=args.temperature)
+            settings = replace(
+                base, prompt=prompt, dictionary=dict_flag != "нет", temperature=args.temperature
+            )
             if sources:
                 row[prompt] = answer_on(question, sources, settings)
             else:
-                row[prompt] = {"answer": "(в исходном прогоне фрагментов не было — не повторялся)",
-                               "used": "", "seconds": 0, "rules": "", "window": "0"}
+                row[prompt] = {
+                    "answer": "(в исходном прогоне фрагментов не было — не повторялся)",
+                    "used": "",
+                    "seconds": 0,
+                    "rules": "",
+                    "window": "0",
+                }
             print(f"{qid:>6} {LABELS[prompt]:<15} {row[prompt]['seconds']:>6} с", flush=True)
         rows.append(row)
         frag_rows += [[r.get(h) for h in frag_head] for r in found]

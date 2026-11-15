@@ -532,8 +532,8 @@ def build_messages(
         notes.append(NOTES_NOTE)
     glossary = [s["n"] for s in sources if s.get("kind") == "словарь"]
     if glossary:
-        refs = ", ".join(f"[{n}]" for n in glossary)
-        notes.append((QUOTE_DICTIONARY_NOTE if quote else DICTIONARY_NOTE).format(refs=refs))
+        marks = ", ".join(f"[{n}]" for n in glossary)
+        notes.append((QUOTE_DICTIONARY_NOTE if quote else DICTIONARY_NOTE).format(refs=marks))
         if is_definition(question):
             definition = QUOTE_DEFINITION_NOTE if quote else DEFINITION_NOTE
             notes.append(definition.format(first=glossary[0]))
@@ -562,14 +562,10 @@ def build_messages(
     if plan is not None and plan.standalone and plan.standalone.lower() != asked.lower():
         asked += f"\n(Это продолжение разговора; вопрос целиком: {plan.standalone})"
     note = ("\n\n" + "\n\n".join(notes)) if notes else ""
-    user = (
-        f"Фрагменты из базы знаний:\n\n{fragments}\n\n"
-        f"Вопрос: {asked}{note}\n\n"
-        + (
-            "Отвечай выписками из этих фрагментов, с номером фрагмента перед каждой."
-            if quote
-            else "Отвечай только по этим фрагментам, со ссылками. " + OWN_QUESTION
-        )
+    user = f"Фрагменты из базы знаний:\n\n{fragments}\n\n" f"Вопрос: {asked}{note}\n\n" + (
+        "Отвечай выписками из этих фрагментов, с номером фрагмента перед каждой."
+        if quote
+        else "Отвечай только по этим фрагментам, со ссылками. " + OWN_QUESTION
     )
     messages.append({"role": "user", "content": user})
     return messages
@@ -606,7 +602,12 @@ def fit_budget(
         everything = sources + after
         return _tokens(
             build_messages(
-                question, everything, history, settings.model, plan, conflicts,
+                question,
+                everything,
+                history,
+                settings.model,
+                plan,
+                conflicts,
                 style=settings.prompt,
             )
         )

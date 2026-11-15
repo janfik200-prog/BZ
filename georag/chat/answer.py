@@ -74,8 +74,8 @@ from typing import Any
 from .. import dicts
 from ..index import db
 from ..llm import LLM, LLM_HOST, LLMError
-from .article import NamedArticle, in_article, named_article
 from .abbreviations import fix as fix_abbreviations
+from .article import NamedArticle, in_article, named_article
 from .binding import bind_objects
 from .binding import strict as strict_binding
 from .catalog import CatalogQuery
@@ -89,8 +89,8 @@ from .checks import (
     cut_guesses,
     drop_bare_refusal,
     drop_empty_leads,
-    drop_mislabelled,
     drop_invented_gaps,
+    drop_mislabelled,
     drop_repeats,
     drop_service,
     drop_uncited,
@@ -629,7 +629,10 @@ def _answer_from(
             # фрагмента — кодом (quotes.py). Чего во фрагменте нет — убирается.
             quotes_part, synthesis = split_synthesis(text)
             cleaned, unsupported, quoted = check_quotes(quotes_part, sources)
-            removed, rescued, recited, support_seconds, unchecked = [], [], 0, None, []
+            removed: list[str] = []
+            rescued: list[str] = []
+            recited, support_seconds = 0, None
+            unchecked: list[str] = []
             # Раздел «Сопоставление по выписками» — свои слова модели (правило 11): каждое
             # предложение — со ссылкой, и смысл сверяется с фрагментами, как у пересказа.
             synthesis, removed = check_synthesis(synthesis, sources)

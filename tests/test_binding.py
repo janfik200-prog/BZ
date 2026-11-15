@@ -17,42 +17,63 @@ def src(n, text, title="Отчёт"):
 
 class ObjectsTests(unittest.TestCase):
     def test_names_from_question(self):
-        self.assertEqual(question_objects("Какие баженовские отложения есть в Линденской впадине?"),
-                         [["линденс"]])
-        self.assertEqual(question_objects("Какие комплексы выделяют в Тимано-Печорской провинции?"),
-                         [["тимано-печорс"]])
+        self.assertEqual(
+            question_objects("Какие баженовские отложения есть в Линденской впадине?"),
+            [["линденс"]],
+        )
+        self.assertEqual(
+            question_objects("Какие комплексы выделяют в Тимано-Печорской провинции?"),
+            [["тимано-печорс"]],
+        )
         self.assertEqual(question_objects("Что такое кероген?"), [])  # первое слово — не имя
 
     def test_two_word_name(self):
-        self.assertEqual(question_objects("Какие отложения продуктивны в Западной Сибири?"),
-                         [["запад", "сиби"]])
+        self.assertEqual(
+            question_objects("Какие отложения продуктивны в Западной Сибири?"), [["запад", "сиби"]]
+        )
 
 
 class BindTests(unittest.TestCase):
     def test_claim_about_object_from_other_area_removed(self):
         q = "Какие баженовские отложения встречаются в Линденской впадине?"
-        sources = [src(1, "В Западной Сибири баженовская свита сложена кремнистыми аргиллитами."),
-                   src(2, "Линденская впадина выполнена юрскими отложениями.")]
-        answer = ("В Линденской впадине баженовские отложения представлены кремнистыми "
-                  "аргиллитами [1]. Линденская впадина выполнена юрскими отложениями [2].")
+        sources = [
+            src(1, "В Западной Сибири баженовская свита сложена кремнистыми аргиллитами."),
+            src(2, "Линденская впадина выполнена юрскими отложениями."),
+        ]
+        answer = (
+            "В Линденской впадине баженовские отложения представлены кремнистыми "
+            "аргиллитами [1]. Линденская впадина выполнена юрскими отложениями [2]."
+        )
         text, removed = bind_objects(q, answer, sources)
-        self.assertEqual(removed, ["В Линденской впадине баженовские отложения представлены "
-                                   "кремнистыми аргиллитами [1]."])
+        self.assertEqual(
+            removed,
+            [
+                "В Линденской впадине баженовские отложения представлены "
+                "кремнистыми аргиллитами [1]."
+            ],
+        )
         self.assertIn("юрскими отложениями [2]", text)
 
     def test_dictionary_classification_not_applied_to_province(self):
         q = "Какие нефтегазоносные комплексы выделяют в Тимано-Печорской провинции?"
-        sources = [src(1, "Нефтегазоносный комплекс — совокупность пород…",
-                       title="Геологический словарь: «Нефтегазоносный комплекс»")]
-        _, removed = bind_objects(q, "В Тимано-Печорской провинции выделяют комплексы [1].",
-                                  sources)
+        sources = [
+            src(
+                1,
+                "Нефтегазоносный комплекс — совокупность пород…",
+                title="Геологический словарь: «Нефтегазоносный комплекс»",
+            )
+        ]
+        _, removed = bind_objects(
+            q, "В Тимано-Печорской провинции выделяют комплексы [1].", sources
+        )
         self.assertEqual(len(removed), 1)
 
     def test_object_named_in_title_or_any_case(self):
         q = "Какие коллекторы в Линденской впадине?"
         sources = [src(1, "Коллекторы порового типа.", title="Отчёт по Линденской впадине")]
-        text, removed = bind_objects(q, "В Линденской впадине коллекторы порового типа [1].",
-                                     sources)
+        text, removed = bind_objects(
+            q, "В Линденской впадине коллекторы порового типа [1].", sources
+        )
         self.assertEqual(removed, [])
 
     def test_negation_kept(self):
@@ -69,19 +90,23 @@ class BindTests(unittest.TestCase):
 
     def test_english_question_object(self):
         q = "What controls gold in the Wamba district?"
-        sources = [src(1, "Shear zones control gold.", title="Gold in the Wamba district"),
-                   src(2, "Berezites of the Middle Urals.", title="Middle Urals")]
-        answer = ("Gold in the Wamba district is controlled by shear zones [1]. "
-                  "Wamba hosts berezites [2].")
+        sources = [
+            src(1, "Shear zones control gold.", title="Gold in the Wamba district"),
+            src(2, "Berezites of the Middle Urals.", title="Middle Urals"),
+        ]
+        answer = (
+            "Gold in the Wamba district is controlled by shear zones [1]. "
+            "Wamba hosts berezites [2]."
+        )
         _, removed = bind_objects(q, answer, sources)
         self.assertEqual(removed, ["Wamba hosts berezites [2]."])
 
     def test_element_symbols_not_object(self):
         # «Au-Ag», «Fe-Mn» — химия, а не объект: верное утверждение не убирается (10.11.2026).
-        self.assertEqual(question_objects("Где в Сибири встречается Au-Ag оруденение?"),
-                         [["сиби"]])
-        self.assertEqual(question_objects("What is known about Au-Ag-Te ores at Natalka?"),
-                         [["nata"]])
+        self.assertEqual(question_objects("Где в Сибири встречается Au-Ag оруденение?"), [["сиби"]])
+        self.assertEqual(
+            question_objects("What is known about Au-Ag-Te ores at Natalka?"), [["nata"]]
+        )
         q = "Какие Fe-Mn конкреции известны?"
         answer = "Fe-Mn конкреции развиты на дне океанов [1]."
         sources = [src(1, "Железомарганцевые конкреции развиты на дне океанов.")]
@@ -125,8 +150,11 @@ class AdjacentNameTests(unittest.TestCase):
         )
         sources = [
             src(1, "В северных районах Западно-Сибирской низменности минерализация вод растёт."),
-            src(2, "В Восточно-Уральской области и Березовском районе Западно-Сибирской "
-                   "провинции плотность ресурсов 14–16 тыс. т/км²."),
+            src(
+                2,
+                "В Восточно-Уральской области и Березовском районе Западно-Сибирской "
+                "провинции плотность ресурсов 14–16 тыс. т/км².",
+            ),
         ]
         text, removed = bind_objects(q, answer, sources)
         self.assertEqual(text, "В Западной Сибири минерализация вод растёт к северу [1].")
@@ -159,7 +187,12 @@ class SideOfObjectTests(unittest.TestCase):
     def test_whole_object_does_not_answer_its_part(self):
         """«Сибирская платформа сложена…» — об объекте целиком, не о его севере (t03)."""
         answer = "Сибирская платформа сложена архейскими комплексами [1]."
-        sources = [src(1, "На севере Сибирской платформы — Анабарский щит; платформа сложена архейскими комплексами.")]
+        sources = [
+            src(
+                1,
+                "На севере Сибирской платформы — Анабарский щит; платформа сложена архейскими комплексами.",
+            )
+        ]
         text, removed = bind_objects(self.Q, answer, sources)
         self.assertEqual((text, len(removed)), ("", 1))
 
@@ -170,8 +203,10 @@ class SideOfObjectTests(unittest.TestCase):
             "Лиственит — метасоматическая порода [2]. В фрагменте [1] отмечается, что в "
             "альбититах проявлены прожилки анкерита [1]."
         )
-        sources = [src(1, "Формации: альбититы, листвениты. В альбититах проявлены прожилки анкерита."),
-                   src(2, "Лиственит — метасоматическая горная порода.", "Геологический словарь")]
+        sources = [
+            src(1, "Формации: альбититы, листвениты. В альбититах проявлены прожилки анкерита."),
+            src(2, "Лиственит — метасоматическая горная порода.", "Геологический словарь"),
+        ]
         text, removed = bind_objects(q, answer, sources)
         self.assertEqual(text, "Лиственит — метасоматическая порода [2].")
 
@@ -189,7 +224,9 @@ class NamedMethodTests(unittest.TestCase):
 
     def test_other_method_under_its_name_removed(self):
         answer = "Метод весов доказательств не требует месторождений: веса задаёт эксперт [1]."
-        sources = [src(1, "In weighted overlay the weights are assigned by expert judgment or AHP.")]
+        sources = [
+            src(1, "In weighted overlay the weights are assigned by expert judgment or AHP.")
+        ]
         text, removed = bind_objects(self.Q, answer, sources)
         self.assertEqual(text, "")
         self.assertEqual(len(removed), 1)

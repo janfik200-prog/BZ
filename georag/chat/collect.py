@@ -549,16 +549,6 @@ def spelling_key(name: str) -> str:
     return " ".join(words)
 
 
-def _said_keys(text: str) -> set[str]:
-    """Ключи написания слов текста и пар, троек слов подряд — что ответ уже назвал."""
-    words = _STEM_WORD.findall(text.lower())
-    return {
-        spelling_key(" ".join(words[i : i + n]))
-        for n in (1, 2, 3)
-        for i in range(len(words) - n + 1)
-    }
-
-
 def summary_text(subject: str, groups: list[dict[str, Any]], articles: int) -> str:
     """Сводка — указатель: что упомянуто в скольких статьях и в каких (номера источников).
 
@@ -590,43 +580,6 @@ def summary_text(subject: str, groups: list[dict[str, Any]], articles: int) -> s
         if parts:
             lines.append(f"{title}: " + "; ".join(parts) + ".")
     return "\n".join(lines)
-
-
-# Хвост ответа: чего из сводки модель не назвала. Модель, даже со сводкой из 30 статей,
-# перечисляет 10–20 пунктов: сводка покрывала 0,46–0,61 эталона, ответ — 0,20–0,46
-# (8 широких вопросов, 15.10.2026). Остальное дописывает код — пункты проверены цитатами.
-REST_ITEMS = 60
-REST_SINGLE = 25  # пунктов из одной статьи — не больше (их длинный хвост — шум)
-
-
-def rest_of_summary(answer: str, sources: list[dict[str, Any]]) -> str:
-    """Строка «Ещё в статьях базы: …» — пункты сводки, которых нет в ответе, по убыванию
-    числа статей, с номерами статей-источников; пусто — сводки нет или всё названо."""
-    summary = next((s for s in sources if s.get("kind") == "сводка"), None)
-    if summary is None:
-        return ""
-    said = answer.lower().replace("ё", "е")
-    said_keys = _said_keys(said)
-    available = {s["n"] for s in sources if s.get("kind") != "сводка"}
-    rest, single = [], 0
-    for g in summary.get("groups") or []:
-        refs = [n for n in g["sources"] if n in available]
-        if not refs:
-            continue
-        spellings = g.get("names") or [g["name"]]
-        if any(mentions(n, said) or spelling_key(n) in said_keys for n in spellings):
-            continue
-        if len(refs) == 1:
-            if single >= REST_SINGLE:
-                continue
-            single += 1
-        cites = "".join(f"[{n}]" for n in refs[:3])
-        rest.append(f"{g['name']} {cites}")
-        if len(rest) >= REST_ITEMS:
-            break
-    if not rest:
-        return ""
-    return "**Ещё в статьях базы** (дополнительные пункты из выписок): " + "; ".join(rest) + "."
 
 
 def collect(
@@ -878,7 +831,7 @@ def _summary_source(
         "headings": [],
         "url": "",
         "text": summary_text(subject, groups, articles),
-        # Для кода, не для модели: что упомянуто в скольких статьях (rest_of_summary).
+        # Для кода, не для модели: что упомянуто в скольких статьях.
         "groups": [
             {"name": g["name"], "names": list(g["names"]), "sources": list(g["sources"])}
             for g in groups

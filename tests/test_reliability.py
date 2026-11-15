@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from georag.chat.answer import _answer_from
-from georag.chat.collect import check_items, rest_of_summary
+from georag.chat.collect import check_items
 from georag.chat.dataset import proper_stems
 from georag.chat.messages import build_messages
 from georag.chat.plan import Plan
@@ -37,20 +37,6 @@ class ReliabilityTests(unittest.TestCase):
         self.assertEqual(proper_stems("С чем связан хлорит? Собери сведения."), set())
         self.assertEqual(proper_stems("Хлорит. Билляхская зона разломов."), {"билля"})
         self.assertEqual(proper_stems("Что известно об Озерном?"), {"озерн"})
-
-    def test_summary_tail_only_cites_retained_sources(self):
-        summary = {
-            "n": 1,
-            "kind": "сводка",
-            "groups": [
-                {"name": "эпидот", "sources": [2, 25]},
-                {"name": "кальцит", "sources": [26]},
-            ],
-        }
-        tail = rest_of_summary("", [summary, {"n": 2}])
-        self.assertIn("эпидот [2]", tail)
-        self.assertNotIn("25", tail)
-        self.assertNotIn("кальцит", tail)
 
     def test_uncited_or_unknown_answer_is_cleared(self):
         for answer in [

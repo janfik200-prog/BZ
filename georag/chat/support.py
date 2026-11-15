@@ -22,7 +22,15 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-from .checks import CITE_MARK, about_sources, cited_numbers, is_claim, numbers, rewrite
+from .checks import (
+    CITE_MARK,
+    NOT_IN_SOURCES,
+    about_sources,
+    cited_numbers,
+    is_claim,
+    numbers,
+    rewrite,
+)
 from .messages import fragment_block
 from .settings import Settings
 
@@ -86,13 +94,6 @@ def _distinctive(values: set[str]) -> set[str]:
 _YEAR = re.compile(r"1[89]\d\d|20\d\d")
 
 
-_ABSENT = re.compile(
-    r"\bнет\b|\bне\s+(?:указ|упомина|содерж|описа|привод|сказано|говорится|приведен|"
-    r"рассматрива|уточня|подтвержда)|отсутству",
-    re.IGNORECASE,
-)
-
-
 def _claims(answer: str) -> list[str]:
     found: list[str] = []
 
@@ -101,7 +102,7 @@ def _claims(answer: str) -> list[str]:
         # — не факт статьи: сверять её не с чем. А «в фрагменте [2] говорится, что…» — факт,
         # и сверяется: под ним модель пересказывала фрагменты не о предмете вопроса
         # («Лиственит упоминается в фрагменте [2], где говорится о…» — d05, 14.11.2026).
-        absent = about_sources(part) and _ABSENT.search(part)
+        absent = about_sources(part) and NOT_IN_SOURCES.search(part)
         if is_claim(part) and cited_numbers(part) and not absent:
             found.append(part)
         return part
@@ -132,43 +133,16 @@ def _recite(claim: str, by_n: dict[int, dict[str, Any]]) -> str | None:
     return CITE_MARK.sub("", claim).rstrip(" .!?…") + f" [{other}]" + (end.group() if end else "")
 
 
-# Имя собственное: слово с заглавной от четырёх знаков, не после точки и не внутри слова.
-_PROPER = re.compile(r"(?<![\w.])[A-ZА-ЯЁ][\w-]{3,}")
-
-
-def _stems(text: str, skip_first: bool = False) -> set[str]:
-    words = _PROPER.findall(text)
-    if skip_first and words and text.lstrip().startswith(words[0]):
-        words = words[1:]  # первое слово предложения — с заглавной и не будучи именем
-    return {w.lower()[:5] for w in words}
-
-
-def _foreign(reason: str, claim: str, fragments: str) -> bool:
-    """В «чего нет» — имя или число из самого утверждения, и в его фрагментах их правда
-    нет: место, объект или величина, приписанные фрагменту. Это не добавка к верному.
-    Имя, которое во фрагментах есть, — не чужое: в AgentKB модель называла имя «нет во
-    фрагментах 1, 2…, кроме 3», а ссылка на 3 и стояла."""
-    if {n for n in numbers(reason) & numbers(claim) if n not in numbers(fragments)}:
-        return True
-    have = fragments.lower()
-    named = _stems(reason) & _stems(CITE_MARK.sub("", claim), skip_first=True)
-    return any(stem not in have for stem in named)
-
-
-def _refuted(verdict: Any, claim: str = "", fragments: str = "") -> bool:
-    """Опровергнуто ли утверждение: «нет» с названным «чего нет» — или «частично», где
-    «чего нет» — имя или число из утверждения, которых нет в его фрагментах. Без причины
-    — не опровергнуто: голое «нет» стояло и у пересказа, который фрагмент прямо
-    подтверждает, а место, приписанное статье о другом месте, модель называла
-    «частично, чего нет: <место>» (AgentKB, 20.10.2026)."""
+def _refuted(verdict: Any) -> bool:
+    """Опровергнуто ли утверждение. Строго (14.11.2026, «пусть лучше отказывается, чем
+    отвечает неправильно»): «нет» — с названной причиной и без, «частично» — если добавка не
+    связка «поскольку…» (её отрезает cut_link). Ответ модели не разобран — не опровергнуто.
+    Ошибочное «нет» на верном пересказе отсеивает вторая, узкая сверка (check_support):
+    убирается опровергнутое оба раза."""
     if not isinstance(verdict, dict):
         return False
     answer = str(verdict.get("ответ") or "").strip().lower()
     reason = str(verdict.get("чего_нет") or "").strip()
-    # Строго (14.11.2026, требование: «пусть лучше отказывается, чем отвечает неправильно»):
-    # «нет» — опровергнуто и без названной причины; «частично» — тоже, если добавка не
-    # связка «поскольку…» (её отрезает cut_link). Ошибочное «нет» на верном пересказе
-    # отсеивает вторая, узкая сверка (check_support): убирается опровергнутое оба раза.
     if answer == "нет":
         return True
     if answer == "частично":
@@ -235,10 +209,9 @@ def _verdicts(claims: list[str], by_n: dict[int, dict[str, Any]], settings: Sett
     out = []
     for i, c in enumerate(claims, start=1):
         verdict = data.get(str(i))
-        fragments = " ".join(seen(by_n[n]) for n in cited_numbers(c) if n in by_n)
         if _weak_link(verdict, c):
             out.append("link")
-        elif _refuted(verdict, c, fragments):
+        elif _refuted(verdict):
             out.append("refuted")
         else:
             out.append("ok")

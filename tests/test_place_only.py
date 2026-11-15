@@ -25,8 +25,15 @@ def test_no_articles_about_place_says_nothing_found() -> None:
         raise AssertionError("модель не должна отвечать: статей о месте нет")
 
     events = list(
-        chat.answer(None, None, "Какие структуры контролируют оруденение в районе Ванба?", [],
-                    Settings(), llm=llm, prepared=_no_place())
+        chat.answer(
+            None,
+            None,
+            "Какие структуры контролируют оруденение в районе Ванба?",
+            [],
+            Settings(),
+            llm=llm,
+            prepared=_no_place(),
+        )
     )
     general = [e for e in events if e["type"] == "general"]
     assert len(general) == 1
@@ -42,4 +49,3 @@ def test_place_search_on_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
     assert Settings().concepts
     monkeypatch.setenv("GEORAG_CONCEPTS", "0")
     assert not Settings().concepts
-

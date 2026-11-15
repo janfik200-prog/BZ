@@ -44,9 +44,10 @@ def test_quote_messages_use_quote_prompt_and_notes() -> None:
 def test_quote_prompt_has_no_single_article_note() -> None:
     same = [{**SOURCES[0], "n": 1}, {**SOURCES[0], "n": 2, "text": BERESITE}]
     assert "из одного источника" in M.build_messages("Вопрос?", same, [])[-1]["content"]
-    assert "из одного источника" not in M.build_messages("Вопрос?", same, [], style="quote")[-1][
-        "content"
-    ]
+    assert (
+        "из одного источника"
+        not in M.build_messages("Вопрос?", same, [], style="quote")[-1]["content"]
+    )
 
 
 def test_refusal_phrase_of_quote_prompt() -> None:
@@ -56,7 +57,9 @@ def test_refusal_phrase_of_quote_prompt() -> None:
 
 
 def test_verbatim_quote_stays() -> None:
-    answer = f"[2] «Геологический словарь»\n{BERESITE}\n\n[1] «Золото Среднего Урала» (2025)\n{PYRITE}"
+    answer = (
+        f"[2] «Геологический словарь»\n{BERESITE}\n\n[1] «Золото Среднего Урала» (2025)\n{PYRITE}"
+    )
     text, removed, (kept, total) = check_quotes(answer, SOURCES)
     assert text == answer
     assert removed == []
@@ -81,7 +84,9 @@ def test_quote_without_fragment_number_is_removed() -> None:
 
 
 def test_block_left_with_heading_only_is_dropped() -> None:
-    invented = "Золото здесь связано исключительно с кварцевыми жилами северо-западного простирания."
+    invented = (
+        "Золото здесь связано исключительно с кварцевыми жилами северо-западного простирания."
+    )
     answer = f"[1] «Золото Среднего Урала» (2025)\n{invented}\n\n[2]\n{BERESITE}"
     text, removed, _ = check_quotes(answer, SOURCES)
     assert "Золото Среднего Урала" not in text

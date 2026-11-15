@@ -137,9 +137,7 @@ def _in_sources(words: list[str], sources: list[list[str]]) -> bool:
     if not need:
         return True
     n = len(need)
-    return any(
-        text[i : i + n] == need for text in sources for i in range(len(text) - n + 1)
-    )
+    return any(text[i : i + n] == need for text in sources for i in range(len(text) - n + 1))
 
 
 def _same(words: list[str], expansion: str) -> bool:

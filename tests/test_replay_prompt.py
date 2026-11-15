@@ -15,8 +15,16 @@ from georag.chat.checks import NO_ANSWER
 from georag.chat.plan import Part, Plan
 from georag.chat.settings import Settings, prompt_style
 
-SRC = {"n": 1, "doc_id": "d", "ord": 0, "title": "Отчёт", "year": 2018, "authors": [],
-       "pages": [12], "text": "Баженовская свита сложена кремнисто-глинистыми породами."}
+SRC = {
+    "n": 1,
+    "doc_id": "d",
+    "ord": 0,
+    "title": "Отчёт",
+    "year": 2018,
+    "authors": [],
+    "pages": [12],
+    "text": "Баженовская свита сложена кремнисто-глинистыми породами.",
+}
 
 
 class PromptTests(unittest.TestCase):
@@ -60,20 +68,24 @@ class PromptTests(unittest.TestCase):
     def test_rule_numbers_follow_style(self):
         plan = Plan([Part("а", []), Part("б", [])])
         full = M.build_messages("а и б?", [SRC], [], plan=plan, insist=True)[-1]["content"]
-        short = M.build_messages("а и б?", [SRC], [], plan=plan, insist=True,
-                                 style="short")[-1]["content"]
+        short = M.build_messages("а и б?", [SRC], [], plan=plan, insist=True, style="short")[-1][
+            "content"
+        ]
         # Ни второй заход (INSIST), ни составной вопрос больше не зовут отказаться.
         self.assertNotIn("фраза из правила", full)
         self.assertNotIn("фраза из правила", short)
 
     def test_situational_rules(self):
-        self.assertIn(M.SUPERLATIVE_RULE,
-                      M.situational_rules("Какие породы основные покрышки?", [SRC]))
+        self.assertIn(
+            M.SUPERLATIVE_RULE, M.situational_rules("Какие породы основные покрышки?", [SRC])
+        )
         self.assertIn(M.GENERAL_RULE, M.situational_rules("Что такое кероген?", [SRC]))
-        self.assertNotIn(M.GENERAL_RULE,
-                         M.situational_rules("Какие залежи в Западной Сибири?", [SRC]))
-        self.assertIn(M.FORMULA_RULE,
-                      M.situational_rules("Как считают?", [{**SRC, "text": "по $$a=b$$ (2)"}]))
+        self.assertNotIn(
+            M.GENERAL_RULE, M.situational_rules("Какие залежи в Западной Сибири?", [SRC])
+        )
+        self.assertIn(
+            M.FORMULA_RULE, M.situational_rules("Как считают?", [{**SRC, "text": "по $$a=b$$ (2)"}])
+        )
         # Правила по случаю — только в коротком промте.
         full = M.build_messages("Что такое кероген?", [SRC], [])[-1]["content"]
         self.assertNotIn(M.GENERAL_RULE, full)
@@ -91,13 +103,37 @@ class ReplayTests(unittest.TestCase):
             ws.append(["№", "Вид", "Вопрос", "Словарь", "Ответ бота"])
             ws.append(["f01", "ложный", "Почему много золота?", "да", "…"])
             fs = wb.create_sheet("Фрагменты")
-            fs.append(["№ вопроса", "Словарь", "[n]", "Использован в ответе",
-                       "Название статьи / отчёта", "Файл", "Год", "Страницы", "Раздел",
-                       "Текст фрагмента"])
-            fs.append(["f01", "да", "[2]", "нет", "Геологический словарь. Т. 1: «Золото»", None,
-                       None, "31", None, "Золото — металл."])
-            fs.append(["f01", "да", "[1]", "да", "Отчёт", "a.docx", "2018", "12, 13", "Глава 1",
-                       "Текст."])
+            fs.append(
+                [
+                    "№ вопроса",
+                    "Словарь",
+                    "[n]",
+                    "Использован в ответе",
+                    "Название статьи / отчёта",
+                    "Файл",
+                    "Год",
+                    "Страницы",
+                    "Раздел",
+                    "Текст фрагмента",
+                ]
+            )
+            fs.append(
+                [
+                    "f01",
+                    "да",
+                    "[2]",
+                    "нет",
+                    "Геологический словарь. Т. 1: «Золото»",
+                    None,
+                    None,
+                    "31",
+                    None,
+                    "Золото — металл.",
+                ]
+            )
+            fs.append(
+                ["f01", "да", "[1]", "да", "Отчёт", "a.docx", "2018", "12, 13", "Глава 1", "Текст."]
+            )
             wb.save(path)
             answers, frags = R.read_report(path)
         self.assertEqual(answers[0]["№"], "f01")

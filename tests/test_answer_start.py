@@ -229,7 +229,9 @@ def test_gold_run_fixes_13_11() -> None:
     # f11: исправление посылки, убранное сверкой, возвращается.
     before = "Это не так: оруденение не всегда в центре массивов [2]. Его контролируют разломы [2]."
     after = "Его контролируют разломы [2]."
-    assert keep_correction(before, after, ["Это не так: оруденение не всегда в центре массивов [2]."]) == (
+    assert keep_correction(
+        before, after, ["Это не так: оруденение не всегда в центре массивов [2]."]
+    ) == (
         before,
         [],
     )
@@ -249,7 +251,9 @@ def test_gold_second_run_fixes_13_11() -> None:
     from georag.chat.checks import _split_sentences, drop_uncited, rewrite
 
     # k03: точка сокращения перед ссылкой — не конец фразы.
-    parts = _split_sentences("Используют индексы кварца, оксидов железа и др. [1][2]. Также NDVI [6].")
+    parts = _split_sentences(
+        "Используют индексы кварца, оксидов железа и др. [1][2]. Также NDVI [6]."
+    )
     assert parts[0].endswith("и др. [1][2].")
     # c02: цепочка — первая фраза остаётся, раз на неё ссылается оставшаяся следующая.
     chain = (
@@ -298,7 +302,9 @@ def test_gold_third_run_fixes_13_11() -> None:
     text, removed = drop_uncited(lead)
     assert text.startswith("Вокруг рудных тел") and "[1, 2]" in text and not removed
     # f04: английское название метода — из словаря переводов проекта.
-    assert any("weights of evidence" in t for t in term_hints("Как применяют метод весов доказательств?"))
+    assert any(
+        "weights of evidence" in t for t in term_hints("Как применяют метод весов доказательств?")
+    )
 
 
 def test_paragraph_end_citation_covers_previous_sentence() -> None:
@@ -324,7 +330,9 @@ def test_strict_cleanup_14_11() -> None:
     """Строгая чистка: догадки модели, пустая подводка к списку (t03), пересказ без ссылки (d05)."""
     from georag.chat.checks import cut_guesses, drop_empty_leads, drop_uncited
 
-    guess = "Платформа сложена архейскими комплексами, что может быть связано с образованием руд [10]."
+    guess = (
+        "Платформа сложена архейскими комплексами, что может быть связано с образованием руд [10]."
+    )
     assert cut_guesses(guess) == "Платформа сложена архейскими комплексами [10]."
     lead = "На севере платформы известны следующие ископаемые:\n\nПлатформа сложена гнейсами [10]."
     assert drop_empty_leads(lead) == "Платформа сложена гнейсами [10]."

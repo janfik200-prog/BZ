@@ -62,30 +62,43 @@ def question_objects(question: str) -> list[list[str]]:
     return out
 
 
-def _names(stems: list[str], text: str) -> bool:
-    """Назван ли объект в тексте. Имя из нескольких слов — слова подряд и по порядку:
-    «Восточная Сибирь» не названа в тексте, где есть «Восточно-Уральская область» и
-    «Западно-Сибирская плита» по отдельности (oil40, 11.11.2026: сведения об Урале шли как
-    Восточная Сибирь). Составное через дефис — тоже подряд: «Восточно-Сибирская»."""
-    words = [
+def _words(text: str) -> list[str]:
+    """Слова текста строчными, «ё» как «е», составные через дефис — по частям."""
+    return [
         part
         for w in _WORD.findall(text or "")
         for part in w.lower().replace("ё", "е").split("-")
         if part
     ]
+
+
+def _places(stems: list[str], words: list[str]) -> list[int]:
+    """Где в словах стоит имя: его основы подряд и по порядку (номера первого слова)."""
     need = [part for s in stems for part in s.split("-") if part]
     if not need:
-        return False
-    last = len(words) - len(need)
-    return any(
-        all(words[i + k].startswith(s) for k, s in enumerate(need)) for i in range(last + 1)
-    )
+        return []
+    return [
+        i
+        for i in range(len(words) - len(need) + 1)
+        if all(words[i + k].startswith(s) for k, s in enumerate(need))
+    ]
+
+
+def _names(stems: list[str], text: str) -> bool:
+    """Назван ли объект в тексте. Имя из нескольких слов — слова подряд и по порядку:
+    «Восточная Сибирь» не названа в тексте, где есть «Восточно-Уральская область» и
+    «Западно-Сибирская плита» по отдельности (oil40, 11.11.2026: сведения об Урале шли как
+    Восточная Сибирь). Составное через дефис — тоже подряд: «Восточно-Сибирская»."""
+    return bool(_places(stems, _words(text)))
 
 
 def _source_text(source: dict[str, Any]) -> str:
     return " ".join(
-        [str(source.get("title") or ""), *map(str, source.get("headings") or []),
-         str(source.get("text") or "")]
+        [
+            str(source.get("title") or ""),
+            *map(str, source.get("headings") or []),
+            str(source.get("text") or ""),
+        ]
     )
 
 
@@ -113,19 +126,12 @@ def question_side(question: str) -> tuple[str, ...]:
 
 def _names_side(stems: list[str], side: tuple[str, ...], text: str) -> bool:
     """Объект назван, и рядом с ним — та же сторона света."""
-    words = [
-        part
-        for w in _WORD.findall(text or "")
-        for part in w.lower().replace("ё", "е").split("-")
-        if part
-    ]
-    need = [part for s in stems for part in s.split("-") if part]
-    for i in range(len(words) - len(need) + 1):
-        if all(words[i + k].startswith(s) for k, s in enumerate(need)):
-            around = words[max(0, i - SIDE_WINDOW) : i + len(need) + SIDE_WINDOW]
-            if any(w.startswith(side) for w in around):
-                return True
-    return False
+    words = _words(text)
+    span = sum(1 for s in stems for part in s.split("-") if part) + SIDE_WINDOW
+    return any(
+        any(w.startswith(side) for w in words[max(0, i - SIDE_WINDOW) : i + span])
+        for i in _places(stems, words)
+    )
 
 
 # Названный в вопросе метод: «метод весов доказательств» — не «взвешенное наложение слоёв» и
@@ -164,12 +170,12 @@ _DEFINED = re.compile(
 )
 
 
-_CYRILLIC = re.compile(r"[А-Яа-яЁё]{4,}")
+_RUSSIAN_WORD = re.compile(r"[А-Яа-яЁё]{4,}")  # фрагмент по-русски
 
 
 def _has_all(stems: list[str], text: str) -> bool:
     """Все основы есть в тексте — в любом порядке (термин вопроса-определения)."""
-    words = [w.lower().replace("ё", "е") for w in _WORD.findall(text or "")]
+    words = _words(text)
     return bool(stems) and all(any(w.startswith(s) for w in words) for s in stems)
 
 
@@ -180,7 +186,9 @@ def defined_term(question: str) -> list[str]:
         return []
     # Термин — до союза или второй части вопроса: «Что такое сдвиговые зоны и как с ними
     # связано оруденение?» — термин «сдвиговые зоны», а не «…ними связано» (eval s03, f04).
-    head = re.split(r"\s+(?:и|или|а|как|где|чем|из|в|на|при|для|у|с|по)\s+", m.group("term"), maxsplit=1)[0]
+    head = re.split(
+        r"\s+(?:и|или|а|как|где|чем|из|в|на|при|для|у|с|по)\s+", m.group("term"), maxsplit=1
+    )[0]
     words = [w for w in _WORD.findall(head) if len(w) >= 4][:2]
     return [_term_stem(w) for w in words]
 
@@ -197,8 +205,8 @@ def _term_stem(word: str) -> str:
 
 
 def strict(question: str) -> bool:
-    """Вопрос о части объекта или о названном методе: ответ, в котором после проверки не
-    осталось утверждений, — не ответ (лучше отказ, чем ответ о другом)."""
+    """Вопрос о части объекта, о названном методе или «Что такое X?»: если привязка убрала
+    все утверждения, ответа нет (лучше отказ, чем ответ о другом)."""
     return bool(question_side(question) or question_methods(question) or defined_term(question))
 
 
@@ -220,7 +228,8 @@ def bind_objects(
 
             english = [
                 [w.lower() for w in _WORD.findall(s)]
-                for hint in term_hints(question) for s in hint.split(" / ")
+                for hint in term_hints(question)
+                for s in hint.split(" / ")
             ]
         except Exception:  # noqa: BLE001 — без словаря переводов: язык фрагмента не проверить
             english = []
@@ -253,8 +262,10 @@ def bind_objects(
             # фраза уходит на сверку ссылок (support.py), а не выбрасывается здесь.
             if stems is term:
                 named += [
-                    s for s in cited
-                    if s not in named and not _CYRILLIC.search(str(s.get("text") or ""))
+                    s
+                    for s in cited
+                    if s not in named
+                    and not _RUSSIAN_WORD.search(str(s.get("text") or ""))
                     and (not english or any(_names(n, _source_text(s)) for n in english))
                 ]
             if side and not _NEGATION.search(part):
@@ -262,8 +273,7 @@ def bind_objects(
                 # Фраза об объекте целиком («Сибирская платформа сложена архейскими
                 # комплексами [10]») — не о спрошенной части: на вопрос о севере платформы
                 # она не отвечает (t03, 14.11.2026).
-                words = [w.lower() for w in _WORD.findall(part)]
-                if match(stems, part) and not any(w.startswith(side) for w in words):
+                if match(stems, part) and not any(w.startswith(side) for w in _words(part)):
                     named = []
             # Сам термин во фрагменте может стоять мимоходом («формации: альбититы, эйситы,
             # листвениты…»), а фраза ответа пересказывает другое место того же фрагмента —
