@@ -1,0 +1,22 @@
+{
+ "labeled": 271,
+ "rows": 271,
+ "A": {
+  "labeled": 177,
+  "correct": 129,
+  "precision": 0.729,
+  "share_of_all_correct": 0.635,
+  "hedge_lost": 10
+ },
+ "B": {
+  "labeled": 118,
+  "correct": 92,
+  "precision": 0.78,
+  "share_of_all_correct": 0.453,
+  "hedge_lost": 6
+ },
+ "correct_total": 203,
+ "correct_only_A": 111,
+ "correct_only_B": 74,
+ "correct_both": 18
+}

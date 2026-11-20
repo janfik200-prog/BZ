@@ -1,0 +1,37 @@
+{
+ "point": {
+  "correct_A": 129,
+  "correct_B": 92,
+  "diff_correct": 37,
+  "prec_A": 0.729,
+  "prec_B": 0.78,
+  "diff_prec": -0.051,
+  "ratio_correct": 1.402
+ },
+ "ci95": {
+  "diff_correct": [
+   -5,
+   80
+  ],
+  "diff_prec": [
+   -0.162,
+   0.077
+  ],
+  "prec_A": [
+   0.657,
+   0.794
+  ],
+  "prec_B": [
+   0.669,
+   0.87
+  ],
+  "ratio_correct": [
+   0.961,
+   2.194
+  ]
+ },
+ "fragments_A_more_correct": 31,
+ "fragments_B_more_correct": 17,
+ "fragments_equal": 52,
+ "sign_test_p": 0.0595
+}
