@@ -1,0 +1,19 @@
+{
+ "fragments": 100,
+ "errors": 0,
+ "raw_facts": 2632,
+ "rejected_by_code": 1196,
+ "checked": 507,
+ "confirmed": 299,
+ "confirmed_share": 0.59,
+ "matched_labeled": 64,
+ "correct": 45,
+ "precision_labeled": 0.703,
+ "direction_errors": 7,
+ "unlabeled": 235,
+ "recall_labeled_correct": 0.202,
+ "labeled_correct_total": 203,
+ "variant": "v4_nolist",
+ "rules": "research\\v19\\rules\\v4.txt",
+ "list": false
+}

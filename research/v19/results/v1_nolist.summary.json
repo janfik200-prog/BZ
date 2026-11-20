@@ -1,0 +1,19 @@
+{
+ "fragments": 100,
+ "errors": 0,
+ "raw_facts": 1531,
+ "rejected_by_code": 740,
+ "checked": 562,
+ "confirmed": 287,
+ "confirmed_share": 0.511,
+ "matched_labeled": 64,
+ "correct": 47,
+ "precision_labeled": 0.734,
+ "direction_errors": 4,
+ "unlabeled": 223,
+ "recall_labeled_correct": 0.222,
+ "labeled_correct_total": 203,
+ "variant": "v1_nolist",
+ "rules": "C:\\Projects\\BZ\\config\\graph-rules.qwen3-8b.txt",
+ "list": false
+}

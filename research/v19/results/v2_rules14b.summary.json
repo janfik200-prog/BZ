@@ -1,0 +1,19 @@
+{
+ "fragments": 100,
+ "errors": 0,
+ "raw_facts": 2369,
+ "rejected_by_code": 478,
+ "checked": 1057,
+ "confirmed": 415,
+ "confirmed_share": 0.393,
+ "matched_labeled": 90,
+ "correct": 57,
+ "precision_labeled": 0.633,
+ "direction_errors": 15,
+ "unlabeled": 325,
+ "recall_labeled_correct": 0.246,
+ "labeled_correct_total": 203,
+ "variant": "v2_rules14b",
+ "rules": "config\\graph-rules.txt",
+ "list": true
+}
