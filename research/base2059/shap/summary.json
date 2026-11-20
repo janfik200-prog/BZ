@@ -1,0 +1,317 @@
+{
+ "links": 197,
+ "correct": 160,
+ "errors": 37,
+ "features": [
+  "голоса (0–4)",
+  "вошла по повтору пары",
+  "публикаций у пары",
+  "цитата дословно",
+  "тип перевёрнут кодом",
+  "оборот предположения",
+  "отрицание в цитате",
+  "цитата по-русски",
+  "длина цитаты, знаков",
+  "слов в именах концов",
+  "есть раздел",
+  "тип: локализовано в",
+  "тип: содержит",
+  "тип: без типа",
+  "тип: сложено",
+  "тип: сопровождается",
+  "тип: входит в",
+  "тип: относится к",
+  "тип: другой",
+  "территория: название статьи",
+  "территория: не определена",
+  "территория: раздел",
+  "территория: соседние предложения",
+  "территория: цитата"
+ ],
+ "random_forest": {
+  "cv_auc_mean": 0.683,
+  "cv_auc_range": [
+   0.611,
+   0.727
+  ],
+  "shuffled_auc_mean": 0.512,
+  "shuffled_auc_95": 0.618,
+  "p_value": 0.032
+ },
+ "logistic": {
+  "cv_auc_mean": 0.712,
+  "cv_auc_range": [
+   0.669,
+   0.745
+  ],
+  "shuffled_auc_mean": 0.493,
+  "shuffled_auc_95": 0.569,
+  "p_value": 0.032
+ },
+ "shap": [
+  {
+   "feature": "тип перевёрнут кодом",
+   "mean_abs": 0.0454,
+   "direction": "выше значение → ниже доверие",
+   "rank_median": 1,
+   "rank_90": [
+    1,
+    6
+   ],
+   "share_with_feature": 0.112
+  },
+  {
+   "feature": "тип: содержит",
+   "mean_abs": 0.0395,
+   "direction": "выше значение → выше доверие",
+   "rank_median": 2,
+   "rank_90": [
+    1,
+    6
+   ],
+   "share_with_feature": 0.173
+  },
+  {
+   "feature": "оборот предположения",
+   "mean_abs": 0.0226,
+   "direction": "выше значение → ниже доверие",
+   "rank_median": 6,
+   "rank_90": [
+    2,
+    13
+   ],
+   "share_with_feature": 0.071
+  },
+  {
+   "feature": "тип: другой",
+   "mean_abs": 0.0215,
+   "direction": "выше значение → ниже доверие",
+   "rank_median": 5,
+   "rank_90": [
+    1,
+    16
+   ],
+   "share_with_feature": 0.117
+  },
+  {
+   "feature": "длина цитаты, знаков",
+   "mean_abs": 0.0173,
+   "direction": "неоднозначно",
+   "rank_median": 4,
+   "rank_90": [
+    2,
+    8
+   ],
+   "share_with_feature": 1.0
+  },
+  {
+   "feature": "тип: сопровождается",
+   "mean_abs": 0.0162,
+   "direction": "выше значение → выше доверие",
+   "rank_median": 8,
+   "rank_90": [
+    4,
+    14
+   ],
+   "share_with_feature": 0.081
+  },
+  {
+   "feature": "тип: входит в",
+   "mean_abs": 0.0115,
+   "direction": "выше значение → ниже доверие",
+   "rank_median": 9,
+   "rank_90": [
+    3,
+    22
+   ],
+   "share_with_feature": 0.071
+  },
+  {
+   "feature": "слов в именах концов",
+   "mean_abs": 0.0108,
+   "direction": "выше значение → выше доверие",
+   "rank_median": 6,
+   "rank_90": [
+    1,
+    10
+   ],
+   "share_with_feature": 1.0
+  },
+  {
+   "feature": "тип: относится к",
+   "mean_abs": 0.0059,
+   "direction": "выше значение → ниже доверие",
+   "rank_median": 15,
+   "rank_90": [
+    6,
+    22
+   ],
+   "share_with_feature": 0.061
+  },
+  {
+   "feature": "цитата по-русски",
+   "mean_abs": 0.0052,
+   "direction": "выше значение → ниже доверие",
+   "rank_median": 15,
+   "rank_90": [
+    5,
+    20
+   ],
+   "share_with_feature": 0.234
+  },
+  {
+   "feature": "цитата дословно",
+   "mean_abs": 0.0047,
+   "direction": "выше значение → выше доверие",
+   "rank_median": 12,
+   "rank_90": [
+    4,
+    19
+   ],
+   "share_with_feature": 0.822
+  },
+  {
+   "feature": "территория: не определена",
+   "mean_abs": 0.0041,
+   "direction": "выше значение → ниже доверие",
+   "rank_median": 12,
+   "rank_90": [
+    5,
+    19
+   ],
+   "share_with_feature": 0.482
+  },
+  {
+   "feature": "есть раздел",
+   "mean_abs": 0.0039,
+   "direction": "выше значение → ниже доверие",
+   "rank_median": 17,
+   "rank_90": [
+    6,
+    22
+   ],
+   "share_with_feature": 0.909
+  },
+  {
+   "feature": "территория: название статьи",
+   "mean_abs": 0.0037,
+   "direction": "выше значение → ниже доверие",
+   "rank_median": 15,
+   "rank_90": [
+    7,
+    20
+   ],
+   "share_with_feature": 0.406
+  },
+  {
+   "feature": "тип: сложено",
+   "mean_abs": 0.0036,
+   "direction": "выше значение → выше доверие",
+   "rank_median": 16,
+   "rank_90": [
+    7,
+    21
+   ],
+   "share_with_feature": 0.107
+  },
+  {
+   "feature": "территория: раздел",
+   "mean_abs": 0.0033,
+   "direction": "выше значение → выше доверие",
+   "rank_median": 16,
+   "rank_90": [
+    9,
+    22
+   ],
+   "share_with_feature": 0.051
+  },
+  {
+   "feature": "тип: локализовано в",
+   "mean_abs": 0.0021,
+   "direction": "выше значение → выше доверие",
+   "rank_median": 14,
+   "rank_90": [
+    6,
+    20
+   ],
+   "share_with_feature": 0.259
+  },
+  {
+   "feature": "голоса (0–4)",
+   "mean_abs": 0.0018,
+   "direction": "неоднозначно",
+   "rank_median": 10,
+   "rank_90": [
+    4,
+    16
+   ],
+   "share_with_feature": 0.944
+  },
+  {
+   "feature": "публикаций у пары",
+   "mean_abs": 0.0016,
+   "direction": "неоднозначно",
+   "rank_median": 14,
+   "rank_90": [
+    7,
+    19
+   ],
+   "share_with_feature": 1.0
+  },
+  {
+   "feature": "территория: цитата",
+   "mean_abs": 0.0006,
+   "direction": "выше значение → ниже доверие",
+   "rank_median": 21,
+   "rank_90": [
+    12,
+    24
+   ],
+   "share_with_feature": 0.056
+  },
+  {
+   "feature": "тип: без типа",
+   "mean_abs": 0.0005,
+   "direction": "выше значение → выше доверие",
+   "rank_median": 19,
+   "rank_90": [
+    12,
+    22
+   ],
+   "share_with_feature": 0.132
+  },
+  {
+   "feature": "вошла по повтору пары",
+   "mean_abs": 0.0004,
+   "direction": "выше значение → ниже доверие",
+   "rank_median": 19,
+   "rank_90": [
+    12,
+    22
+   ],
+   "share_with_feature": 0.127
+  },
+  {
+   "feature": "отрицание в цитате",
+   "mean_abs": 0.0002,
+   "direction": "выше значение → ниже доверие",
+   "rank_median": 23,
+   "rank_90": [
+    14,
+    23
+   ],
+   "share_with_feature": 0.036
+  },
+  {
+   "feature": "территория: соседние предложения",
+   "mean_abs": 0.0,
+   "direction": "неоднозначно",
+   "rank_median": 24,
+   "rank_90": [
+    23,
+    24
+   ],
+   "share_with_feature": 0.005
+  }
+ ]
+}
