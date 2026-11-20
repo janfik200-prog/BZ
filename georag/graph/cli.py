@@ -151,15 +151,18 @@ def _build(conn: Any, args: Any) -> int:
     except (OSError, ValueError) as exc:
         print(f"Словарь терминов не читается: {exc}", file=sys.stderr)
         return 1
+    rules_name = Path(args.rules).name if args.rules else "graph-rules.txt"
+    listed = "со списком предметов" if entities.entity_list_enabled(args.model) else "без списка предметов"
+    strict = "; строгий режим проверки" if facts.strict_for(args.model) else ""
     print(
-        f"Факты выписывает {args.model} по правилам config/graph-rules.txt, каждый проверяет "
-        f"код, потом — вопросы по цитате. Фрагментов: {todo}, одновременно у модели "
+        f"Факты выписывает {args.model} по правилам config/{rules_name}, каждый проверяет "
+        f"код{strict}, потом — вопросы по цитате. Фрагментов: {todo}, одновременно у модели "
         f"{args.workers}. "
         + (
             f"До модели: дубли и фрагменты, где терминов меньше {args.min_terms} "
-            "(config/geo-terms.txt), отсеиваются; остальные идут со списком предметов. "
+            f"(config/geo-terms.txt), отсеиваются; остальные идут {listed}. "
             if filtering
-            else "Без отсева (--no-filter): модели — всё, со списком предметов. "
+            else f"Без отсева (--no-filter): модели — всё, {listed}. "
         )
         + "Можно прервать Ctrl+C — продолжится с этого места."
     )
@@ -338,6 +341,12 @@ def _report(conn: Any, syn: Any) -> int:
     print("\nСвязи (сколько фактов):")
     for relation, count in data["relations"]:
         print(f"  {count:>5}  {relation}")
+    if data.get("topics"):
+        print("\nТемы по Лейдену (сколько предметов — подпись):")
+        for t in data["topics"]:
+            print(f"  {t['id']:>4}. {t['size']:>4}  {t['title']}"[:160])
+    else:
+        print("\nТем по Лейдену ещё нет: python georag.py graph --clusters")
     if data["rejected"]:
         # Все виды причин — со счётом и примерами: где модель ошибалась и что править
         # в config/graph-rules.txt. Сумма сходится с «отброшено проверкой» выше.

@@ -49,9 +49,15 @@ MIN_TERMS = 3
 ENTITY_LIST_ENV = "GEORAG_GRAPH_ENTITY_LIST"
 
 
-def entity_list_enabled() -> bool:
-    """Идёт ли список предметов первого этапа модели (флаг ENTITY_LIST_ENV, по умолчанию да)."""
-    return env.flag(ENTITY_LIST_ENV, default=True)
+# Модели, которым список не отдаётся по умолчанию: Qwen3-8B со списком путала направление
+# втрое чаще (research/v19: 11 ошибок против 4 на 100 фрагментах, точность 0,67 против 0,73).
+NO_LIST_MODELS = frozenset({"qwen3-8b"})
+
+
+def entity_list_enabled(model: str | None = None) -> bool:
+    """Идёт ли список предметов первого этапа модели: флаг ENTITY_LIST_ENV, если задан;
+    иначе да, кроме моделей из NO_LIST_MODELS."""
+    return env.flag(ENTITY_LIST_ENV, default=(model or "") not in NO_LIST_MODELS)
 
 
 MAX_ENTITIES = 40  # сколько предметов уходит модели списком

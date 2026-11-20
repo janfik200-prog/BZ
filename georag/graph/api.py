@@ -38,6 +38,7 @@ from .synonyms import PART_OF, Synonyms
 ENTITY = "сущность"
 ARTICLE = "статья"
 QUOTES_PER_LINK = 3
+TOPIC_PEERS = 12  # предметов той же темы Лейдена в датасете — для перехода по карте
 # Сколько фактов граф держит в памяти целиком (А6). 13 тысяч фактов — 0,2 с на сборку и
 # десятки мегабайт; на миллионах фактов сборка — минуты, память — гигабайты.
 # GEORAG_GRAPH_MEMORY=0 — подграфами всегда (так это и проверяется на малой базе).
@@ -621,6 +622,7 @@ def facts_response(conn: Any, syn: Synonyms, chunk_ids: list[int]) -> dict[str, 
     else:
         g = graph(conn, syn)
     index = g.by_chunk()
+    topics = clusters.Topics(conn)
     out: dict[str, list[dict[str, Any]]] = {}
     for cid in chunk_ids:
         items, seen = [], set()
@@ -640,6 +642,8 @@ def facts_response(conn: Any, syn: Synonyms, chunk_ids: list[int]) -> dict[str, 
                     "documents": link.documents,
                     "src_facts": g.entities[link.src]["facts"],
                     "dst_facts": g.entities[link.dst]["facts"],
+                    "src_topic": topics.title(link.src),
+                    "dst_topic": topics.title(link.dst),
                 }
             )
         # Сначала — связи, за которыми на графе больше всего: их есть куда раскрывать.
@@ -690,12 +694,28 @@ def dataset(conn: Any, syn: Synonyms, name: str, g: Graph | None = None) -> dict
             }
         )
     rows.sort(key=lambda r: (-r["documents"], -r["fragments"], r["relation"], r["other"]))
+    # Темы Лейдена (clusters.py): тема предмета, тема каждого соседа и предметы той же
+    # темы — для перехода по карте. Утверждений тема не добавляет: это подпись, а не факт.
+    topics = clusters.Topics(conn)
+    topic = topics.of(name)
+    for r in rows:
+        r["topic"] = topics.title(r["other"])
+    peers: list[str] = []
+    if topic:
+        mates = [
+            e for e in g.entities.values()
+            if e["name"] not in inside and (topics.of(e["name"]) or {}).get("id") == topic["id"]
+        ]
+        mates.sort(key=lambda e: (-len(e["docs"]), -e["facts"], e["name"]))
+        peers = [e["name"] for e in mates[:TOPIC_PEERS]]
     return {
         "name": name,
         "includes": names[1:],
         "documents": len(docs),
         "facts": rows,
         "in_dictionary": name in syn.groups,
+        "topic": topic,
+        "topic_peers": peers,
     }
 
 
@@ -791,6 +811,7 @@ def report(conn: Any, syn: Synonyms, top: int = 40) -> dict[str, Any]:
         "relations": relations.most_common(top),
         "rejected": store.rejected_reasons(conn),
         "extra_names": store.extra_names(conn),
+        "topics": clusters.load(conn)[1][:top],
     }
 
 

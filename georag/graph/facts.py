@@ -50,7 +50,7 @@ from typing import Any
 
 from .. import env
 from ..paths import CONFIG
-from ..text import locate_quote, mentions, name_key, split_sentences
+from ..text import locate_quote, mentions, name_key, normalize, split_sentences
 from . import store
 from .synonyms import clean_relation
 
@@ -269,7 +269,8 @@ _REFERENCE = re.compile(r"\[\s*\d+(?:\s*[,–-]\s*\d+)*\s*\]")
 # Предположение в цитате, которого нет в связи: «The ores probably formed…» →
 # «ores — образовано при — …». Связь получает пометку «предположительно».
 _HEDGE_QUOTE = re.compile(
-    r"вероятн|по-видимому|предположительн|возможн|не\s+исключен|считает|считают|"
+    r"вероятн|по-видимому|предположительн|предполага|можно\s+предположить|возможн|"
+    r"не\s+исключен|считает|считают|"
     r"по\s+мнению|косвенн\w*\s+признак|probabl|likely|possibl|presumabl|"
     r"\b(?:is|are|was|were)\s+(?:thought|believed|inferred|presumed)|suggest|"
     r"may\s+(?:have|be|represent|indicate|reflect|serve|host|contain)|might",
@@ -377,8 +378,150 @@ def _quote_around(src: str, dst: str, n: int, sents: list[str]) -> str | None:
     return None
 
 
-def check(answer: Any, text: str) -> Checked:
-    """Ответ модели → факты, прошедшие проверку, и причины отказа по остальным."""
+# Закрытый список связей (правила графа, п. 3 и 9). Модель пишет их и в других формах:
+# «содержат», «связаны с», «содержится в» (опыт research/v19: у Qwen3-8B только 28–69 %
+# подтверждённых связей в списке слово в слово). Форма → (связь из списка, развернуть ли
+# направление: «X содержится в Y» — это «Y содержит X»).
+CLOSED_RELATIONS = frozenset({
+    "входит в", "приурочено к", "контролирует", "сопровождается", "связано с",
+    "расположено в", "выявлено методом", "изучено по данным", "содержит", "пересекает",
+    "сменяется", "замещает", "образовано при", "является признаком",
+})
+RELATION_FORMS: dict[str, tuple[str, bool]] = {
+    "содержат": ("содержит", False), "включает": ("содержит", False),
+    "включают": ("содержит", False), "состоит из": ("содержит", False),
+    "состоят из": ("содержит", False), "содержится в": ("содержит", True),
+    "содержатся в": ("содержит", True), "входят в": ("входит в", False),
+    "расположены в": ("расположено в", False), "расположен в": ("расположено в", False),
+    "расположена в": ("расположено в", False), "находится в": ("расположено в", False),
+    "находятся в": ("расположено в", False), "встречаются в": ("расположено в", False),
+    "встречается в": ("расположено в", False), "связаны с": ("связано с", False),
+    "связан с": ("связано с", False), "связана с": ("связано с", False),
+    "приурочены к": ("приурочено к", False), "приурочен к": ("приурочено к", False),
+    "приурочена к": ("приурочено к", False), "сопровождаются": ("сопровождается", False),
+    "контролируют": ("контролирует", False), "контролируется": ("контролирует", True),
+    "пересекают": ("пересекает", False), "замещают": ("замещает", False),
+    "являются признаком": ("является признаком", False),
+    "приурочивается к": ("приурочено к", False), "приурочиваются к": ("приурочено к", False),
+    "сложен": ("содержит", False), "сложена": ("содержит", False),
+    "сложено": ("содержит", False), "сложены": ("содержит", False),
+}  # fmt: skip
+
+
+def normalize_relation(relation: str) -> tuple[str, bool]:
+    """Форма связи из закрытого списка → сама связь и нужно ли развернуть концы.
+    Связь не из таблицы форм — как есть."""
+    return RELATION_FORMS.get(relation, (relation, False))
+
+
+# Строгий режим (модель-строитель Qwen3-8B, research/v19): чего правила просят не писать,
+# а модель пишет. Строка легенды или подписи: «1 - рыхлые отложения; 2 - свита…», «Рис. 3».
+_LEGEND = re.compile(r"(?:^|[;:.(]\s*)\d{1,2}(?:\s*[,–-]\s*\d{1,2})?\s*[-–—]\s+\S")
+_CAPTION = re.compile(r"^\s*(?:рис\.|рисунок|fig\.|figure|табл\.|таблица|table)\s*\d",
+                      re.IGNORECASE)
+# Конец — число с единицей, угол или направление: «approximately 18 km», «180°–270°».
+_MEASURE = re.compile(r"\d\s*(?:km|км|m\b|м\b|°|%|ppm|г/т|g/t)|°", re.IGNORECASE)
+# Отрицание при глаголе той же связи: «X не связано с Y», «probably unrelated to» — не факт.
+# Только при той же связи: в «оруденение не связано с разломом, а приурочено к контакту»
+# «приурочено к контакту» — факт (research/seminar, опыт с противоречием).
+_NEGATION_BY_RELATION = {
+    "связано с": r"не\s+связан|unrelated|not\s+(?:related|associated|connected|linked)",
+    "приурочено к": r"не\s+приурочен|not\s+hosted",
+    "содержит": r"не\s+содерж|(?:does|do)\s+not\s+contain",
+    "расположено в": r"не\s+располож|not\s+located",
+    "входит в": r"не\s+входит|не\s+входят|not\s+part\s+of",
+    "сопровождается": r"не\s+сопровожда|not\s+accompanied",
+    "контролирует": r"не\s+контрол|not\s+controlled",
+    "является признаком": r"не\s+является|not\s+(?:an?\s+)?indicat",
+}
+# Отрицание существования — при любой связи: «в березитах золото не обнаружено».
+_ABSENCE = re.compile(
+    r"не\s+обнаружен|не\s+выявлен|не\s+установлен|не\s+подтвер|отсутству|"
+    r"not\s+(?:found|detected|observed|confirmed)|\babsent\b",
+    re.IGNORECASE,
+)
+# Устаревшее мнение: «ранее считалось, что…», «previously thought».
+_OUTDATED = re.compile(
+    r"(?:ранее|раньше|прежде)\s+счита|было\s+принято\s+считать|"
+    r"previously\s+(?:thought|believed|considered|interpreted)",
+    re.IGNORECASE,
+)
+# Направление по тексту: «X приурочен к Y» — от X к Y. Модель-строитель путала концы
+# («зона разлома — приурочено к — дайки»), а проверка вопросами этого не ловила.
+_DIRECTION_MARKERS = {
+    "приурочено к": re.compile(r"приурочен\w*\s+(?:\w+\s+){0,2}?к\b|hosted\s+(?:by|in|within)\b"),
+    "входит в": re.compile(r"вход\w*\s+(?:в\s+состав\s+)?\w*|part\s+of\b"),
+    "расположено в": re.compile(r"располож\w*\s+(?:\w+\s+){0,2}?в\b|located\s+(?:in|within)\b"),
+}
+# Цитата не на русском и не на английском (французская статья в базе): правила и проверка
+# имён рассчитаны на эти два языка.
+_FOREIGN = re.compile(r"\b(?:les|des|une|était|été|dans|avec|pour|sont|der|die|und|mit)\b",
+                      re.IGNORECASE)
+STRICT_MODELS = frozenset({"qwen3-8b"})
+
+
+def strict_reason(src: str, relation: str, dst: str, quote: str) -> str | None:
+    """Причина отказа в строгом режиме или None."""
+    base = relation.removeprefix(f"{HEDGE} ")
+    if base.startswith("не ") or " не " in f" {base} ":
+        return "отрицание — не факт"
+    if base not in CLOSED_RELATIONS:
+        return "связь не из закрытого списка"
+    if _CAPTION.match(quote) or len(_LEGEND.findall(quote)) >= 2:
+        return "строка легенды или подписи"
+    # Отрицание и «ранее считалось» — только в предложении, где назван конец связи «к»:
+    # цитата бывает из двух предложений («Ранее считалось… . Новые данные: …»).
+    own = " ".join(x for x in split_sentences(quote) if mentions(dst, x)) or quote
+    negation = _NEGATION_BY_RELATION.get(base)
+    if (negation and re.search(negation, own, re.IGNORECASE)) or _ABSENCE.search(own):
+        return "в цитате отрицание — не факт"
+    if _OUTDATED.search(own):
+        return "устаревшее мнение («ранее считалось»)"
+    if len(_FOREIGN.findall(quote)) >= 3:
+        return "цитата не на русском и не на английском"
+    if _MEASURE.search(src) or _MEASURE.search(dst):
+        return "число, угол или направление, а не предмет"
+    return None
+
+
+def _position(name: str, text: str) -> int | None:
+    """Где в тексте начинается имя: по первому значимому слову (основа 5 букв)."""
+    from ..text import keyword_pattern
+
+    words = [w for w in re.findall(r"[a-zа-яё0-9]+", normalize(name)) if len(w) >= 4]
+    for w in words[:2]:
+        m = keyword_pattern(w).search(text)
+        if m:
+            return m.start()
+    return None
+
+
+def strict_direction(src: str, relation: str, dst: str, quote: str) -> tuple[str, str]:
+    """Концы в порядке текста: для «приурочено к», «входит в», «расположено в» то, что
+    стоит до глагола, — «от», после — «к». Перепутаны — меняются местами."""
+    marker = _DIRECTION_MARKERS.get(relation.removeprefix(f"{HEDGE} "))
+    if marker is None:
+        return src, dst
+    norm = normalize(quote)
+    m = marker.search(norm)
+    ps, pd = _position(src, norm), _position(dst, norm)
+    if m is None or ps is None or pd is None:
+        return src, dst
+    if ps >= m.end() and pd < m.start():
+        return dst, src
+    return src, dst
+
+
+def strict_for(model: str | None) -> bool:
+    """Строгий режим: для модели из STRICT_MODELS или по GEORAG_GRAPH_STRICT=1/0."""
+    return env.flag("GEORAG_GRAPH_STRICT", default=(model or "") in STRICT_MODELS)
+
+
+def check(answer: Any, text: str, strict: bool = False) -> Checked:
+    """Ответ модели → факты, прошедшие проверку, и причины отказа по остальным.
+    Связь сводится к закрытому списку (normalize_relation). strict — строгий режим для
+    модели-строителя Qwen3-8B: отрицание, связь не из списка, строка легенды, число вместо
+    предмета — отказ (strict_reason)."""
     out = Checked()
     if not isinstance(answer, dict):
         out.rejected.append("ответ: не объект JSON")
@@ -400,7 +543,9 @@ def check(answer: Any, text: str) -> Checked:
             out.rejected.append(f"{str(item)[:60]!r}: факт — не объект")
             continue
         src, dst = _clean_name(raw_src), _clean_name(raw_dst)
-        relation = clean_relation(raw_rel)
+        relation, flip = normalize_relation(clean_relation(raw_rel))
+        if flip:
+            src, dst = dst, src
         label = f"«{src or '?'}» — {relation or '?'} — «{dst or '?'}»"
         reason = _bad_name(src) or _bad_name(dst)
         if reason:
@@ -440,6 +585,12 @@ def check(answer: Any, text: str) -> Checked:
         if reason:
             out.rejected.append(f"{label}: {reason}")
             continue
+        if strict:
+            src, dst = strict_direction(src, relation, dst, quote)
+            reason = strict_reason(src, hedged(relation, quote), dst, quote)
+            if reason:
+                out.rejected.append(f"{label}: {reason}")
+                continue
         fact = Fact(src, hedged(relation, quote), dst, quote)
         key = (fact.src_key, relation, fact.dst_key)
         if key in seen:
@@ -498,7 +649,9 @@ def run(
         captions = env.flag("GEORAG_SKIP_CAPTIONS")
 
     need = MIN_TERMS if min_terms is None else min_terms
-    give_list = entity_list_enabled() if entity_list is None else entity_list
+    model_name = getattr(llm, "model", None)
+    give_list = entity_list_enabled(model_name) if entity_list is None else entity_list
+    strict = strict_for(model_name)
     rules = load_rules(rules_path)
     retry = finder is not None and not filtering
     rows = store.todo(conn, limit=limit, retry_skipped=retry)
@@ -523,7 +676,7 @@ def run(
         answer = llm.chat_json(
             system, user, max_tokens=ANSWER_TOKENS, repair=True, reserve=ANSWER_RESERVE
         )
-        checked = check(answer, text)
+        checked = check(answer, text, strict=strict)
         votes = [int(confirm(llm, f)) for f in checked.facts] if confirm is not None else None
         return checked, votes
 

@@ -529,9 +529,11 @@ def graph_caption(data: dict[str, Any], shown: int) -> str:
         f"\nВходит в неё: {esc(', '.join(data['includes'][:5]))}" if data.get("includes") else ""
     )
     more = f" На картинке — {shown} главных связей." if facts > shown else ""
+    topic = data.get("topic")
+    theme = f"\nТема графа: {esc(topic['title'])} ({topic['size']} предм.)" if topic else ""
     return (
         f"<b>{esc(data['name'])}</b> — фактов {facts} из {data.get('documents', 0)} "
-        f"{'статьи' if data.get('documents') == 1 else 'статей'}.{more}{inside}\n"
+        f"{'статьи' if data.get('documents') == 1 else 'статей'}.{more}{inside}{theme}\n"
         "Кнопки ниже — перейти к соседу; «Цитаты» — факты списком, с источниками."
     )[:1000]
 

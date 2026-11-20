@@ -775,6 +775,10 @@ def cmd_graph(opts: argparse.Namespace) -> int:
         if defer and result["code"] == 0:
             print("Имена, векторы и кластеры — на видеокарте, пока она свободна…", flush=True)
             _py("georag.graph.cli", "embed")
+        elif result["code"] == 0:
+            # Типы меняют, какие связи о геологии, — темы Лейдена считаются заново.
+            print("Темы графа по Лейдену…", flush=True)
+            _py("georag.graph.cli", "clusters")
 
     with _builder(opts, after=embed) as ready:
         result["code"] = _py("georag.graph.cli", *args) if ready else 1
@@ -799,7 +803,12 @@ def cmd_synonyms(opts: argparse.Namespace) -> int:
         return 1
     with _builder(opts) as ready:
         model = ["--model", BUILDER_MODEL, "--llm-host", BUILDER_HOST]
-        return _py("georag.graph.cli", "synonyms", *model) if ready else 1
+        code = _py("georag.graph.cli", "synonyms", *model) if ready else 1
+    if code == 0:
+        # Новые синонимы сводят узлы — темы Лейдена считаются заново.
+        print("Темы графа по Лейдену…", flush=True)
+        code = _py("georag.graph.cli", "clusters")
+    return code
 
 
 def cmd_verify(opts: argparse.Namespace) -> int:

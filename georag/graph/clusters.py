@@ -143,6 +143,27 @@ def compute(conn: Any, syn: Any) -> dict[str, Any]:
     }
 
 
+class Topics:
+    """Темы Лейдена для подписей: тема предмета по его имени. Тем нет (не считали) — пусто,
+    и все вызовы отдают None: датасет, связи и таблица выходят как раньше, без темы."""
+
+    def __init__(self, conn: Any) -> None:
+        self.by_key, listed = load(conn)
+        self.info = {t["id"]: t for t in listed}
+
+    def __bool__(self) -> bool:
+        return bool(self.info)
+
+    def of(self, name: str) -> dict[str, Any] | None:
+        """Тема предмета: {"id", "title", "size"} или None."""
+        number = self.by_key.get(name_key(name))
+        return self.info.get(number) if number is not None else None
+
+    def title(self, name: str) -> str | None:
+        t = self.of(name)
+        return t["title"] if t else None
+
+
 def load(conn: Any) -> tuple[dict[str, int], list[dict[str, Any]]]:
     """Кластер по ключу имени и список кластеров (для страницы). Не считали — пусто."""
     try:

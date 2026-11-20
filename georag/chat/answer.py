@@ -193,6 +193,8 @@ class Prepared:
             "extra": plan.extra,
             "missing": plan.missing,
             "dataset": self.dataset["name"] if self.dataset else None,
+            # Тема Лейдена предмета — подпись для страницы, в задание модели не идёт.
+            "topic": ((self.dataset or {}).get("topic") or {}).get("title"),
             "collected": (self.dataset or {}).get("collected"),
             "article": self.article.title if self.article else None,
             "dictionary": [e["term"] for e in self.glossary],

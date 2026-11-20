@@ -255,6 +255,9 @@
   table.dataset td.src a { display: block; color: var(--muted); font-size: 12.5px; }
   table.dataset .group { color: var(--muted); font-size: 12px; }
   table.dataset button.link { all: unset; cursor: pointer; font-weight: 600; }
+  .theme { font-size: 13px; color: var(--muted); margin: 2px 0 8px; line-height: 1.5; }
+  .theme button.link { all: unset; cursor: pointer; font-weight: 600; color: var(--ink, inherit); }
+  .theme button.link:hover { text-decoration: underline; }
   table.dataset button.link:hover { text-decoration: underline; }
   table.dataset tr.fact { cursor: pointer; }
   table.dataset tr.fact:hover td { background: var(--sunken); }
@@ -1338,6 +1341,23 @@ async function entityCard(box, n) {
   if (data.error) { state.textContent = data.error; return; }
   state.textContent = `${plural(data.facts.length, "факт", "факта", "фактов")} · ${articles(data.documents)}` +
     (data.includes.length ? " · вместе с тем, что входит: " + data.includes.join(", ") : "");
+  // Тема Лейдена: подпись и предметы той же темы — переход по карте.
+  if (data.topic) {
+    const theme = document.createElement("div");
+    theme.className = "theme";
+    theme.append(`тема графа: ${data.topic.title} (${plural(data.topic.size, "предмет", "предмета", "предметов")})`);
+    const mates = (data.topic_peers || []).map((p) => net.byId["сущность:" + p]).filter(Boolean);
+    if (mates.length) {
+      theme.append(" · в той же теме: ");
+      mates.forEach((m, i) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "link"; b.textContent = m.name;
+        b.addEventListener("click", () => { centerOn(m); selectNode(m); });
+        theme.append(...(i ? [", ", b] : [b]));
+      });
+    }
+    box.append(theme);
+  }
   const table = document.createElement("table");
   table.className = "dataset";
   for (const r of data.facts) {
@@ -2030,7 +2050,11 @@ function fillGraphLinks(bot, box, pool, byChunk, uncited) {
   if (!rows.length) return;
   const head = document.createElement("div");
   head.className = "sub";
-  head.textContent = `Связи из графа · ${rows.length}`;
+  // Темы Лейдена, к которым относятся связи под ответом, — по частоте.
+  const themes = new Map();
+  rows.forEach((r) => [r.f.src_topic, r.f.dst_topic].forEach((t) => t && themes.set(t, (themes.get(t) || 0) + 1)));
+  const top = [...themes].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t]) => t);
+  head.textContent = `Связи из графа · ${rows.length}` + (top.length ? ` · темы: ${top.join("; ")}` : "");
   const hint = document.createElement("div");
   hint.className = "hint";
   hint.textContent = (uncited ? "Из найденных фрагментов" : "Из фрагментов, на которые ссылается ответ") +
@@ -2044,18 +2068,19 @@ function fillGraphLinks(bot, box, pool, byChunk, uncited) {
     num.className = "n";
     num.textContent = `[${n}]`;
     num.addEventListener("click", () => openSource(bot, n));
-    const ent = (name, id) => {
+    const ent = (name, id, topic) => {
       const b = document.createElement("button");
       b.type = "button";
       b.className = "ent";
       b.textContent = name;
+      if (topic) b.title = "тема графа: " + topic;
       b.addEventListener("click", () => focusNode(id));
       return b;
     };
     const rel = document.createElement("span");
     rel.className = "rel";
     rel.textContent = "— " + f.relation + " →";
-    div.append(num, ent(f.src, f.src_id), rel, ent(f.dst, f.dst_id));
+    div.append(num, ent(f.src, f.src_id, f.src_topic), rel, ent(f.dst, f.dst_id, f.dst_topic));
     return div;
   };
   rows.slice(0, LINKS_SHOWN).forEach((r) => box.append(line(r.n, r.f)));
