@@ -1,0 +1,339 @@
+{
+ "questions_generated": 110,
+ "checked_by_author": false,
+ "questions_used": 110,
+ "seconds_extra_median": 1.76,
+ "all": {
+  "n": 110,
+  "hybrid": {
+   "top5": 0.527,
+   "first": 0.355,
+   "frag": 0.336
+  },
+  "hybrid+place": {
+   "top5": 0.627,
+   "first": 0.455,
+   "frag": 0.4
+  },
+  "hybrid+concepts": {
+   "top5": 0.536,
+   "first": 0.418,
+   "frag": 0.4
+  },
+  "hybrid+place+concepts": {
+   "top5": 0.664,
+   "first": 0.527,
+   "frag": 0.509
+  },
+  "vector": {
+   "top5": 0.6,
+   "first": 0.455,
+   "frag": 0.382
+  },
+  "vector+place": {
+   "top5": 0.7,
+   "first": 0.573,
+   "frag": 0.464
+  },
+  "vector+concepts": {
+   "top5": 0.564,
+   "first": 0.445,
+   "frag": 0.427
+  },
+  "vector+place+concepts": {
+   "top5": 0.691,
+   "first": 0.564,
+   "frag": 0.536
+  },
+  "vector+place - vector": {
+   "top5": [
+    0.1,
+    0.036,
+    0.173
+   ],
+   "first": [
+    0.118,
+    0.055,
+    0.191
+   ],
+   "frag": [
+    0.082,
+    0.018,
+    0.145
+   ]
+  },
+  "vector+place - hybrid+place+concepts": {
+   "top5": [
+    0.036,
+    -0.027,
+    0.1
+   ],
+   "first": [
+    0.045,
+    -0.018,
+    0.109
+   ],
+   "frag": [
+    -0.045,
+    -0.127,
+    0.036
+   ]
+  },
+  "vector+concepts - vector": {
+   "top5": [
+    -0.036,
+    -0.091,
+    0.018
+   ],
+   "first": [
+    -0.009,
+    -0.082,
+    0.064
+   ],
+   "frag": [
+    0.045,
+    -0.036,
+    0.118
+   ]
+  },
+  "hybrid+place+concepts - vector": {
+   "top5": [
+    0.064,
+    -0.027,
+    0.155
+   ],
+   "first": [
+    0.073,
+    0,
+    0.145
+   ],
+   "frag": [
+    0.127,
+    0.036,
+    0.218
+   ]
+  }
+ },
+ "place": {
+  "n": 76,
+  "hybrid": {
+   "top5": 0.553,
+   "first": 0.408,
+   "frag": 0.329
+  },
+  "hybrid+place": {
+   "top5": 0.697,
+   "first": 0.553,
+   "frag": 0.421
+  },
+  "hybrid+concepts": {
+   "top5": 0.566,
+   "first": 0.434,
+   "frag": 0.421
+  },
+  "hybrid+place+concepts": {
+   "top5": 0.75,
+   "first": 0.592,
+   "frag": 0.579
+  },
+  "vector": {
+   "top5": 0.618,
+   "first": 0.487,
+   "frag": 0.355
+  },
+  "vector+place": {
+   "top5": 0.763,
+   "first": 0.658,
+   "frag": 0.474
+  },
+  "vector+concepts": {
+   "top5": 0.592,
+   "first": 0.474,
+   "frag": 0.447
+  },
+  "vector+place+concepts": {
+   "top5": 0.776,
+   "first": 0.645,
+   "frag": 0.605
+  },
+  "vector+place - vector": {
+   "top5": [
+    0.145,
+    0.053,
+    0.237
+   ],
+   "first": [
+    0.171,
+    0.079,
+    0.263
+   ],
+   "frag": [
+    0.118,
+    0.026,
+    0.211
+   ]
+  },
+  "vector+place - hybrid+place+concepts": {
+   "top5": [
+    0.013,
+    -0.066,
+    0.092
+   ],
+   "first": [
+    0.066,
+    0,
+    0.145
+   ],
+   "frag": [
+    -0.105,
+    -0.211,
+    0
+   ]
+  },
+  "vector+concepts - vector": {
+   "top5": [
+    -0.026,
+    -0.092,
+    0.039
+   ],
+   "first": [
+    -0.013,
+    -0.092,
+    0.066
+   ],
+   "frag": [
+    0.092,
+    0,
+    0.197
+   ]
+  },
+  "hybrid+place+concepts - vector": {
+   "top5": [
+    0.132,
+    0.013,
+    0.237
+   ],
+   "first": [
+    0.105,
+    0.013,
+    0.197
+   ],
+   "frag": [
+    0.224,
+    0.105,
+    0.342
+   ]
+  }
+ },
+ "noplace": {
+  "n": 34,
+  "hybrid": {
+   "top5": 0.471,
+   "first": 0.235,
+   "frag": 0.353
+  },
+  "hybrid+place": {
+   "top5": 0.471,
+   "first": 0.235,
+   "frag": 0.353
+  },
+  "hybrid+concepts": {
+   "top5": 0.471,
+   "first": 0.382,
+   "frag": 0.353
+  },
+  "hybrid+place+concepts": {
+   "top5": 0.471,
+   "first": 0.382,
+   "frag": 0.353
+  },
+  "vector": {
+   "top5": 0.559,
+   "first": 0.382,
+   "frag": 0.441
+  },
+  "vector+place": {
+   "top5": 0.559,
+   "first": 0.382,
+   "frag": 0.441
+  },
+  "vector+concepts": {
+   "top5": 0.5,
+   "first": 0.382,
+   "frag": 0.382
+  },
+  "vector+place+concepts": {
+   "top5": 0.5,
+   "first": 0.382,
+   "frag": 0.382
+  },
+  "vector+place - vector": {
+   "top5": [
+    0,
+    0,
+    0
+   ],
+   "first": [
+    0,
+    0,
+    0
+   ],
+   "frag": [
+    0,
+    0,
+    0
+   ]
+  },
+  "vector+place - hybrid+place+concepts": {
+   "top5": [
+    0.088,
+    -0.029,
+    0.235
+   ],
+   "first": [
+    0,
+    -0.118,
+    0.118
+   ],
+   "frag": [
+    0.088,
+    -0.029,
+    0.206
+   ]
+  },
+  "vector+concepts - vector": {
+   "top5": [
+    -0.059,
+    -0.176,
+    0.059
+   ],
+   "first": [
+    0,
+    -0.118,
+    0.118
+   ],
+   "frag": [
+    -0.059,
+    -0.176,
+    0.059
+   ]
+  },
+  "hybrid+place+concepts - vector": {
+   "top5": [
+    -0.088,
+    -0.235,
+    0.029
+   ],
+   "first": [
+    0,
+    -0.118,
+    0.118
+   ],
+   "frag": [
+    -0.088,
+    -0.206,
+    0.029
+   ]
+  }
+ }
+}

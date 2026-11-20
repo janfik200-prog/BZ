@@ -1,0 +1,1873 @@
+{
+ "seed": 20261031,
+ "graph": 50829,
+ "facts": [
+  179147,
+  140062,
+  154313,
+  144779,
+  28227,
+  38295,
+  82269,
+  31861,
+  149466,
+  95464,
+  70881,
+  29530,
+  183846,
+  160593,
+  65327,
+  118041,
+  154682,
+  124553,
+  23718,
+  130773,
+  154595,
+  195999,
+  734,
+  159069,
+  171911,
+  73839,
+  57937,
+  161330,
+  182800,
+  177987,
+  184097,
+  107335,
+  59080,
+  73388,
+  181404,
+  114013,
+  94323,
+  44870,
+  165781,
+  161014,
+  91172,
+  52770,
+  41186,
+  25418,
+  184656,
+  187803,
+  16427,
+  176777,
+  99719,
+  74849,
+  134373,
+  169497,
+  13983,
+  147494,
+  203720,
+  81096,
+  88653,
+  200014,
+  185749,
+  150770,
+  204569,
+  17988,
+  187303,
+  107826,
+  106127,
+  67619,
+  198209,
+  32889,
+  100544,
+  41731,
+  28294,
+  112503,
+  100962,
+  1643,
+  7103,
+  195395,
+  130233,
+  69003,
+  22059,
+  97158,
+  177517,
+  171259,
+  92654,
+  16338,
+  173948,
+  202546,
+  62103,
+  5803,
+  56361,
+  1614,
+  5726,
+  49702,
+  152141,
+  175853,
+  45751,
+  38451,
+  33921,
+  114983,
+  202718,
+  25876,
+  195905,
+  38037,
+  117305,
+  127964,
+  155401,
+  68620,
+  13571,
+  26676,
+  156580,
+  154536,
+  181708,
+  15796,
+  141363,
+  44698,
+  15632,
+  207257,
+  139862,
+  159724,
+  5122,
+  191688,
+  76137,
+  197531,
+  111258,
+  154673,
+  173874,
+  97930,
+  65284,
+  116891,
+  109454,
+  190468,
+  816,
+  158369,
+  20098,
+  199873,
+  52878,
+  37593,
+  54781,
+  86924,
+  121707,
+  39051,
+  188053,
+  133502,
+  129958,
+  181888,
+  11741,
+  167373,
+  139363,
+  11787,
+  88690,
+  56637,
+  13345,
+  127951,
+  80786,
+  203684,
+  172082,
+  65139,
+  185616,
+  29951,
+  33661,
+  62398,
+  25983,
+  75012,
+  34392,
+  55098,
+  148746,
+  13870,
+  142428,
+  174813,
+  121655,
+  3669,
+  135945,
+  120798,
+  174166,
+  55171,
+  42649,
+  185969,
+  97242,
+  41476,
+  194518,
+  41154,
+  8435,
+  7940,
+  17854,
+  90323,
+  61933,
+  167224,
+  118795,
+  18839,
+  130025,
+  101379,
+  177528,
+  107556,
+  99499,
+  102825,
+  72887,
+  108457,
+  24551,
+  151868,
+  136150,
+  11792
+ ],
+ "filter": [
+  {
+   "chunk_id": 64664,
+   "doc_id": "2020_Ahmad_Imaging_deposition_and_self-assembly_of_CTAB_stabilized_gold_nanostructures",
+   "terms": 2,
+   "n_tokens": 392,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 67639,
+   "doc_id": "2020_Rassomakhin_Tourmaline_from_Late_Quartz_Veins_of_the_Murtykty_Gold_Deposit_Republic_of_Bashkortostan",
+   "terms": 0,
+   "n_tokens": 523,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 34375,
+   "doc_id": "2007_Eppinger_Environmental_geochemical_study_of_Red_Mountain--an_undisturbed_volcanogenic_massive_sulfi",
+   "terms": 2,
+   "n_tokens": 311,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 64383,
+   "doc_id": "2019_Wasis_Application_of_husk_charcoal_for_waste_risk_minimization_by_growing_Acacia_mangium_Willd_o",
+   "terms": 1,
+   "n_tokens": 271,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 10301,
+   "doc_id": "1979_Goldhaber_Petrology_and_isotope_geochemistry_of_calcite_in_a_South_Texas_roll-type_uranium_deposit",
+   "terms": 5,
+   "n_tokens": 511,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 27762,
+   "doc_id": "1993_Grosz_NURE_stream_sediment_geochemical_data_indicative_of_prospective_terranes_for_Ti-Zr-REE_pla",
+   "terms": 0,
+   "n_tokens": 504,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 54227,
+   "doc_id": "2016_Wilson_Structural_Constraints_and_Localization_of_Gold_Mineralization_in_Leather_Jacket_Lodes_Bal",
+   "terms": 3,
+   "n_tokens": 513,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 64568,
+   "doc_id": "2020_Abdolmaleki_EXPLORATION_OF_IOCG_MINERALIZATIONS_USING_INTEGRATION_OF_SPACE-BORNE_REMOTE_SENSING_DATA_W",
+   "terms": 4,
+   "n_tokens": 476,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 8666,
+   "doc_id": "1978_Cobb_Summary_of_references_to_mineral_occurrences_other_than_mineral_fuels_and_construction_mat",
+   "terms": 8,
+   "n_tokens": 506,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 85131,
+   "doc_id": "2023_Szepesi_Anthropic_Vulnerability_of_a_Hydrothermal_Mineral_Deposit_and_Related_Mining_Heritage_a_Ca",
+   "terms": 3,
+   "n_tokens": 373,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 34807,
+   "doc_id": "2007_Wang_Landscape_geochemistry_near_mineralized_areas_of_eastern_Alaska_Chapter_H_in_Recent_US_Geo",
+   "terms": 0,
+   "n_tokens": 137,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 114415,
+   "doc_id": "local-14_________2021__1-74a48e78c7",
+   "terms": 4,
+   "n_tokens": 496,
+   "facts_stored": 6,
+   "facts_graph": 1
+  },
+  {
+   "chunk_id": 91649,
+   "doc_id": "2024_Uysal_A_promising_electrochemical_sensor_based_on_gold_deposited-reduced_graphene_oxide_sheets_f",
+   "terms": 4,
+   "n_tokens": 495,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 105989,
+   "doc_id": "2026_ELDOSOUKY_Integration_of_geophysical_and_remote_sensing_data_for_structural_analysis_and_delineation",
+   "terms": 10,
+   "n_tokens": 351,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 24429,
+   "doc_id": "1991_Yeend_Gold_placers_of_the_Circle_District_Alaska_past_present_and_future",
+   "terms": 3,
+   "n_tokens": 174,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 71772,
+   "doc_id": "2021_Karl_GIS-based_identification_of_areas_that_have_resource_potential_for_lode_gold_in_Alaska",
+   "terms": 3,
+   "n_tokens": 140,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 46103,
+   "doc_id": "2014_Nyanza_Geophagy_practices_and_the_content_of_chemical_elements_in_the_soil_eaten_by_pregnant_wome",
+   "terms": 1,
+   "n_tokens": 168,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 102326,
+   "doc_id": "2025_Tsai_AI-driven_bone_mineral_density_prediction_from_chest_x-rays_and_its_association_with_obstr",
+   "terms": 0,
+   "n_tokens": 195,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 10932,
+   "doc_id": "1979_Roehler_Geology_and_mineral_resources_of_the_Mud_Springs_Ranch_Quadrangle_Sweetwater_County_Wyomin",
+   "terms": 3,
+   "n_tokens": 504,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 22429,
+   "doc_id": "1990_Kontak_Geological_and_40Ar39Ar_geochronological_constraints_on_the_timing_of_quartz_vein_formatio",
+   "terms": 1,
+   "n_tokens": 519,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 92252,
+   "doc_id": "2024_Yang_The_Leaching_Test_of_Ore_from_a_Gold_Mine_in_Myanmar_and_Its_Mechanism_Analysis",
+   "terms": 4,
+   "n_tokens": 507,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 10262,
+   "doc_id": "1979_Foster_The_Alaskan_Mineral_Resource_Assessment_Program_Background_information_to_accompany_folio",
+   "terms": 4,
+   "n_tokens": 509,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 12659,
+   "doc_id": "1981_Radtke_Geology_of_the_Carlin_gold_deposit_Nevada",
+   "terms": 0,
+   "n_tokens": 516,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 70234,
+   "doc_id": "2021_Gao_Generalized_Unsupervised_Clustering_of_Hyperspectral_Images_of_Geological_Targets_in_the_N",
+   "terms": 0,
+   "n_tokens": 459,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 107096,
+   "doc_id": "2026_Kalkhoran_Integrating_multi-source_geoscience_data_with_RF-weighted_conditional_variational_autoenco",
+   "terms": 0,
+   "n_tokens": 443,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 72410,
+   "doc_id": "2021_Leung_Surface_Warping_Incorporating_Machine_Learning_Assisted_Domain_Likelihood_Estimation_A_New",
+   "terms": 0,
+   "n_tokens": 195,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 84130,
+   "doc_id": "2023_Pimentel_The_Relationship_between_Lineament_Patterns_and_Mass_Movements_in_the_Municipality_of_Vitó",
+   "terms": 2,
+   "n_tokens": 186,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 96281,
+   "doc_id": "2025_Manzaba_Spatial_Estimation_Of_Gold_Au_And_Copper_Cu_Using_The_Ordinary_Kriging_Method_In_The_Judit",
+   "terms": 2,
+   "n_tokens": 159,
+   "facts_stored": 5,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 11952,
+   "doc_id": "1980_Nelson_Geology_and_mineral_resources_of_the_North_Absaroka_Wilderness_and_vicinity_Park_County_Wy",
+   "terms": 3,
+   "n_tokens": 521,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 113708,
+   "doc_id": "local-14_________2021__1-74a48e78c7",
+   "terms": 3,
+   "n_tokens": 442,
+   "facts_stored": 1,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 113415,
+   "doc_id": "local-14_________2021__1-74a48e78c7",
+   "terms": 4,
+   "n_tokens": 492,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 55149,
+   "doc_id": "2017_Gallagher_Geology_geochemistry_and_geochronology_of_the_East_Bay_gold_trend_Red_Lake_Ontario_Canada",
+   "terms": 3,
+   "n_tokens": 321,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 104154,
+   "doc_id": "2026_Barmenshinova_FEATURES_OF_COMPOSITION_AND_PROCESSING_OF_REFRACTORY_GOLD-BEARING_ORES_OF_THE_AKTOBE_DEPOS",
+   "terms": 7,
+   "n_tokens": 435,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 25345,
+   "doc_id": "1992_Orris_Puerto_Rico_industrial_mineral_mines_prospects_and_occurrences_in_the_Mineral_Resources_Da",
+   "terms": 4,
+   "n_tokens": 512,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 85176,
+   "doc_id": "2023_Taylor_Hydrothermal_monazite_and_xenotime_chemistry_as_genetic_discriminators_for_intrusion-relat",
+   "terms": 17,
+   "n_tokens": 524,
+   "facts_stored": 5,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 51301,
+   "doc_id": "2015_Zürcher_Porphyry_copper_assessment_of_the_Tethys_region_of_western_and_southern_Asia_Chapter_V_in",
+   "terms": 11,
+   "n_tokens": 403,
+   "facts_stored": 3,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 93325,
+   "doc_id": "2025_anon_Justifying_the_parameters_of_rock_destruction_by_blasting_in_conditions_of_complex_gold_mi",
+   "terms": 2,
+   "n_tokens": 447,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 86047,
+   "doc_id": "2023_Wang_The_metallogenic_mechanism_of_the_Dadengge_gold_polymetallic_deposit_in_the_Jiaodong_Penin",
+   "terms": 0,
+   "n_tokens": 500,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 70121,
+   "doc_id": "2021_Evdokimov_Developing_the_technology_of_associated_gold_recovery_when_concentrating_copper-pyrite_ore",
+   "terms": 1,
+   "n_tokens": 60,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 51824,
+   "doc_id": "2015_Zürcher_Porphyry_copper_assessment_of_the_Tethys_region_of_western_and_southern_Asia_Chapter_V_in",
+   "terms": 0,
+   "n_tokens": 108,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 22137,
+   "doc_id": "1990_Gray_Mineral_Resources_of_the_Mount_Nutt_Wilderness_Study_Area_Mohave_County_Arizona",
+   "terms": 1,
+   "n_tokens": 466,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 61917,
+   "doc_id": "2019_Farahbakhsh_Three-dimensional_weights_of_evidence_modelling_of_a_deep-seated_porphyry_Cu_deposit",
+   "terms": 0,
+   "n_tokens": 422,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 12349,
+   "doc_id": "1980_Neuerburg_A_topology_of_mineralization_and_its_meaning_for_prospecting",
+   "terms": 1,
+   "n_tokens": 243,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 77177,
+   "doc_id": "2022_Nwaila_Data-Driven_Predictive_Modeling_of_Lithofacies_and_Fe_In-Situ_Grade_in_the_Assen_Fe_Ore_De",
+   "terms": 7,
+   "n_tokens": 170,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 16699,
+   "doc_id": "1986_Smith_Preliminary_studies_of_gold_deposits_and_rock_geochemistry_in_the_Shiaila_area_Jabal_As_Si",
+   "terms": 0,
+   "n_tokens": 512,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 10756,
+   "doc_id": "1979_Lindsey_Preliminary_report_on_Tertiary_volcanism_and_uranium_mineralization_in_the_Thomas_Range_an",
+   "terms": 4,
+   "n_tokens": 529,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 102874,
+   "doc_id": "2025_Yussupova_Determination_of_the_optimal_technological_regime_and_parameters_of_the_cyanidation_proces",
+   "terms": 1,
+   "n_tokens": 306,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 101642,
+   "doc_id": "2025_Spry_Mineralogy_geochemistry_and_genesis_of_alkaline_igneous_rock-related_gold-silver_telluride",
+   "terms": 7,
+   "n_tokens": 303,
+   "facts_stored": 7,
+   "facts_graph": 3
+  },
+  {
+   "chunk_id": 34185,
+   "doc_id": "2006_Naden_New_methodologies_for_volcanic-hosted_copper_sulphide_mineralization_on_Cyprus_A_GISprospe",
+   "terms": 0,
+   "n_tokens": 529,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 39326,
+   "doc_id": "2012_Box_Sandstone_copper_assessment_of_the_Chu-Sarysu_Basin_Central_Kazakhstan_Chapter_E_in_iGloba",
+   "terms": 2,
+   "n_tokens": 109,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 16924,
+   "doc_id": "1986_USGS_Prospects_for_mineral_resource_assessments_on_public_lands_Proceedings_of_the_Leesburg_wor",
+   "terms": 3,
+   "n_tokens": 509,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 114287,
+   "doc_id": "local-14_________2021__1-74a48e78c7",
+   "terms": 7,
+   "n_tokens": 478,
+   "facts_stored": 16,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 112506,
+   "doc_id": "None_Malta_Structural_control_and_genesis_of_the_Au-quartz_veins_from_the_Serra_do_Cavalo_Magro_oroge",
+   "terms": 4,
+   "n_tokens": 507,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 35509,
+   "doc_id": "2008_Debba_Deriving_Optimal_Exploration_Target_Zones_on_Mineral_Prospectivity_Maps",
+   "terms": 1,
+   "n_tokens": 260,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 25968,
+   "doc_id": "1992_Robinson_Bedrock_geology_and_mineral_resources_of_the_Knoxville_1_x_2_quadrangle_Tennessee_North_Ca",
+   "terms": 6,
+   "n_tokens": 438,
+   "facts_stored": 6,
+   "facts_graph": 3
+  },
+  {
+   "chunk_id": 52716,
+   "doc_id": "2016_Hastorun_Recent_trends_in_the_nonfuel_minerals_industry_of_Iran",
+   "terms": 1,
+   "n_tokens": 338,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 48380,
+   "doc_id": "2015_Jones_GIS-Based_Identification_of_Areas_with_Mineral_Resource_Potential_for_Six_Selected_Deposit",
+   "terms": 2,
+   "n_tokens": 221,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 12117,
+   "doc_id": "1980_Nelson_Geology_and_mineral_resources_of_the_North_Absaroka_Wilderness_and_vicinity_Park_County_Wy",
+   "terms": 4,
+   "n_tokens": 523,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 71255,
+   "doc_id": "2021_Kalinin_Mineralogy_and_genesis_of_the_Oleninskoe_gold_deposit_Kola_Peninsula",
+   "terms": 2,
+   "n_tokens": 550,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 33149,
+   "doc_id": "2004_Bao_HFSE_REE_and_PGE_geochemistry_of_three_sedimentary_rock-hosted_disseminated_gold_deposits",
+   "terms": 11,
+   "n_tokens": 510,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 45114,
+   "doc_id": "2014_Bookstrom_Porphyry_copper_assessment_of_eastern_Australia_Chapter_L_in_Global_mineral_resource_asses",
+   "terms": 2,
+   "n_tokens": 520,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 44458,
+   "doc_id": "2014_Baruti_Modeling_the_impact_of_mine_and_country_variations_on_the_cost_and_country-benefit_of_gold",
+   "terms": 3,
+   "n_tokens": 488,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 26384,
+   "doc_id": "1992_Theodore_Geochemistry_and_geology_of_gold_in_jasperoid_Elephant_Head_area_Lander_County_Nevada",
+   "terms": 11,
+   "n_tokens": 438,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 97601,
+   "doc_id": "2025_New_Controls_of_copper_and_gold_distribution_in_the_Kucing_Liar_deposit_Ertsberg_mining_distri",
+   "terms": 4,
+   "n_tokens": 556,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 56925,
+   "doc_id": "2018_Buesch_Lithostratigraphic_framework_in_boreholes_from_Goldstone_Lake_and_Nelson_Lake_Basins_Fort",
+   "terms": 3,
+   "n_tokens": 496,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 96687,
+   "doc_id": "2025_Nair_Masked_Mineral_Modeling_Continent-Scale_Mineral_Prospecting_via_Geospatial_Infilling_arXiv",
+   "terms": 0,
+   "n_tokens": 449,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 84946,
+   "doc_id": "2023_Spry_The_trace-element_compositions_of_amphibole_magnetite_and_ilmenite_as_potential_exploratio",
+   "terms": 7,
+   "n_tokens": 398,
+   "facts_stored": 1,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 113113,
+   "doc_id": "local-07___________2011-5047fdf0f7",
+   "terms": 6,
+   "n_tokens": 176,
+   "facts_stored": 1,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 100586,
+   "doc_id": "2025_Nunes_Implementation_of_Enhancement_Techniques_in_Minerals_for_Gemological_Use_A_Case_Study_on_G",
+   "terms": 4,
+   "n_tokens": 470,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 40276,
+   "doc_id": "2012_Moffit_The_Fairhaven_Gold_Placers_Seward_Peninsula_Alaska",
+   "terms": 2,
+   "n_tokens": 515,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 54066,
+   "doc_id": "2016_USGS_GIS-based_identification_of_areas_that_have_resource_potential_for_critical_minerals_in_si",
+   "terms": 13,
+   "n_tokens": 491,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 30951,
+   "doc_id": "1998_Li_Comparative_geology_and_geochemistry_of_sedimentary-rock-hosted_Carlin_Type_gold_deposits",
+   "terms": 10,
+   "n_tokens": 508,
+   "facts_stored": 4,
+   "facts_graph": 1
+  },
+  {
+   "chunk_id": 66674,
+   "doc_id": "2020_Khaing_Vein_Mineralogy_and_Hydrothermal_Gold_Mineralization_at_the_Kyaw_Soe_Thu_Prospect_in_the_W",
+   "terms": 10,
+   "n_tokens": 190,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 67439,
+   "doc_id": "2020_Pothuri_Geochemical_and_petrological_studies_of_a_magmatic_carbonate-bearing_metalamprophyre_spess",
+   "terms": 0,
+   "n_tokens": 521,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 63796,
+   "doc_id": "2019_Rakov_Compensating_H_and_Li_ions_in_quartz_structural_channels_of_the_gold_fields_of_Darasun_ore",
+   "terms": 1,
+   "n_tokens": 522,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 20445,
+   "doc_id": "1989_Miller_Investigation_of_the_Rois_Malk_epithermal_gold_system_Republic_of_Palau",
+   "terms": 7,
+   "n_tokens": 409,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 11641,
+   "doc_id": "1980_Nelson_Geology_and_mineral_resources_of_the_North_Absaroka_Wilderness_and_vicinity_Park_County_Wy",
+   "terms": 4,
+   "n_tokens": 525,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 7092,
+   "doc_id": "1974_Lakin_Geochemistry_of_gold_in_the_weathering_cycle",
+   "terms": 1,
+   "n_tokens": 418,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 58896,
+   "doc_id": "2018_Kazachenko_Au-Ag-Pd-Pt_mineralization_in_sedimentary_rocks_associated_with_Triassic_carbonaceous_sili",
+   "terms": 1,
+   "n_tokens": 516,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 98806,
+   "doc_id": "2025_New_Controls_of_copper_and_gold_distribution_in_the_Kucing_Liar_deposit_Ertsberg_mining_distri",
+   "terms": 0,
+   "n_tokens": 442,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 99536,
+   "doc_id": "2025_New_Controls_of_copper_and_gold_distribution_in_the_Kucing_Liar_deposit_Ertsberg_mining_distri",
+   "terms": 3,
+   "n_tokens": 620,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 17887,
+   "doc_id": "1987_Johnson_Placer_Gold_Deposits_of_Arizona",
+   "terms": 2,
+   "n_tokens": 518,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 6214,
+   "doc_id": "1972_Johnson_Placer_gold_deposits_of_New_Mexico",
+   "terms": 3,
+   "n_tokens": 511,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 102217,
+   "doc_id": "2025_Timkin_Gold_in_the_weathering_crust_of_the_Sokhatin_deposit_North-East_of_the_Russian_Federation",
+   "terms": 0,
+   "n_tokens": 516,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 113737,
+   "doc_id": "local-14_________2021__1-74a48e78c7",
+   "terms": 4,
+   "n_tokens": 327,
+   "facts_stored": 7,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 37921,
+   "doc_id": "2011_Johnson_Placer_Gold_Deposits_of_Nevada",
+   "terms": 3,
+   "n_tokens": 175,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 61278,
+   "doc_id": "2019_Banks_Direct_observation_and_measurement_of_Au_and_Ag_in_epithermal_mineralizing_fluids",
+   "terms": 4,
+   "n_tokens": 495,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 41897,
+   "doc_id": "2013_Hammarstrom_Porphyry_copper_assessment_of_Southeast_Asia_and_Melanesia_Chapter_D_in_iGlobal_mineral_re",
+   "terms": 4,
+   "n_tokens": 503,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 95188,
+   "doc_id": "2025_Islam_Integrated_groundwater_quality_assessment_using_geochemical_modelling_and_machine_learning",
+   "terms": 1,
+   "n_tokens": 517,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 51633,
+   "doc_id": "2015_Zürcher_Porphyry_copper_assessment_of_the_Tethys_region_of_western_and_southern_Asia_Chapter_V_in",
+   "terms": 4,
+   "n_tokens": 93,
+   "facts_stored": 2,
+   "facts_graph": 2
+  },
+  {
+   "chunk_id": 2698,
+   "doc_id": "1950_Singewald_Mineral_resources_of_Colombia_other_than_petroleum",
+   "terms": 4,
+   "n_tokens": 500,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 93489,
+   "doc_id": "2025_Baddeley_ROC_Curves_for_Spatial_Point_Patterns_and_Presence-Absence_Data_arXiv",
+   "terms": 2,
+   "n_tokens": 339,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 103439,
+   "doc_id": "2026_Ajileye_Geological_Constraint-Driven_Directional_Relational_Graph_Networks_with_Contrastive_Pretra",
+   "terms": 1,
+   "n_tokens": 215,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 85849,
+   "doc_id": "2023_Vikre_Critical_minerals_in_subduction-related_magmatic-hydrothermal_systems_of_the_United_States",
+   "terms": 1,
+   "n_tokens": 130,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 50666,
+   "doc_id": "2015_Vikre_Gold-silver_mining_districts_alteration_zones_and_paleolandforms_in_the_Miocene_Bodie_Hill",
+   "terms": 4,
+   "n_tokens": 512,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 26057,
+   "doc_id": "1992_Robinson_Bedrock_geology_and_mineral_resources_of_the_Knoxville_1_x_2_quadrangle_Tennessee_North_Ca",
+   "terms": 2,
+   "n_tokens": 523,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 66077,
+   "doc_id": "2020_Gvozdev_EVOLUTION_OF_MINERAL_FORMATION_PROCESS_UNDER_FORMATION_OF_GOLD-RARE-METAL_ORES_IN_SREDNE-G",
+   "terms": 8,
+   "n_tokens": 218,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 62834,
+   "doc_id": "2019_Lyubimtseva_Coexisting_bournonite-seligmanite_and_tennantite-tetrahedrite_solid_solutions_in_Darasun_g",
+   "terms": 1,
+   "n_tokens": 513,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 73076,
+   "doc_id": "2021_Otele_Updated_Lithological_Map_in_the_Forest_Zone_of_the_Centre_South_and_East_Regions_of_Camero",
+   "terms": 1,
+   "n_tokens": 276,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 62443,
+   "doc_id": "2019_Ivanova_Experience_and_opportunities_of_space_systems_applications_of_Earth_remote_sensing_to_pred",
+   "terms": 1,
+   "n_tokens": 526,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 44169,
+   "doc_id": "2013_Taylor_Descriptive_models_grade-tonnage_relations_and_databases_for_the_assessment_of_sediment-ho",
+   "terms": 2,
+   "n_tokens": 191,
+   "facts_stored": 2,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 75696,
+   "doc_id": "2022_Hall_Evaluation_of_Nanopore_sequencing_for_Mycobacterium_tuberculosis_drug_susceptibility_testi",
+   "terms": 2,
+   "n_tokens": 368,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 9263,
+   "doc_id": "1978_Luttrell_Gold_base-metal_and_related_deposits_of_North_Carolina",
+   "terms": 9,
+   "n_tokens": 400,
+   "facts_stored": 4,
+   "facts_graph": 2
+  },
+  {
+   "chunk_id": 79672,
+   "doc_id": "2023_Abdelaal_Emerging_mercury_and_methylmercury_contamination_from_new_artisanal_and_small-scale_gold_m",
+   "terms": 1,
+   "n_tokens": 395,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 17694,
+   "doc_id": "1987_Johnson_Placer_Gold_Deposits_of_Arizona",
+   "terms": 2,
+   "n_tokens": 479,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 79136,
+   "doc_id": "2022_Воробьев_INFLUENCE_OF_NANO-GOLD_ON_THE_TECHNOLOGIES_OF_ENRICHMENT_OF_GOLD-CONTAINING_NATURAL_AND_MA",
+   "terms": 4,
+   "n_tokens": 485,
+   "facts_stored": 13,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 47379,
+   "doc_id": "2015_Ananyev_Hydrothermal_alteration_mapping_of_Siberian_gold-ore_fields_based_on_satellite_spectroscop",
+   "terms": 4,
+   "n_tokens": 126,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 67322,
+   "doc_id": "2020_Oyawale_Applications_of_remote_sensing_and_geographic_information_system_GIS_in_regional_lineament",
+   "terms": 1,
+   "n_tokens": 152,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 65773,
+   "doc_id": "2020_Chiaradia_Gold_endowments_of_porphyry_deposits_controlled_by_precipitation_efficiency",
+   "terms": 1,
+   "n_tokens": 467,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 53167,
+   "doc_id": "2016_Liu_Geology_and_age_of_the_Morrison_porphyry_CuAuMo_deposit_Babine_Lake_area_British_Columbia",
+   "terms": 4,
+   "n_tokens": 521,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 69878,
+   "doc_id": "2021_Chapman_Detrital_gold_as_an_indicator_mineral",
+   "terms": 3,
+   "n_tokens": 391,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 70942,
+   "doc_id": "2021_Kalinin_Mineralogy_and_genesis_of_the_Oleninskoe_gold_deposit_Kola_Peninsula",
+   "terms": 0,
+   "n_tokens": 530,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 100920,
+   "doc_id": "2025_Parsa_Class_Label_Representativeness_in_Machine_Learning-Based_Mineral_Prospectivity_Mapping",
+   "terms": 2,
+   "n_tokens": 420,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 24441,
+   "doc_id": "1991_Yeend_Gold_placers_of_the_Circle_District_Alaska_past_present_and_future",
+   "terms": 2,
+   "n_tokens": 255,
+   "facts_stored": 3,
+   "facts_graph": 2
+  },
+  {
+   "chunk_id": 28352,
+   "doc_id": "1994_Nash_Geochemical_signatures_of_silver_and_gold_deposits_Tonopah_1_degree_x_2_degrees_Quadrangle",
+   "terms": 3,
+   "n_tokens": 371,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 27317,
+   "doc_id": "1992_Zlatopolsky_Program_LESSA_Lineament_Extraction_and_Stripe_Statistical_Analysis_automated_linear_image",
+   "terms": 0,
+   "n_tokens": 442,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 49320,
+   "doc_id": "2015_Mihalasky_Porphyry_copper_assessment_of_the_Central_Asian_Orogenic_Belt_and_eastern_Tethysides_China",
+   "terms": 4,
+   "n_tokens": 98,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 38186,
+   "doc_id": "2011_Mallast_Derivation_of_groundwater_flow-paths_based_on_semi-automatic_extraction_of_lineaments_from",
+   "terms": 2,
+   "n_tokens": 371,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 46032,
+   "doc_id": "2014_Nan_Pretreatment_Process_on_Refractory_Gold_Ores_with_As",
+   "terms": 3,
+   "n_tokens": 433,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 31677,
+   "doc_id": "1999_Boleneus_Geologic_datasets_for_weights-of-evidence_analysis_in_northeast_Washington_2_Mineral_datab",
+   "terms": 1,
+   "n_tokens": 515,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 37159,
+   "doc_id": "2010_Hammarstrom_Global_mineral_resource_assessment_porphyry_copper_assessment_of_Mexico_Chapter_A_in_iGlob",
+   "terms": 6,
+   "n_tokens": 491,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 9800,
+   "doc_id": "1978_Thorman_Mineral_resources_of_the_Rincon_wilderness_study_area_Pima_County_Arizona",
+   "terms": 3,
+   "n_tokens": 126,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 41949,
+   "doc_id": "2013_Hammarstrom_Porphyry_copper_assessment_of_Southeast_Asia_and_Melanesia_Chapter_D_in_iGlobal_mineral_re",
+   "terms": 5,
+   "n_tokens": 170,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 105458,
+   "doc_id": "2026_Dentelbeck_Lithogeochemical_Discrimination_and_Classification_of_Archean_Shales_in_Volcanic_Assemblag",
+   "terms": 2,
+   "n_tokens": 563,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 16287,
+   "doc_id": "1986_Gair_The_Conterminous_United_States_Mineral_Assessment_Program_background_information_to_accomp",
+   "terms": 0,
+   "n_tokens": 187,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 56178,
+   "doc_id": "2017_Mansouri_A_COMPARATIVE_ANALYSIS_OF_INDEX_OVERLAY_AND_TOPSIS_BASED_ON_AHP_WEIGHT_FOR_IRON_SKARN_MINE",
+   "terms": 0,
+   "n_tokens": 297,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 107643,
+   "doc_id": "2026_Li_Modality_Balance_Governs_the_Gain_of_Multi-Source_Data_Fusion_in_Mineral_Prospectivity_Map",
+   "terms": 4,
+   "n_tokens": 359,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 87428,
+   "doc_id": "2024_Barbouchi_Chemical_oxidation_of_arsenopyrite_by_strong_oxidizing_agents_For_oxidative_pretreatment_o",
+   "terms": 1,
+   "n_tokens": 501,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 94029,
+   "doc_id": "2025_Chlingaryan_IntegralGP_Volumetric_estimation_of_subterranean_geochemical_properties_in_mineral_deposit_arXiv",
+   "terms": 0,
+   "n_tokens": 215,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 110215,
+   "doc_id": "2026_Stella_Hydrothermal_Mineralization_Potential_Mapping_Using_AHP_Integration_of_Airborne_Geophysica",
+   "terms": 3,
+   "n_tokens": 363,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 104898,
+   "doc_id": "2026_Chinnasamy_Orogenic_Gold_Mineralization_in_the_Dharwar_Craton_Current_Understanding_and_the_Enigma_of",
+   "terms": 6,
+   "n_tokens": 486,
+   "facts_stored": 1,
+   "facts_graph": 1
+  },
+  {
+   "chunk_id": 81699,
+   "doc_id": "2023_Glukhov_Typomorphism_of_x-ray_structural_characteristics_of_gold_exemplified_by_placers_and_ore_oc",
+   "terms": 3,
+   "n_tokens": 340,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 83175,
+   "doc_id": "2023_Lund_Roles_of_regional_structures_and_country-rock_facies_in_defining_mineral_belts_in_central",
+   "terms": 7,
+   "n_tokens": 523,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 105176,
+   "doc_id": "2026_Dentelbeck_Lithogeochemical_Discrimination_and_Classification_of_Archean_Shales_in_Volcanic_Assemblag",
+   "terms": 3,
+   "n_tokens": 332,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 96362,
+   "doc_id": "2025_Meniz_Financial_Analysis_of_Non-Metallic_Mineral_Products_Companies_in_the_BIST_Sustainability_I",
+   "terms": 0,
+   "n_tokens": 218,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 37786,
+   "doc_id": "2011_Johnson_Placer_Gold_Deposits_of_Nevada",
+   "terms": 3,
+   "n_tokens": 175,
+   "facts_stored": 3,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 103077,
+   "doc_id": "2025_Леонидович_Application_of_machine_learning_algorithms_to_predict_gold_mineralization_in_the_Verkhneam",
+   "terms": 2,
+   "n_tokens": 524,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 101336,
+   "doc_id": "2025_Serdaliyev_Improvement_of_blasting_technology_at_gold-ore_mining_enterprises_using_contour_blasting",
+   "terms": 1,
+   "n_tokens": 476,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 3658,
+   "doc_id": "1955_Armstrong_Uranium-bearing_minerals_in_placer_deposits_of_the_Red_River_Valley_Elk_City_district_Idah",
+   "terms": 2,
+   "n_tokens": 128,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 48466,
+   "doc_id": "2015_Jones_GIS-Based_Identification_of_Areas_with_Mineral_Resource_Potential_for_Six_Selected_Deposit",
+   "terms": 3,
+   "n_tokens": 343,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 50263,
+   "doc_id": "2015_Vikre_Gold-silver_mining_districts_alteration_zones_and_paleolandforms_in_the_Miocene_Bodie_Hill",
+   "terms": 2,
+   "n_tokens": 514,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 75808,
+   "doc_id": "2022_Himawan_Utilization_of_Nanochitosan_as_Adsorbent_of_Mercury_Hg_in_Gold_Ore_Processing_Waste",
+   "terms": 1,
+   "n_tokens": 171,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 90901,
+   "doc_id": "2024_Rakov_Lattice_defects_in_the_disordered_quartz_structure_of_gold_deposits_of_the_Darasun_ore_fie",
+   "terms": 5,
+   "n_tokens": 384,
+   "facts_stored": 13,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 17200,
+   "doc_id": "1986_USGS_Prospects_for_mineral_resource_assessments_on_public_lands_Proceedings_of_the_Leesburg_wor",
+   "terms": 2,
+   "n_tokens": 405,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 65129,
+   "doc_id": "2020_Bedeaux_Structural_analysis_and_metamorphism_of_the_Barlow_Fault_Zone_Chibougamau_area_Neoarchean",
+   "terms": 0,
+   "n_tokens": 516,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 78924,
+   "doc_id": "2022_Znamensky_Voznesenskoe_gold_ore_deposit_Southern_Urals_Geological_structure_ore-bearing_rock_geochem",
+   "terms": 0,
+   "n_tokens": 520,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 30661,
+   "doc_id": "1998_Johnson_Mineral_resource_appraisal_of_the_Salmon_National_Forest_Idaho",
+   "terms": 4,
+   "n_tokens": 517,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 394,
+   "doc_id": "1910_Maddren_The_Innoko_gold-placer_district_Alaska_with_accounts_of_the_central_Kuskokwim_Valley_and_t",
+   "terms": 3,
+   "n_tokens": 504,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 49668,
+   "doc_id": "2015_Pour_Integration_of_PALSAR_and_ASTER_satellite_data_for_geological_mapping_in_tropics",
+   "terms": 2,
+   "n_tokens": 167,
+   "facts_stored": 0,
+   "facts_graph": 0
+  },
+  {
+   "chunk_id": 9327,
+   "doc_id": "1978_Luttrell_Gold_base-metal_and_related_deposits_of_North_Carolina",
+   "terms": 3,
+   "n_tokens": 309,
+   "facts_stored": 0,
+   "facts_graph": 0
+  }
+ ],
+ "filter_population": {
+  "5+": 49916,
+  "3": 9756,
+  "1": 12805,
+  "4": 9206,
+  "0": 19512,
+  "2": 10715
+ },
+ "filter_tokens": {
+  "5+": 20840100,
+  "3": 3714889,
+  "1": 4601244,
+  "4": 3667739,
+  "0": 7164630,
+  "2": 3913425
+ },
+ "typing": [
+  {
+   "fact_id": 195587,
+   "type_note": "связь"
+  },
+  {
+   "fact_id": 205944,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 2891,
+   "type_note": "связь"
+  },
+  {
+   "fact_id": 163246,
+   "type_note": "виды не подходят к связи: относится к"
+  },
+  {
+   "fact_id": 114909,
+   "type_note": "виды не подходят к связи: входит в"
+  },
+  {
+   "fact_id": 99572,
+   "type_note": "не предмет"
+  },
+  {
+   "fact_id": 144491,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 199632,
+   "type_note": "виды не подходят к связи: ассоциирует с"
+  },
+  {
+   "fact_id": 166836,
+   "type_note": "связь"
+  },
+  {
+   "fact_id": 163615,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 108429,
+   "type_note": "виды не подходят к связи: локализовано в"
+  },
+  {
+   "fact_id": 57020,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 82203,
+   "type_note": "виды не подходят к связи: ассоциирует с"
+  },
+  {
+   "fact_id": 155147,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 169761,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 83199,
+   "type_note": "связь"
+  },
+  {
+   "fact_id": 102799,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 43554,
+   "type_note": "связь"
+  },
+  {
+   "fact_id": 142516,
+   "type_note": "виды не подходят к связи: входит в"
+  },
+  {
+   "fact_id": 93631,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 201993,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 193120,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 86228,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 101339,
+   "type_note": "не предмет"
+  },
+  {
+   "fact_id": 78167,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 119440,
+   "type_note": "не предмет"
+  },
+  {
+   "fact_id": 44256,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 38269,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 45552,
+   "type_note": "не предмет"
+  },
+  {
+   "fact_id": 193096,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 182665,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 14241,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 111516,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 46897,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 42135,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 49231,
+   "type_note": "виды не подходят к связи: указывает на"
+  },
+  {
+   "fact_id": 145088,
+   "type_note": "виды не подходят к связи: контролируется"
+  },
+  {
+   "fact_id": 171880,
+   "type_note": "не предмет"
+  },
+  {
+   "fact_id": 172911,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 150430,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 108955,
+   "type_note": "виды не подходят к связи: сопровождается"
+  },
+  {
+   "fact_id": 203280,
+   "type_note": "виды не подходят к связи: локализовано в"
+  },
+  {
+   "fact_id": 199028,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 198243,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 115306,
+   "type_note": "виды не подходят к связи: ассоциирует с"
+  },
+  {
+   "fact_id": 32875,
+   "type_note": "виды не подходят к связи: содержит"
+  },
+  {
+   "fact_id": 187688,
+   "type_note": "виды не подходят к связи: локализовано в"
+  },
+  {
+   "fact_id": 208179,
+   "type_note": "связь"
+  },
+  {
+   "fact_id": 180762,
+   "type_note": "объект без названия"
+  },
+  {
+   "fact_id": 3192,
+   "type_note": "виды не подходят к связи: содержит"
+  },
+  {
+   "fact_id": 161102,
+   "type_note": "не предмет"
+  },
+  {
+   "fact_id": 22328,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 21436,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 169273,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 103547,
+   "type_note": "связь"
+  },
+  {
+   "fact_id": 104220,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 122492,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 25824,
+   "type_note": "не о геологии"
+  },
+  {
+   "fact_id": 168797,
+   "type_note": "не предмет"
+  },
+  {
+   "fact_id": 101483,
+   "type_note": "не предмет"
+  }
+ ],
+ "typing_population": 39073,
+ "negation": [
+  90330,
+  190022,
+  54615,
+  106637,
+  64010,
+  46921,
+  79701,
+  16420,
+  183217,
+  101118,
+  5101,
+  30061,
+  125502,
+  5249,
+  203314,
+  52591,
+  135499,
+  157587,
+  14574,
+  82446,
+  113751,
+  17327,
+  121651,
+  176815,
+  13898,
+  77728,
+  103465,
+  164944,
+  93691,
+  194995,
+  106363,
+  68378,
+  18276,
+  99490,
+  151555,
+  113090,
+  74608,
+  105887,
+  52448,
+  136414,
+  97278,
+  194996,
+  51760,
+  113348,
+  49082,
+  81209,
+  86180,
+  67654,
+  20599,
+  169521,
+  33222,
+  121747,
+  5191,
+  56761,
+  191282,
+  33481,
+  69381,
+  55939,
+  82447,
+  27143,
+  167004,
+  59362,
+  53268,
+  86779,
+  159141,
+  84656,
+  83030,
+  15633,
+  17485,
+  109439,
+  113259,
+  163444,
+  42239,
+  105888,
+  122466,
+  113749,
+  28878,
+  133444,
+  144983,
+  156080,
+  22407,
+  190797,
+  104558,
+  181435,
+  109368,
+  167765,
+  58059,
+  12358,
+  24966,
+  24963,
+  20575,
+  45995,
+  143908,
+  52383,
+  27536,
+  135630,
+  116580,
+  129767,
+  85885,
+  28208
+ ],
+ "negation_population": 2161,
+ "modality": [
+  76768,
+  98095,
+  82008,
+  138737,
+  100178,
+  177702,
+  179578,
+  162015,
+  119058,
+  98107,
+  109069,
+  156251,
+  104144,
+  73560,
+  120738,
+  7335,
+  26204,
+  63904,
+  155645,
+  59175,
+  81508,
+  47056,
+  79548,
+  120091,
+  55249,
+  111873,
+  162214,
+  110252,
+  146274,
+  160539,
+  123464,
+  55414,
+  122454,
+  110515,
+  199610,
+  100036,
+  57574,
+  198307,
+  191121,
+  52340,
+  84680,
+  130625,
+  98945,
+  17511,
+  180269,
+  169500,
+  73738,
+  84704,
+  157928,
+  59477,
+  72624,
+  85912,
+  132869,
+  176559,
+  52341,
+  143460,
+  190561,
+  188321,
+  102978,
+  164881,
+  159807,
+  123780,
+  32190,
+  98865,
+  13503,
+  144513,
+  189377,
+  121841,
+  185559,
+  17328,
+  19121,
+  34507,
+  159809,
+  65239,
+  128948,
+  177701,
+  40786,
+  44657,
+  88393,
+  103008,
+  101990,
+  170263,
+  153695,
+  190379,
+  97759,
+  53872,
+  156950,
+  78073,
+  110930,
+  123188,
+  177903,
+  6217,
+  138631,
+  85002,
+  123793,
+  79830,
+  79196,
+  199151,
+  187472,
+  60065
+ ],
+ "modality_population": 897
+}

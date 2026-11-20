@@ -1,0 +1,18 @@
+{
+ "labelled": 197,
+ "correct": 160,
+ "share": 0.812,
+ "ci": [
+  0.752,
+  0.861
+ ],
+ "errors_by_kind": {
+  "направление": 7,
+  "оговорка": 6,
+  "тип": 21,
+  "другое": 3
+ },
+ "hedge_lost": 6,
+ "hedge_found_now": 2,
+ "hedge_found_ext": 3
+}

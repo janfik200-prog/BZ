@@ -1,0 +1,40 @@
+{
+ "questions_total": 113,
+ "questions_valid": 86,
+ "all": {
+  "n": 86,
+  "B1_first": 0.407,
+  "B3_first": 0.512,
+  "B1_top5": 0.558,
+  "B3_top5": 0.698,
+  "d_first_B3_B1": [
+   0.105,
+   0.047,
+   0.174
+  ]
+ },
+ "with_place": {
+  "n": 70,
+  "B1_first": 0.457,
+  "B3_first": 0.586,
+  "B1_top5": 0.629,
+  "B3_top5": 0.8,
+  "d_first_B3_B1": [
+   0.129,
+   0.057,
+   0.214
+  ]
+ },
+ "without_place": {
+  "n": 16,
+  "B1_first": 0.188,
+  "B3_first": 0.188,
+  "B1_top5": 0.25,
+  "B3_top5": 0.25,
+  "d_first_B3_B1": [
+   0,
+   0,
+   0
+  ]
+ }
+}

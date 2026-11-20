@@ -1,0 +1,938 @@
+[
+ {
+  "doc_id": "1918_Mertie_The_gold_placers_of_the_Tolovana_district",
+  "chunk_id": 1247,
+  "title": "The gold placers of the Tolovana district",
+  "terms": 19,
+  "question": "Какие породы преобладают в районе рек Лилиан и Оливьет и каковы их минералогические особенности?",
+  "answer": "В районе рек Лилиан и Оливьет преобладают изменённые горнблендитовые диориты, содержащие плагиоклаз, горнблендит, эпидот, серицит и кальцит, а также хлоритизированные и каолинизированные породы."
+ },
+ {
+  "doc_id": "1953_White_Reconnaissance_for_radioactive_deposits_in_the_vicinity_of_Teller_and_Cape_Nome_Seward_Pen",
+  "chunk_id": 3067,
+  "title": "Reconnaissance for radioactive deposits in the vicinity of Teller and Cape Nome, Seward Peninsula, Alaska, 1946-47",
+  "terms": 15,
+  "question": "Какие признаки и состав породы характерны для гранитного комплекса мыса Нома?",
+  "answer": "Гранитный комплекс мыса Нома состоит из гранита, гнейса и сланца, с преобладанием гнейса, а также содержит порфировые интрузии с фельдспаровыми фенокристаллами и богат минералами, такими как мусковит, биотит и хлорит."
+ },
+ {
+  "doc_id": "1957_Matsukawa_Studies_on_the_extractive_Metallurgy_of_antimonial_Ores_bearing_Gold_and_Silver_2nd_Effect",
+  "chunk_id": 4191,
+  "title": "Studies on the extractive Metallurgy of antimonial Ores bearing Gold and Silver (2nd): Effects of the KCN Concentration, the added Salts and the Pulp Density on cyanidation@@@青化処理に及ぼす青化濃度, 添加塩および鉱液稠度の影響",
+  "terms": 2,
+  "question": null,
+  "answer": null
+ },
+ {
+  "doc_id": "1961_Davis_Geologic_control_of_mineral_composition_of_stream_waters_of_the_eastern_slope_of_the_South",
+  "chunk_id": 4250,
+  "title": "Geologic control of mineral composition of stream waters of the eastern slope of the Southern Coast Ranges, California",
+  "terms": 12,
+  "question": "Какие осадочные породы преобладают в раннем третичном отложении района Крейенхагена?",
+  "answer": "В раннем третичном отложении района Крейенхагена преобладают кремнистые сланцы, а также фельдспатовые и кварцитовые песчаные породы, переслаиваемые с глинистыми сланцами."
+ },
+ {
+  "doc_id": "1967_Klepper_Mineral_deposits_of_the_territory_of_Amapa_Brazil_-_alluvial_gold_cassiterite_and_columbit",
+  "chunk_id": 4496,
+  "title": "Mineral deposits of the territory of Amapa, Brazil - alluvial gold, cassiterite, and columbite-tantalite in the Ampari River region",
+  "terms": 10,
+  "question": "Какова мощность и состав гравия в русле Вирджилио-Крик и какова оценка запасов касситерита в этом рудном районе?",
+  "answer": "Гравий в русле Вирджилио-Крик имеет мощность в среднем 65 см и состоит в основном из кварцевых гальки и щебня. Оценка запасов касситерита в этом районе составляет около 16 000 кг в зоне длиной 400 метров."
+ },
+ {
+  "doc_id": "1968_Moriguchi_Cyanidation_of_Gold_and_Silver_Ores_at_Kohnomai_Mine",
+  "chunk_id": 4903,
+  "title": "Cyanidation of Gold and Silver Ores at Kohnomai Mine",
+  "terms": 0,
+  "question": "Какие геологические условия позволили развитию рудоносности в руднике Хонно Маи?",
+  "answer": "Рудник Хонно Маи расположен в Муроре, Хоккайдо, и его развитие связано с последовательным открытием рудных месторождений, что позволило расширять обогатительные мощности."
+ },
+ {
+  "doc_id": "1968_Nakagawa_Cyanidation_of_Gold_and_Silver_Ores_at_Taio_Mine",
+  "chunk_id": 4923,
+  "title": "Cyanidation of Gold and Silver Ores at Taio Mine",
+  "terms": 1,
+  "question": "Каковы результаты извлечения золота и серебра в руднике Дайё в 1967 году?",
+  "answer": "Результаты извлечения золота составили 97,6%, серебра — 89,0%."
+ },
+ {
+  "doc_id": "1971_anon_The_vacuum_deposition_of_gold",
+  "chunk_id": 5879,
+  "title": "The vacuum deposition of gold",
+  "terms": 3,
+  "question": "Какие методы вакуумного осаждения металлов используются для нанесения тонких плёнок на подложки?",
+  "answer": "Используются термическое испарение и катодное распыление, причём первое стало более широким в применении благодаря достижениям в вакуумной технике."
+ },
+ {
+  "doc_id": "1978_Cathrall_Mineral_resources_of_the_Charles_Sheldon_wilderness_study_area_Humboldt_and_Washoe_Countie",
+  "chunk_id": 8547,
+  "title": "Mineral resources of the Charles Sheldon wilderness study area, Humboldt and Washoe Counties, Nevada, and Lake and Harney Counties, Oregon",
+  "terms": 12,
+  "question": "Какие признаки позволяют определить возраст и состав вулканических пород в районе Чарльза Шелдона?",
+  "answer": "Возраст и состав вулканических пород определяются по данным K-Ar датирования и типам пород, таким как андезит, риолит и базальт."
+ },
+ {
+  "doc_id": "1978_Worl_ORE_CONTROLS_AT_THE_MAHD_ADH_DHAHAB_GOLD_MINE_KINGDOM_OF_SAUDI_ARABIA",
+  "chunk_id": 10010,
+  "title": "ORE CONTROLS AT THE MAHD ADH DHAHAB GOLD MINE, KINGDOM OF SAUDI ARABIA",
+  "terms": 20,
+  "question": "Какие геологические условия способствовали образованию золото-серебряных россыпей в южной минерализованной зоне?",
+  "answer": "Образование россыпей было обусловлено наличием пластичного и непроницаемого покрова из тонкозернистого туфа, а также фрактурированных и проницаемых агglomerатов, находящихся под ним."
+ },
+ {
+  "doc_id": "1979_Spirakis_Interpretation_of_thermoluminescence_patterns_around_a_Wyoming_roll-type_uranium_deposit",
+  "chunk_id": 11033,
+  "title": "Interpretation of thermoluminescence patterns around a Wyoming roll-type uranium deposit",
+  "terms": 6,
+  "question": "Какие признаки термолюминесценции указывают на прошлое положение минерализованного фронта в штате Вайоминг?",
+  "answer": "Увеличение доли высокотемпературной термолюминесценции по сравнению с низкотемпературной, а также систематические паттерны соотношений и кривых термолюминесценции."
+ },
+ {
+  "doc_id": "1980_Nelson_Geology_and_mineral_resources_of_the_North_Absaroka_Wilderness_and_vicinity_Park_County_Wy",
+  "chunk_id": 11339,
+  "title": "Geology and mineral resources of the North Absaroka Wilderness and vicinity, Park County, Wyoming, with sections on mineralization of the Sunlight mining region and geology and mineralization of the Cooke City mining district, and a section on aeromagnetic interpretation",
+  "terms": 22,
+  "question": "Какие типы руд и гидротермальные процессы характерны для месторождений Ирма-Республика?",
+  "answer": "В месторождениях Ирма-Республика преобладают сульфидные руды свинца, серебра и цинка, а также гидротермальные процессы силификации и доломитизации, связанные с интрузией Кук-Сити."
+ },
+ {
+  "doc_id": "1981_Radtke_Geology_of_the_Carlin_gold_deposit_Nevada",
+  "chunk_id": 12583,
+  "title": "Geology of the Carlin gold deposit, Nevada",
+  "terms": 23,
+  "question": "Каковы состав и минералогия пород в верхней части формации Робертс Маунтэйн, включая содержание сульфидов?",
+  "answer": "Породы состоят из кальцита, доломита, кварца и глины с разным содержанием, а также содержат сульфиды, такие как пирит, халкопирит, сфалерит и галенит."
+ },
+ {
+  "doc_id": "1982_Matti_Mineral_resource_potential_map_of_the_Whitewater_Wilderness_Study_Area_Riverside_and_San_B",
+  "chunk_id": 13566,
+  "title": "Mineral resource potential map of the Whitewater Wilderness Study Area, Riverside and San Bernardino counties, California",
+  "terms": 18,
+  "question": "Какова рудоносность Бонанца в Коттонвуд-Каньоне в отношении золота и серебра?",
+  "answer": "Бонанц в Коттонвуд-Каньоне имеет низкую до умеренную рудоносность по золоту и серебру, так как в некоторых образцах пород были обнаружены следы этих металлов, но в речных осадках их не нашли."
+ },
+ {
+  "doc_id": "1982_Worl_Reconnaissance_investigations_of_ancient_gold_mines_in_the_southern_part_of_the_Wadi_Bidah",
+  "chunk_id": 13865,
+  "title": "Reconnaissance investigations of ancient gold mines in the southern part of the Wadi Bidah District, Jabal Ibrahim and Al Aqiq quadrangles, Kingdom of Saudi Arabia",
+  "terms": 17,
+  "question": "Какие геологические объекты и условия определяют золотоносность в древних рудниках Бани-Сар?",
+  "answer": "Золотоносность в древних рудниках Бани-Сар связана с кварцевыми жилами в гнейсах и дайках, а также с ферроглинистыми сланцами и трещиноватостью пород."
+ },
+ {
+  "doc_id": "1984_Foley_Characteristics_of_some_silver-_and_base_metal-bearing_epithermal_deposits_of_Mexico_and_P",
+  "chunk_id": 14891,
+  "title": "Characteristics of some silver-, and base metal-bearing, epithermal deposits of Mexico and Peru",
+  "terms": 26,
+  "question": "Какие породы в районе Колкви содержат руды и какие вулканические формации присутствуют?",
+  "answer": "Руды содержатся в формациях Луардес и Финляндия, а вулканические формации включают Ушо, Луардес, Финляндия, Колкви Верхний, Средний и Нижний."
+ },
+ {
+  "doc_id": "1984_USGS_Igneous_activity_and_related_ore_deposits_in_the_western_and_southern_Tushar_Mountains_Mar",
+  "chunk_id": 15073,
+  "title": "Igneous activity and related ore deposits in the western and southern Tushar Mountains, Marysvale volcanic field, west-central Utah",
+  "terms": 17,
+  "question": "Какие минералы и условия формирования характерны для золотых россыпей в районе Sheep Rock и Sunday?",
+  "answer": "В районе Sheep Rock и Sunday золото сопровождается пиритом, аргентитом и другими минералами, образовавшимися в результате гидротермального процесса с низкой температурой и высоким pH."
+ },
+ {
+  "doc_id": "1985_Cole_Reconnaissance_geology_of_the_Al_Abanat_Quadrangle_sheet_2542_B_Kingdom_of_Saudi_Arabia",
+  "chunk_id": 15150,
+  "title": "Reconnaissance geology of the Al Abanat Quadrangle, sheet 25/42 B, Kingdom of Saudi Arabia",
+  "terms": 26,
+  "question": "Какие геологические признаки указывают на минеральный потенциал в квадранте Аль-Абанат?",
+  "answer": "Наличие древних золотых и медных рудников, геохимических аномалий и благоприятных геологических условий указывает на минеральный потенциал в квадранте Аль-Абанат."
+ },
+ {
+  "doc_id": "1985_Erdman_A_case_for_plants_in_exploration_Gold_in_Douglas-fir_at_the_Red_Mountain_stockwork_Yellow",
+  "chunk_id": 15333,
+  "title": "A case for plants in exploration: Gold in Douglas-fir at the Red Mountain stockwork, Yellow Pine district, Idaho",
+  "terms": 17,
+  "question": "Какие геологические образования и структуры характерны для вершины и склонов Красной горы?",
+  "answer": "На вершине Красной горы находится почти бесполезный кварцевый тело, а на склонах — кварцевый стоккворк с жилами и замещающими агрегатами, а также фрагменты силифицированной зоны в граните."
+ },
+ {
+  "doc_id": "1985_Goldfarb_Mineral_resource_potential_map_of_the_Moses_and_Dennison_Peak_Roadless_Areas_Tulare_County",
+  "chunk_id": 15354,
+  "title": "Mineral resource potential map of the Moses and Dennison Peak Roadless Areas, Tulare County, California",
+  "terms": 16,
+  "question": "Какие минералы и руды встречаются в районе Camp Wishon и каковы их промышленные показатели?",
+  "answer": "В районе Camp Wishon встречаются пирротин, халкопирит, серебристый свинцовый блеск, сфалерит, шеелит и небольшое количество золота. Промышленная добыча была минимальной, менее 10 000 фунтов меди и 81 унции серебра на тонну руды."
+ },
+ {
+  "doc_id": "1985_Rytuba_Rois_Malk_epithermal_gold_system_Republic_of_Palau",
+  "chunk_id": 15703,
+  "title": "Rois Malk epithermal gold system, Republic of Palau",
+  "terms": 10,
+  "question": "Какие признаки указывают на наличие эпитефрального золота в районе Rois Malk?",
+  "answer": "Высокое содержание золота (до 1/4 унции на тонну), а также значительные концентрации серебра, цинка и меди в зоне минерализации в андезитовых породах указывают на наличие эпитефрального золота в районе Rois Malk."
+ },
+ {
+  "doc_id": "1986_Miller_Mineral_resources_of_the_Castle_Peaks_Wilderness_Study_Area_San_Bernardino_County_Californ",
+  "chunk_id": 16445,
+  "title": "Mineral resources of the Castle Peaks Wilderness Study Area, San Bernardino County, California",
+  "terms": 20,
+  "question": "Какие признаки гидротермального изменения характерны для гранитоидов в районе Juniper и Slaughterhouse Springs?",
+  "answer": "В районе Juniper и Slaughterhouse Springs гнейсы и граниты повсеместно хлоритизированы вдоль зон разломов, а также распространены лимонитовые изменения вдоль северо-западных разломов."
+ },
+ {
+  "doc_id": "1987_Kalliokoski_Geology_of_the_veins_and_vein_sediments_of_the_Golden_Wonder_Mine_Lake_City_Colorado_an_ep",
+  "chunk_id": 17949,
+  "title": "Geology of the veins and vein sediments, of the Golden Wonder Mine, Lake City, Colorado; an epithermal hot springs gold-alunite deposit",
+  "terms": 23,
+  "question": "Какие признаки указывают на гидротермальную минерализацию в рудниках Золотой Чудесы?",
+  "answer": "Присутствие алюнита, пирита, халкопирита и текстурных признаков гидротермального осаждения указывают на гидротермальную минерализацию."
+ },
+ {
+  "doc_id": "1987_Lee_Remote_sensing_study_in_support_of_mineral_resource_appraisal_of_the_Dominguez_Canyon_Wild",
+  "chunk_id": 18000,
+  "title": "Remote sensing study in support of mineral resource appraisal of the Dominguez Canyon Wilderness Study Area, Montrose, Mesa, and Delta counties, Colorado",
+  "terms": 10,
+  "question": "Какие признаки могут указывать на наличие рудных месторождений в предкембрийском фундаменте?",
+  "answer": "Совпадение аэромагнитных аномалий с поверхностными разломами и структурами фундамента, такими как Цимарронский разлом, может указывать на рудоносность."
+ },
+ {
+  "doc_id": "1990_Ashley_Lithology_petrography_and_geochemistry_of_three_cores_from_the_Goldfield_mining_district_N",
+  "chunk_id": 21410,
+  "title": "Lithology, petrography, and geochemistry of three cores from the Goldfield mining district, Nevada",
+  "terms": 22,
+  "question": "Какие признаки указывают на интенсивное метаморфозирование пород в золотом поле Голдфилд?",
+  "answer": "Исчезновение первичных минералов, кроме кварца, и сохранение первоначальной текстуры указывает на интенсивное метаморфозирование пород в золотом поле Голдфилд."
+ },
+ {
+  "doc_id": "1992_Robinson_Bedrock_geology_and_mineral_resources_of_the_Knoxville_1_x_2_quadrangle_Tennessee_North_Ca",
+  "chunk_id": 26125,
+  "title": "Bedrock geology and mineral resources of the Knoxville 1° x 2° quadrangle, Tennessee, North Carolina, and South Carolina",
+  "terms": 22,
+  "question": "Какие признаки указывают на возможное золотоносное образование в южной части Франклин-7 1/2-минутного квадранта?",
+  "answer": "Наличие рассеянного золота в гнейсах и амфиболитах, а также возможность его концентрации в процессе супргенного обогащения, указывает на потенциальное золотоносное образование."
+ },
+ {
+  "doc_id": "1999_Riehle_Geology_of_Unga_Island_and_the_northwestern_part_of_Popof_Island_Chapter_2_in_iA_geologica",
+  "chunk_id": 31786,
+  "title": "Geology of Unga Island and the northwestern part of Popof Island: Chapter 2 in <i>A geological and geophysical study of the gold-silver vein system of Unga Island, Southwestern Alaska</i>",
+  "terms": 15,
+  "question": "Какие признаки указывают на водное осаждение туфовых слоев южнее Аполло-горы?",
+  "answer": "Наличие глинистых и туфовых сланцев с остатками растений и вулканической брекции указывает на осаждение в водной среде."
+ },
+ {
+  "doc_id": "2001_Polito_Compositional_zoning_of_fluid_inclusions_in_the_Archaean_Junction_gold_deposit_Western_Aus",
+  "chunk_id": 32426,
+  "title": "Compositional zoning of fluid inclusions in the Archaean Junction gold deposit, Western Australia: A process of fluid ‐ wall‐rock interaction?",
+  "terms": 16,
+  "question": "Каковы признаки зоны альбита в районе Джанкшн-Долерит?",
+  "answer": "Зона альбита содержит амфибол, хлорит, ильменит, титаномагнетит, анкерит, кальцит, кварц, пирротин и биотит, имеет текстуру, напоминающую изверженную породу, и граничит с зоной хлорита."
+ },
+ {
+  "doc_id": "2002_Huang_The_geochemistry_of_lamprophyres_in_the_Laowangzhai_gold_deposits_Yunnan_Province_China_im",
+  "chunk_id": 32795,
+  "title": "The geochemistry of lamprophyres in the Laowangzhai gold deposits, Yunnan Province, China; implications for its characteristics of source region",
+  "terms": 12,
+  "question": "Какие минералы в рудном поле Лаоуаньчжай содержат повышенное количество NH4+?",
+  "answer": "В рудном поле Лаоуаньчжай основные породообразующие минералы, такие как мусковит, ортоклаз и плагиоклаз, содержат повышенное количество NH4+."
+ },
+ {
+  "doc_id": "2007_Gough_The_biogeochemistry_and_occurrence_of_unusual_plant_species_inhabiting_acidic_metal-rich_w",
+  "chunk_id": 34482,
+  "title": "The biogeochemistry and occurrence of unusual plant species inhabiting acidic, metal-rich water, Red Mountain, Bonnifield district, Alaska Range: Chapter J in <i>Recent U.S. Geological Survey studies in the Tintina Gold Province, Alaska, United States, and Yukon, Canada--results of a 5-year project</i>",
+  "terms": 10,
+  "question": "Какие признаки характеризуют зону кислых металлоносных вод на Красной горе?",
+  "answer": "Зона характеризуется кислыми (pH 2.4) металлоносными водами, активным образованием феррикремнистых отложений и высоким содержанием кислотообразующих минералов, таких как пирит и сульфаты."
+ },
+ {
+  "doc_id": "2008_Cunningham_Quantitative_Mineral_Resource_Assessment_of_Copper_Molybdenum_Gold_and_Silver_in_Undiscove",
+  "chunk_id": 35224,
+  "title": "Quantitative Mineral Resource Assessment of Copper, Molybdenum, Gold, and Silver in Undiscovered Porphyry Copper Deposits in the Andes Mountains of South America",
+  "terms": 15,
+  "question": "Какие геологические признаки определяют рудоносность в Центральной Кордильере Колумбии и Эквадора?",
+  "answer": "Рудоносность в Центральной Кордильере Колумбии и Эквадора определяется наличием миоценовых калько-алкалинных плутонов, ассоциированных с гранитами, тоналитами и вулканическими породами, а также зоной контакта гранулитов и океанических пород."
+ },
+ {
+  "doc_id": "2010_Eshraghi_Auriferous_sulfides_from_Hired_gold_mineralization_South_Birjand_Lut_block_Iran",
+  "chunk_id": 36912,
+  "title": "Auriferous sulfides from Hired gold mineralization, South Birjand, Lut block, Iran",
+  "terms": 23,
+  "question": "Какие этапы минерализации и процессы связаны с золотоносностью в Hired?",
+  "answer": "В Hired выделяют три этапа минерализации: гипабиссальный интрузивный, ранний гидротермальный и поздний гидротермальный, с максимальной золотоносностью в позднем гидротермальном этапе."
+ },
+ {
+  "doc_id": "2011_Mjimba_The_Nature_and_Determinants_of_Linkages_in_Emerging_Minerals_Commodity_Sectors_A_Case_Stud",
+  "chunk_id": 38873,
+  "title": "The Nature and Determinants of Linkages in Emerging Minerals Commodity Sectors: A Case Study of Gold Mining in Tanzania",
+  "terms": 6,
+  "question": "Какие этапы поисковых работ считаются наиболее сложными и критичными для геологоразведки в Танзании?",
+  "answer": "Этапы генерации целей и выбора площадей считаются высоко сложными и критичными, так как ошибки на этих этапах могут привести к потере ресурсов и упущению выгодных месторождений, таких как Бузваги."
+ },
+ {
+  "doc_id": "2012_Larchevêque_How_to_grow_trees_on_the_wastes_of_a_boreal_gold_mine_identification_of_the_main_physico-",
+  "chunk_id": 39655,
+  "title": "How to grow trees on the wastes of a boreal gold mine – identification of the main physico-chemical limitations",
+  "terms": 6,
+  "question": "Какие методы анализа почвенных образцов использовались для определения их химического состава?",
+  "answer": "Для анализа использовали методы Дьюма, ICP-AES, спектрофотометрию и другие, включая определение pH и электрической проводимости."
+ },
+ {
+  "doc_id": "2013_Chirico_Reconnaissance_investigation_of_the_alluvial_gold_deposits_in_the_North_Takhar_Area_of_Int",
+  "chunk_id": 40793,
+  "title": "Reconnaissance investigation of the alluvial gold deposits in the North Takhar Area of Interest, Takhar Province, Afghanistan",
+  "terms": 8,
+  "question": "Какие отложения являются основным источником россыпного золота в рудных месторождениях Самти и Ноорабакхасар-Анджир в северной провинции Такхар?",
+  "answer": "Основным источником россыпного золота в этих месторождениях являются конгломераты эоцена, известные как формация Карнак."
+ },
+ {
+  "doc_id": "2014_Schulz_Occurrence_model_for_magmatic_sulfide-rich_nickel-copper-platinum-group_element_deposits_r",
+  "chunk_id": 46457,
+  "title": "Occurrence model for magmatic sulfide-rich nickel-copper-(platinum-group element) deposits related to mafic and ultramafic dike-sill complexes",
+  "terms": 24,
+  "question": "Какие минералы образуются при гидротермальном изменении ультрамафитов в рудном поле Баймазhai?",
+  "answer": "При гидротермальном изменении ультрамафитов в Баймазhai образуются минералы, такие как тремолит, актинолит, эпидот, биотит, хлорит, кварц, тальк, серпентин, клинохлор, преднит и карбонаты."
+ },
+ {
+  "doc_id": "2014_Yang_Remote_sensing_and_GIS-based_prediction_and_assessment_of_copper-gold_resources_in_Thailan",
+  "chunk_id": 46928,
+  "title": "Remote sensing and GIS-based prediction and assessment of copper-gold resources in Thailand",
+  "terms": 11,
+  "question": "Какие признаки используются для прогноза рудоносности в методе весов доказательств на примере месторождений Cu-Au?",
+  "answer": "Для прогноза рудоносности используются линейные и кольцевые структуры, железистые пятна, гидроксильные изменения, перспективные геологические единицы и местоположение известных Cu-Au месторождений."
+ },
+ {
+  "doc_id": "2015_Goldfarb_Mineral_potential_tracts_for_orogenic_Carlin-like_and_epithermal_gold_deposits_in_the_Isla_2",
+  "chunk_id": 48172,
+  "title": "Mineral potential tracts for orogenic, Carlin-like, and epithermal gold deposits in the Islamic Republic of Mauritania, (phase V, deliverable 69)",
+  "terms": 27,
+  "question": "Какие породы характеризуют геологическое строение района MsB?",
+  "answer": "Район MsB включает метавулканические породы, сiltовые глинистые сланцы, хлоритовые сланцы и метариолиты."
+ },
+ {
+  "doc_id": "2015_Parsons_Establishing_geochemical_baselines_in_forest_soils_for_environmental_risk_assessment_in_th",
+  "chunk_id": 49623,
+  "title": "Establishing geochemical baselines in forest soils for environmental risk assessment in the Montague and Goldenville gold districts, Nova Scotia, Canada",
+  "terms": 12,
+  "question": "Какие элементы обогащены в поверхностных материалах региона Мегума в результате ледниковой дисперсии?",
+  "answer": "В поверхностных материалах региона Мегума обогащены золото, мышьяк, медь, свинец, цинк, вольфрам, висмут, теллур и железо в результате ледниковой дисперсии."
+ },
+ {
+  "doc_id": "2015_Taylor_Mineral_potential_for_sediment-hosted_copper_deposits_in_the_Islamic_Republic_of_Mauritani",
+  "chunk_id": 50121,
+  "title": "Mineral potential for sediment-hosted copper deposits in the Islamic Republic of Mauritania (phase V, deliverable 75)",
+  "terms": 21,
+  "question": "Каковы признаки и условия минерализации в районе Айун-эль-Атрус?",
+  "answer": "Минерализация в районе Айун-эль-Атрус проявляется в виде жильных и цементных образований, связанных с габбро и гидротермальными процессами, а также в стратиграфических слоях в шале."
+ },
+ {
+  "doc_id": "2015_Zhang_Comparative_Analysis_on_characteristics_of_Chemistry_between_Scandium_Anatase_Deposit_in_Q",
+  "chunk_id": 51061,
+  "title": "Comparative Analysis on characteristics of Chemistry between Scandium Anatase Deposit in Qinglong Shazi and Laterite Gold Deposit in Western Guizhou, China",
+  "terms": 10,
+  "question": "Какие особенности геохимии отличают руды скандия и золота в Куйчжуне и других месторождениях Гуйчжоу?",
+  "answer": "Руды скандия и золота имеют схожие основные оксиды, но отличаются содержанием TiO2 и распределением редкоземельных элементов, что указывает на разные условия формирования."
+ },
+ {
+  "doc_id": "2016_Eggers_Engineering_geological_modelling_for_pit_slope_design_in_the_porphyry_copper-gold_deposits",
+  "chunk_id": 52453,
+  "title": "Engineering geological modelling for pit slope design in the porphyry copper-gold deposits of Southeast Asia",
+  "terms": 15,
+  "question": "Какие геологические условия влияют на устойчивость откосов в карьерах по разработке порфировых медно-золотых месторождений?",
+  "answer": "Геологические условия включают разнообразные литологии, типы выветривания, геологические структуры и перекрывающиеся события, что усложняет проектирование карьеров."
+ },
+ {
+  "doc_id": "2016_Idrus_Occurrences_and_Characteristics_of_Gold_Mineralization_in_Rampi_Block_Prospect_North_Luwu",
+  "chunk_id": 52897,
+  "title": "Occurrences and Characteristics of Gold Mineralization in Rampi Block Prospect, North Luwu Regency, South Sulawesi Province, Indonesia",
+  "terms": 22,
+  "question": "Какие структуры контролируют распределение золотоносных кварцевых жил в районе Rampi?",
+  "answer": "Распределение золотоносных кварцевых жил в районе Rampi контролируется сжато-растяжными структурами, ориентированными по направлениям NW-SE и NE-SW, связанными с региональными разломами Palu-Koro."
+ },
+ {
+  "doc_id": "2018_Chapman_A_new_indicator_mineral_methodology_based_on_a_generic_Bi-Pb-Te-S_mineral_inclusion_signat",
+  "chunk_id": 57211,
+  "title": "A new indicator mineral methodology based on a generic Bi-Pb-Te-S mineral inclusion signature in detrital gold from porphyry and low/intermediate sulfidation epithermal environments in Yukon Territory, Canada",
+  "terms": 25,
+  "question": "Какие типы рудоносности выделяют в районе Sonora Gulch и какие минералы с ними ассоциируются?",
+  "answer": "В районе Sonora Gulch выделяют порфировый Cu-Au, кварцевые жилы с золотом и тетрадимитом, полиметаллические жилы с Au-Ag-Pb-Sb, кварцево-арсенопиритовые жилы с аномальными значениями золота, медно-цинково-свинцовые шарзы и жилы золота, ассоциированные с ультрамафическими породами."
+ },
+ {
+  "doc_id": "2018_Samuel_Mapping_Characterization_and_Dispersion_of_Metallic_Pollutants_within_a_Catchment_of_Illeg",
+  "chunk_id": 59669,
+  "title": "Mapping, Characterization and Dispersion of Metallic Pollutants within a Catchment of Illegal Gold Mining Activities in Ghana",
+  "terms": 2,
+  "question": "Какие металлы анализировались в осадках рек в районе Кононго?",
+  "answer": "В анализе участвовали арсеник, ртуть, кадмий и свинец."
+ },
+ {
+  "doc_id": "2018_Theije_Conflicts_in_marginal_locations_Small-scale_gold-mining_in_the_Amazon",
+  "chunk_id": 60305,
+  "title": "Conflicts in marginal locations : Small-scale gold-mining in the Amazon",
+  "terms": 6,
+  "question": "Какие полезные ископаемые были обнаружены в районе Будх-Рамгарх в Одише?",
+  "answer": "В районе Будх-Рамгарх были обнаружены значительные запасы геммологических минералов, включая топаз, турмалин, агат и золото."
+ },
+ {
+  "doc_id": "2018_Zekri_Correction_to_Geochemical_Prospectivity_Mapping_Through_a_Feature_ExtractionSelection_Clas",
+  "chunk_id": 60828,
+  "title": "Correction to: Geochemical Prospectivity Mapping Through a Feature Extraction–Selection Classification Scheme",
+  "terms": 1,
+  "question": null,
+  "answer": ""
+ },
+ {
+  "doc_id": "2018_Zhang_An_improved_logistic_regression_model_based_on_a_spatially_weighted_technique_ILRBSWT_v10",
+  "chunk_id": 60861,
+  "title": "An improved logistic regression model based on a spatially weighted technique (ILRBSWT v1.0) and its application to mineral prospectivity mapping",
+  "terms": 4,
+  "question": "Какой метод прогноза золотых месторождений показывает более высокую эффективность по сравнению с логистической регрессией?",
+  "answer": "ILRBSWT показывает более высокую эффективность прогноза золотых месторождений по сравнению с логистической регрессией, так как он предсказывает больше известных месторождений при той же площади целевых зон."
+ },
+ {
+  "doc_id": "2019_Kononets_Magmatic_control_of_gold_mineralization_in_Western_Primorye_by_geophisical_data",
+  "chunk_id": 62656,
+  "title": "Magmatic control of gold mineralization in Western Primorye (by geophisical data)",
+  "terms": 31,
+  "question": "Какие зоны минерализации характерны для рудного узла Славянский Краскинский?",
+  "answer": "Золото-сульфидно-кварцевые жилы в диоритах и прожилковые зоны в углистых сланцах."
+ },
+ {
+  "doc_id": "2019_Shirazy_Geochemical_and_Geostatistical_Studies_for_Estimating_Gold_Grade_in_Tarq_Prospect_Area_by",
+  "chunk_id": 64129,
+  "title": "Geochemical and Geostatistical Studies for Estimating Gold Grade in Tarq Prospect Area by K-Means Clustering Method",
+  "terms": 8,
+  "question": "Какие породы и их характеристики характерны для верхнего палеозойского слоя в данном регионе?",
+  "answer": "Верхний палеозойский слой включает ярко-серые и черные брахиоподовые известняки с прослоями оолитов и пизолитов, а также содержит ископаемые брахиоподы, трилобиты, кораллы и тентакулиты."
+ },
+ {
+  "doc_id": "2019_du_Bray_Petrographic_geochemical_and_geochronologic_data_for_cenozoic_volcanic_rocks_of_the_Tonopa",
+  "chunk_id": 61777,
+  "title": "Petrographic, geochemical, and geochronologic data for cenozoic volcanic rocks of the Tonopah, Divide, and Goldfield Mining Districts, Nevada",
+  "terms": 17,
+  "question": "Каков возраст минерализации в рудном поле Divide и какие минералы являются основными рудными?",
+  "answer": "Минерализация в рудном поле Divide происходила между 17,0 и 15,3 млн лет, основным рудным минералом является цераргирит, а также присутствуют сфалерит, аргентиферный галенит и другие."
+ },
+ {
+  "doc_id": "2019_Касаткин_Find_of_Kirkyite_at_the_Berezovsky_gold_ore_deposit_Middle_Urals",
+  "chunk_id": 64505,
+  "title": "Find of Kirkyite at the Berezovsky gold ore deposit (Middle Urals)",
+  "terms": 8,
+  "question": "Какие минералы содержатся в образце № 71444 из коллекции Минералогического музея им. А.Е. Ферсмана РАН?",
+  "answer": "В образце содержатся кварц, козалит, теннантит-(Zn) и пирит."
+ },
+ {
+  "doc_id": "2020_Ahmad_Imaging_deposition_and_self-assembly_of_CTAB_stabilized_gold_nanostructures",
+  "chunk_id": 64663,
+  "title": "Imaging, deposition, and self-assembly of CTAB stabilized gold nanostructures",
+  "terms": 4,
+  "question": "Какие методы позволяют детально изучить распределение CTAB на поверхности с золотыми нанородами?",
+  "answer": "Для изучения распределения CTAB на поверхности с золотыми нанородами используются атомно-силовая микроскопия (AFM), сканирующая туннельная микроскопия (STM), а также сканирующая электронная микроскопия (SEM) и ионная микроскопия (HIM)."
+ },
+ {
+  "doc_id": "2020_Askarova_PROCESSING_TECHNOLOGY_FOR_REFRACTORY_GOLD-BEARING_ORES",
+  "chunk_id": 64920,
+  "title": "PROCESSING TECHNOLOGY FOR REFRACTORY GOLD-BEARING ORES",
+  "terms": 11,
+  "question": "Какие особенности руд Казахстана ограничивают увеличение добычи золота?",
+  "answer": "Низкое содержание золота в рудах и сложность его извлечения из сульфидных руд, таких как пирит и арсенопирит, ограничивают рост добычи золота в Казахстане."
+ },
+ {
+  "doc_id": "2020_Pasqualino_Environmental_Life_Cycle_Assessment_for_a_Large-Scale_Gold_Mining",
+  "chunk_id": 67333,
+  "title": "Environmental Life Cycle Assessment for a Large-Scale Gold Mining",
+  "terms": 2,
+  "question": "Какие этапы производства золота рассматриваются при оценке экологического воздействия крупного рудника?",
+  "answer": "Рассматриваются этапы: разработка и добыча, выщелачивание и переработка, а также производство золота, серебра и ртути."
+ },
+ {
+  "doc_id": "2021_Ernawati_Effects_of_Small-Scale_Gold_Mining_SGM_to_Mercury_and_Nutrient_Contents_in_Soil_in_Kokap_S",
+  "chunk_id": 70054,
+  "title": "Effects of Small-Scale Gold Mining (SGM) to Mercury and Nutrient Contents in Soil in Kokap Subdistrict, Kulonprogo, Yogyakarta",
+  "terms": 2,
+  "question": "Какие методы ремедиации загрязнённых ртутию почв применяются в районе Дусун Сангон, Кулонпро戈?",
+  "answer": "Для ремедиации загрязнённых ртутию почв в районе Дусун Сангон важно сначала исследовать их исходное состояние, включая содержание ртути и качество питательных веществ, чтобы выбрать подходящие методы восстановления."
+ },
+ {
+  "doc_id": "2021_Glukhov_Typomorphism_of_сhromespinelides_from_the_Holocene_psephites_of_the_Kyvvozhskoye_gold-plac",
+  "chunk_id": 70362,
+  "title": "Typomorphism of сhromespinelides from the Holocene psephites of the Kyvvozhskoye gold-placer field (Volsko-Vymskaya ridge, Middle Timan)",
+  "terms": 18,
+  "question": "Какие геотектонические обстановки характерны для формирования хромшпинелидов Кыввожской площади?",
+  "answer": "Хромшпинелиды Кыввожской площади формировались в зонах субдукции и рифтовых зонах, а также в обстановках от пассивных до активных геотектонических режимов."
+ },
+ {
+  "doc_id": "2021_Idrus_Lithogeochemical_exploration_for_delineating_primary_gold_occurrences_in_West_Kao_area_Nor",
+  "chunk_id": 70727,
+  "title": "Lithogeochemical exploration for delineating primary gold occurrences in West Kao area, North Halmahera District, North Maluku Province",
+  "terms": 17,
+  "question": "Какой тип гидротермального месторождения может быть в районе реки Ngoali на основе текстуры кварцевых жил и минералогии?",
+  "answer": "В районе реки Ngoali, вероятно, образовалось месторождение низкого сульфидного эпитермального золота, как показали текстура кварцевых жил, типы гидротермального изменения пород и присутствие сульфидов."
+ },
+ {
+  "doc_id": "2021_Leung_Surface_Warping_Incorporating_Machine_Learning_Assisted_Domain_Likelihood_Estimation_A_New",
+  "chunk_id": 72395,
+  "title": "Surface Warping Incorporating Machine Learning Assisted Domain Likelihood Estimation: A New Paradigm in Mine Geology Modeling and Automation",
+  "terms": 6,
+  "question": "Какие химические признаки характеризуют долерит в железорудном месторождении?",
+  "answer": "Долерит в железорудном месторождении характеризуется содержанием Fe < 50%, Al2O3 ≥ 6% и TiO2 ≥ 1%."
+ },
+ {
+  "doc_id": "2021_Molua_Application_of_Multispectral_Remote_Sensing_in_Mapping_of_Mineral_Deposits",
+  "chunk_id": 72812,
+  "title": "Application of Multispectral Remote Sensing in Mapping of Mineral Deposits",
+  "terms": 13,
+  "question": "Какие минералы можно выявить с помощью ASTER данных в пустынных районах?",
+  "answer": "ASTER данные позволяют выявлять минералы, такие как алюнит, каолинит и гематит, в пустынных районах."
+ },
+ {
+  "doc_id": "2021_Prisca-Gaelle_Prospecting_of_Gold_Mineralization_Indices_in_the_Eastern_of_Meiganga_Adamawa_Region_Camer",
+  "chunk_id": 73146,
+  "title": "Prospecting of Gold Mineralization Indices in the Eastern of Meiganga (Adamawa Region, Cameroon)",
+  "terms": 15,
+  "question": "Какие минералы и породы характерны для вершины и подножия горы Fell и какова их структура?",
+  "answer": "На вершине горы Fell преобладает оливиновая базальт с порфировой микроструктурой, содержащий оливин, пироксен и фельдспары. На подножии горы Fell встречается риолит с порфировой и текучей остаточной микроструктурой, включающий кварц, сандинит и биотит."
+ },
+ {
+  "doc_id": "2021_Vilor_SULFOARSENIC_ORE_FORMATION_WITH_GOLD_INTO_THE_SHEAR_ZONE_OF_EAST_TRANSBAIKALIA_BRANCH_OF_T",
+  "chunk_id": 74350,
+  "title": "SULFOARSENIC ORE FORMATION WITH GOLD INTO THE SHEAR ZONE OF EAST TRANSBAIKALIA BRANCH OF THE MONGOL-OKHOTSK SUTURE (POGROMNOE DEPOSIT, EAST TRANSBAIKALIA, RUSSIA)",
+  "terms": 28,
+  "question": "Каковы условия формирования золотоносных руд в месторождении Погромное?",
+  "answer": "Золото образовалось в зоне смятия вдоль Монголо-Охотской сутуры в результате метасоматических процессов при температуре 350–150 °С в гидротермальном растворе с высокой концентрацией серы и мышьяка."
+ },
+ {
+  "doc_id": "2022_Dalil_Mineralogy_and_Geochemistry_of_Eteké_Eburnean_Gold_Deposit_Gabon",
+  "chunk_id": 75156,
+  "title": "Mineralogy and Geochemistry of Eteké Eburnean Gold Deposit (Gabon)",
+  "terms": 19,
+  "question": "Какие признаки указывают на метаморфизм вулканогенных руд в Овале?",
+  "answer": "Наличие кианита и мусковита, а также силицификация указывают на метаморфизм вулканогенных руд в Овале."
+ },
+ {
+  "doc_id": "2022_Deng_Learning_3D_mineral_prospectivity_from_3D_geological_models_using_convolutional_neural_net",
+  "chunk_id": 75244,
+  "title": "Learning 3D mineral prospectivity from 3D geological models using convolutional neural networks: Application to a structure-controlled hydrothermal gold deposit",
+  "terms": 8,
+  "question": "Какой метод позволяет автоматически оценивать факторы, влияющие на минерализацию, в рудном поле Даюньэчжужуан?",
+  "answer": "Метод 3D MPM с использованием CNN позволяет автоматически оценивать факторы минерализации и изучать корреляции между геологическими границами и локализацией руды."
+ },
+ {
+  "doc_id": "2022_Dorosh_Analysis_of_the_mineral_resource_base_of_gold_mining_in_the_Lena_gold-bearing_district_and",
+  "chunk_id": 75300,
+  "title": "Analysis of the mineral resource base of gold mining in the Lena gold-bearing district and substantiation of the development directions of placer mining methods",
+  "terms": 11,
+  "question": "Как связаны изменения содержания золота в песках Бодайбинского района с добычей и способами разработки?",
+  "answer": "Снижение содержания золота в песках Бодайбинского района происходило медленнее, чем прогнозировалось, и связано с уменьшением доли дражных запасов, где содержание золота ниже."
+ },
+ {
+  "doc_id": "2022_Kostylev_Models_of_Nominating_the_Mining_Objects_of_the_Ural_Gold_and_Rock_Crystal_Deposits_in_the",
+  "chunk_id": 76318,
+  "title": "Models of Nominating the Mining Objects of the Ural Gold and Rock Crystal Deposits in the Comparative Aspect",
+  "terms": 9,
+  "question": null,
+  "answer": null
+ },
+ {
+  "doc_id": "2022_Leal_Characterization_and_distribution_of_adularia_and_other_alteration_minerals_by_X-ray_diffr",
+  "chunk_id": 76492,
+  "title": "Characterization and distribution of adularia and other alteration minerals by X-ray diffraction analysis at the El Peñón Au-Ag epithermal deposit, northern Chile",
+  "terms": 19,
+  "question": "Какие минералы характерны для разных зон рудных жил в золото-серебряном месторождении?",
+  "answer": "В верхней зоне преобладают окисленные минералы, такие как флюорит, лимонит и церуссит, в средней — полупроводники и сульфосоли серебра, а в нижней — первичные сульфиды, включая пираргирит и галенит."
+ },
+ {
+  "doc_id": "2022_Myagkaya_GEOCHEMICAL_ASSESSMENT_OF_THE_POTENTIALLY_TOXIC_ELEMENTS_BACKGROUND_CONTENTS_IN_SOILS_IN_T",
+  "chunk_id": 76945,
+  "title": "GEOCHEMICAL ASSESSMENT OF THE POTENTIALLY TOXIC ELEMENTS BACKGROUND CONTENTS IN SOILS IN THE AREA OF THE SARALA GOLD ORE CLUSTER (THE REPUBLIC OF KHAKASSIA, RUSSIA)",
+  "terms": 8,
+  "question": "Какие статистические методы применяются для выявления геохимических аномалий в Саралинском золоторудном узле?",
+  "answer": "Для выявления геохимических аномалий применяется кластерный анализ, факторный анализ и метод главных компонент."
+ },
+ {
+  "doc_id": "2022_Nathwani_Machine_learning_for_geochemical_exploration_classifying_metallogenic_fertility_in_arc_mag",
+  "chunk_id": 77058,
+  "title": "Machine learning for geochemical exploration: classifying metallogenic fertility in arc magmas and insights into porphyry copper deposit formation",
+  "terms": 12,
+  "question": "Какие признаки помогают отличить плодородные гранитные породы от неплодородных в контексте медных порфировых месторождений?",
+  "answer": "Наиболее важными являются высокое содержание Al, низкое Mn, высокое Sr, высокое K и листрические паттерны редкоземельных элементов."
+ },
+ {
+  "doc_id": "2022_Prosvetov_Atomistic_modeling_of_thermal_effects_in_focused_electron_beam-induced_deposition_of_Me",
+  "chunk_id": 77430,
+  "title": "Atomistic modeling of thermal effects in focused electron beam-induced deposition of Me $$_2$$ 2 Au(tfac)",
+  "terms": 7,
+  "question": "Какие типы предшественников используются в FEBID и какова их структурная сложность?",
+  "answer": "В FEBID используются разные типы предшественников, такие как карбонилы, фосфинилы, галогениды и β-дикетонаты, с различной степенью сложности их геометрии и химических связей."
+ },
+ {
+  "doc_id": "2022_Rajabi_Mapping_Alterations_associated_with_Porphyry_Copper_Ores_using_ASTER_Multispectral_Imaging",
+  "chunk_id": 77599,
+  "title": "Mapping Alterations associated with Porphyry Copper Ores using ASTER Multispectral Imaging Based on Deep Learning",
+  "terms": 9,
+  "question": "Какие признаки гидротермальных изменений выделяются в Сарбисhe, Южный Хорасан, Иран, с помощью дистанционного зондирования?",
+  "answer": "В Сарбисhe, Южный Хорасан, Иран, с помощью дистанционного зондирования выделяются признаки гидротермальных изменений, связанных с медными рудами."
+ },
+ {
+  "doc_id": "2022_Wei_MRI-assessed_diaphragmatic_function_can_predict_frequent_acute_exacerbation_of_COPD_a_pros",
+  "chunk_id": 78485,
+  "title": "MRI-assessed diaphragmatic function can predict frequent acute exacerbation of COPD: a prospective observational study based on telehealth-based monitoring system",
+  "terms": 4,
+  "question": null,
+  "answer": null
+ },
+ {
+  "doc_id": "2022_Парада_Potentially_gold-bearing_mineralization_in_carbonaceous_rocks_of_the_Malka-Mushta_ore_node",
+  "chunk_id": 79593,
+  "title": "Potentially gold-bearing mineralization in carbonaceous rocks of the Malka-Mushta ore node (North Caucasus)",
+  "terms": 24,
+  "question": "Какие виды кварцевых прожилков и жил распространены в углеродистых сланцах и каковы их особенности?",
+  "answer": "Наиболее распространены кварцевые и кварц-полевошпатовые малосульфидные и убогосульфидные прожилки, состоящие из крупнозернистого кварца с небольшим содержанием сульфидов и иногда железо-магниевых карбонатов."
+ },
+ {
+  "doc_id": "2023_Austin_Geophysical_synthesis_of_Cloncurry_IOCG_Deposits_The_Influence_of_protolith_rheology_struc",
+  "chunk_id": 80172,
+  "title": "Geophysical synthesis of Cloncurry IOCG Deposits: The Influence of protolith, rheology, structural control and redox.",
+  "terms": 19,
+  "question": "Какие признаки магнитных аномалий и минералогические зоны характерны для рудного поля Монакофф?",
+  "answer": "Магнитная аномалия Монакофф линейна и параллельна стратиграфии, с высокой амплитудой в ядре и низкой — на периферии. В ядре преобладают магнитные минералы, такие как магнетит, а на периферии — гематит, что указывает на зонирование по окислительно-восстановительным условиям и температуре."
+ },
+ {
+  "doc_id": "2023_Borovikov_PHYSICO-CHEMICAL_CONDITIONS_FOR_THE_FORMATION_OF_PRODUCTIVE_MINERAL_ASSOCIATIONS_OF_GOLD_D",
+  "chunk_id": 80433,
+  "title": "PHYSICO-CHEMICAL CONDITIONS FOR THE FORMATION OF PRODUCTIVE MINERAL ASSOCIATIONS OF GOLD DEPOSITS OF THE TAIMYR-NORTH EARTH ORGEN",
+  "terms": 18,
+  "question": "Какие геологические комплексы и орогенезы связаны с кварцевыми рудопроявлениями Мининско-Большевистской зоны на западном Таймыре?",
+  "answer": "Рудопроявления Мининско-Большевистской зоны приурочены к зонально метаморфизованным пассивноокраинным флишоидным терригенным углеродистым комплексам и связаны с тиманским и позднепалеозойским орогенезом."
+ },
+ {
+  "doc_id": "2023_Chingwaru_An_underexploited_invisible_gold_resource_in_the_Archean_sulphides_of_the_Witwatersrand_ta",
+  "chunk_id": 80520,
+  "title": "An underexploited invisible gold resource in the Archean sulphides of the Witwatersrand tailings dumps",
+  "terms": 14,
+  "question": "Каковы основные геологические условия формирования золотых руд Витватерсранда?",
+  "answer": "Золото Витватерсранда образовалось в результате концентрации золотых зерен в конгломератах, а также последующей гидротермальной переработки в этих породах."
+ },
+ {
+  "doc_id": "2023_Garayp_A_modified_paleoplacer_model_for_the_metaconglomerate-hosted_gold_deposits_at_Jacobina_Bra",
+  "chunk_id": 81605,
+  "title": "A modified paleoplacer model for the metaconglomerate-hosted gold deposits at Jacobina, Brazil",
+  "terms": 26,
+  "question": "Какие минералы образовались в третьей стадии метаморфизма в метаконгломератах этого региона?",
+  "answer": "В третьей стадии образовались хлорит, пирофиллит, гематит, гидроксид железа и золото, а также вторичные сульфиды, такие как борнит, халкопирит и сфалерит."
+ },
+ {
+  "doc_id": "2023_Lenhare_Gold_ore_identification_in_Santa_Catarina_Gabbro_using_electrical_resistivity_tomography_E",
+  "chunk_id": 82925,
+  "title": "Gold ore identification in Santa Catarina Gabbro using electrical resistivity tomography (ERT) and visualization of mineralization in three dimensions, São Sepé, Rio Grande do Sul, Brazil",
+  "terms": 13,
+  "question": "Какие геофизические признаки указывают на возможную сульфидную минерализацию в габбро Сантакатарину?",
+  "answer": "Высокая резистивность и высокая заряжаемость указывают на возможную сульфидную минерализацию и зоны силицификации в габбро Сантакатарину."
+ },
+ {
+  "doc_id": "2023_Li_Possible_genetic_relationship_between_Mesozoic_magmatic_rocks_and_gold_mineralization_in_t",
+  "chunk_id": 83025,
+  "title": "Possible genetic relationship between Mesozoic magmatic rocks and gold mineralization in the Jiaodong Peninsula (Eastern China): constraints of magmatic evolution and physicochemical conditions",
+  "terms": 13,
+  "question": "Каковы минералогические особенности биотитового гранита из района Цуичжао в Шаньдуне?",
+  "answer": "Биотитовый гранит содержит кварц, плагиоклаз, полевой шпат, биотит и акцессорные минералы, имеет гнейсоподобную структуру и пегматитовые жилы."
+ },
+ {
+  "doc_id": "2023_Matar_Lineaments_as_a_tool_for_decision-making_in_the_optimal_location_of_boreholes_in_the_base",
+  "chunk_id": 83610,
+  "title": "Lineaments as a tool for decision-making in the optimal location of boreholes in the base zone: Case of the department of Abtouyour (republic of Chad)",
+  "terms": 7,
+  "question": "Какие методы используются для создания тематических карт рудоносности в районе изучения?",
+  "answer": "Для создания тематических карт используются автоматизированная обработка в Arc GIS, классификация спектральных данных с помощью ENVI и валидация на местности с использованием GPS и геофизических данных."
+ },
+ {
+  "doc_id": "2023_Pašava_Multi-stage_metal_enrichment_and_formation_of_gold_mineralization_in_black_shales_the_role",
+  "chunk_id": 84065,
+  "title": "Multi-stage metal enrichment and formation of gold mineralization in black shales: the role of high heat flow in a rift setting",
+  "terms": 15,
+  "question": "Какие геологические условия способствовали образованию золотых месторождений в Божемской Массе?",
+  "answer": "Золотые месторождения в Божемской Массе образовались в результате гидротермальной активности, связанной с магматизмом и метаморфизмом во время Варискской орогении, а также с перераспределением металлов."
+ },
+ {
+  "doc_id": "2023_Sassioui_Contribution_of_Remote_Sensing_to_the_Mapping_of_Lineaments_and_Ore-Mineral_Occurrences_in",
+  "chunk_id": 84434,
+  "title": "Contribution of Remote Sensing to the Mapping of Lineaments and Ore-Mineral Occurrences in the Taghbalt Region, Moroccan Eastern Anti-Atlas",
+  "terms": 12,
+  "question": "Какие признаки позволяют выделить рудные месторождения в районе Тагбальт?",
+  "answer": "Рудные месторождения в районе Тагбальт выделяются по наличию полиметаллической минерализации в осадочных породах ордоволического возраста, таких как бунхас, афилу н'кху и рич марзуг."
+ },
+ {
+  "doc_id": "2023_Wang_The_metallogenic_mechanism_of_the_Dadengge_gold_polymetallic_deposit_in_the_Jiaodong_Penin",
+  "chunk_id": 86004,
+  "title": "The metallogenic mechanism of the Dadengge gold polymetallic deposit in the Jiaodong Peninsula: Constraints from pyrite Rb-Sr dating, in situ S isotope and trace elements.",
+  "terms": 0,
+  "question": "Каков возраст и источник оруденения Дадэнге золото-полиметаллического месторождения?",
+  "answer": "Возраст оруденения Дадэнге месторождения составляет 109,8 ± 1,7 млн лет, а источником оруденения являются тектонические процессы региона."
+ },
+ {
+  "doc_id": "2023_anon_Indigenes_Perceptions_of_Gold_Mining_in_Their_Communities_A_Case_Study_of_Gold_Exploration",
+  "chunk_id": 80044,
+  "title": "Indigenes’ Perceptions of Gold Mining in Their Communities: A Case Study of Gold Exploration in Nadowli District of the Upper West Region of Ghana",
+  "terms": 3,
+  "question": "Каковы основные минеральные ресурсы Ганы и их роль в экономике страны?",
+  "answer": "Основные минеральные ресурсы Ганы включают золото, алмазы, бокситы и марганец, которые играют ключевую роль в экономике и государственном бюджете страны."
+ },
+ {
+  "doc_id": "2023_Парада_Lithogenetic_concept_of_gold_content_of_the_Black_shale_strata_and_its_application_to_the",
+  "chunk_id": 86712,
+  "title": "Lithogenetic concept of gold content of the Black shale strata and its application to the ore regions of Southern Russia",
+  "terms": 20,
+  "question": "Какие геологические условия способствуют образованию золотоносных черносланцевых толщ на Северном Кавказе?",
+  "answer": "Образование золотоносных черносланцевых толщ на Северном Кавказе связано с геодинамическими обстановками шельфа, континентального склона и океанического ложа, а также с литогенными минералообразующими системами, которые концентрируют рудное вещество в зависимости от фациальных условий седиментогенеза."
+ },
+ {
+  "doc_id": "2024_A_Hyperspectral_Mineralogical_Characterization_for_Geometallurgy",
+  "chunk_id": 86763,
+  "title": "Hyperspectral Mineralogical Characterization for Geometallurgy",
+  "terms": 3,
+  "question": "Как гиперспектральное изображение помогает в определении минералов и зон гидротермального изменения?",
+  "answer": "Гиперспектральное изображение позволяет создавать точные карты минералогии поверхностных пород, выявлять отдельные виды железных и глинистых минералов и получать данные о зонах гидротермального изменения."
+ },
+ {
+  "doc_id": "2024_Al-Sururi_Machine_Learning_Algorithms_for_Lithological_Mapping_Using_Landsat_9_Data_in_Central_Weste",
+  "chunk_id": 87072,
+  "title": "Machine Learning Algorithms for Lithological Mapping Using Landsat 9 Data in Central Western Highlands of Yemen",
+  "terms": 8,
+  "question": "Какие методы классификации использовали для определения литологических единиц в западных высоких землях Йемена?",
+  "answer": "Для определения литологических единиц в западных высоких землях Йемена использовали методы SVM и MLC с высокой точностью классификации."
+ },
+ {
+  "doc_id": "2024_Chugaev_Mantle-plume_model_for_the_Zun-Kholba_orogenic_gold_deposit_Eastern_Sayan_Russia_results_o",
+  "chunk_id": 87906,
+  "title": "Mantle-plume model for the Zun-Kholba orogenic gold deposit (Eastern Sayan, Russia): results of mineralogical, Rb-Sr and 40Ar-39Ar geochronological and Pb-Pb isotopic studies",
+  "terms": 29,
+  "question": "Какие геологические структуры контролируют образование руд в месторождении Зун-Холба?",
+  "answer": "Рудоконтролирующей и рудовмещающей структурой месторождения является зона сдвига, сопряженная с крупными шарьяжами, выполненными ультрабазитами."
+ },
+ {
+  "doc_id": "2024_Faigal_APPLICATION_OF_ETHALINE_DEEP_EUTECTIC_SOLVENT_FOR_DISSOLUTION_OF_GOLD_IN_SULFIDIC_REFRACTO",
+  "chunk_id": 88306,
+  "title": "APPLICATION OF ETHALINE DEEP EUTECTIC SOLVENT FOR DISSOLUTION OF GOLD IN SULFIDIC REFRACTORY ORE UNDER VARYING pH",
+  "terms": 5,
+  "question": "Как влияет pH на эффективность извлечения золота из устойчивых руд с использованием DES, таких как Ethaline?",
+  "answer": "pH играет важную роль в кинетике растворения и эффективности извлечения золота при использовании DES, так как он влияет на ионизацию компонентов и стабильность растворителей."
+ },
+ {
+  "doc_id": "2024_Junker_Data-mining_and_Extraction_the_gold_rush_of_AI_on_Indigenous_Languages",
+  "chunk_id": 89022,
+  "title": "Data-mining and Extraction: the gold rush of AI on Indigenous Languages",
+  "terms": 2,
+  "question": null,
+  "answer": ""
+ },
+ {
+  "doc_id": "2024_Kozhekenova_ANALYSIS_AND_DEVELOPMENT_PROSPECTS_OF_THE_GOLD_MINING_INDUSTRY_OF_KAZAKHSTAN_APPLICATION_O",
+  "chunk_id": 89262,
+  "title": "ANALYSIS AND DEVELOPMENT PROSPECTS OF THE GOLD MINING INDUSTRY OF KAZAKHSTAN: APPLICATION OF TECHNOLOGY FOR PRE-ENRICHMENT OF LOW-ASH ORES",
+  "terms": 8,
+  "question": "Какие факторы влияют на развитие золотодобывающей отрасли в Казахстане?",
+  "answer": "На развитие золотодобывающей отрасли в Казахстане влияют технологические, экономические и экологические аспекты, а также применение инновационных методов обогащения руды."
+ },
+ {
+  "doc_id": "2024_Makarov_Concentration_of_Chemical_Elements_in_the_Leaves_of_the_Salix_miyabeana_Seemen_Growing_in",
+  "chunk_id": 89683,
+  "title": "Concentration of Chemical Elements in the Leaves of the Salix miyabeana Seemen, Growing in the Area of the Tailings Dam of the Darasun Gold Deposit",
+  "terms": 11,
+  "question": "Какие элементы в почве и листьях ивы Миябе превышают кларк земной коры и наземных растений?",
+  "answer": "В почве превышают кларк земной коры As, Te, Bi. В листьях ивы Миябе превышают кларк наземных растений K, Sr, Ti, P, Zn, Ag, As и Cd."
+ },
+ {
+  "doc_id": "2024_Pribavkin_Cu_isotopes_in_minerals_of_the_Mikheevskoe_gold-copper-porphyry_deposit_Southern_Urals",
+  "chunk_id": 90762,
+  "title": "Cu isotopes in minerals of the Mikheevskoe gold-copper-porphyry deposit (Southern Urals)",
+  "terms": 20,
+  "question": "Каковы значения изотопного состава меди в рудах месторождения с разными типами минерализации?",
+  "answer": "В рудах вкрапленного и прожилково-вкрапленного типа значения δ 65 Cu варьируются от -0.64 до +0.68‰, а в рудах с карбонатной минерализацией — до 0.25‰."
+ },
+ {
+  "doc_id": "2024_Volkov_Conditions_of_Formation_of_the_Pavlik_GoldSulfideQuartz_Deposit_Northeast_of_Russia_Accord",
+  "chunk_id": 91742,
+  "title": "Conditions of Formation of the Pavlik Gold–Sulfide–Quartz Deposit (Northeast of Russia) According to a Study of Fluid Inclusions",
+  "terms": 20,
+  "question": "Какие геологические структуры контролируют размещение золотого месторождения Павлик в Яно-Колымском орогене?",
+  "answer": "Размещение месторождения Павлик контролируется второстепенной антиклинорией, осложнённой разломами севно-западного и севно-восточного простирания, а также обратными и тектоническими нарушениями."
+ },
+ {
+  "doc_id": "2024_Wang_Restrictions_on_gold_mineralization_by_zircon_oxygen_fugacity_from_the_Paleozoic-Mesozoic",
+  "chunk_id": 91892,
+  "title": "Restrictions on gold mineralization by zircon oxygen fugacity from the Paleozoic-Mesozoic magmatic rocks in the Zhangjiakou district, northern margin of the North China Craton",
+  "terms": 0,
+  "question": "Какова окислительная фугацитность магматических пород в районе Чжанцякэу и как она связана с золотоносностью?",
+  "answer": "Окислительная фугацитность в районе Чжанцякэу варьируется от +1,2 до +4,4 ΔFMQ, и средние и высокие значения способствуют миграции и обогащению золота и теллурия."
+ },
+ {
+  "doc_id": "2025_Aguirre‐Díaz_The_Guanajuato_resurgent_graben_caldera_Sierra_Madre_Occidental_central_México_revised_vol",
+  "chunk_id": 92845,
+  "title": "The Guanajuato resurgent graben caldera, Sierra Madre Occidental, central México: revised volcanic stratigraphy and geologic evolution",
+  "terms": 13,
+  "question": "Каковы особенности строения и состав буфы-игнimbрита в районе Церро Ла Буфа?",
+  "answer": "Буфа-игнimbрит представляет собой массовое светло-розовое или светло-серое образование с содержанием около 5 объемных % кристаллов, включая сандинит, кварц и редкий плагиоклаз и биотит. В его основании концентрируются литики различных литологий, а в верхней части наблюдается индурация кислого кремнезема."
+ },
+ {
+  "doc_id": "2025_Belay_Open_pit_design_for_improved_gold_recovery_at_Ula-Ulo_placer_deposit_in_Guji_southern_Ethi",
+  "chunk_id": 93645,
+  "title": "Open pit design for improved gold recovery at Ula-Ulo placer deposit in Guji, southern Ethiopia",
+  "terms": 5,
+  "question": "Какой уклон считается оптимальным для обеспечения устойчивости откосов в руднике Ula Ulo в Эфиопии?",
+  "answer": "Оптимальным уклоном для обеспечения устойчивости откосов в руднике Ula Ulo считается 35°, так как он обеспечивает баланс между структурной безопасностью и требованиями к разработке."
+ },
+ {
+  "doc_id": "2025_Effah_Gold_Au_as_a_by-product_of_porphyry_copper_deposit_mining",
+  "chunk_id": 94312,
+  "title": "Gold (Au) as a by-product of porphyry copper deposit mining",
+  "terms": 13,
+  "question": "Какие структурные элементы контролируют образование золотоносных руд в зонах разломов?",
+  "answer": "Структурные элементы, такие как разломы, трещины и контакты интрузивных тел, контролируют пути флюидов и осаждение золота и меди в зонах разломов."
+ },
+ {
+  "doc_id": "2025_Ganesamurthy_Investors_Perception_towards_Gold_ETFS_Gold_Bond_Gold_Deposits_and_Physical_Gold_in_Tamiln",
+  "chunk_id": 94695,
+  "title": "Investors Perception towards Gold ETFS, Gold Bond, Gold Deposits, and Physical Gold in Tamilnadu",
+  "terms": 2,
+  "question": null,
+  "answer": null
+ },
+ {
+  "doc_id": "2025_Gregorio_Integration_of_remote_sensing_and_GIS_for_mineral_exploration_and_resource_estimation_in_c",
+  "chunk_id": 94878,
+  "title": "Integration of remote sensing and GIS for mineral exploration and resource estimation in complex geological terrains",
+  "terms": 14,
+  "question": "Какие технологии позволяют эффективно идентифицировать перспективные районы для поиска руд в труднодоступных местах?",
+  "answer": "Дистанционное зондирование и ГИС позволяют обнаруживать минералогические признаки и геоморфологические индикаторы, связанные с образованием руд, что помогает выделять перспективные зоны до полевых работ."
+ },
+ {
+  "doc_id": "2025_Islam_Integrated_groundwater_quality_assessment_using_geochemical_modelling_and_machine_learning",
+  "chunk_id": 95156,
+  "title": "Integrated groundwater quality assessment using geochemical modelling and machine learning approach in Northern India",
+  "terms": 4,
+  "question": "Какой метод показал наилучшие результаты в прогнозе качества воды в районе Касганж?",
+  "answer": "Наилучшие результаты в прогнозе качества воды в районе Касганж показал метод Random Forest (RF) с высоким коэффициентом детерминации R² 0.951 и минимальными значениями ошибки."
+ },
+ {
+  "doc_id": "2025_Jun-wei_Metallogenic_characteristics_and_mineralization_of_supergiant_gold_deposits_223_t_in_the_n",
+  "chunk_id": 95386,
+  "title": "Metallogenic characteristics and mineralization of supergiant gold deposits (223 t) in the northeastern margin of the Jiaolai Basin, Shandong Province: A review",
+  "terms": 22,
+  "question": "Какие признаки окисления пород указывают на золотоносность в рудном поле Сонця-Гоу?",
+  "answer": "Основные признаки окисления пород в рудном поле Сонця-Гоу — березитизация и кремнитизация, которые тесно связаны с золотоносностью и служат важными индикаторами для поисков золотых руд."
+ },
+ {
+  "doc_id": "2025_Lerhris_Mapping_and_Structural_Analysis_of_Geological_Fractures_of_the_Tidili_Region_Morocco_Relat",
+  "chunk_id": 95956,
+  "title": "Mapping and Structural Analysis of Geological Fractures of the Tidili Region, Morocco, Related to South Atlas Fault Zone Using Remote Sensing on Landsat 9 OLI Imagery",
+  "terms": 17,
+  "question": "Какие признаки указывают на тектоническую активность в районе южного Атласского разлома?",
+  "answer": "Присутствие аplitовых жил, изменённых пород, гоетитовых включений и двух сетей диабазовых жил указывает на тектоническую активность и деформацию в районе южного Атласского разлома."
+ },
+ {
+  "doc_id": "2025_Meaza_Gold_mining_and_land_degradation_during_development_decades_in_Ethiopia_practices_impacts",
+  "chunk_id": 96342,
+  "title": "Gold mining and land degradation during development decades in Ethiopia: practices, impacts, and urgency for sustainable land restoration",
+  "terms": 12,
+  "question": "Какие металлы и химические вещества чаще всего загрязняют водные объекты в крупных золотых рудниках?",
+  "answer": "Водные объекты в крупных золотых рудниках загрязняются тяжелыми металлами, ртутью, цианидами, а также арсеником, вымывающимся из сульфидных руд."
+ },
+ {
+  "doc_id": "2025_New_Controls_of_copper_and_gold_distribution_in_the_Kucing_Liar_deposit_Ertsberg_mining_distri",
+  "chunk_id": 96768,
+  "title": "Controls of copper and gold distribution in the Kucing Liar deposit, Ertsberg mining district, West Papua, Indonesia",
+  "terms": 24,
+  "question": "Какие признаки указывают на смешение магматических и метеоритных флюидов в рудном поле?",
+  "answer": "Смешение флюидов проявляется в увеличении H2S относительно SO2, интенсивной сульфидации магнетита и отложении сульфидов, начиная с золотоносного халкопирита."
+ },
+ {
+  "doc_id": "2025_Parquer_Checking_the_consistency_of_3D_geological_models",
+  "chunk_id": 100853,
+  "title": "Checking the consistency of 3D geological models",
+  "terms": 9,
+  "question": "Какие основные геологические принципы учитываются при оценке временных и пространственных отношений между объектами?",
+  "answer": "Основные принципы включают позднее пересечение, суперпозицию, палеонтологическую идентичность, горизонтальность, позднее включение и боковую непрерывность."
+ },
+ {
+  "doc_id": "2025_Taylor_Critical_minerals_in_orogenic_gold_and_Coeur_dAlene-type_mineral_systems_of_the_United_Sta",
+  "chunk_id": 101896,
+  "title": "Critical minerals in orogenic (gold) and Coeur d’Alene-type mineral systems of the United States",
+  "terms": 30,
+  "question": null,
+  "answer": ""
+ },
+ {
+  "doc_id": "2025_Voroshilov_Geochemical_criteria_of_gold-bearing_content_of_weathering_crusts_of_the_Sukharinskoe_ore",
+  "chunk_id": 102417,
+  "title": "Geochemical criteria of gold-bearing content of weathering crusts of the Sukharinskoe ore field (Gornaya Shoria)",
+  "terms": 28,
+  "question": "Какие процессы привели к образованию золотоносных кор выветривания в Сухаринском рудном поле?",
+  "answer": "Линейные золотоносные коры выветривания в Сухаринском рудном поле образовались в результате процессов окисления золотоносных березит-сульфидно-кварцевых и магнетит-сульфидных руд на фоне формирования мезозойских кор выветривания площадного типа."
+ },
+ {
+  "doc_id": "2026_Bermaganbetova_Сomparative_analysis_of_heavy_metal_accumulation_in_human_hair_living_near_gold_mining_ent",
+  "chunk_id": 104422,
+  "title": "Сomparative analysis of heavy metal accumulation in human hair living near gold mining enterprise",
+  "terms": 10,
+  "question": "Какие полезные ископаемые и ресурсы характерны для Казахстана и каковы их влияние на окружающую среду?",
+  "answer": "Казахстан богат углеводородами, углем, ураном, железной рудой, медью, цинком и другими металлами, что привело к значительным экологическим последствиям, включая загрязнение воды и почвы, а также образование миллиардов тонн отходов."
+ },
+ {
+  "doc_id": "2026_Bhuyan_A_numerical_appraisal_of_the_fault-valve_model_of_origin_of_lode-type_gold_deposits",
+  "chunk_id": 104448,
+  "title": "A numerical appraisal of the ‘fault-valve’ model of origin of lode-type gold deposits",
+  "terms": 12,
+  "question": "Какие признаки характеризуют орогенные золотые месторождения в архее?",
+  "answer": "Орогенные золотые месторождения образуются в деформированных и метаморфизованных тектонических обстановках, связанных с субдукцией и формированием зон сдвигов, где происходит вынос и отложение золота."
+ },
+ {
+  "doc_id": "2026_Dakir_Ground_magnetic_survey_and_remote_sensing_for_structural_framework_analysis_and_hydrotherm",
+  "chunk_id": 105007,
+  "title": "Ground magnetic survey and remote sensing for structural framework analysis and hydrothermal alteration of copper mineralization in the Izeroualen Area, Western high Atlas, Morocco",
+  "terms": 13,
+  "question": "Какие структуры играют ключевую роль в локализации медных руд в регионе Изеруален?",
+  "answer": "В регионе Изеруален ключевую роль в локализации медных руд играют структуры, такие как разломы и зоны сдвигов, наследственные от герцинской и альпийской тектоники."
+ },
+ {
+  "doc_id": "2026_HA_Application_Of_Aeroradiometric_Data_To_Delineate_The_Hydrothermal_Alteration_Zones_For_Gol",
+  "chunk_id": 106461,
+  "title": "Application Of Aeroradiometric Data To Delineate The Hydrothermal Alteration Zones For Gold Exploration And Surface Geology In Parts Of Northwest Nigeria Schist Belt",
+  "terms": 15,
+  "question": "Какой признак позволяет эффективно определить зоны гидротермального выветривания?",
+  "answer": "Повышенное отношение K/Th указывает на гидротермальное выветривание, так как калий концентрируется в зонах рудоносности, а торий остаётся устойчивым к изменению."
+ },
+ {
+  "doc_id": "2026_Mir_Advanced_Integration_of_Aeromagnetic_Radiometric_and_Multispectral_Remote_Sensing_Data_for",
+  "chunk_id": 108329,
+  "title": "Advanced Integration of Aeromagnetic, Radiometric, and Multispectral Remote Sensing Data for Structural Characterization, Hydrothermal Alteration Mapping, and Mineral Prospectivity Modeling of Lithium–Cesium–Tantalum Pegmatites and Orogenic Gold in the Bo",
+  "terms": 21,
+  "question": "Какие геологические образования в районе Боргу, Нигерия, связаны с редкоземельными минералами?",
+  "answer": "Пегматиты в районе Боргу являются важными хост-породами для редкоземельных минералов, таких как литий, берилл и турмалин, ассоциированных с высокодифференцированными гранитными системами."
+ },
+ {
+  "doc_id": "2026_Mtetwa_Hybrid_geostatistical_and_machine_learning_for_gold_grade_estimation",
+  "chunk_id": 108530,
+  "title": "Hybrid geostatistical and machine learning for gold grade estimation",
+  "terms": 6,
+  "question": "Какие структурные факторы контролируют золотоносность в архее в зелёных сланцах Зимбабве?",
+  "answer": "Золотоносность контролируется зонами сдвигов и системами разломов, служившими путями для гидротермальных флюидов во время орогенических событий."
+ },
+ {
+  "doc_id": "2026_Wang_Explainable_convolutional_neural_network_for_iron_ore_prospectivity_mapping_a_case_study_o",
+  "chunk_id": 110590,
+  "title": "Explainable convolutional neural network for iron ore prospectivity mapping: a case study of the Yemaquan district, Qinghai, China",
+  "terms": 24,
+  "question": "Какие зоны контакта интрузивных тел с породами наиболее благоприятны для формирования крупных рудных тел?",
+  "answer": "Наиболее благоприятны зоны контакта с пологим погружением, где интрузивное тело покрывает породы, а также вогнутые участки контакта."
+ },
+ {
+  "doc_id": "2026_Zeng_Co-simulation_of_continuous_and_categorical_variables_application_in_the_Shuiyindong_gold",
+  "chunk_id": 110946,
+  "title": "Co-simulation of continuous and categorical variables: application in the Shuiyindong gold deposit modeling",
+  "terms": 8,
+  "question": "Какие особенности геологического строения мешают моделированию рудных тел в Шуйиньдунге?",
+  "answer": "В Шуйиньдунге рудные тела сложны из-за неоднородного метаморфизма, разрывных нарушений и многоэтапного гидротермального воздействия."
+ },
+ {
+  "doc_id": "None_Malta_Structural_control_and_genesis_of_the_Au-quartz_veins_from_the_Serra_do_Cavalo_Magro_oroge",
+  "chunk_id": 112528,
+  "title": "Structural control and genesis of the Au-quartz veins from the Serra do Cavalo Magro orogenic gold deposit, southern Ribeira Belt, Brazil",
+  "terms": 21,
+  "question": "Как образовались золото-кварцевые жилы в месторождении Сerra do Cavalo Magro?",
+  "answer": "Золото-кварцевые жилы образовались в результате последовательных малых приращений (механизм трещина-закрытие) в ответ на сейсмические процессы разломов, сопровождавшиеся чередованием хрупкой и вязкой деформации."
+ }
+]

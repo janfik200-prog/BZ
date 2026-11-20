@@ -1,0 +1,421 @@
+{
+ "filter_by_terms": {
+  "0": {
+   "labelled": 16,
+   "with_relations": 2,
+   "share": 0.125,
+   "ci": [
+    0.035,
+    0.36
+   ],
+   "population": 19512
+  },
+  "1": {
+   "labelled": 23,
+   "with_relations": 8,
+   "share": 0.34782608695652173,
+   "ci": [
+    0.188,
+    0.551
+   ],
+   "population": 12805
+  },
+  "2": {
+   "labelled": 22,
+   "with_relations": 12,
+   "share": 0.5454545454545454,
+   "ci": [
+    0.347,
+    0.731
+   ],
+   "population": 10715
+  },
+  "3": {
+   "labelled": 24,
+   "with_relations": 17,
+   "share": 0.7083333333333334,
+   "ci": [
+    0.508,
+    0.851
+   ],
+   "population": 9756
+  },
+  "4": {
+   "labelled": 24,
+   "with_relations": 18,
+   "share": 0.75,
+   "ci": [
+    0.551,
+    0.88
+   ],
+   "population": 9206
+  },
+  "5+": {
+   "labelled": 25,
+   "with_relations": 21,
+   "share": 0.84,
+   "ci": [
+    0.653,
+    0.936
+   ],
+   "population": 49916
+  }
+ },
+ "filter_thresholds": [
+  [
+   1,
+   19512,
+   0.174,
+   0.163,
+   0.964,
+   2439
+  ],
+  [
+   2,
+   32317,
+   0.289,
+   0.268,
+   0.899,
+   6893
+  ],
+  [
+   3,
+   43032,
+   0.385,
+   0.357,
+   0.814,
+   12737
+  ],
+  [
+   4,
+   52788,
+   0.472,
+   0.442,
+   0.713,
+   19648
+  ]
+ ],
+ "filter_recall_ci": {
+  "1": [
+   0.915,
+   1.0
+  ],
+  "2": [
+   0.843,
+   0.951
+  ],
+  "3": [
+   0.755,
+   0.87
+  ],
+  "4": [
+   0.651,
+   0.771
+  ]
+ },
+ "graph_coverage_of_relation_chunks": {
+  "point": 0.164,
+  "ci": [
+   0.059,
+   0.284
+  ],
+  "by_terms": {
+   "0": [
+    0,
+    2
+   ],
+   "1": [
+    0,
+    8
+   ],
+   "2": [
+    1,
+    12
+   ],
+   "3": [
+    0,
+    17
+   ],
+   "4": [
+    2,
+    18
+   ],
+   "5+": [
+    5,
+    21
+   ]
+  }
+ },
+ "filter_missed_examples": [
+  {
+   "row": 3,
+   "chunk_id": 34375,
+   "doc_id": "2007_Eppinger_Environmental_geochemical_study_of_Red_Mountain--an_undisturbed_volcanogenic_massive_sulfi",
+   "terms": 2,
+   "n_tokens": 311,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "Соли у ручья Ред-Маунтин содержат галотрихит и мелантерит. Осадок у Лаго-Крик содержит швертманнит."
+  },
+  {
+   "row": 4,
+   "chunk_id": 64383,
+   "doc_id": "2019_Wasis_Application_of_husk_charcoal_for_waste_risk_minimization_by_growing_Acacia_mangium_Willd_o",
+   "terms": 1,
+   "n_tokens": 271,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "В хвостах низкая ёмкость катионного обмена связана с низким содержанием глины."
+  },
+  {
+   "row": 20,
+   "chunk_id": 22429,
+   "doc_id": "1990_Kontak_Geological_and_40Ar39Ar_geochronological_constraints_on_the_timing_of_quartz_vein_formatio",
+   "terms": 1,
+   "n_tokens": 519,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "В амфиболе образца BD-87-61A измерены FeO и MgO."
+  },
+  {
+   "row": 38,
+   "chunk_id": 86047,
+   "doc_id": "2023_Wang_The_metallogenic_mechanism_of_the_Dadengge_gold_polymetallic_deposit_in_the_Jiaodong_Penin",
+   "terms": 0,
+   "n_tokens": 500,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "Пирит — основной минерал-носитель золота на месторождении Дадэнгэ. Он ассоциирует с халькопиритом, галенитом и сфалеритом."
+  },
+  {
+   "row": 47,
+   "chunk_id": 102874,
+   "doc_id": "2025_Yussupova_Determination_of_the_optimal_technological_regime_and_parameters_of_the_cyanidation_proces",
+   "terms": 1,
+   "n_tokens": 306,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "Флотационные концентраты из руд Центрального Казахстана содержат упорные минералы и углистое вещество."
+  },
+  {
+   "row": 50,
+   "chunk_id": 39326,
+   "doc_id": "2012_Box_Sandstone_copper_assessment_of_the_Chu-Sarysu_Basin_Central_Kazakhstan_Chapter_E_in_iGloba",
+   "terms": 2,
+   "n_tokens": 109,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "Пенсильванские отложения находятся в северо-западной части Чу-Сарысуйского бассейна, в суббассейне Кокпансор."
+  },
+  {
+   "row": 59,
+   "chunk_id": 71255,
+   "doc_id": "2021_Kalinin_Mineralogy_and_genesis_of_the_Oleninskoe_gold_deposit_Kola_Peninsula",
+   "terms": 2,
+   "n_tokens": 550,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "Серебро входит в состав дискразита и ауростибита."
+  },
+  {
+   "row": 61,
+   "chunk_id": 45114,
+   "doc_id": "2014_Bookstrom_Porphyry_copper_assessment_of_eastern_Australia_Chapter_L_in_Global_mineral_resource_asses",
+   "terms": 2,
+   "n_tokens": 520,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "Микрогранит Катерпиллар имеет каменноугольный возраст."
+  },
+  {
+   "row": 79,
+   "chunk_id": 58896,
+   "doc_id": "2018_Kazachenko_Au-Ag-Pd-Pt_mineralization_in_sedimentary_rocks_associated_with_Triassic_carbonaceous_sili",
+   "terms": 1,
+   "n_tokens": 516,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "Яшмы вмещают системы прожилков."
+  },
+  {
+   "row": 89,
+   "chunk_id": 95188,
+   "doc_id": "2025_Islam_Integrated_groundwater_quality_assessment_using_geochemical_modelling_and_machine_learning",
+   "terms": 1,
+   "n_tokens": 517,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "В бассейне Ганги в районе Касганджа фториды и общая минерализация слабо отрицательно коррелируют."
+  },
+  {
+   "row": 96,
+   "chunk_id": 26057,
+   "doc_id": "1992_Robinson_Bedrock_geology_and_mineral_resources_of_the_Knoxville_1_x_2_quadrangle_Tennessee_North_Ca",
+   "terms": 2,
+   "n_tokens": 523,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "В сапролите по амфиболиту определены палладий и платина."
+  },
+  {
+   "row": 101,
+   "chunk_id": 44169,
+   "doc_id": "2013_Taylor_Descriptive_models_grade-tonnage_relations_and_databases_for_the_assessment_of_sediment-ho",
+   "terms": 2,
+   "n_tokens": 191,
+   "facts_stored": 2,
+   "facts_graph": 0,
+   "relations": "К одному рудному объекту Конкола–Мушоши относятся месторождения Фитваола и Конкола."
+  },
+  {
+   "row": 105,
+   "chunk_id": 17694,
+   "doc_id": "1987_Johnson_Placer_Gold_Deposits_of_Arizona",
+   "terms": 2,
+   "n_tokens": 479,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "Золотоносные гравии залегают на склонах гор Кихотоа."
+  },
+  {
+   "row": 109,
+   "chunk_id": 65773,
+   "doc_id": "2020_Chiaradia_Gold_endowments_of_porphyry_deposits_controlled_by_precipitation_efficiency",
+   "terms": 1,
+   "n_tokens": 467,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "Растворимость воды в гибридном расплаве зависит от давления и доли расплава."
+  },
+  {
+   "row": 114,
+   "chunk_id": 24441,
+   "doc_id": "1991_Yeend_Gold_placers_of_the_Circle_District_Alaska_past_present_and_future",
+   "terms": 2,
+   "n_tokens": 255,
+   "facts_stored": 3,
+   "facts_graph": 2,
+   "relations": "Золото в коллювии района Серкл предположительно частично поступило из золотоносных террасовых гравиев."
+  },
+  {
+   "row": 116,
+   "chunk_id": 27317,
+   "doc_id": "1992_Zlatopolsky_Program_LESSA_Lineament_Extraction_and_Stripe_Statistical_Analysis_automated_linear_image",
+   "terms": 0,
+   "n_tokens": 442,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "В перикратонной гидрогеологической провинции Гвианского щита преобладают гнейсы."
+  },
+  {
+   "row": 118,
+   "chunk_id": 38186,
+   "doc_id": "2011_Mallast_Derivation_of_groundwater_flow-paths_based_on_semi-automatic_extraction_of_lineaments_from",
+   "terms": 2,
+   "n_tokens": 371,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "По линеаментам определяют возможные пути движения подземных вод."
+  },
+  {
+   "row": 120,
+   "chunk_id": 31677,
+   "doc_id": "1999_Boleneus_Geologic_datasets_for_weights-of-evidence_analysis_in_northeast_Washington_2_Mineral_datab",
+   "terms": 1,
+   "n_tokens": 515,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "Золотые россыпи Боулдер-Крик и Браунс-Лейк привязаны к указанным координатам."
+  },
+  {
+   "row": 124,
+   "chunk_id": 105458,
+   "doc_id": "2026_Dentelbeck_Lithogeochemical_Discrimination_and_Classification_of_Archean_Shales_in_Volcanic_Assemblag",
+   "terms": 2,
+   "n_tokens": 563,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "Графитистый аргиллит содержит вкраплённый пирит."
+  },
+  {
+   "row": 138,
+   "chunk_id": 101336,
+   "doc_id": "2025_Serdaliyev_Improvement_of_blasting_technology_at_gold-ore_mining_enterprises_using_contour_blasting",
+   "terms": 1,
+   "n_tokens": 476,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "Рудное тело № 3 содержит золото."
+  },
+  {
+   "row": 139,
+   "chunk_id": 3658,
+   "doc_id": "1955_Armstrong_Uranium-bearing_minerals_in_placer_deposits_of_the_Red_River_Valley_Elk_City_district_Idah",
+   "terms": 2,
+   "n_tokens": 128,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "Пойменные гравии Ред-Ривер предположительно сложены переотложенными террасовыми и послеледниковыми гравиями."
+  },
+  {
+   "row": 141,
+   "chunk_id": 50263,
+   "doc_id": "2015_Vikre_Gold-silver_mining_districts_alteration_zones_and_paleolandforms_in_the_Miocene_Bodie_Hill",
+   "terms": 2,
+   "n_tokens": 514,
+   "facts_stored": 0,
+   "facts_graph": 0,
+   "relations": "Кварц-алунитовая брекчия образца RW08-1 содержит алунит."
+  }
+ ],
+ "typing_wrongly_excluded": {
+  "labelled": 54,
+  "ones": 37,
+  "share": 0.685,
+  "ci": [
+   0.553,
+   0.793
+  ],
+  "population": 39073
+ },
+ "negation_correct": {
+  "labelled": 90,
+  "ones": 89,
+  "share": 0.989,
+  "ci": [
+   0.94,
+   0.998
+  ]
+ },
+ "modality_hedge": {
+  "labelled": 93,
+  "ones": 45,
+  "share": 0.484,
+  "ci": [
+   0.385,
+   0.584
+  ]
+ },
+ "typing_by_reason": {
+  "связь": [
+   5,
+   6
+  ],
+  "не о геологии": [
+   11,
+   24
+  ],
+  "виды концов не подходят к типу": [
+   11,
+   12
+  ],
+  "объект без названия": [
+   6,
+   7
+  ],
+  "не предмет": [
+   4,
+   5
+  ]
+ }
+}
