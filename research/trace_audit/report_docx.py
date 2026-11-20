@@ -27,19 +27,56 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT))
 RES = HERE / "results"
 S = json.loads((RES / "summary.json").read_text("utf-8"))
+# Шаблон для другой базы: числа, зависящие от базы, — «[ПК2]» (жёлтым), их вписывают из
+# results/summary.json той базы. Проверка на 120 размеченных связях от базы не зависит.
+TEMPLATE = "--template" in sys.argv
+MARK = "[ПК2]"
+
+
+class X:
+    """Числа ещё нет: любое обращение — снова X, в тексте — «[ПК2]»."""
+
+    def __getitem__(self, k):
+        return X()
+
+    def get(self, *a):
+        return X()
+
+    def items(self):
+        return []
+
+    def __add__(self, o):
+        return X()
+
+    __radd__ = __sub__ = __rsub__ = __add__
+
+    def __bool__(self):
+        return True
+
+    def __str__(self):
+        return MARK
+
+    def __format__(self, spec):
+        return MARK
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 
 # --------------------------------------------------------------------------- числа
 def n(x: int) -> str:
+    if isinstance(x, X):
+        return MARK
     return f"{x:,}".replace(",", " ")
 
 
 def p(x: float | None) -> str:
+    if isinstance(x, X):
+        return MARK
     return "—" if x is None else f"{x:.1f}".replace(".", ",")
 
 
 def frac(d: dict) -> str:
+    if isinstance(d, X):
+        return f"{MARK} из {MARK} ({MARK} %)"
     return f"{n(d['k'])} из {n(d['n'])} ({p(d['pct'])} %)"
 
 
@@ -49,10 +86,14 @@ TER = S["территория"]
 TRA = S["прозрачность"]
 GR = S["обоснованность"]
 GOLD = S["проверка на разметке"]
-CHAT = S.get("чат-бот")
+CHAT = None  # ответы чат-бота в отчёт не входят
+if TEMPLATE:
+    TR = TG = TER = TRA = GR = X()
 
 
 def corpus() -> dict:
+    if TEMPLATE:
+        return {"docs": X(), "chunks": X(), "example": "template"}
     import psycopg
 
     dsn = "postgresql://georag:georag@127.0.0.1:5433/georag?options=-c%20default_transaction_read_only%3Don"
@@ -84,6 +125,25 @@ def example(c) -> dict:
 
 
 # --------------------------------------------------------------------------- оформление
+def runs_of(par, text: str, rpr, tab: bool = False) -> None:
+    """Текст абзаца прогонами; «[ПК2…]» — жёлтой заливкой."""
+    parts = [x for x in re.split(r"(\[ПК2[^\]]*\])", text) if x] or [""]
+    for j, part in enumerate(parts):
+        r = etree.SubElement(par, qn("w:r"))
+        rp = copy.deepcopy(rpr) if rpr is not None else None
+        if part.startswith("[ПК2"):
+            if rp is None:
+                rp = etree.Element(qn("w:rPr"))
+            etree.SubElement(rp, qn("w:highlight")).set(qn("w:val"), "yellow")
+        if rp is not None:
+            r.append(rp)
+        if tab and j == 0:
+            etree.SubElement(r, qn("w:tab"))
+        t = etree.SubElement(r, qn("w:t"))
+        t.text = part
+        t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+
+
 class Doc:
     def __init__(self, src: str) -> None:
         self.d = docx.Document(src)
@@ -123,14 +183,7 @@ class Doc:
             if child.tag != qn("w:pPr"):
                 el.remove(child)
         for i, part in enumerate(text.split("\t")):
-            r = etree.SubElement(el, qn("w:r"))
-            if rpr is not None:
-                r.append(copy.deepcopy(rpr))
-            if i:
-                etree.SubElement(r, qn("w:tab"))
-            t = etree.SubElement(r, qn("w:t"))
-            t.text = part
-            t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+            runs_of(el, part, rpr, tab=bool(i))
         return el
 
     def add(self, style: str, text: str) -> None:
@@ -176,10 +229,7 @@ class Doc:
                     par.find(qn("w:pPr")).remove(jc)
                 for r in par.findall(qn("w:r")):
                     par.remove(r)
-                r = etree.SubElement(par, qn("w:r"))
-                t = etree.SubElement(r, qn("w:t"))
-                t.text = val
-                t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+                runs_of(par, val, None)
                 tr.append(tc)
             tbl.append(tr)
         self.sect.addprevious(tbl)
@@ -359,7 +409,16 @@ def write(src: str, out: str, pages: dict[str, int], total: int, n_tables: int) 
         ["Ответ чат-бота", "Модель", "Номер фрагмента у каждого утверждения"],
         ["Сверка ссылок", "Модель отвечает, программа применяет", "Убранные утверждения, отказ от ответа"],
     ])
-    if ex:
+    if ex == "template":
+        M = "[ПК2: связь из results/facts.csv — в графе, «подтверждена», территория из цитаты]"
+        D.text("В таблице 2 показана цепочка происхождения одной связи графа. Связь можно проследить до "
+               "страницы публикации и предложения; результат каждой проверки сохранён.")
+        D.table("Таблица 2 – Цепочка происхождения связи", [2700, 6655], [
+            ["Звено", "Запись"], ["Публикация", M], ["Страница, раздел", MARK], ["Цитата", MARK],
+            ["Связь", MARK],
+            ["Проверка по предложению", "оба объекта названы; отрицания, прежнего мнения и легенды нет"],
+            ["Контрольные вопросы", f"совпали {MARK} ответа из 4"], ["Территория", f"{MARK} (по цитате)"]])
+    elif ex:
         sect = " / ".join(ex["headings"][-1:]) or "—"
         D.text("В таблице 2 показана цепочка происхождения одной связи графа. Связь можно проследить до "
                "страницы публикации и предложения; результат каждой проверки сохранён.")
@@ -412,12 +471,13 @@ def write(src: str, out: str, pages: dict[str, int], total: int, n_tables: int) 
            f"приведены в таблице {t}.")
     top = list(reasons.items())[:8]
     other = rej - sum(v for _, v in top)
+    rows = ([["[ПК2: причина из «причины отказа кода»]", MARK]] * 8 if TEMPLATE
+            else [[k[:1].upper() + k[1:], n(v)] for k, v in top])
     D.table(f"Таблица {t} – Причины отклонения связей программой", [6955, 2400], [
-        ["Причина", "Число связей"], *[[k[:1].upper() + k[1:], n(v)] for k, v in top],
-        ["Прочие причины", n(other)]])
+        ["Причина", "Число связей"], *rows, ["Прочие причины", n(other)]])
+    first = "[ПК2: первая причина]" if TEMPLATE else (list(reasons)[0] if reasons else "—")
     v34 = votes.get("3 из 4", 0) + votes.get("4 из 4", 0)
-    D.text(f"Половина отказов приходится на связи, у которых один из объектов не назван в предложении-"
-           f"основании. Контрольными вопросами при построении проверили {n(TR['связей'])} принятых связей; "
+    D.text(f"Чаще всего программа отклоняла связи по причине «{first}». Контрольными вопросами при построении проверили {n(TR['связей'])} принятых связей; "
            f"не менее трёх ответов из четырёх совпали у {n(v34)}. В граф вошли {frac(in_graph)} связей, "
            f"остальные хранятся как кандидаты вместе с цитатой и числом совпавших ответов.")
 
@@ -465,10 +525,16 @@ def write(src: str, out: str, pages: dict[str, int], total: int, n_tables: int) 
                f"{ch['отказов «в базе нет»']['k']}. Сверка ссылок убрала "
                f"{ch['утверждений убрано сверкой ссылок']} утверждений в "
                f"{ch['ответов, где сверка что-то убрала']['k']} ответах.")
-        D.text("Сверка ошибается в сторону удаления. В ответе на вопрос о прогнозно-поисковой модели рудного "
-               "узла она убрала определение рудного узла, хотя оно близко передавало текст статьи "
-               "Геологического словаря. Неверное удаление сокращает ответ, но не вводит в заблуждение; "
-               "точность сверки на независимой выборке ещё предстоит измерить.")
+        if TEMPLATE:
+            D.text("Сверка ошибается в сторону удаления: она может убрать утверждение, которое фрагмент "
+                   "подтверждает. Неверное удаление сокращает ответ, но не вводит в заблуждение; точность "
+                   "сверки на независимой выборке ещё предстоит измерить. [ПК2: пример убранного "
+                   "утверждения из results/chat.csv, если сверка что-то убрала]")
+        else:
+            D.text("Сверка ошибается в сторону удаления. В ответе на вопрос о прогнозно-поисковой модели "
+                   "рудного узла она убрала определение рудного узла, хотя оно близко передавало текст "
+                   "статьи Геологического словаря. Неверное удаление сокращает ответ, но не вводит в "
+                   "заблуждение; точность сверки на независимой выборке ещё предстоит измерить.")
 
     # ---------------------------------------------------------------- 1.4
     D.h(1, H["14"])
@@ -501,9 +567,8 @@ def write(src: str, out: str, pages: dict[str, int], total: int, n_tables: int) 
            "рассматривает противоречия внутри одного фрагмента. Сообщение об отказе не различает "
            "отсутствие публикаций в базе и пропуск при поиске. Тестовые вопросы составлены по статьям "
            "самой базы.")
-    D.text("В дальнейшей работе проверки предстоит повторить на коллекции около 2 000 публикаций, для которой "
-           "граф строится заново, разметить выборку связей графа Qwen3-8B, оценить точность территориальной "
-           "метки и точность сверки ссылок на независимой выборке.")
+    D.text("В дальнейшей работе предстоит разметить выборку связей графа Qwen3-8B, оценить точность "
+           "территориальной метки и точность сверки ссылок на независимой выборке.")
     D.text("Полную цепочку происхождения предстоит проверить с участием геологов. В протоколе эксперту "
            "предъявляют утверждение из ответа и указанную ссылку. Эксперт находит цитату, оценивает, "
            "подтверждает ли она утверждение, и сверяет оговорку, отрицание и место наблюдения. Для каждого "
@@ -513,7 +578,7 @@ def write(src: str, out: str, pages: dict[str, int], total: int, n_tables: int) 
     D.front("ЗАКЛЮЧЕНИЕ")
     D.text(f"Для {p(TR['цитата найдена в тексте фрагмента']['pct'])} % связей графа цепочка «связь — цитата — "
            f"фрагмент — публикация — страница» восстанавливается по сохранённым записям. Территорию "
-           f"определили для {p(ter_ok['pct'])} % связей, но больше половины меток взято из названия статьи.")
+           f"определили для {p(ter_ok['pct'])} % связей, для {n(title_t)} из них — по названию статьи.")
     D.text(f"Каждое решение программы записывается вместе с причиной: из выписанных моделью связей программа "
            f"отклонила {n(rej)}, в граф вошли {n(in_graph['k'])} связей, подтверждённых контрольными вопросами "
            f"или повтором в другой публикации.")
@@ -556,7 +621,7 @@ H = {
     "142": "1.4.2 Что объясняет система",
     "15": "1.5 Ограничения метода и направления дальнейшей работы",
 }
-H_ALL = [v for k, v in H.items() if k != "134" or S.get("чат-бот")]
+H_ALL = [v for k, v in H.items() if k != "134" or CHAT]
 
 
 def render_pages(path: str) -> tuple[dict[str, int], int]:
